@@ -7,6 +7,7 @@ import os
 import requests
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
+from urllib.parse import urlencode
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -60,7 +61,7 @@ class WhoopAPIClient:
         if state:
             params['state'] = state
 
-        query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+        query_string = urlencode(params)
         return f"{self.AUTH_URL}?{query_string}"
 
     def exchange_code_for_token(self, code: str) -> Dict:
