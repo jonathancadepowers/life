@@ -9,21 +9,24 @@ A personal data aggregation and visualization platform to track various aspects 
 - **Custom Reporting**: View and analyze your data with custom visualizations
 - **Django Admin**: Built-in admin interface for data management
 
-## Planned Integrations
+## Integrations
 
-- Exercise tracking (Whoop API)
+### Currently Available
+- **Exercise tracking (Whoop API)** - Sync workout data including heart rate, calories, and activity types
+
+### Planned
 - Weight tracking
 - Food consumption tracking
 - Fasting tracking
 
 ## Tech Stack
 
-- **Backend**: Django 5.0
+- **Backend**: Django 4.2 LTS
 - **Database**: SQLite (development), PostgreSQL (production)
 - **Frontend**: Django Templates + Bootstrap 5
-- **API**: Django REST Framework
-- **Task Queue**: Celery + Redis
-- **Visualization**: Chart.js / Plotly
+- **API Integration**: Whoop API v2
+- **Task Queue**: Celery + Redis (for future scheduled syncs)
+- **Visualization**: Chart.js / Plotly (planned)
 
 ## Setup Instructions
 
@@ -71,6 +74,18 @@ python manage.py runserver
 
 7. Visit http://127.0.0.1:8000/ in your browser
 
+## Whoop Integration Setup
+
+To sync your workout data from Whoop, follow the detailed setup guide:
+
+**[Whoop API Integration Setup Guide](WHOOP_SETUP.md)**
+
+Quick start:
+1. Register your app at https://developer.whoop.com/
+2. Add credentials to `.env` file
+3. Run `python manage.py whoop_auth` to authenticate
+4. Run `python manage.py sync_whoop` to sync workouts
+
 ## Development
 
 ### Project Structure
@@ -78,9 +93,15 @@ python manage.py runserver
 ```
 life/
 ├── lifetracker/        # Main Django project settings
+├── workouts/           # Workout tracking app
+│   ├── models.py       # Workout data model
+│   ├── admin.py        # Django admin configuration
+│   ├── services/       # API clients (Whoop, etc.)
+│   └── management/     # Custom management commands
 ├── manage.py           # Django management script
 ├── requirements.txt    # Python dependencies
-└── README.md          # This file
+├── README.md          # This file
+└── WHOOP_SETUP.md     # Whoop integration guide
 ```
 
 ### Running Tests

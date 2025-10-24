@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Workout
+from .sport_ids import get_sport_name
 
 
 @admin.register(Workout)
@@ -7,7 +8,7 @@ class WorkoutAdmin(admin.ModelAdmin):
     list_display = (
         'start',
         'source',
-        'sport_id',
+        'sport_name_display',
         'duration_display',
         'average_heart_rate',
         'max_heart_rate',
@@ -42,6 +43,12 @@ class WorkoutAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def sport_name_display(self, obj):
+        """Display human-readable sport name"""
+        return get_sport_name(obj.sport_id)
+    sport_name_display.short_description = 'Sport'
+    sport_name_display.admin_order_field = 'sport_id'
 
     def duration_display(self, obj):
         """Display workout duration in readable format"""
