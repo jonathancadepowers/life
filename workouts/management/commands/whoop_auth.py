@@ -9,6 +9,7 @@ Usage:
 from django.core.management.base import BaseCommand
 from workouts.services.whoop_client import WhoopAPIClient
 import os
+import secrets
 
 
 class Command(BaseCommand):
@@ -21,8 +22,11 @@ class Command(BaseCommand):
         try:
             client = WhoopAPIClient()
 
+            # Generate a secure random state parameter (required by Whoop)
+            state = secrets.token_urlsafe(16)
+
             # Generate authorization URL
-            auth_url = client.get_authorization_url()
+            auth_url = client.get_authorization_url(state=state)
 
             self.stdout.write('\nStep 1: Visit this URL in your browser:')
             self.stdout.write(self.style.HTTP_INFO(auth_url))
@@ -30,8 +34,11 @@ class Command(BaseCommand):
             self.stdout.write('\nStep 2: Log in to Whoop and authorize the application')
             self.stdout.write('Step 3: After authorization, you will be redirected to your redirect URI')
             self.stdout.write('        with a "code" parameter in the URL')
+            self.stdout.write('        (You may see a 404 error page - that\'s OK! Just copy the code from the URL)')
 
             self.stdout.write('\nStep 4: Copy the authorization code from the URL')
+            self.stdout.write('        Example URL: http://localhost:8000/whoop/callback?code=ABC123...')
+            self.stdout.write('        You want to copy just the part after "code="\n')
             auth_code = input('\nPaste the authorization code here: ').strip()
 
             if not auth_code:
