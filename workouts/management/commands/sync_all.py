@@ -3,8 +3,8 @@ Django management command to sync all data sources.
 
 This master sync command orchestrates syncing data from all configured sources:
 - Whoop workouts
+- Withings weight measurements
 - Future: Food tracking
-- Future: Weight tracking
 - Future: Fasting tracking
 
 Usage:
@@ -50,12 +50,11 @@ class Command(BaseCommand):
         # Sync Whoop workouts
         results['whoop'] = self._sync_whoop(days)
 
-        # Future data sources (to be implemented)
+        # Sync Withings weight measurements
         if not whoop_only:
+            results['withings'] = self._sync_withings(days)
             # results['food'] = self._sync_food(days)
-            # results['weight'] = self._sync_weight(days)
             # results['fasting'] = self._sync_fasting(days)
-            pass
 
         # Summary
         end_time = datetime.now()
@@ -80,7 +79,7 @@ class Command(BaseCommand):
 
     def _sync_whoop(self, days):
         """Sync Whoop workout data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[1/1] Syncing Whoop workouts...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[1/2] Syncing Whoop workouts...'))
 
         try:
             # Call the sync_whoop command
@@ -100,19 +99,28 @@ class Command(BaseCommand):
                 'message': f'Failed: {str(e)}'
             }
 
+    def _sync_withings(self, days):
+        """Sync Withings weight data."""
+        self.stdout.write(self.style.HTTP_INFO('\n[2/2] Syncing Withings weight measurements...'))
+
+        try:
+            # Call the sync_withings command
+            call_command('sync_withings', days=days, verbosity=0)
+
+            return {
+                'success': True,
+                'message': f'Successfully synced Withings data (last {days} days)'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Failed: {str(e)}'
+            }
+
     def _sync_food(self, days):
         """Sync food tracking data (placeholder for future implementation)."""
-        self.stdout.write(self.style.HTTP_INFO('\n[2/4] Syncing food data...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing food data...'))
         self.stdout.write(self.style.WARNING('  Food tracking not yet implemented'))
-        return {
-            'success': True,
-            'message': 'Not yet implemented'
-        }
-
-    def _sync_weight(self, days):
-        """Sync weight tracking data (placeholder for future implementation)."""
-        self.stdout.write(self.style.HTTP_INFO('\n[3/4] Syncing weight data...'))
-        self.stdout.write(self.style.WARNING('  Weight tracking not yet implemented'))
         return {
             'success': True,
             'message': 'Not yet implemented'
