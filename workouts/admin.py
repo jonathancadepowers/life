@@ -27,7 +27,6 @@ class WorkoutAdmin(admin.ModelAdmin):
             'fields': (
                 'start',
                 'end',
-                'timezone_offset',
                 'sport_id',
             )
         }),

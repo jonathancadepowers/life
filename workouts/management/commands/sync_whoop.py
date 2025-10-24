@@ -138,7 +138,6 @@ class Command(BaseCommand):
         workout_defaults = {
             'start': start_time,
             'end': end_time,
-            'timezone_offset': workout_data.get('timezone_offset', '+00:00'),
             'sport_id': workout_data.get('sport_id', 0),
             'average_heart_rate': score.get('average_heart_rate'),
             'max_heart_rate': score.get('max_heart_rate'),

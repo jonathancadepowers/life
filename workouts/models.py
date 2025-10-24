@@ -20,10 +20,6 @@ class Workout(models.Model):
     end = models.DateTimeField(
         help_text="Workout end time"
     )
-    timezone_offset = models.CharField(
-        max_length=10,
-        help_text="Timezone offset (e.g., '+00:00')"
-    )
     sport_id = models.IntegerField(
         help_text="Sport/activity type ID"
     )
