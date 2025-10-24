@@ -86,6 +86,79 @@ Quick start:
 3. Run `python manage.py whoop_auth` to authenticate
 4. Run `python manage.py sync_whoop` to sync workouts
 
+## Syncing Data
+
+### Master Sync Command
+
+Use the `sync_all` command to sync data from all configured sources:
+
+```bash
+# Sync last 30 days from all sources
+python manage.py sync_all
+
+# Sync custom time range
+python manage.py sync_all --days=90
+
+# Only sync Whoop (skip other sources)
+python manage.py sync_all --whoop-only
+```
+
+### Individual Source Sync
+
+You can also sync individual data sources:
+
+```bash
+# Sync Whoop workouts only
+python manage.py sync_whoop --days=30
+```
+
+### Scheduling Automatic Syncs
+
+Set up a cron job to automatically sync daily:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add this line to sync daily at 6 AM
+0 6 * * * cd /Users/jonathanpowers/Repos/life && source venv/bin/activate && python manage.py sync_all --days=7 >> /tmp/life-sync.log 2>&1
+```
+
+Or use macOS `launchd` for more reliable scheduling:
+
+1. Create `~/Library/LaunchAgents/com.lifetracker.sync.plist`:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lifetracker.sync</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/jonathanpowers/Repos/life/venv/bin/python</string>
+        <string>/Users/jonathanpowers/Repos/life/manage.py</string>
+        <string>sync_all</string>
+        <string>--days=7</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>WorkingDirectory</key>
+    <string>/Users/jonathanpowers/Repos/life</string>
+</dict>
+</plist>
+```
+
+2. Load the job:
+```bash
+launchctl load ~/Library/LaunchAgents/com.lifetracker.sync.plist
+```
+
 ## Development
 
 ### Project Structure
