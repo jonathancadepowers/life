@@ -115,10 +115,12 @@ class Command(BaseCommand):
             self.stdout.write('=' * 60)
 
         except ValueError as e:
+            # Configuration error - re-raise so sync_all can report it
             self.stdout.write(self.style.ERROR(f'\n✗ Configuration Error: {str(e)}'))
             self.stdout.write(self.style.WARNING('\nMake sure to set:'))
             self.stdout.write('  TOGGL_API_TOKEN=your-api-token')
             self.stdout.write('  TOGGL_WORKSPACE_ID=your-workspace-id')
+            raise
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'\n✗ Error: {str(e)}'))
             raise
