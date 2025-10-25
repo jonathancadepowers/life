@@ -57,20 +57,17 @@ def log_fast(request):
                 'message': 'Day must be "today" or "yesterday"'
             }, status=400)
 
-        # Calculate end and start times based on day
+        # Calculate fast_end_date based on day
         if day == 'today':
-            # End time is now, start time is X hours ago
-            end_time = timezone.now()
-            start_time = end_time - timedelta(hours=hours)
+            # Fast ends now
+            fast_end_date = timezone.now()
         else:  # yesterday
-            # End time is noon yesterday, start time is noon yesterday - X hours
+            # Fast ends at noon yesterday (12:00 PM)
             now = timezone.now()
             yesterday = now - timedelta(days=1)
-            # Create noon yesterday (12:00 PM)
-            end_time = timezone.make_aware(
+            fast_end_date = timezone.make_aware(
                 datetime.combine(yesterday.date(), time(12, 0))
             )
-            start_time = end_time - timedelta(hours=hours)
 
         # Generate a unique source_id for manual entries
         source_id = str(uuid.uuid4())
@@ -78,8 +75,8 @@ def log_fast(request):
         fast = FastingSession.objects.create(
             source='Manual',
             source_id=source_id,
-            start=start_time,
-            end=end_time,
+            duration=hours,
+            fast_end_date=fast_end_date,
         )
 
         day_label = 'Today' if day == 'today' else 'Yesterday'
@@ -87,8 +84,8 @@ def log_fast(request):
             'success': True,
             'message': f'{day_label}: {hours}-hour fast logged successfully!',
             'fast_id': fast.id,
-            'start': start_time.strftime('%Y-%m-%d %H:%M'),
-            'end': end_time.strftime('%Y-%m-%d %H:%M')
+            'duration': float(fast.duration),
+            'fast_end_date': fast_end_date.strftime('%Y-%m-%d %H:%M')
         })
 
     except Exception as e:

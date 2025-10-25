@@ -131,8 +131,8 @@ class Command(BaseCommand):
             return 'skipped'
 
         # Calculate duration and skip if less than 12 hours
-        duration = end_time - start_time
-        duration_hours = duration.total_seconds() / 3600
+        duration_timedelta = end_time - start_time
+        duration_hours = duration_timedelta.total_seconds() / 3600
 
         if duration_hours < 12:
             self.stdout.write(self.style.WARNING(
@@ -142,8 +142,8 @@ class Command(BaseCommand):
 
         # Prepare fasting session data
         fast_defaults = {
-            'start': start_time,
-            'end': end_time,
+            'duration': round(duration_hours, 2),
+            'fast_end_date': end_time,
         }
 
         # Check if already exists (for dry-run preview)
@@ -154,10 +154,8 @@ class Command(BaseCommand):
             ).exists()
 
             action = 'update' if exists else 'create'
-            duration_hours = (end_time - start_time).total_seconds() / 3600
             self.stdout.write(
-                f'Would {action}: {start_time.strftime("%Y-%m-%d %H:%M")} - '
-                f'{end_time.strftime("%Y-%m-%d %H:%M")} ({duration_hours:.1f}h)'
+                f'Would {action}: {duration_hours:.1f}h fast ending {end_time.strftime("%Y-%m-%d %H:%M")}'
             )
             return f'{action}d'
 
@@ -169,14 +167,12 @@ class Command(BaseCommand):
         )
 
         if created:
-            duration_hours = fast.duration_hours or 0
             self.stdout.write(self.style.SUCCESS(
-                f'✓ Created: {fast.start.strftime("%Y-%m-%d %H:%M")} - '
-                f'{fast.end.strftime("%Y-%m-%d %H:%M")} ({duration_hours:.1f}h)'
+                f'✓ Created: {fast.duration}h fast ending {fast.fast_end_date.strftime("%Y-%m-%d %H:%M")}'
             ))
             return 'created'
         else:
             self.stdout.write(
-                f'  Updated: {fast.start.strftime("%Y-%m-%d %H:%M")}'
+                f'  Updated: {fast.duration}h fast ending {fast.fast_end_date.strftime("%Y-%m-%d %H:%M")}'
             )
             return 'updated'
