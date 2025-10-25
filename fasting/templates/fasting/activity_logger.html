@@ -60,6 +60,13 @@
             <div class="col-lg-8 offset-lg-2">
                 <h1 class="mb-4">Activity Logger</h1>
 
+                <!-- Master Sync Button -->
+                <div class="mb-4">
+                    <button class="btn btn-warning btn-lg w-100" onclick="runMasterSync()">
+                        <i class="bi bi-arrow-repeat"></i> Run Master Sync
+                    </button>
+                </div>
+
                 <!-- Fasting Section -->
                 <div class="activity-section">
                     <h2 class="section-title">Fasting</h2>
@@ -203,6 +210,46 @@
                         btn.innerHTML = `<i class="bi bi-clock"></i> ${buttonTexts[day][hours]}`;
                     }
                 });
+            });
+        }
+
+        function runMasterSync() {
+            // Get CSRF token
+            const csrftoken = getCSRFToken();
+
+            // Get the sync button
+            const syncButton = document.querySelector('button[onclick="runMasterSync()"]');
+            const originalText = syncButton.innerHTML;
+
+            // Disable button and show loading state
+            syncButton.disabled = true;
+            syncButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Syncing...';
+
+            // Make AJAX request
+            fetch('{% url "fasting:master_sync" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFlashMessage(data.message, true);
+                    console.log('Sync output:', data.output);
+                } else {
+                    showFlashMessage(data.message || 'Error running sync', false);
+                }
+            })
+            .catch(error => {
+                showFlashMessage('Network error: Could not run sync', false);
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                // Re-enable button and restore text
+                syncButton.disabled = false;
+                syncButton.innerHTML = originalText;
             });
         }
     </script>

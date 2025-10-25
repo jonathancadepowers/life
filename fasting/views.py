@@ -4,6 +4,8 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from datetime import timedelta, datetime, time
 from .models import FastingSession
+from django.core.management import call_command
+from io import StringIO
 import uuid
 
 
@@ -92,4 +94,39 @@ def log_fast(request):
         return JsonResponse({
             'success': False,
             'message': f'Error logging fast: {str(e)}'
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+def master_sync(request):
+    """
+    AJAX endpoint to trigger the master sync command.
+
+    Runs the sync_all management command to sync data from all sources
+    (Whoop, Withings, etc.)
+
+    Returns JSON:
+        - success: boolean
+        - message: string
+        - output: string (command output if successful)
+    """
+    try:
+        # Capture command output
+        output = StringIO()
+
+        # Run the sync_all command
+        call_command('sync_all', '--days=30', stdout=output)
+
+        output_text = output.getvalue()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Master sync completed successfully!',
+            'output': output_text
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error running master sync: {str(e)}'
         }, status=500)
