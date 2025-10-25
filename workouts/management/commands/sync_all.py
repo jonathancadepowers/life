@@ -4,6 +4,7 @@ Django management command to sync all data sources.
 This master sync command orchestrates syncing data from all configured sources:
 - Whoop workouts
 - Withings weight measurements
+- Toggl time entries
 - Future: Food tracking
 - Future: Fasting tracking
 
@@ -53,6 +54,7 @@ class Command(BaseCommand):
         # Sync Withings weight measurements
         if not whoop_only:
             results['withings'] = self._sync_withings(days)
+            results['toggl'] = self._sync_toggl(days)
             # results['food'] = self._sync_food(days)
             # results['fasting'] = self._sync_fasting(days)
 
@@ -79,7 +81,7 @@ class Command(BaseCommand):
 
     def _sync_whoop(self, days):
         """Sync Whoop workout data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[1/2] Syncing Whoop workouts...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[1/3] Syncing Whoop workouts...'))
 
         try:
             # Call the sync_whoop command
@@ -101,7 +103,7 @@ class Command(BaseCommand):
 
     def _sync_withings(self, days):
         """Sync Withings weight data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[2/2] Syncing Withings weight measurements...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[2/3] Syncing Withings weight measurements...'))
 
         try:
             # Call the sync_withings command
@@ -110,6 +112,24 @@ class Command(BaseCommand):
             return {
                 'success': True,
                 'message': f'Successfully synced Withings data (last {days} days)'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Failed: {str(e)}'
+            }
+
+    def _sync_toggl(self, days):
+        """Sync Toggl time entries."""
+        self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing Toggl time entries...'))
+
+        try:
+            # Call the sync_toggl command
+            call_command('sync_toggl', days=days, verbosity=0)
+
+            return {
+                'success': True,
+                'message': f'Successfully synced Toggl data (last {days} days)'
             }
         except Exception as e:
             return {
