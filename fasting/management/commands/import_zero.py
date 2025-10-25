@@ -123,6 +123,23 @@ class Command(BaseCommand):
             ))
             return 'skipped'
 
+        # Skip fasts without an end time (incomplete)
+        if not end_time:
+            self.stdout.write(self.style.WARNING(
+                f'Skipping fast {fast_id} - no end time (incomplete fast)'
+            ))
+            return 'skipped'
+
+        # Calculate duration and skip if less than 12 hours
+        duration = end_time - start_time
+        duration_hours = duration.total_seconds() / 3600
+
+        if duration_hours < 12:
+            self.stdout.write(self.style.WARNING(
+                f'Skipping fast {fast_id} - duration {duration_hours:.1f}h is less than 12 hours minimum'
+            ))
+            return 'skipped'
+
         # Prepare fasting session data
         fast_defaults = {
             'start': start_time,
