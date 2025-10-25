@@ -5,6 +5,10 @@ class TimeLog(models.Model):
     """
     Represents a time tracking entry for projects and goals.
     """
+    timelog_id = models.AutoField(
+        primary_key=True,
+        help_text="Unique time log identifier"
+    )
     start = models.DateTimeField(
         help_text="When the time log started"
     )
