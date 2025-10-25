@@ -22,23 +22,6 @@ class FastingSession(models.Model):
         null=True,
         blank=True
     )
-    goal_hours = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Target fasting duration in hours"
-    )
-    goal_id = models.CharField(
-        max_length=100,
-        null=True,
-        blank=True,
-        help_text="Fasting goal identifier (e.g., 'twenty-intermittent')"
-    )
-    is_ended = models.BooleanField(
-        default=False,
-        help_text="Whether the fast was completed"
-    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)

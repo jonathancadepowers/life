@@ -57,21 +57,11 @@ def log_fast(request):
         # Generate a unique source_id for manual entries
         source_id = str(uuid.uuid4())
 
-        # Determine goal_id based on hours
-        goal_id_map = {
-            12: 'twelve-hour',
-            16: 'sixteen-intermittent',
-            18: 'eighteen-intermittent'
-        }
-
         fast = FastingSession.objects.create(
             source='Manual',
             source_id=source_id,
             start=start_time,
             end=end_time,
-            goal_hours=hours,
-            goal_id=goal_id_map.get(hours),
-            is_ended=True
         )
 
         return JsonResponse({

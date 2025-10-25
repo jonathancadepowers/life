@@ -127,9 +127,6 @@ class Command(BaseCommand):
         fast_defaults = {
             'start': start_time,
             'end': end_time,
-            'goal_hours': fast_record.get('GoalHours'),
-            'goal_id': fast_record.get('GoalID'),
-            'is_ended': fast_record.get('IsEnded', False),
         }
 
         # Check if already exists (for dry-run preview)
@@ -140,9 +137,10 @@ class Command(BaseCommand):
             ).exists()
 
             action = 'update' if exists else 'create'
+            duration_hours = (end_time - start_time).total_seconds() / 3600
             self.stdout.write(
-                f'Would {action}: {start_time.strftime("%Y-%m-%d %H:%M")} '
-                f'({fast_defaults["goal_hours"]}h goal, {fast_defaults["goal_id"]})'
+                f'Would {action}: {start_time.strftime("%Y-%m-%d %H:%M")} - '
+                f'{end_time.strftime("%Y-%m-%d %H:%M")} ({duration_hours:.1f}h)'
             )
             return f'{action}d'
 
@@ -154,9 +152,10 @@ class Command(BaseCommand):
         )
 
         if created:
+            duration_hours = fast.duration_hours or 0
             self.stdout.write(self.style.SUCCESS(
-                f'✓ Created: {fast.start.strftime("%Y-%m-%d %H:%M")} '
-                f'({fast.goal_hours}h goal, {fast.goal_id})'
+                f'✓ Created: {fast.start.strftime("%Y-%m-%d %H:%M")} - '
+                f'{fast.end.strftime("%Y-%m-%d %H:%M")} ({duration_hours:.1f}h)'
             ))
             return 'created'
         else:

@@ -8,22 +8,16 @@ class FastingSessionAdmin(admin.ModelAdmin):
         'start',
         'end',
         'duration_display',
-        'goal_hours',
-        'goal_id',
-        'is_ended',
         'source'
     ]
-    list_filter = ['source', 'is_ended', 'goal_id']
-    search_fields = ['source_id', 'goal_id']
+    list_filter = ['source']
+    search_fields = ['source_id']
     date_hierarchy = 'start'
     readonly_fields = ['created_at', 'updated_at', 'duration_display', 'duration_hours']
 
     fieldsets = (
         ('Fasting Details', {
-            'fields': ('start', 'end', 'is_ended')
-        }),
-        ('Goals', {
-            'fields': ('goal_hours', 'goal_id')
+            'fields': ('start', 'end')
         }),
         ('Source Information', {
             'fields': ('source', 'source_id')
