@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime, time
 from .models import FastingSession
 import uuid
 
@@ -19,6 +19,7 @@ def log_fast(request):
 
     Expects POST data:
         - hours: integer (12, 16, or 18)
+        - day: string ('today' or 'yesterday')
 
     Returns JSON:
         - success: boolean
@@ -26,8 +27,9 @@ def log_fast(request):
         - fast_id: integer (if successful)
     """
     try:
-        # Get the fast duration from POST data
+        # Get the fast duration and day from POST data
         hours = request.POST.get('hours')
+        day = request.POST.get('day', 'today')
 
         if not hours:
             return JsonResponse({
@@ -49,10 +51,26 @@ def log_fast(request):
                 'message': 'Fast duration must be 12, 16, or 18 hours'
             }, status=400)
 
-        # Create the fast session
-        # End time is now, start time is X hours ago
-        end_time = timezone.now()
-        start_time = end_time - timedelta(hours=hours)
+        if day not in ['today', 'yesterday']:
+            return JsonResponse({
+                'success': False,
+                'message': 'Day must be "today" or "yesterday"'
+            }, status=400)
+
+        # Calculate end and start times based on day
+        if day == 'today':
+            # End time is now, start time is X hours ago
+            end_time = timezone.now()
+            start_time = end_time - timedelta(hours=hours)
+        else:  # yesterday
+            # End time is noon yesterday, start time is noon yesterday - X hours
+            now = timezone.now()
+            yesterday = now - timedelta(days=1)
+            # Create noon yesterday (12:00 PM)
+            end_time = timezone.make_aware(
+                datetime.combine(yesterday.date(), time(12, 0))
+            )
+            start_time = end_time - timedelta(hours=hours)
 
         # Generate a unique source_id for manual entries
         source_id = str(uuid.uuid4())
@@ -64,9 +82,10 @@ def log_fast(request):
             end=end_time,
         )
 
+        day_label = 'Today' if day == 'today' else 'Yesterday'
         return JsonResponse({
             'success': True,
-            'message': f'{hours}-hour fast logged successfully!',
+            'message': f'{day_label}: {hours}-hour fast logged successfully!',
             'fast_id': fast.id,
             'start': start_time.strftime('%Y-%m-%d %H:%M'),
             'end': end_time.strftime('%Y-%m-%d %H:%M')

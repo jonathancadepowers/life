@@ -65,27 +65,47 @@
                     <h2 class="section-title">Fasting</h2>
                     <p class="text-muted mb-4">Log a completed fast by selecting the duration below:</p>
 
+                    <h5 class="mb-3">Today</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <button class="btn btn-primary fast-btn" onclick="logFast(12, 'today')">
+                                <i class="bi bi-clock"></i> Today: 12 Hours
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-success fast-btn" onclick="logFast(16, 'today')">
+                                <i class="bi bi-clock"></i> Today: 16 Hours
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-info fast-btn" onclick="logFast(18, 'today')">
+                                <i class="bi bi-clock"></i> Today: 18 Hours
+                            </button>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3">Yesterday</h5>
                     <div class="row">
                         <div class="col-md-4">
-                            <button class="btn btn-primary fast-btn" onclick="logFast(12)">
-                                <i class="bi bi-clock"></i> 12 Hour Fast
+                            <button class="btn btn-outline-primary fast-btn" onclick="logFast(12, 'yesterday')">
+                                <i class="bi bi-clock"></i> Yesterday: 12 Hours
                             </button>
                         </div>
                         <div class="col-md-4">
-                            <button class="btn btn-success fast-btn" onclick="logFast(16)">
-                                <i class="bi bi-clock"></i> 16 Hour Fast
+                            <button class="btn btn-outline-success fast-btn" onclick="logFast(16, 'yesterday')">
+                                <i class="bi bi-clock"></i> Yesterday: 16 Hours
                             </button>
                         </div>
                         <div class="col-md-4">
-                            <button class="btn btn-info fast-btn" onclick="logFast(18)">
-                                <i class="bi bi-clock"></i> 18 Hour Fast
+                            <button class="btn btn-outline-info fast-btn" onclick="logFast(18, 'yesterday')">
+                                <i class="bi bi-clock"></i> Yesterday: 18 Hours
                             </button>
                         </div>
                     </div>
 
                     <div class="mt-3">
                         <small class="text-muted">
-                            <strong>Note:</strong> Logging a fast will record it as ending now, with the start time calculated backwards.
+                            <strong>Note:</strong> "Today" fasts end now. "Yesterday" fasts end at noon yesterday.
                         </small>
                     </div>
                 </div>
@@ -124,7 +144,7 @@
             }, 3000);
         }
 
-        function logFast(hours) {
+        function logFast(hours, day) {
             // Get CSRF token
             const csrftoken = getCSRFToken();
 
@@ -142,7 +162,7 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': csrftoken
                 },
-                body: `hours=${hours}`
+                body: `hours=${hours}&day=${day}`
             })
             .then(response => response.json())
             .then(data => {
@@ -159,19 +179,30 @@
             .finally(() => {
                 // Re-enable buttons and restore text
                 const buttonTexts = {
-                    12: '12 Hour Fast',
-                    16: '16 Hour Fast',
-                    18: '18 Hour Fast'
+                    today: {
+                        12: 'Today: 12 Hours',
+                        16: 'Today: 16 Hours',
+                        18: 'Today: 18 Hours'
+                    },
+                    yesterday: {
+                        12: 'Yesterday: 12 Hours',
+                        16: 'Yesterday: 16 Hours',
+                        18: 'Yesterday: 18 Hours'
+                    }
                 };
 
-                buttons.forEach(btn => {
+                // Restore all buttons
+                document.querySelectorAll('.fast-btn').forEach((btn) => {
                     btn.disabled = false;
-                });
 
-                // Restore original button text
-                document.querySelectorAll('.fast-btn').forEach((btn, index) => {
-                    const hours = [12, 16, 18][index];
-                    btn.innerHTML = `<i class="bi bi-clock"></i> ${buttonTexts[hours]}`;
+                    // Determine which type of button this is based on onclick attribute
+                    const onclickAttr = btn.getAttribute('onclick');
+                    const match = onclickAttr.match(/logFast\((\d+),\s*'(today|yesterday)'\)/);
+                    if (match) {
+                        const hours = parseInt(match[1]);
+                        const day = match[2];
+                        btn.innerHTML = `<i class="bi bi-clock"></i> ${buttonTexts[day][hours]}`;
+                    }
                 });
             });
         }
