@@ -9,6 +9,11 @@ class TimeLog(models.Model):
         primary_key=True,
         help_text="Unique time log identifier"
     )
+    source = models.CharField(
+        max_length=50,
+        default='Manual',
+        help_text="Source of the time log data (e.g., 'Toggl', 'Manual')"
+    )
     start = models.DateTimeField(
         help_text="When the time log started"
     )

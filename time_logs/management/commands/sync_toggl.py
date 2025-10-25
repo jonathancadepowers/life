@@ -92,6 +92,7 @@ class Command(BaseCommand):
                 time_log, created_flag = TimeLog.objects.update_or_create(
                     timelog_id=toggl_entry_id,
                     defaults={
+                        'source': 'Toggl',
                         'start': start_dt,
                         'end': end_dt,
                         'goal_id': toggl_project_id,      # Toggl Project → Goal
