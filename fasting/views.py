@@ -111,22 +111,32 @@ def master_sync(request):
         - output: string (command output if successful)
     """
     try:
-        # Capture command output
+        # Capture command output (both stdout and stderr)
         output = StringIO()
+        error_output = StringIO()
 
         # Run the sync_all command
-        call_command('sync_all', '--days=30', stdout=output)
+        call_command('sync_all', '--days=30', stdout=output, stderr=error_output)
 
         output_text = output.getvalue()
+        error_text = error_output.getvalue()
+
+        # Combine both outputs
+        full_output = output_text
+        if error_text:
+            full_output += f"\n\nErrors/Warnings:\n{error_text}"
 
         return JsonResponse({
             'success': True,
-            'message': 'Master sync completed successfully!',
-            'output': output_text
+            'message': 'Master sync completed!',
+            'output': full_output,
+            'has_errors': bool(error_text)
         })
 
     except Exception as e:
+        import traceback
         return JsonResponse({
             'success': False,
-            'message': f'Error running master sync: {str(e)}'
+            'message': f'Error running master sync: {str(e)}',
+            'traceback': traceback.format_exc()
         }, status=500)
