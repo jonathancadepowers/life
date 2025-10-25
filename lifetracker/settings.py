@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     "fasting",
     "nutrition",
     "time_logs",
+    "goals",
+    "projects",
 ]
 
 MIDDLEWARE = [
