@@ -21,16 +21,39 @@ class WhoopAPIClient:
     TOKEN_URL = f"{BASE_URL}/oauth/oauth2/token"
 
     def __init__(self):
+        # Try to load from database first, fall back to environment variables
+        self._load_credentials()
+
+        if not self.client_id or not self.client_secret:
+            raise ValueError(
+                "WHOOP_CLIENT_ID and WHOOP_CLIENT_SECRET must be set in environment variables or database"
+            )
+
+    def _load_credentials(self):
+        """Load OAuth credentials from database or environment variables."""
+        try:
+            from oauth_integration.models import OAuthCredential
+            cred = OAuthCredential.objects.filter(provider='whoop').first()
+
+            if cred:
+                self.client_id = cred.client_id
+                self.client_secret = cred.client_secret
+                self.redirect_uri = cred.redirect_uri
+                self.access_token = cred.access_token
+                self.refresh_token = cred.refresh_token
+                self._db_credential = cred
+                return
+        except Exception:
+            # Database not available or model doesn't exist yet
+            pass
+
+        # Fall back to environment variables
         self.client_id = os.getenv('WHOOP_CLIENT_ID')
         self.client_secret = os.getenv('WHOOP_CLIENT_SECRET')
         self.redirect_uri = os.getenv('WHOOP_REDIRECT_URI')
         self.access_token = os.getenv('WHOOP_ACCESS_TOKEN')
         self.refresh_token = os.getenv('WHOOP_REFRESH_TOKEN')
-
-        if not self.client_id or not self.client_secret:
-            raise ValueError(
-                "WHOOP_CLIENT_ID and WHOOP_CLIENT_SECRET must be set in environment variables"
-            )
+        self._db_credential = None
 
     def get_authorization_url(self, state: Optional[str] = None) -> str:
         """
@@ -116,6 +139,14 @@ class WhoopAPIClient:
         self.access_token = token_data['access_token']
         if 'refresh_token' in token_data:
             self.refresh_token = token_data['refresh_token']
+
+        # Save updated tokens to database if using database credentials
+        if self._db_credential:
+            self._db_credential.update_tokens(
+                access_token=self.access_token,
+                refresh_token=self.refresh_token,
+                expires_in=token_data.get('expires_in')
+            )
 
         return token_data
 
