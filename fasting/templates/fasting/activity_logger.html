@@ -316,7 +316,13 @@
             const protein = document.getElementById('protein').value;
             const carbs = document.getElementById('carbs').value;
             const fat = document.getElementById('fat').value;
-            const consumptionDate = document.getElementById('consumptionDate').value;
+            const consumptionDateLocal = document.getElementById('consumptionDate').value;
+
+            // Convert local datetime to UTC ISO string
+            // datetime-local gives us "2025-10-25T14:30" in user's local time
+            // We need to convert this to UTC before sending to server
+            const localDate = new Date(consumptionDateLocal);
+            const consumptionDateUTC = localDate.toISOString();
 
             // Disable submit button and show loading state
             submitButton.disabled = true;
@@ -329,7 +335,7 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': csrftoken
                 },
-                body: `calories=${calories}&protein=${protein}&carbs=${carbs}&fat=${fat}&consumption_date=${consumptionDate}`
+                body: `calories=${calories}&protein=${protein}&carbs=${carbs}&fat=${fat}&consumption_date=${consumptionDateUTC}`
             })
             .then(response => response.json())
             .then(data => {
