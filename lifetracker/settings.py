@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "workouts",
     "weight",
     "fasting",
+    "nutrition",
 ]
 
 MIDDLEWARE = [
