@@ -5,14 +5,15 @@ class TimeLog(models.Model):
     """
     Represents a time tracking entry for projects and goals.
     """
-    timelog_id = models.AutoField(
-        primary_key=True,
-        help_text="Unique time log identifier"
-    )
     source = models.CharField(
         max_length=50,
         default='Manual',
         help_text="Source of the time log data (e.g., 'Toggl', 'Manual')"
+    )
+    source_id = models.CharField(
+        max_length=255,
+        help_text="ID from the external source system",
+        db_index=True
     )
     start = models.DateTimeField(
         help_text="When the time log started"
@@ -39,8 +40,10 @@ class TimeLog(models.Model):
 
     class Meta:
         ordering = ['-start']
+        unique_together = ['source', 'source_id']
         indexes = [
             models.Index(fields=['-start']),
+            models.Index(fields=['source', 'source_id']),
             models.Index(fields=['goal_id']),
             models.Index(fields=['project_id']),
         ]

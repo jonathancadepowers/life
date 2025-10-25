@@ -4,15 +4,15 @@ from .models import TimeLog
 
 @admin.register(TimeLog)
 class TimeLogAdmin(admin.ModelAdmin):
-    list_display = ['timelog_id', 'source', 'start', 'end', 'duration_display', 'goal_id', 'project_id', 'created_at']
+    list_display = ['id', 'source', 'source_id', 'start', 'end', 'duration_display', 'goal_id', 'project_id', 'created_at']
     list_filter = ['source', 'goal_id', 'project_id', 'start']
-    search_fields = ['timelog_id', 'source', 'goal_id', 'project_id']
-    readonly_fields = ['timelog_id', 'created_at', 'updated_at', 'duration_display']
+    search_fields = ['source_id', 'source', 'goal_id', 'project_id']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'duration_display']
     date_hierarchy = 'start'
 
     fieldsets = (
         ('Time Log Information', {
-            'fields': ('timelog_id', 'source', 'start', 'end', 'duration_display')
+            'fields': ('id', 'source', 'source_id', 'start', 'end', 'duration_display')
         }),
         ('Associations', {
             'fields': ('goal_id', 'project_id')
