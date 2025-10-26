@@ -22,14 +22,10 @@ class TimeLog(models.Model):
         help_text="When the time log ended"
     )
     goal_id = models.IntegerField(
-        blank=True,
-        null=True,
-        help_text="Associated goal ID"
+        help_text="Associated goal ID (Toggl Project ID)"
     )
     project_id = models.IntegerField(
-        blank=True,
-        null=True,
-        help_text="Associated project ID"
+        help_text="Associated project ID (Toggl Client ID)"
     )
 
     # Audit fields
