@@ -174,15 +174,24 @@ class WithingsAPIClient:
         url = f"{self.BASE_URL}{endpoint}"
         response = requests.get(url, headers=headers, params=params)
 
-        # If token expired, try to refresh
+        # Check HTTP status code
         if response.status_code == 401:
-            print("Access token expired, refreshing...")
+            print("Access token expired (HTTP 401), refreshing...")
             self.refresh_access_token()
             headers['Authorization'] = f'Bearer {self.access_token}'
             response = requests.get(url, headers=headers, params=params)
 
         response.raise_for_status()
         result = response.json()
+
+        # Check Withings API status in JSON response
+        if result.get('status') == 401:
+            print("Access token expired (API status 401), refreshing...")
+            self.refresh_access_token()
+            headers['Authorization'] = f'Bearer {self.access_token}'
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            result = response.json()
 
         if result.get('status') != 0:
             raise ValueError(f"Withings API error: {result}")
