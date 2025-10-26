@@ -82,8 +82,9 @@ class Command(BaseCommand):
                 toggl_project_id = entry.get('project_id')  # Maps to goal_id
                 toggl_client_id = entry.get('client_id')     # Maps to project_id
 
-                # Skip entries without required fields, without end time, or without both project and client
-                if not toggl_entry_id or not start or not stop or not toggl_project_id or not toggl_client_id:
+                # Skip entries without required fields: id, start, stop, and project (client)
+                # Goal (project) is optional
+                if not toggl_entry_id or not start or not stop or not toggl_client_id:
                     skipped += 1
                     continue
 
