@@ -82,21 +82,19 @@ class Command(BaseCommand):
                 toggl_project_id = entry.get('project_id')  # Maps to goal_id
                 toggl_client_id = entry.get('client_id')     # Maps to project_id
 
-                # Skip entries without required fields
-                if not toggl_entry_id or not start:
+                # Skip entries without required fields or without end time (in-progress)
+                if not toggl_entry_id or not start or not stop:
                     skipped += 1
                     continue
 
                 # Parse datetime strings (Toggl returns ISO 8601 UTC)
                 start_dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
-                end_dt = None
-                if stop:
-                    end_dt = datetime.fromisoformat(stop.replace('Z', '+00:00'))
+                end_dt = datetime.fromisoformat(stop.replace('Z', '+00:00'))
 
                 # Make datetimes timezone-aware if needed
                 if django_timezone.is_naive(start_dt):
                     start_dt = django_timezone.make_aware(start_dt)
-                if end_dt and django_timezone.is_naive(end_dt):
+                if django_timezone.is_naive(end_dt):
                     end_dt = django_timezone.make_aware(end_dt)
 
                 # Auto-create Goal if needed (Toggl Project → Goal)

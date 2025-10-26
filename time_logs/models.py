@@ -19,9 +19,7 @@ class TimeLog(models.Model):
         help_text="When the time log started"
     )
     end = models.DateTimeField(
-        blank=True,
-        null=True,
-        help_text="When the time log ended (null if still in progress)"
+        help_text="When the time log ended"
     )
     goal_id = models.IntegerField(
         blank=True,
@@ -51,12 +49,10 @@ class TimeLog(models.Model):
         verbose_name_plural = 'Time Logs'
 
     def __str__(self):
-        return f"Time log: {self.start.strftime('%Y-%m-%d %H:%M')} - {self.end.strftime('%Y-%m-%d %H:%M') if self.end else 'In Progress'}"
+        return f"Time log: {self.start.strftime('%Y-%m-%d %H:%M')} - {self.end.strftime('%Y-%m-%d %H:%M')}"
 
     @property
     def duration_minutes(self):
-        """Calculate duration in minutes if end time is set."""
-        if self.end:
-            delta = self.end - self.start
-            return delta.total_seconds() / 60
-        return None
+        """Calculate duration in minutes."""
+        delta = self.end - self.start
+        return delta.total_seconds() / 60

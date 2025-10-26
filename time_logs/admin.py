@@ -25,9 +25,7 @@ class TimeLogAdmin(admin.ModelAdmin):
 
     def duration_display(self, obj):
         """Display duration in a human-readable format."""
-        if obj.duration_minutes is not None:
-            hours = int(obj.duration_minutes // 60)
-            minutes = int(obj.duration_minutes % 60)
-            return f"{hours}h {minutes}m"
-        return "In Progress"
+        hours = int(obj.duration_minutes // 60)
+        minutes = int(obj.duration_minutes % 60)
+        return f"{hours}h {minutes}m"
     duration_display.short_description = 'Duration'
