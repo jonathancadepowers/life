@@ -6,9 +6,10 @@ class Goal(models.Model):
     Represents a goal that can be associated with time logs.
     Maps to Toggl Tags.
     """
-    goal_id = models.IntegerField(
+    goal_id = models.CharField(
+        max_length=255,
         primary_key=True,
-        help_text="Unique goal identifier (Toggl Tag ID)"
+        help_text="Unique goal identifier (Toggl Tag name)"
     )
     display_string = models.CharField(
         max_length=255,

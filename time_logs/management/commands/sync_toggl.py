@@ -107,12 +107,13 @@ class Command(BaseCommand):
                     )
 
                 # Auto-create Goals for each tag (Toggl Tags → DB Goals)
+                # Toggl returns tag names as strings, not IDs
                 goal_objects = []
-                for tag_id in toggl_tags:
-                    if tag_id:
+                for tag_name in toggl_tags:
+                    if tag_name:
                         goal, _ = Goal.objects.get_or_create(
-                            goal_id=tag_id,
-                            defaults={'display_string': f'Tag {tag_id}'}  # Toggl returns tag IDs, names fetched separately
+                            goal_id=tag_name,
+                            defaults={'display_string': tag_name}
                         )
                         goal_objects.append(goal)
 
