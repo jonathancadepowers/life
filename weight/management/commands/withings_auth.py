@@ -51,20 +51,23 @@ class Command(BaseCommand):
 
             # Display token information
             self.stdout.write(self.style.SUCCESS('\n✓ Authentication successful!'))
-            self.stdout.write('\nAdd these to your .env file:')
-            self.stdout.write('=' * 50)
-            self.stdout.write(f'WITHINGS_ACCESS_TOKEN={token_data["access_token"]}')
-            self.stdout.write(f'WITHINGS_REFRESH_TOKEN={token_data["refresh_token"]}')
-            self.stdout.write(f'WITHINGS_TOKEN_EXPIRES_AT={token_data.get("expires_in", 10800)}')
-            self.stdout.write('=' * 50)
+            self.stdout.write('\n✓ Tokens saved to database automatically')
 
-            self.stdout.write('\nToken expires in: {} seconds ({} hours)'.format(
-                token_data.get('expires_in', 10800),
-                token_data.get('expires_in', 10800) / 3600
-            ))
+            self.stdout.write('\nToken Information:')
+            self.stdout.write('=' * 50)
+            self.stdout.write(f'Access Token: {token_data["access_token"][:20]}...')
+            self.stdout.write(f'Refresh Token: {token_data["refresh_token"][:20]}...')
+            self.stdout.write(f'Expires in: {token_data.get("expires_in", 10800)} seconds ({token_data.get("expires_in", 10800) / 3600:.1f} hours)')
+            self.stdout.write('=' * 50)
 
             self.stdout.write(self.style.SUCCESS(
                 '\nYou can now run: python manage.py sync_withings'
+            ))
+
+            self.stdout.write(self.style.WARNING(
+                '\nNote: Tokens are stored in the database and will be automatically'
+                '\nrefreshed when they expire. You no longer need to manually update'
+                '\nenvironment variables with new tokens.'
             ))
 
         except ValueError as e:
