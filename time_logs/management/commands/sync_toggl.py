@@ -10,6 +10,8 @@ Usage:
 """
 from django.core.management.base import BaseCommand
 from time_logs.models import TimeLog
+from goals.models import Goal
+from projects.models import Project
 from time_logs.services.toggl_client import TogglAPIClient
 from datetime import datetime, timedelta
 from django.utils import timezone as django_timezone
@@ -49,6 +51,15 @@ class Command(BaseCommand):
 
             self.stdout.write(f'Date range: {start_date.date()} to {end_date.date()}')
 
+            # Fetch and cache Toggl projects and clients for auto-creation
+            self.stdout.write('Fetching projects and clients from Toggl...')
+            toggl_projects = client.get_projects()
+            toggl_clients = client.get_clients()
+
+            # Build lookup dictionaries
+            project_names = {p['id']: p['name'] for p in toggl_projects}
+            client_names = {c['id']: c['name'] for c in toggl_clients}
+
             # Fetch time entries with client mapping
             self.stdout.write('Fetching time entries from Toggl...')
             time_entries = client.get_time_entries_with_client_mapping(
@@ -87,6 +98,20 @@ class Command(BaseCommand):
                     start_dt = django_timezone.make_aware(start_dt)
                 if end_dt and django_timezone.is_naive(end_dt):
                     end_dt = django_timezone.make_aware(end_dt)
+
+                # Auto-create Goal if needed (Toggl Project → Goal)
+                if toggl_project_id and toggl_project_id in project_names:
+                    Goal.objects.get_or_create(
+                        goal_id=toggl_project_id,
+                        defaults={'display_string': project_names[toggl_project_id]}
+                    )
+
+                # Auto-create Project if needed (Toggl Client → Project)
+                if toggl_client_id and toggl_client_id in client_names:
+                    Project.objects.get_or_create(
+                        project_id=toggl_client_id,
+                        defaults={'display_string': client_names[toggl_client_id]}
+                    )
 
                 # Create or update time log
                 time_log, created_flag = TimeLog.objects.update_or_create(

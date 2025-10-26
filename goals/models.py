@@ -4,10 +4,11 @@ from django.db import models
 class Goal(models.Model):
     """
     Represents a goal that can be associated with time logs.
+    Maps to Toggl Projects.
     """
-    goal_id = models.AutoField(
+    goal_id = models.IntegerField(
         primary_key=True,
-        help_text="Unique goal identifier"
+        help_text="Unique goal identifier (Toggl Project ID)"
     )
     display_string = models.CharField(
         max_length=255,

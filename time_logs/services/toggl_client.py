@@ -95,6 +95,18 @@ class TogglAPIClient:
 
         return self._make_request(f'/workspaces/{self.workspace_id}/projects')
 
+    def get_clients(self) -> List[Dict]:
+        """
+        Fetch all clients from workspace.
+
+        Returns:
+            List of client dictionaries with id and name
+        """
+        if not self.workspace_id:
+            raise ValueError("TOGGL_WORKSPACE_ID must be set in environment variables")
+
+        return self._make_request(f'/workspaces/{self.workspace_id}/clients')
+
     def build_project_client_map(self) -> Dict[int, Optional[int]]:
         """
         Build a mapping of project_id -> client_id.
