@@ -60,6 +60,13 @@
             <div class="col-lg-8 offset-lg-2">
                 <h1 class="mb-4">Activity Logger</h1>
 
+                <!-- Master Sync Button -->
+                <div class="mb-4">
+                    <button class="btn btn-warning btn-lg w-100" onclick="runMasterSync()">
+                        <i class="bi bi-arrow-repeat"></i> Run Master Sync
+                    </button>
+                </div>
+
                 <!-- Fasting Section -->
                 <div class="activity-section">
                     <h2 class="section-title">Fasting</h2>
@@ -109,7 +116,41 @@
                     </div>
                 </div>
 
-                <!-- Future sections can be added here -->
+                <!-- Nutrition Section -->
+                <div class="activity-section">
+                    <h2 class="section-title">Nutrition</h2>
+
+                    <form id="nutritionForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="calories" class="form-label">Calories</label>
+                                <input type="number" class="form-control" id="calories" step="0.01" min="0" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="protein" class="form-label">Protein (g)</label>
+                                <input type="number" class="form-control" id="protein" step="0.01" min="0" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="carbs" class="form-label">Carbs (g)</label>
+                                <input type="number" class="form-control" id="carbs" step="0.01" min="0" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="fat" class="form-label">Fat (g)</label>
+                                <input type="number" class="form-control" id="fat" step="0.01" min="0" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="consumptionDate" class="form-label">Date & Time</label>
+                            <input type="datetime-local" class="form-control" id="consumptionDate" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Log Nutrition</button>
+                    </form>
+                </div>
 
             </div>
         </div>
@@ -205,6 +246,125 @@
                 });
             });
         }
+
+        function runMasterSync() {
+            // Get CSRF token
+            const csrftoken = getCSRFToken();
+
+            // Get the sync button
+            const syncButton = document.querySelector('button[onclick="runMasterSync()"]');
+            const originalText = syncButton.innerHTML;
+
+            // Disable button and show loading state
+            syncButton.disabled = true;
+            syncButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Syncing...';
+
+            // Make AJAX request
+            fetch('{% url "fasting:master_sync" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFlashMessage(data.message, true);
+                    console.log('Sync output:', data.output);
+                } else {
+                    showFlashMessage(data.message || 'Error running sync', false);
+                }
+            })
+            .catch(error => {
+                showFlashMessage('Network error: Could not run sync', false);
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                // Re-enable button and restore text
+                syncButton.disabled = false;
+                syncButton.innerHTML = originalText;
+            });
+        }
+
+        // Set default datetime to current local time on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('consumptionDate');
+
+            // Get current local datetime in the format required by datetime-local input
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            dateInput.value = localDateTime;
+        });
+
+        // Handle nutrition form submission
+        document.getElementById('nutritionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const csrftoken = getCSRFToken();
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+
+            // Get form values
+            const calories = document.getElementById('calories').value;
+            const protein = document.getElementById('protein').value;
+            const carbs = document.getElementById('carbs').value;
+            const fat = document.getElementById('fat').value;
+            const consumptionDateLocal = document.getElementById('consumptionDate').value;
+
+            // Convert local datetime to UTC ISO string
+            // datetime-local gives us "2025-10-25T14:30" in user's local time
+            // We need to convert this to UTC before sending to server
+            const localDate = new Date(consumptionDateLocal);
+            const consumptionDateUTC = localDate.toISOString();
+
+            // Disable submit button and show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging...';
+
+            // Make AJAX request
+            fetch('{% url "nutrition:log_nutrition" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: `calories=${calories}&protein=${protein}&carbs=${carbs}&fat=${fat}&consumption_date=${consumptionDateUTC}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFlashMessage(data.message, true);
+                    // Reset form
+                    document.getElementById('nutritionForm').reset();
+                    // Reset datetime to current time
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    document.getElementById('consumptionDate').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                } else {
+                    showFlashMessage(data.message || 'Error logging nutrition', false);
+                }
+            })
+            .catch(error => {
+                showFlashMessage('Network error: Could not log nutrition', false);
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                // Re-enable button and restore text
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            });
+        });
     </script>
 </body>
 </html>

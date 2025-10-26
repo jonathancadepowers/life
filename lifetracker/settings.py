@@ -45,9 +45,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # Custom apps
+    "oauth_integration",
     "workouts",
     "weight",
     "fasting",
+    "nutrition",
+    "time_logs",
+    "goals",
+    "projects",
 ]
 
 MIDDLEWARE = [
