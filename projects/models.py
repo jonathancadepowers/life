@@ -4,11 +4,11 @@ from django.db import models
 class Project(models.Model):
     """
     Represents a project that can be associated with time logs.
-    Maps to Toggl Clients.
+    Maps to Toggl Projects.
     """
     project_id = models.IntegerField(
         primary_key=True,
-        help_text="Unique project identifier (Toggl Client ID)"
+        help_text="Unique project identifier (Toggl Project ID)"
     )
     display_string = models.CharField(
         max_length=255,

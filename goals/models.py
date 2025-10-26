@@ -4,15 +4,15 @@ from django.db import models
 class Goal(models.Model):
     """
     Represents a goal that can be associated with time logs.
-    Maps to Toggl Projects.
+    Maps to Toggl Tags.
     """
     goal_id = models.IntegerField(
         primary_key=True,
-        help_text="Unique goal identifier (Toggl Project ID)"
+        help_text="Unique goal identifier (Toggl Tag ID)"
     )
     display_string = models.CharField(
         max_length=255,
-        help_text="Human-readable goal name"
+        help_text="Human-readable goal name (Toggl Tag name)"
     )
 
     # Audit fields

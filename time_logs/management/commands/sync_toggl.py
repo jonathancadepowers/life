@@ -2,7 +2,10 @@
 Django management command to sync time entries from Toggl.
 
 This command fetches time entries from Toggl Track and stores them in the TimeLog model.
-Toggl Projects map to Goals, and Toggl Clients map to Projects in our database.
+
+Mapping:
+- Toggl Projects → Database Projects
+- Toggl Tags → Database Goals (many-to-many)
 
 Usage:
     python manage.py sync_toggl [--days=30]
@@ -51,18 +54,16 @@ class Command(BaseCommand):
 
             self.stdout.write(f'Date range: {start_date.date()} to {end_date.date()}')
 
-            # Fetch and cache Toggl projects and clients for auto-creation
-            self.stdout.write('Fetching projects and clients from Toggl...')
+            # Fetch Toggl projects for auto-creation
+            self.stdout.write('Fetching projects from Toggl...')
             toggl_projects = client.get_projects()
-            toggl_clients = client.get_clients()
 
-            # Build lookup dictionaries
+            # Build lookup dictionary for project names
             project_names = {p['id']: p['name'] for p in toggl_projects}
-            client_names = {c['id']: c['name'] for c in toggl_clients}
 
-            # Fetch time entries with client mapping
+            # Fetch time entries
             self.stdout.write('Fetching time entries from Toggl...')
-            time_entries = client.get_time_entries_with_client_mapping(
+            time_entries = client.get_time_entries(
                 start_date=start_date,
                 end_date=end_date
             )
@@ -79,11 +80,12 @@ class Command(BaseCommand):
                 toggl_entry_id = entry.get('id')
                 start = entry.get('start')
                 stop = entry.get('stop')  # Note: Toggl uses 'stop' not 'end'
-                toggl_project_id = entry.get('project_id')  # Maps to goal_id
-                toggl_client_id = entry.get('client_id')     # Maps to project_id
+                toggl_project_id = entry.get('project_id')  # Toggl Project → DB Project
+                toggl_tags = entry.get('tags', [])  # Toggl Tags → DB Goals (array)
 
-                # Skip entries without required fields: must have end time, project, and goal
-                if not toggl_entry_id or not start or not stop or not toggl_client_id or not toggl_project_id:
+                # Skip entries without required fields: must have end time and project
+                # Tags are optional
+                if not toggl_entry_id or not start or not stop or not toggl_project_id:
                     skipped += 1
                     continue
 
@@ -97,19 +99,22 @@ class Command(BaseCommand):
                 if django_timezone.is_naive(end_dt):
                     end_dt = django_timezone.make_aware(end_dt)
 
-                # Auto-create Goal if needed (Toggl Project → Goal)
+                # Auto-create Project if needed (Toggl Project → DB Project)
                 if toggl_project_id and toggl_project_id in project_names:
-                    Goal.objects.get_or_create(
-                        goal_id=toggl_project_id,
+                    Project.objects.get_or_create(
+                        project_id=toggl_project_id,
                         defaults={'display_string': project_names[toggl_project_id]}
                     )
 
-                # Auto-create Project if needed (Toggl Client → Project)
-                if toggl_client_id and toggl_client_id in client_names:
-                    Project.objects.get_or_create(
-                        project_id=toggl_client_id,
-                        defaults={'display_string': client_names[toggl_client_id]}
-                    )
+                # Auto-create Goals for each tag (Toggl Tags → DB Goals)
+                goal_objects = []
+                for tag_id in toggl_tags:
+                    if tag_id:
+                        goal, _ = Goal.objects.get_or_create(
+                            goal_id=tag_id,
+                            defaults={'display_string': f'Tag {tag_id}'}  # Toggl returns tag IDs, names fetched separately
+                        )
+                        goal_objects.append(goal)
 
                 # Create or update time log
                 time_log, created_flag = TimeLog.objects.update_or_create(
@@ -118,10 +123,12 @@ class Command(BaseCommand):
                     defaults={
                         'start': start_dt,
                         'end': end_dt,
-                        'goal_id': toggl_project_id,      # Toggl Project → Goal
-                        'project_id': toggl_client_id,    # Toggl Client → Project
+                        'project_id': toggl_project_id,  # Toggl Project → DB Project
                     }
                 )
+
+                # Set the ManyToMany relationship for goals
+                time_log.goals.set(goal_objects)
 
                 if created_flag:
                     created += 1

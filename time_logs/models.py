@@ -4,6 +4,8 @@ from django.db import models
 class TimeLog(models.Model):
     """
     Represents a time tracking entry for projects and goals.
+    Project maps to Toggl Project.
+    Goals map to Toggl Tags (many-to-many).
     """
     source = models.CharField(
         max_length=50,
@@ -21,11 +23,13 @@ class TimeLog(models.Model):
     end = models.DateTimeField(
         help_text="When the time log ended"
     )
-    goal_id = models.IntegerField(
-        help_text="Associated goal ID (Toggl Project ID)"
+    goals = models.ManyToManyField(
+        'goals.Goal',
+        blank=True,
+        help_text="Associated goals (Toggl Tags) - optional"
     )
     project_id = models.IntegerField(
-        help_text="Associated project ID (Toggl Client ID)"
+        help_text="Associated project ID (Toggl Project ID) - required"
     )
 
     # Audit fields
@@ -38,7 +42,6 @@ class TimeLog(models.Model):
         indexes = [
             models.Index(fields=['-start']),
             models.Index(fields=['source', 'source_id']),
-            models.Index(fields=['goal_id']),
             models.Index(fields=['project_id']),
         ]
         verbose_name = 'Time Log'
