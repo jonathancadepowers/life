@@ -103,20 +103,32 @@ def master_sync(request):
     AJAX endpoint to trigger the master sync command.
 
     Runs the sync_all management command to sync data from all sources
-    (Whoop, Withings, etc.)
+    (Whoop, Withings, Toggl)
 
     Returns JSON:
         - success: boolean
-        - message: string
+        - message: string (with count of new entries)
         - output: string (command output if successful)
     """
     try:
+        # Import models to count records
+        from workouts.models import Workout
+        from weight.models import WeighIn
+        from time_logs.models import TimeLog
+
+        # Count records before sync
+        before_count = Workout.objects.count() + WeighIn.objects.count() + TimeLog.objects.count()
+
         # Capture command output (both stdout and stderr)
         output = StringIO()
         error_output = StringIO()
 
         # Run the sync_all command
         call_command('sync_all', '--days=30', stdout=output, stderr=error_output)
+
+        # Count records after sync
+        after_count = Workout.objects.count() + WeighIn.objects.count() + TimeLog.objects.count()
+        new_entries = after_count - before_count
 
         output_text = output.getvalue()
         error_text = error_output.getvalue()
@@ -126,9 +138,12 @@ def master_sync(request):
         if error_text:
             full_output += f"\n\nErrors/Warnings:\n{error_text}"
 
+        # Create message with count
+        message = f'Synced {new_entries} new {"entry" if new_entries == 1 else "entries"}!'
+
         return JsonResponse({
             'success': True,
-            'message': 'Master sync completed!',
+            'message': message,
             'output': full_output,
             'has_errors': bool(error_text)
         })
