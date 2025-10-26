@@ -1,5 +1,33 @@
 from django.contrib import admin
-from .models import WeighIn
+from .models import WeighIn, OAuthCredential
+
+
+@admin.register(OAuthCredential)
+class OAuthCredentialAdmin(admin.ModelAdmin):
+    list_display = (
+        'service',
+        'token_expires_at',
+        'updated_at',
+    )
+    list_filter = ('service',)
+    readonly_fields = ('created_at', 'updated_at')
+
+    fieldsets = (
+        ('Service', {
+            'fields': ('service',)
+        }),
+        ('Tokens', {
+            'fields': (
+                'access_token',
+                'refresh_token',
+                'token_expires_at',
+            )
+        }),
+        ('Audit Information', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 @admin.register(WeighIn)

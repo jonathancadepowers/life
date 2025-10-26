@@ -1,4 +1,51 @@
 from django.db import models
+from django.utils import timezone
+
+
+class OAuthCredential(models.Model):
+    """
+    Stores OAuth credentials for external API integrations.
+    Supports automatic token refresh and persistence.
+    """
+    SERVICE_CHOICES = [
+        ('withings', 'Withings'),
+        ('whoop', 'Whoop'),
+    ]
+
+    service = models.CharField(
+        max_length=50,
+        choices=SERVICE_CHOICES,
+        unique=True,
+        help_text="Name of the external service (e.g., 'withings', 'whoop')"
+    )
+    access_token = models.TextField(
+        help_text="OAuth access token for API authentication"
+    )
+    refresh_token = models.TextField(
+        help_text="OAuth refresh token for obtaining new access tokens"
+    )
+    token_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the access token expires"
+    )
+
+    # Audit fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'OAuth Credential'
+        verbose_name_plural = 'OAuth Credentials'
+
+    def __str__(self):
+        return f"{self.get_service_display()} OAuth Credentials"
+
+    def is_token_expired(self):
+        """Check if the access token has expired."""
+        if not self.token_expires_at:
+            return False
+        return timezone.now() >= self.token_expires_at
 
 
 class WeighIn(models.Model):
