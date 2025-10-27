@@ -88,6 +88,7 @@ class Command(BaseCommand):
             self.stdout.write('  WHOOP_CLIENT_SECRET')
             self.stdout.write('  WHOOP_ACCESS_TOKEN')
             self.stdout.write('  WHOOP_REFRESH_TOKEN')
+            raise  # Re-raise so sync_all can report the failure
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error syncing workouts: {e}'))
             raise

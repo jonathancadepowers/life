@@ -166,9 +166,17 @@
         }
 
         function showFlashMessage(message, isSuccess = true) {
+            // Determine alert type based on message prefix or isSuccess
+            let alertType = 'success';
+            if (!isSuccess) {
+                alertType = 'danger';
+            } else if (message.startsWith('⚠️')) {
+                alertType = 'warning';
+            }
+
             // Create flash message element
             const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${isSuccess ? 'success' : 'danger'} alert-dismissible fade show flash-message`;
+            alertDiv.className = `alert alert-${alertType} alert-dismissible fade show flash-message`;
             alertDiv.innerHTML = `
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -177,11 +185,12 @@
             // Add to page
             document.body.appendChild(alertDiv);
 
-            // Auto-remove after 3 seconds
+            // Auto-remove after 5 seconds (longer for warnings/errors)
+            const duration = alertType === 'success' ? 3000 : 5000;
             setTimeout(() => {
                 alertDiv.classList.remove('show');
                 setTimeout(() => alertDiv.remove(), 300);
-            }, 3000);
+            }, duration);
         }
 
         function logFast(hours, day) {
@@ -270,10 +279,13 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showFlashMessage(data.message, true);
-                    console.log('Sync output:', data.output);
+                    // Show detailed output in a modal
+                    showSyncOutputModal(data.output, data.has_errors);
                 } else {
                     showFlashMessage(data.message || 'Error running sync', false);
+                    if (data.traceback) {
+                        console.error('Sync error traceback:', data.traceback);
+                    }
                 }
             })
             .catch(error => {
@@ -285,6 +297,51 @@
                 syncButton.disabled = false;
                 syncButton.innerHTML = originalText;
             });
+        }
+
+        function showSyncOutputModal(output, hasErrors) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('syncOutputModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'syncOutputModal';
+                modal.className = 'modal fade';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Sync Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <pre id="syncOutputContent" style="background-color: #f8f9fa; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto;"></pre>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            // Update modal content
+            const outputContent = document.getElementById('syncOutputContent');
+            outputContent.textContent = output;
+
+            // Change modal header color based on errors
+            const modalHeader = modal.querySelector('.modal-header');
+            if (hasErrors) {
+                modalHeader.style.backgroundColor = '#fff3cd';
+                modalHeader.querySelector('.modal-title').textContent = '⚠️ Sync Details (Some Errors)';
+            } else {
+                modalHeader.style.backgroundColor = '#d1e7dd';
+                modalHeader.querySelector('.modal-title').textContent = '✓ Sync Details (Success)';
+            }
+
+            // Show the modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
         }
 
         // Set default datetime to current local time on page load

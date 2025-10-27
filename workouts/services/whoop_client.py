@@ -167,8 +167,19 @@ class WhoopAPIClient:
         Returns:
             Response JSON data
         """
+        # If no access token but we have a refresh token, use it to get a new access token
+        if not self.access_token and self.refresh_token:
+            print("No access token found, but refresh token exists. Refreshing...")
+            self.refresh_access_token()
+
+        # If still no access token, authentication is required
         if not self.access_token:
             raise ValueError("No access token available. Please authenticate first.")
+
+        # Proactively refresh token if expired (check database expiration)
+        if self._db_credential and self._db_credential.is_token_expired():
+            print("Access token expired (proactive check), refreshing...")
+            self.refresh_access_token()
 
         headers = {
             'Authorization': f'Bearer {self.access_token}',
@@ -177,9 +188,9 @@ class WhoopAPIClient:
         url = f"{self.BASE_URL}{endpoint}"
         response = requests.request(method, url, headers=headers, params=params)
 
-        # If token expired, try to refresh
+        # If token expired, try to refresh (fallback for edge cases)
         if response.status_code == 401:
-            print("Access token expired, refreshing...")
+            print("Access token expired (401 error), refreshing...")
             self.refresh_access_token()
             headers['Authorization'] = f'Bearer {self.access_token}'
             response = requests.request(method, url, headers=headers, params=params)

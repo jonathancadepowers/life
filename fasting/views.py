@@ -111,6 +111,8 @@ def master_sync(request):
         - output: string (command output if successful)
     """
     try:
+        import re
+
         # Import models to count records
         from workouts.models import Workout
         from weight.models import WeighIn
@@ -133,10 +135,35 @@ def master_sync(request):
         output_text = output.getvalue()
         error_text = error_output.getvalue()
 
-        # Combine both outputs
-        full_output = output_text
-        if error_text:
-            full_output += f"\n\nErrors/Warnings:\n{error_text}"
+        # Strip ANSI escape codes from output (they don't render in HTML)
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        output_text = ansi_escape.sub('', output_text)
+        error_text = ansi_escape.sub('', error_text)
+
+        # Extract only the SYNC SUMMARY section
+        summary_start = output_text.find('SYNC SUMMARY')
+        if summary_start != -1:
+            # Find the start of the summary box (the line with = signs before "SYNC SUMMARY")
+            lines = output_text[:summary_start].split('\n')
+            # Go back to find the === line
+            for i in range(len(lines) - 1, -1, -1):
+                if '=' * 20 in lines[i]:
+                    summary_start_line = i
+                    break
+            else:
+                summary_start_line = len(lines) - 1
+
+            # Reconstruct from the summary section onwards
+            all_lines = output_text.split('\n')
+            full_output = '\n'.join(all_lines[summary_start_line:])
+        else:
+            # Fallback: show all output if summary not found
+            full_output = output_text
+            if error_text:
+                full_output += f"\n\nErrors/Warnings:\n{error_text}"
+
+        # Detect if there were any errors by checking for the ✗ symbol in the output
+        has_errors = '✗' in full_output or bool(error_text)
 
         # Create message with count
         message = f'Synced {new_entries} new {"entry" if new_entries == 1 else "entries"}!'
@@ -145,7 +172,7 @@ def master_sync(request):
             'success': True,
             'message': message,
             'output': full_output,
-            'has_errors': bool(error_text)
+            'has_errors': has_errors
         })
 
     except Exception as e:

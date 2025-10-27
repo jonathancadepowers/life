@@ -88,6 +88,7 @@ class Command(BaseCommand):
             self.stdout.write('  WITHINGS_CLIENT_SECRET')
             self.stdout.write('  WITHINGS_ACCESS_TOKEN')
             self.stdout.write('  WITHINGS_REFRESH_TOKEN')
+            raise  # Re-raise so sync_all can report the failure
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error syncing measurements: {e}'))
             raise

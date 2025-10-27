@@ -84,16 +84,21 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO('\n[1/3] Syncing Whoop workouts...'))
 
         try:
+            from workouts.models import Workout
+
+            # Count records before sync
+            before_count = Workout.objects.count()
+
             # Call the sync_whoop command
             call_command('sync_whoop', days=days, verbosity=0)
 
-            # Note: We're calling with verbosity=0 to suppress detailed output
-            # The sync_whoop command returns its own detailed logs
-            # Here we just report success/failure
+            # Count records after sync
+            after_count = Workout.objects.count()
+            new_count = after_count - before_count
 
             return {
                 'success': True,
-                'message': f'Successfully synced Whoop data (last {days} days)'
+                'message': f'Successfully synced Whoop data ({new_count} new workouts)'
             }
         except Exception as e:
             return {
@@ -106,12 +111,21 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO('\n[2/3] Syncing Withings weight measurements...'))
 
         try:
+            from weight.models import WeighIn
+
+            # Count records before sync
+            before_count = WeighIn.objects.count()
+
             # Call the sync_withings command
             call_command('sync_withings', days=days, verbosity=0)
 
+            # Count records after sync
+            after_count = WeighIn.objects.count()
+            new_count = after_count - before_count
+
             return {
                 'success': True,
-                'message': f'Successfully synced Withings data (last {days} days)'
+                'message': f'Successfully synced Withings data ({new_count} new measurements)'
             }
         except Exception as e:
             return {
@@ -124,12 +138,21 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing Toggl time entries...'))
 
         try:
+            from time_logs.models import TimeLog
+
+            # Count records before sync
+            before_count = TimeLog.objects.count()
+
             # Call the sync_toggl command
             call_command('sync_toggl', days=days, verbosity=0)
 
+            # Count records after sync
+            after_count = TimeLog.objects.count()
+            new_count = after_count - before_count
+
             return {
                 'success': True,
-                'message': f'Successfully synced Toggl data (last {days} days)'
+                'message': f'Successfully synced Toggl data ({new_count} new time entries)'
             }
         except Exception as e:
             return {
