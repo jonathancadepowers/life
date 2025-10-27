@@ -77,8 +77,15 @@ def whoop_callback(request):
 
         return redirect('fasting:activity_logger')
 
+    except ValueError as e:
+        # Specific handling for token exchange errors
+        messages.error(request, f'Whoop authentication error: {str(e)}')
+        return redirect('fasting:activity_logger')
     except Exception as e:
-        messages.error(request, f'Failed to complete Whoop authentication: {e}')
+        # General error handling
+        messages.error(request, f'Failed to complete Whoop authentication: {str(e)}')
+        import traceback
+        print(f'OAuth callback error: {traceback.format_exc()}')
         return redirect('fasting:activity_logger')
 
 
@@ -149,6 +156,13 @@ def withings_callback(request):
 
         return redirect('fasting:activity_logger')
 
+    except ValueError as e:
+        # Specific handling for token exchange errors
+        messages.error(request, f'Withings authentication error: {str(e)}')
+        return redirect('fasting:activity_logger')
     except Exception as e:
-        messages.error(request, f'Failed to complete Withings authentication: {e}')
+        # General error handling
+        messages.error(request, f'Failed to complete Withings authentication: {str(e)}')
+        import traceback
+        print(f'OAuth callback error: {traceback.format_exc()}')
         return redirect('fasting:activity_logger')
