@@ -30,34 +30,30 @@ class TestSyncWithingsCommand(TestCase):
             token_expires_at=timezone.now() + timezone.timedelta(hours=1)
         )
 
-        # Sample measurement data from Withings API
-        self.sample_measurement_data = {
-            'status': 0,
-            'body': {
-                'measuregrps': [
-                    {
-                        'grpid': 123456789,
-                        'date': 1698235200,  # Unix timestamp
-                        'measures': [
-                            {'value': 75000, 'type': 1, 'unit': -3}  # 75.000 kg
-                        ]
-                    },
-                    {
-                        'grpid': 123456790,
-                        'date': 1698148800,
-                        'measures': [
-                            {'value': 74500, 'type': 1, 'unit': -3}  # 74.500 kg
-                        ]
-                    }
+        # Sample measurement data from Withings API (measurement groups)
+        # Note: get_all_weight_measurements returns list of measurement groups directly
+        self.sample_measurement_data = [
+            {
+                'grpid': 123456789,
+                'date': 1698235200,  # Unix timestamp
+                'measures': [
+                    {'value': 75000, 'type': 1, 'unit': -3}  # 75.000 kg = 165.35 lbs
+                ]
+            },
+            {
+                'grpid': 123456790,
+                'date': 1698148800,
+                'measures': [
+                    {'value': 74500, 'type': 1, 'unit': -3}  # 74.500 kg = 164.24 lbs
                 ]
             }
-        }
+        ]
 
-    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_weight_measurements')
-    def test_sync_creates_new_measurements(self, mock_get_weight_measurements):
+    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_all_weight_measurements')
+    def test_sync_creates_new_measurements(self, mock_get_measurements):
         """Should create weight measurement records from API data"""
         # Mock: API returns 2 measurements
-        mock_get_weight_measurements.return_value = self.sample_measurement_data
+        mock_get_measurements.return_value = self.sample_measurement_data
 
         # Run the sync command
         out = StringIO()
@@ -66,47 +62,42 @@ class TestSyncWithingsCommand(TestCase):
         # Assert: 2 measurements created in database
         self.assertEqual(WeighIn.objects.count(), 2)
 
-        # Assert: First measurement saved correctly
+        # Assert: First measurement saved correctly (75 kg = 165.35 lbs)
         weighin1 = WeighIn.objects.get(source_id='123456789')
         self.assertEqual(weighin1.source, 'Withings')
-        self.assertEqual(weighin1.weight_kg, 75.0)
+        self.assertAlmostEqual(float(weighin1.weight), 165.35, places=1)
 
-        # Assert: Second measurement saved correctly
+        # Assert: Second measurement saved correctly (74.5 kg = 164.24 lbs)
         weighin2 = WeighIn.objects.get(source_id='123456790')
-        self.assertEqual(weighin2.weight_kg, 74.5)
+        self.assertAlmostEqual(float(weighin2.weight), 164.24, places=1)
 
         # Assert: Command output shows success
         output = out.getvalue()
         self.assertIn('Created: 2', output)
         self.assertIn('Sync completed successfully', output)
 
-    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_weight_measurements')
-    def test_sync_updates_existing_measurements(self, mock_get_weight_measurements):
+    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_all_weight_measurements')
+    def test_sync_updates_existing_measurements(self, mock_get_measurements):
         """Should update existing measurements using source_id, not create duplicates"""
         # Setup: Create existing measurement in database
         existing_weighin = WeighIn.objects.create(
             source='Withings',
             source_id='123456789',
-            timestamp=timezone.make_aware(datetime(2023, 10, 25, 12, 0, 0)),
-            weight_kg=74.0  # Old value
+            measurement_time=timezone.make_aware(datetime(2023, 10, 25, 12, 0, 0)),
+            weight=163.14  # Old value (74 kg)
         )
 
-        # Mock: API returns updated data for same measurement
-        updated_data = {
-            'status': 0,
-            'body': {
-                'measuregrps': [
-                    {
-                        'grpid': 123456789,
-                        'date': 1698235200,
-                        'measures': [
-                            {'value': 75000, 'type': 1, 'unit': -3}  # Updated to 75.0 kg
-                        ]
-                    }
+        # Mock: API returns updated data for same measurement (75 kg = 165.35 lbs)
+        updated_data = [
+            {
+                'grpid': 123456789,
+                'date': 1698235200,
+                'measures': [
+                    {'value': 75000, 'type': 1, 'unit': -3}  # Updated to 75.0 kg
                 ]
             }
-        }
-        mock_get_weight_measurements.return_value = updated_data
+        ]
+        mock_get_measurements.return_value = updated_data
 
         # Run the sync command
         out = StringIO()
@@ -117,39 +108,34 @@ class TestSyncWithingsCommand(TestCase):
 
         # Assert: Measurement was updated with new value
         existing_weighin.refresh_from_db()
-        self.assertEqual(existing_weighin.weight_kg, 75.0)
+        self.assertAlmostEqual(float(existing_weighin.weight), 165.35, places=1)
 
         # Assert: Command output shows update
         output = out.getvalue()
         self.assertIn('Created: 0', output)
         self.assertIn('Updated: 1', output)
 
-    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_weight_measurements')
-    def test_sync_skips_non_weight_measurements(self, mock_get_weight_measurements):
+    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_all_weight_measurements')
+    def test_sync_skips_non_weight_measurements(self, mock_get_measurements):
         """Should skip measurements that aren't weight (type != 1)"""
         # Mock: API returns measurement with different type (e.g., body fat)
-        mixed_data = {
-            'status': 0,
-            'body': {
-                'measuregrps': [
-                    {
-                        'grpid': 123456789,
-                        'date': 1698235200,
-                        'measures': [
-                            {'value': 75000, 'type': 1, 'unit': -3}  # Weight
-                        ]
-                    },
-                    {
-                        'grpid': 123456790,
-                        'date': 1698148800,
-                        'measures': [
-                            {'value': 20000, 'type': 6, 'unit': -3}  # Body fat % (not weight)
-                        ]
-                    }
+        mixed_data = [
+            {
+                'grpid': 123456789,
+                'date': 1698235200,
+                'measures': [
+                    {'value': 75000, 'type': 1, 'unit': -3}  # Weight
+                ]
+            },
+            {
+                'grpid': 123456790,
+                'date': 1698148800,
+                'measures': [
+                    {'value': 20000, 'type': 6, 'unit': -3}  # Body fat % (not weight)
                 ]
             }
-        }
-        mock_get_weight_measurements.return_value = mixed_data
+        ]
+        mock_get_measurements.return_value = mixed_data
 
         # Run the sync command
         out = StringIO()
@@ -170,8 +156,8 @@ class TestSyncWithingsCommand(TestCase):
         mock_client_instance = mock.Mock()
         mock_client_class.return_value = mock_client_instance
 
-        # Mock: get_weight_measurements raises ValueError (expired refresh token)
-        mock_client_instance.get_weight_measurements.side_effect = ValueError(
+        # Mock: get_all_weight_measurements raises ValueError (expired refresh token)
+        mock_client_instance.get_all_weight_measurements.side_effect = ValueError(
             "Withings refresh token expired or invalid. Please re-authenticate by running: "
             "python manage.py withings_auth"
         )
@@ -187,39 +173,34 @@ class TestSyncWithingsCommand(TestCase):
         self.assertIn('Withings refresh token expired or invalid', error_message)
         self.assertIn('python manage.py withings_auth', error_message)
 
-    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_weight_measurements')
-    def test_sync_handles_malformed_measurement_data(self, mock_get_weight_measurements):
+    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_all_weight_measurements')
+    def test_sync_handles_malformed_measurement_data(self, mock_get_measurements):
         """Should skip measurements with missing required fields"""
         # Mock: API returns malformed measurement data
-        malformed_data = {
-            'status': 0,
-            'body': {
-                'measuregrps': [
-                    {
-                        'grpid': 123456789,
-                        'date': 1698235200,
-                        'measures': [
-                            {'value': 75000, 'type': 1, 'unit': -3}  # Good
-                        ]
-                    },
-                    {
-                        # 'grpid': missing
-                        'date': 1698148800,
-                        'measures': [
-                            {'value': 74500, 'type': 1, 'unit': -3}
-                        ]
-                    },
-                    {
-                        'grpid': 123456791,
-                        # 'date': missing
-                        'measures': [
-                            {'value': 74000, 'type': 1, 'unit': -3}
-                        ]
-                    }
+        malformed_data = [
+            {
+                'grpid': 123456789,
+                'date': 1698235200,
+                'measures': [
+                    {'value': 75000, 'type': 1, 'unit': -3}  # Good
+                ]
+            },
+            {
+                # 'grpid': missing
+                'date': 1698148800,
+                'measures': [
+                    {'value': 74500, 'type': 1, 'unit': -3}
+                ]
+            },
+            {
+                'grpid': 123456791,
+                # 'date': missing
+                'measures': [
+                    {'value': 74000, 'type': 1, 'unit': -3}
                 ]
             }
-        }
-        mock_get_weight_measurements.return_value = malformed_data
+        ]
+        mock_get_measurements.return_value = malformed_data
 
         # Run the sync command
         out = StringIO()
@@ -233,29 +214,25 @@ class TestSyncWithingsCommand(TestCase):
         output = out.getvalue()
         self.assertIn('Skipped: 2', output)
 
-    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_weight_measurements')
-    def test_sync_converts_units_correctly(self, mock_get_weight_measurements):
-        """Should convert Withings units to kg correctly"""
-        # Mock: Measurement with unit=-3 (multiply by 10^-3 to get kg)
-        measurement_data = {
-            'status': 0,
-            'body': {
-                'measuregrps': [
-                    {
-                        'grpid': 123456789,
-                        'date': 1698235200,
-                        'measures': [
-                            {'value': 75500, 'type': 1, 'unit': -3}  # 75.500 kg
-                        ]
-                    }
+    @mock.patch('weight.services.withings_client.WithingsAPIClient.get_all_weight_measurements')
+    def test_sync_converts_units_correctly(self, mock_get_measurements):
+        """Should convert Withings units to lbs correctly"""
+        # Mock: Measurement with unit=-3 (multiply by 10^-3 to get kg, then convert to lbs)
+        # 75.5 kg * 2.20462 = 166.45 lbs
+        measurement_data = [
+            {
+                'grpid': 123456789,
+                'date': 1698235200,
+                'measures': [
+                    {'value': 75500, 'type': 1, 'unit': -3}  # 75.500 kg = 166.45 lbs
                 ]
             }
-        }
-        mock_get_weight_measurements.return_value = measurement_data
+        ]
+        mock_get_measurements.return_value = measurement_data
 
         # Run the sync command
         call_command('sync_withings', days=7, stdout=StringIO())
 
-        # Assert: Weight calculated correctly
+        # Assert: Weight calculated correctly (75.5 kg = 166.45 lbs)
         weighin = WeighIn.objects.get(source_id='123456789')
-        self.assertAlmostEqual(weighin.weight_kg, 75.5, places=3)
+        self.assertAlmostEqual(float(weighin.weight), 166.45, places=1)
