@@ -133,6 +133,14 @@ class WhoopAPIClient:
         }
 
         response = requests.post(self.TOKEN_URL, data=data)
+
+        # Check for expired/invalid refresh token
+        if response.status_code == 400:
+            raise ValueError(
+                "Whoop refresh token expired or invalid. Please re-authenticate by running: "
+                "python manage.py whoop_auth"
+            )
+
         response.raise_for_status()
 
         token_data = response.json()
