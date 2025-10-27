@@ -187,18 +187,18 @@ class WithingsAPIClient:
 
         if result.get('status') != 0:
             error_msg = result.get('error', 'Unknown error')
-            if 'invalid refresh_token' in str(error_msg).lower():
+            if 'invalid refresh_token' in str(error_msg).lower() or result.get('status') == 401:
                 raise ValueError(
-                    f"Withings API error: {result}\n\n"
-                    "Your refresh token has expired or is invalid.\n"
-                    "Please re-authenticate by running: python manage.py withings_auth\n"
-                    "On Heroku, run: heroku run python manage.py withings_auth -a <your-app-name>"
+                    "Withings refresh token expired or invalid. Please re-authenticate by running: "
+                    "python manage.py withings_auth"
                 )
             raise ValueError(f"Withings API error: {result}")
 
         token_data = result['body']
         self.access_token = token_data['access_token']
-        self.refresh_token = token_data['refresh_token']
+        # Only update refresh token if a new one is provided (token rotation)
+        if 'refresh_token' in token_data:
+            self.refresh_token = token_data['refresh_token']
 
         # Save to database
         expires_in = token_data.get('expires_in', 10800)  # Default 3 hours
