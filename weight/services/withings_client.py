@@ -51,8 +51,8 @@ class WithingsAPIClient:
     def _load_credentials_from_db(self):
         """Load OAuth credentials from the database."""
         try:
-            from weight.models import OAuthCredential
-            self.credential = OAuthCredential.objects.filter(service='withings').first()
+            from oauth_integration.models import OAuthCredential
+            self.credential = OAuthCredential.objects.filter(provider='withings').first()
 
             if self.credential:
                 self.access_token = self.credential.access_token
@@ -75,14 +75,17 @@ class WithingsAPIClient:
             return
 
         try:
-            from weight.models import OAuthCredential
+            from oauth_integration.models import OAuthCredential
             from django.utils import timezone
 
             token_expires_at = timezone.now() + timedelta(seconds=expires_in)
 
             OAuthCredential.objects.update_or_create(
-                service='withings',
+                provider='withings',
                 defaults={
+                    'client_id': self.client_id,
+                    'client_secret': self.client_secret,
+                    'redirect_uri': self.redirect_uri,
                     'access_token': access_token,
                     'refresh_token': refresh_token,
                     'token_expires_at': token_expires_at,
