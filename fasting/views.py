@@ -165,6 +165,13 @@ def master_sync(request):
         # Detect if there were any errors by checking for the ✗ symbol in the output
         has_errors = '✗' in full_output or bool(error_text)
 
+        # Detect authentication errors and which services need re-auth
+        auth_errors = {}
+        if 'Whoop refresh token expired' in full_output or 'python manage.py whoop_auth' in full_output:
+            auth_errors['whoop'] = True
+        if 'Withings' in full_output and ('refresh token' in full_output.lower() or 'python manage.py withings_auth' in full_output):
+            auth_errors['withings'] = True
+
         # Create message with count
         message = f'Synced {new_entries} new {"entry" if new_entries == 1 else "entries"}!'
 
@@ -172,6 +179,7 @@ def master_sync(request):
             'success': True,
             'message': message,
             'output': full_output,
+            'auth_errors': auth_errors,
             'has_errors': has_errors
         })
 
