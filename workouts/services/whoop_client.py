@@ -112,6 +112,14 @@ class WhoopAPIClient:
         self.access_token = token_data['access_token']
         self.refresh_token = token_data.get('refresh_token')
 
+        # Save updated tokens to database if using database credentials
+        if self._db_credential:
+            self._db_credential.update_tokens(
+                access_token=self.access_token,
+                refresh_token=self.refresh_token,
+                expires_in=token_data.get('expires_in')
+            )
+
         return token_data
 
     def refresh_access_token(self) -> Dict:
