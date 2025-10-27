@@ -226,8 +226,19 @@ class WithingsAPIClient:
         Returns:
             Response JSON data
         """
+        # If no access token but we have a refresh token, use it to get a new access token
+        if not self.access_token and self.refresh_token:
+            logger.info("No access token found, but refresh token exists. Refreshing...")
+            self.refresh_access_token()
+
+        # If still no access token, authentication is required
         if not self.access_token:
             raise ValueError("No access token available. Please authenticate first.")
+
+        # Proactively refresh token if expired (check database expiration)
+        if self.credential and self.credential.is_token_expired():
+            logger.info("Access token expired (proactive check), refreshing...")
+            self.refresh_access_token()
 
         headers = {
             'Authorization': f'Bearer {self.access_token}',
@@ -236,9 +247,9 @@ class WithingsAPIClient:
         url = f"{self.BASE_URL}{endpoint}"
         response = requests.get(url, headers=headers, params=params)
 
-        # If token expired, try to refresh
+        # If token expired, try to refresh (fallback for edge cases)
         if response.status_code == 401:
-            logger.info("Access token expired, refreshing...")
+            logger.info("Access token expired (401 error), refreshing...")
             self.refresh_access_token()
             headers['Authorization'] = f'Bearer {self.access_token}'
             response = requests.get(url, headers=headers, params=params)
