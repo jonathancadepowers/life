@@ -21,6 +21,14 @@ class TestSyncTogglCommand(TestCase):
 
     def setUp(self):
         """Set up test environment"""
+        # Mock API credentials in database
+        from oauth_integration.models import APICredential
+        self.api_credential = APICredential.objects.create(
+            provider='toggl',
+            api_token='test_token',
+            workspace_id='12345'
+        )
+
         # Sample time entry data from Toggl API
         self.sample_time_entries = [
             {
