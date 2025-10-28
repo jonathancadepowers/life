@@ -21,14 +21,53 @@ class TogglAPIClient:
 
     BASE_URL = "https://api.track.toggl.com/api/v9"
 
-    def __init__(self):
-        self.api_token = os.getenv('TOGGL_API_TOKEN')
-        self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
+    def __init__(self, use_database: bool = True):
+        """
+        Initialize Toggl API client.
 
+        Args:
+            use_database: If True, load credentials from database (with env var fallback).
+                         If False, use env vars only.
+        """
+        self.use_database = use_database
+        self.credential = None
+        self.api_token = None
+        self.workspace_id = None
+
+        # Load credentials from database or environment variables
+        if self.use_database:
+            self._load_credentials_from_db()
+        else:
+            # Use environment variables only (for testing or non-database setups)
+            self.api_token = os.getenv('TOGGL_API_TOKEN')
+            self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
+
+        # Validate that we have required credentials
         if not self.api_token:
             raise ValueError(
-                "TOGGL_API_TOKEN must be set in environment variables"
+                "Toggl API token not found. Please ensure it is set in the database "
+                "(oauth_integration.APICredential) or in environment variables "
+                "(TOGGL_API_TOKEN)."
             )
+
+    def _load_credentials_from_db(self):
+        """Load API credentials from the database, with fallback to environment variables."""
+        try:
+            from oauth_integration.models import APICredential
+            self.credential = APICredential.objects.filter(provider='toggl').first()
+
+            if self.credential:
+                # Load credentials from database
+                self.api_token = self.credential.api_token
+                self.workspace_id = self.credential.workspace_id
+            else:
+                # Fall back to environment variables (for initial setup)
+                self.api_token = os.getenv('TOGGL_API_TOKEN')
+                self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
+        except Exception as e:
+            # Fall back to environment variables
+            self.api_token = os.getenv('TOGGL_API_TOKEN')
+            self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
 
     def _make_request(
         self,

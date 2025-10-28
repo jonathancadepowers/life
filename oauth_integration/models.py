@@ -2,6 +2,61 @@ from django.db import models
 from django.utils import timezone
 
 
+class APICredential(models.Model):
+    """
+    Store API token credentials for external API integrations.
+
+    This model stores API tokens and related metadata for integrations
+    that use simple API token authentication (not OAuth).
+    """
+
+    # Provider identification
+    provider = models.CharField(
+        max_length=50,
+        unique=True,
+        help_text="API provider name (e.g., 'toggl')"
+    )
+
+    # API credentials
+    api_token = models.CharField(
+        max_length=500,
+        help_text="API token/key for authentication"
+    )
+
+    # Common metadata fields (provider-specific, nullable for flexibility)
+    workspace_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Workspace/organization ID (if applicable)"
+    )
+    api_url = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Base API URL (if different from default)"
+    )
+
+    # Additional metadata as JSON for provider-specific needs
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional provider-specific metadata"
+    )
+
+    # Audit fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['provider']
+        verbose_name = 'API Credential'
+        verbose_name_plural = 'API Credentials'
+
+    def __str__(self):
+        return f"{self.provider.title()} API Credentials"
+
+
 class OAuthCredential(models.Model):
     """
     Store OAuth credentials for external API integrations.
