@@ -28,44 +28,64 @@ class WithingsAPIClient:
         Initialize Withings API client.
 
         Args:
-            use_database: If True, load/save tokens from database. If False, use env vars only.
+            use_database: If True, load credentials from database (with env var fallback).
+                         If False, use env vars only.
         """
-        self.client_id = os.getenv('WITHINGS_CLIENT_ID')
-        self.client_secret = os.getenv('WITHINGS_CLIENT_SECRET')
-        self.redirect_uri = os.getenv('WITHINGS_REDIRECT_URI')
         self.use_database = use_database
         self.credential = None
+        self.client_id = None
+        self.client_secret = None
+        self.redirect_uri = None
+        self.access_token = None
+        self.refresh_token = None
 
-        if not self.client_id or not self.client_secret:
-            raise ValueError(
-                "WITHINGS_CLIENT_ID and WITHINGS_CLIENT_SECRET must be set in environment variables"
-            )
-
-        # Load tokens from database or environment variables
+        # Load all credentials from database or environment variables
         if self.use_database:
             self._load_credentials_from_db()
         else:
+            # Use environment variables only (for testing or non-database setups)
+            self.client_id = os.getenv('WITHINGS_CLIENT_ID')
+            self.client_secret = os.getenv('WITHINGS_CLIENT_SECRET')
+            self.redirect_uri = os.getenv('WITHINGS_REDIRECT_URI')
             self.access_token = os.getenv('WITHINGS_ACCESS_TOKEN')
             self.refresh_token = os.getenv('WITHINGS_REFRESH_TOKEN')
 
+        # Validate that we have at least client credentials
+        if not self.client_id or not self.client_secret:
+            raise ValueError(
+                "Withings client credentials not found. Please ensure they are set in the database "
+                "(oauth_integration.OAuthCredential) or in environment variables "
+                "(WITHINGS_CLIENT_ID, WITHINGS_CLIENT_SECRET)."
+            )
+
     def _load_credentials_from_db(self):
-        """Load OAuth credentials from the database."""
+        """Load OAuth credentials from the database, with fallback to environment variables."""
         try:
             from oauth_integration.models import OAuthCredential
             self.credential = OAuthCredential.objects.filter(provider='withings').first()
 
             if self.credential:
+                # Load all credentials from database
+                self.client_id = self.credential.client_id
+                self.client_secret = self.credential.client_secret
+                self.redirect_uri = self.credential.redirect_uri
                 self.access_token = self.credential.access_token
                 self.refresh_token = self.credential.refresh_token
                 logger.info("Loaded Withings credentials from database")
             else:
-                # Fall back to environment variables
+                # Fall back to environment variables (for initial setup)
+                self.client_id = os.getenv('WITHINGS_CLIENT_ID')
+                self.client_secret = os.getenv('WITHINGS_CLIENT_SECRET')
+                self.redirect_uri = os.getenv('WITHINGS_REDIRECT_URI')
                 self.access_token = os.getenv('WITHINGS_ACCESS_TOKEN')
                 self.refresh_token = os.getenv('WITHINGS_REFRESH_TOKEN')
                 logger.warning("No Withings credentials in database, using environment variables")
         except Exception as e:
             logger.error(f"Error loading credentials from database: {e}")
             # Fall back to environment variables
+            self.client_id = os.getenv('WITHINGS_CLIENT_ID')
+            self.client_secret = os.getenv('WITHINGS_CLIENT_SECRET')
+            self.redirect_uri = os.getenv('WITHINGS_REDIRECT_URI')
             self.access_token = os.getenv('WITHINGS_ACCESS_TOKEN')
             self.refresh_token = os.getenv('WITHINGS_REFRESH_TOKEN')
 
