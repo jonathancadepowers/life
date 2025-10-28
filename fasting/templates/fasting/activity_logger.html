@@ -9,6 +9,8 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
     <style>
         body {
@@ -52,6 +54,103 @@
             padding-bottom: 0.5rem;
             margin-bottom: 1.5rem;
         }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background: #f8f9fa;
+            font-size: 0.9rem;
+        }
+        .calendar-day.header {
+            font-weight: bold;
+            background: #e9ecef;
+            border: none;
+        }
+        .calendar-day.clickable {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .calendar-day.clickable:hover {
+            background: #0056b3;
+        }
+        .calendar-day.clickable.future {
+            background: #28a745;
+            border: 2px dashed #1e7e34;
+        }
+        .calendar-day.clickable.future:hover {
+            background: #218838;
+        }
+        .calendar-day.empty {
+            border: none;
+            background: transparent;
+        }
+        .score-btn {
+            font-size: 1.5rem;
+            padding: 0.25rem 0.5rem;
+            border: 2px solid transparent;
+            background: transparent;
+            opacity: 0.4;
+            transition: all 0.2s;
+        }
+        .score-btn:hover {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        .score-btn.active {
+            opacity: 1;
+            border-color: #007bff;
+            background: #e7f3ff;
+        }
+        .clear-score-btn {
+            opacity: 0.5;
+            margin-left: 0.5rem;
+        }
+        .clear-score-btn:hover {
+            opacity: 0.8;
+        }
+        .notes-content {
+            min-height: 60px;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .notes-content h1,
+        .notes-content h2,
+        .notes-content h3 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .notes-content h1 { font-size: 1.5rem; }
+        .notes-content h2 { font-size: 1.3rem; }
+        .notes-content h3 { font-size: 1.1rem; }
+        .notes-content ul,
+        .notes-content ol {
+            margin-left: 1.5rem;
+        }
+        .notes-content p {
+            margin-bottom: 0.5rem;
+        }
+        .notes-content code {
+            background: #e9ecef;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+        .notes-content pre {
+            background: #e9ecef;
+            padding: 0.5rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
     </style>
 </head>
 <body>
@@ -75,6 +174,231 @@
                     <button class="btn btn-warning btn-lg w-100" onclick="runMasterSync()">
                         <i class="bi bi-arrow-repeat"></i> Run Master Sync
                     </button>
+                </div>
+
+                <!-- Today's Agenda Section -->
+                <div class="activity-section" style="position: relative;">
+                    <div style="position: relative;">
+                        <h2 class="section-title">Today's Agenda</h2>
+                        <button class="btn btn-link" onclick="showCalendarModal()" style="position: absolute; top: 0; right: 0; font-size: 1.5rem; color: #333; padding: 0;" title="View past agendas">
+                            <i class="bi bi-calendar3"></i>
+                        </button>
+                    </div>
+
+                    <div class="mb-4 p-3 bg-light rounded" style="position: relative;">
+                        <h4 class="mb-0" id="today-date"></h4>
+                        <button id="return-to-today-btn" class="btn btn-sm btn-primary" onclick="returnToToday()" style="position: absolute; top: 50%; right: 15px; transform: translateY(-50%); display: none;">
+                            Return to Today
+                        </button>
+                    </div>
+
+                    <!-- Day Score Box (shown for past days only) -->
+                    <div id="day-score-box" class="mb-4 p-3 rounded" style="background-color: #e8f4f8; border: 1px solid #bee5eb; display: none;">
+                        <h5 class="mb-0" id="day-score-text" style="color: #0c5460; font-weight: 600;"></h5>
+                    </div>
+
+                    <form id="agendaForm">
+                        <!-- Target 1 -->
+                        <div class="mb-4 p-3 border rounded" style="position: relative;">
+                            <div style="position: absolute; top: 15px; right: 15px;">
+                                <div class="form-check">
+                                    <input class="form-check-input tie-to-goal-checkbox" type="checkbox" id="tie_to_goal_1" data-target="1" {% if agenda and agenda.goal_1 %}checked{% endif %}>
+                                    <label class="form-check-label" for="tie_to_goal_1" style="font-size: 0.9rem;">
+                                        Tie to Goal
+                                    </label>
+                                </div>
+                            </div>
+                            <h5 class="mb-3">Target #1</h5>
+                            <div class="mb-3">
+                                <label for="project_1" class="form-label">Project:</label>
+                                <select name="project_1" id="project_1" class="form-select project-select" data-target="1">
+                                    <option value="">-- Select Project --</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.project_id }}" {% if agenda and agenda.project_1_id == project.project_id %}selected{% endif %}>
+                                            {{ project.display_string }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3 goal-section" id="goal_section_1" style="{% if not agenda or not agenda.goal_1 %}display: none;{% endif %}">
+                                <label for="goal_1" class="form-label">Goal:</label>
+                                <select name="goal_1" id="goal_1" class="form-select goal-select" data-target="1" disabled>
+                                    <option value="">-- Select Goal --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="target_1" class="form-label">Target:</label>
+                                <input type="text" name="target_1" id="target_1" class="form-control target-input" placeholder="Enter target" value="{% if agenda and agenda.target_1 %}{{ agenda.target_1.target_name }}{% endif %}" {% if not agenda or not agenda.project_1 %}disabled{% endif %}>
+                            </div>
+                            <div class="mt-3 p-2 bg-light rounded" id="time_display_1" style="display: none;">
+                                <small class="text-muted"><strong>Time spent today:</strong> <span id="time_value_1" class="text-primary">--</span></small>
+                            </div>
+                            <div class="mt-3 p-2 border-top score-section" id="score_section_1" style="{% if not agenda or not agenda.target_1 or not agenda.target_1.target_name %}display: none;{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted"><strong>How did you do?</strong></small>
+                                    <div class="score-buttons" data-target="1">
+                                        <button type="button" class="btn btn-sm score-btn" data-score="1" onclick="setScore(1, 1)" title="Great!">😊</button>
+                                        <button type="button" class="btn btn-sm score-btn" data-score="0.5" onclick="setScore(1, 0.5)" title="Okay">😐</button>
+                                        <button type="button" class="btn btn-sm score-btn" data-score="0" onclick="setScore(1, 0)" title="Not great">😞</button>
+                                        <button type="button" class="btn btn-sm score-btn clear-score-btn" onclick="clearScore(1)" title="Clear score">✖️</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target 2 -->
+                        <div class="mb-4 p-3 border rounded" style="position: relative;">
+                            <div style="position: absolute; top: 15px; right: 15px;">
+                                <div class="form-check">
+                                    <input class="form-check-input tie-to-goal-checkbox" type="checkbox" id="tie_to_goal_2" data-target="2" {% if agenda and agenda.goal_2 %}checked{% endif %}>
+                                    <label class="form-check-label" for="tie_to_goal_2" style="font-size: 0.9rem;">
+                                        Tie to Goal
+                                    </label>
+                                </div>
+                            </div>
+                            <h5 class="mb-3">Target #2</h5>
+                            <div class="mb-3">
+                                <label for="project_2" class="form-label">Project:</label>
+                                <select name="project_2" id="project_2" class="form-select project-select" data-target="2">
+                                    <option value="">-- Select Project --</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.project_id }}" {% if agenda and agenda.project_2_id == project.project_id %}selected{% endif %}>
+                                            {{ project.display_string }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3 goal-section" id="goal_section_2" style="{% if not agenda or not agenda.goal_2 %}display: none;{% endif %}">
+                                <label for="goal_2" class="form-label">Goal:</label>
+                                <select name="goal_2" id="goal_2" class="form-select goal-select" data-target="2" disabled>
+                                    <option value="">-- Select Goal --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="target_2" class="form-label">Target:</label>
+                                <input type="text" name="target_2" id="target_2" class="form-control target-input" placeholder="Enter target" value="{% if agenda and agenda.target_2 %}{{ agenda.target_2.target_name }}{% endif %}" {% if not agenda or not agenda.project_2 %}disabled{% endif %}>
+                            </div>
+                            <div class="mt-3 p-2 bg-light rounded" id="time_display_2" style="display: none;">
+                                <small class="text-muted"><strong>Time spent today:</strong> <span id="time_value_2" class="text-primary">--</span></small>
+                            </div>
+                            <div class="mt-3 p-2 border-top score-section" id="score_section_2" style="{% if not agenda or not agenda.target_2 or not agenda.target_2.target_name %}display: none;{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted"><strong>How did you do?</strong></small>
+                                    <div class="score-buttons" data-target="2">
+                                        <button type="button" class="btn btn-sm score-btn" data-score="1" onclick="setScore(2, 1)" title="Great!">😊</button>
+                                        <button type="button" class="btn btn-sm score-btn" data-score="0.5" onclick="setScore(2, 0.5)" title="Okay">😐</button>
+                                        <button type="button" class="btn btn-sm score-btn" data-score="0" onclick="setScore(2, 0)" title="Not great">😞</button>
+                                        <button type="button" class="btn btn-sm score-btn clear-score-btn" onclick="clearScore(2)" title="Clear score">✖️</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target 3 -->
+                        <div class="mb-4 p-3 border rounded" style="position: relative;">
+                            <div style="position: absolute; top: 15px; right: 15px;">
+                                <div class="form-check">
+                                    <input class="form-check-input tie-to-goal-checkbox" type="checkbox" id="tie_to_goal_3" data-target="3" {% if agenda and agenda.goal_3 %}checked{% endif %}>
+                                    <label class="form-check-label" for="tie_to_goal_3" style="font-size: 0.9rem;">
+                                        Tie to Goal
+                                    </label>
+                                </div>
+                            </div>
+                            <h5 class="mb-3">Target #3</h5>
+                            <div class="mb-3">
+                                <label for="project_3" class="form-label">Project:</label>
+                                <select name="project_3" id="project_3" class="form-select project-select" data-target="3">
+                                    <option value="">-- Select Project --</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.project_id }}" {% if agenda and agenda.project_3_id == project.project_id %}selected{% endif %}>
+                                            {{ project.display_string }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3 goal-section" id="goal_section_3" style="{% if not agenda or not agenda.goal_3 %}display: none;{% endif %}">
+                                <label for="goal_3" class="form-label">Goal:</label>
+                                <select name="goal_3" id="goal_3" class="form-select goal-select" data-target="3" disabled>
+                                    <option value="">-- Select Goal --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="target_3" class="form-label">Target:</label>
+                                <input type="text" name="target_3" id="target_3" class="form-control target-input" placeholder="Enter target" value="{% if agenda and agenda.target_3 %}{{ agenda.target_3.target_name }}{% endif %}" {% if not agenda or not agenda.project_3 %}disabled{% endif %}>
+                            </div>
+                            <div class="mt-3 p-2 bg-light rounded" id="time_display_3" style="display: none;">
+                                <small class="text-muted"><strong>Time spent today:</strong> <span id="time_value_3" class="text-primary">--</span></small>
+                            </div>
+                            <div class="mt-3 p-2 border-top score-section" id="score_section_3" style="{% if not agenda or not agenda.target_3 or not agenda.target_3.target_name %}display: none;{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted"><strong>How did you do?</strong></small>
+                                    <div class="score-buttons" data-target="3">
+                                        <button type="button" class="btn btn-sm score-btn" data-score="1" onclick="setScore(3, 1)" title="Great!">😊</button>
+                                        <button type="button" class="btn btn-sm score-btn" data-score="0.5" onclick="setScore(3, 0.5)" title="Okay">😐</button>
+                                        <button type="button" class="btn btn-sm score-btn" data-score="0" onclick="setScore(3, 0)" title="Not great">😞</button>
+                                        <button type="button" class="btn btn-sm score-btn clear-score-btn" onclick="clearScore(3)" title="Clear score">✖️</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes Section -->
+                        <div class="mt-4 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Other Plans:</h5>
+                                <div>
+                                    <button type="button" id="notes-edit-btn" class="btn btn-sm btn-outline-primary" onclick="toggleNotesMode('edit')">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
+                                    <button type="button" id="notes-view-btn" class="btn btn-sm btn-outline-secondary" onclick="toggleNotesMode('view')" style="display: none;">
+                                        <i class="bi bi-eye"></i> View
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Edit Mode -->
+                            <div id="notes-edit-mode" style="display: none;">
+                                <!-- Quick Insert Emojis -->
+                                <div class="mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertTodoSection()" title="Add To Dos section">
+                                        ✅ To Dos
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitsSection()" title="Add Habits section">
+                                        🏆 Habits
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Run 1 Mile')" title="Add Run 1 Mile task">
+                                        🏃‍♂️ Run
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Fast 16 Hours')" title="Add Fast 16 Hours task">
+                                        🚫 Fast
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Strength Training Session')" title="Add Strength Training Session task">
+                                        🏋️ Lift
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Eat Clean')" title="Add Eat Clean task">
+                                        🥑 Eat Clean
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Sauna Session')" title="Add Sauna Session task">
+                                        ♨️ Sauna
+                                    </button>
+                                </div>
+                                <textarea id="notes-textarea" name="notes" class="form-control" rows="6" placeholder="Enter your notes here (Markdown supported)...">{% if agenda and agenda.notes %}{{ agenda.notes }}{% endif %}</textarea>
+                            </div>
+
+                            <!-- View Mode -->
+                            <div id="notes-view-mode">
+                                <div id="notes-rendered" class="notes-content">
+                                    {% if agenda and agenda.notes %}
+                                        {{ agenda.notes }}
+                                    {% else %}
+                                        <em class="text-muted">No notes yet. Click Edit to add notes.</em>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mt-3">Set Today's Agenda</button>
+                    </form>
                 </div>
 
                 <!-- Fasting Section -->
@@ -166,8 +490,35 @@
         </div>
     </div>
 
+    <!-- Calendar Modal -->
+    <div class="modal fade" id="calendarModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">View Past Agendas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="changeMonth(-1)">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </button>
+                        <h5 id="calendar-month-year" class="mb-0"></h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="changeMonth(1)">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div id="calendar-grid" class="calendar-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <!-- AJAX Script for Logging Fasts -->
     <script>
@@ -452,6 +803,1105 @@
                 submitButton.innerHTML = originalButtonText;
             });
         });
+
+        // TODAY'S AGENDA FUNCTIONALITY
+
+        // Track currently selected date (null = today)
+        let currentSelectedDate = null;
+
+        // Helper function to check if viewing a future date
+        function isFutureDate() {
+            if (!currentSelectedDate) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selectedDate = new Date(currentSelectedDate + 'T00:00:00');
+            return selectedDate > today;
+        }
+
+        // Format today's date
+        (function() {
+            const today = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = today.toLocaleDateString('en-US', options);
+
+            // Add ordinal suffix to day
+            const day = today.getDate();
+            const suffix = (day) => {
+                if (day > 3 && day < 21) return 'th';
+                switch (day % 10) {
+                    case 1: return 'st';
+                    case 2: return 'nd';
+                    case 3: return 'rd';
+                    default: return 'th';
+                }
+            };
+
+            const parts = formattedDate.split(' ');
+            parts[2] = day + suffix(day) + ',';
+            document.getElementById('today-date').textContent = parts.join(' ');
+        })();
+
+        // Function to update Toggl time display
+        function updateTogglTime(targetNum) {
+            const projectId = document.getElementById(`project_${targetNum}`).value;
+            const goalId = document.getElementById(`goal_${targetNum}`).value;
+            const timeDisplay = document.getElementById(`time_display_${targetNum}`);
+            const timeValue = document.getElementById(`time_value_${targetNum}`);
+
+            console.log(`updateTogglTime(${targetNum}): projectId=${projectId}, goalId=${goalId}`);
+
+            // Hide time display if no project selected OR if viewing a future date
+            if (!projectId || isFutureDate()) {
+                timeDisplay.style.display = 'none';
+                return;
+            }
+
+            // Show loading state
+            timeDisplay.style.display = 'block';
+            timeValue.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            // Get user's timezone offset in minutes
+            // getTimezoneOffset() returns the difference in minutes between UTC and local time
+            // Positive values are west of UTC, negative values are east
+            const timezoneOffset = new Date().getTimezoneOffset();
+
+            // Build query parameters
+            let url = `/targets/api/toggl-time-today/?project_id=${projectId}&timezone_offset=${timezoneOffset}`;
+            if (goalId) {
+                url += `&goal_id=${goalId}`;
+            }
+            // Include date if we're viewing a past agenda
+            if (currentSelectedDate) {
+                url += `&date=${currentSelectedDate}`;
+            }
+
+            console.log(`Fetching: ${url}`);
+
+            // Fetch time from Toggl API (or database for past dates)
+            fetch(url)
+                .then(response => {
+                    console.log(`Response status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data.success) {
+                        // Show the time display
+                        timeValue.textContent = data.display;
+
+                        // Update the label based on data source
+                        const timeDisplayDiv = document.getElementById(`time_display_${targetNum}`);
+                        const labelText = currentSelectedDate ? 'Time spent:' : 'Time spent today:';
+                        const sourceIndicator = data.debug && data.debug.source === 'database' ? ' (historical)' : '';
+                        timeDisplayDiv.querySelector('strong').textContent = labelText;
+
+                        // Add source indicator if from database
+                        if (sourceIndicator) {
+                            timeValue.textContent += sourceIndicator;
+                        }
+                    } else {
+                        timeValue.textContent = 'Error loading time';
+                        console.error('Error fetching Toggl time:', data.error);
+                    }
+                })
+                .catch(error => {
+                    timeValue.textContent = 'Error loading time';
+                    console.error('Error:', error);
+                });
+        }
+
+        // Handle "Tie to Goal" checkbox toggles
+        document.querySelectorAll('.tie-to-goal-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const targetNum = this.dataset.target;
+                const goalSection = document.getElementById(`goal_section_${targetNum}`);
+                const goalSelect = document.getElementById(`goal_${targetNum}`);
+
+                if (this.checked) {
+                    // Show goal section
+                    goalSection.style.display = 'block';
+                    // Check if project is selected to enable goal dropdown
+                    const projectSelect = document.getElementById(`project_${targetNum}`);
+                    if (projectSelect.value) {
+                        goalSelect.disabled = false;
+                        // Trigger loading goals
+                        projectSelect.dispatchEvent(new Event('change'));
+                    }
+                } else {
+                    // Hide goal section and clear goal selection
+                    goalSection.style.display = 'none';
+                    goalSelect.value = '';
+                    goalSelect.disabled = true;
+                    goalSelect.innerHTML = '<option value="">-- Select Goal --</option>';
+                    // Update time display (without goal filter)
+                    updateTogglTime(targetNum);
+                }
+            });
+        });
+
+        // Handle project selection changes
+        document.querySelectorAll('.project-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const targetNum = this.dataset.target;
+                const projectId = this.value;
+                const goalSelect = document.getElementById(`goal_${targetNum}`);
+                const targetInput = document.getElementById(`target_${targetNum}`);
+                const tieToGoalCheckbox = document.getElementById(`tie_to_goal_${targetNum}`);
+                const scoreSection = document.getElementById(`score_section_${targetNum}`);
+
+                // Reset goal and target
+                goalSelect.innerHTML = '<option value="">-- Select Goal --</option>';
+
+                // Only enable goal dropdown if project is selected AND "Tie to Goal" is checked
+                goalSelect.disabled = !projectId || !tieToGoalCheckbox.checked;
+
+                // Enable target input when project is selected
+                targetInput.value = '';
+                targetInput.disabled = !projectId;
+
+                // Hide score section when target is cleared
+                if (scoreSection) {
+                    scoreSection.style.display = 'none';
+                    // Clear active state from all score buttons
+                    scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
+                }
+
+                // Update Toggl time display
+                updateTogglTime(targetNum);
+
+                // Only fetch goals if project is selected AND "Tie to Goal" is checked
+                if (projectId && tieToGoalCheckbox.checked) {
+                    // Fetch goals for this project
+                    fetch(`/targets/api/goals/?project_id=${projectId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            data.goals.forEach(goal => {
+                                const option = document.createElement('option');
+                                option.value = goal.goal_id;
+                                option.textContent = goal.display_string;
+                                goalSelect.appendChild(option);
+                            });
+                        });
+                }
+            });
+        });
+
+        // Handle goal selection changes
+        document.querySelectorAll('.goal-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const targetNum = this.dataset.target;
+                const targetInput = document.getElementById(`target_${targetNum}`);
+                const scoreSection = document.getElementById(`score_section_${targetNum}`);
+
+                // Clear target value when goal changes
+                targetInput.value = '';
+
+                // Hide score section when target is cleared
+                if (scoreSection) {
+                    scoreSection.style.display = 'none';
+                    scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
+                }
+
+                // Update Toggl time display with the selected goal filter
+                updateTogglTime(targetNum);
+            });
+        });
+
+        // Handle target input changes to show/hide score section
+        document.querySelectorAll('.target-input').forEach(input => {
+            input.addEventListener('input', function() {
+                const targetNum = this.id.split('_')[1]; // Extract number from "target_1"
+                const scoreSection = document.getElementById(`score_section_${targetNum}`);
+
+                if (scoreSection) {
+                    // Only show score section if:
+                    // 1. There's text in the target input
+                    // 2. We're NOT viewing a future date
+                    if (this.value.trim() && !isFutureDate()) {
+                        scoreSection.style.display = 'block';
+                    } else {
+                        scoreSection.style.display = 'none';
+                        // Clear active state from all score buttons
+                        scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
+                    }
+                }
+            });
+        });
+
+        // Load existing agenda data if present
+        {% if agenda %}
+            // Target 1
+            (function() {
+                const projectSelect = document.getElementById('project_1');
+                if (projectSelect.value) {
+                    {% if agenda.goal_1 %}
+                        // Load goals for this project, then select the saved goal
+                        loadGoalsForProject(1, projectSelect.value, '{{ agenda.goal_1.goal_id }}');
+                        setTimeout(() => {
+                            {% if agenda.target_1 %}
+                                document.getElementById('target_1').value = '{{ agenda.target_1.target_name }}';
+                                // Show score section if target has text
+                                const scoreSection1 = document.getElementById('score_section_1');
+                                if (scoreSection1) scoreSection1.style.display = 'block';
+                            {% endif %}
+                        }, 300);
+                    {% else %}
+                        // No goal, just update time for project
+                        {% if agenda.target_1 %}
+                            document.getElementById('target_1').value = '{{ agenda.target_1.target_name }}';
+                            // Show score section if target has text
+                            const scoreSection1 = document.getElementById('score_section_1');
+                            if (scoreSection1) scoreSection1.style.display = 'block';
+                        {% endif %}
+                        updateTogglTime(1);
+                    {% endif %}
+                }
+            })();
+
+            // Target 2
+            (function() {
+                const projectSelect = document.getElementById('project_2');
+                if (projectSelect.value) {
+                    {% if agenda.goal_2 %}
+                        // Load goals for this project, then select the saved goal
+                        loadGoalsForProject(2, projectSelect.value, '{{ agenda.goal_2.goal_id }}');
+                        setTimeout(() => {
+                            {% if agenda.target_2 %}
+                                document.getElementById('target_2').value = '{{ agenda.target_2.target_name }}';
+                                // Show score section if target has text
+                                const scoreSection2 = document.getElementById('score_section_2');
+                                if (scoreSection2) scoreSection2.style.display = 'block';
+                            {% endif %}
+                        }, 300);
+                    {% else %}
+                        // No goal, just update time for project
+                        {% if agenda.target_2 %}
+                            document.getElementById('target_2').value = '{{ agenda.target_2.target_name }}';
+                            // Show score section if target has text
+                            const scoreSection2 = document.getElementById('score_section_2');
+                            if (scoreSection2) scoreSection2.style.display = 'block';
+                        {% endif %}
+                        updateTogglTime(2);
+                    {% endif %}
+                }
+            })();
+
+            // Target 3
+            (function() {
+                const projectSelect = document.getElementById('project_3');
+                if (projectSelect.value) {
+                    {% if agenda.goal_3 %}
+                        // Load goals for this project, then select the saved goal
+                        loadGoalsForProject(3, projectSelect.value, '{{ agenda.goal_3.goal_id }}');
+                        setTimeout(() => {
+                            {% if agenda.target_3 %}
+                                document.getElementById('target_3').value = '{{ agenda.target_3.target_name }}';
+                                // Show score section if target has text
+                                const scoreSection3 = document.getElementById('score_section_3');
+                                if (scoreSection3) scoreSection3.style.display = 'block';
+                            {% endif %}
+                        }, 300);
+                    {% else %}
+                        // No goal, just update time for project
+                        {% if agenda.target_3 %}
+                            document.getElementById('target_3').value = '{{ agenda.target_3.target_name }}';
+                            // Show score section if target has text
+                            const scoreSection3 = document.getElementById('score_section_3');
+                            if (scoreSection3) scoreSection3.style.display = 'block';
+                        {% endif %}
+                        updateTogglTime(3);
+                    {% endif %}
+                }
+            })();
+        {% endif %}
+
+        // Handle agenda form submission
+        document.getElementById('agendaForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const csrftoken = getCSRFToken();
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+
+            // Validation
+            let validationErrors = [];
+            for (let i = 1; i <= 3; i++) {
+                const project = document.getElementById(`project_${i}`).value;
+                const goal = document.getElementById(`goal_${i}`).value;
+                const target = document.getElementById(`target_${i}`).value.trim();
+                const tieToGoal = document.getElementById(`tie_to_goal_${i}`).checked;
+
+                // Rule 1: If project is selected, target is required
+                if (project && !target) {
+                    validationErrors.push(`Target #${i}: You must enter a target when a project is selected.`);
+                }
+
+                // Rule 2: If "Tie to Goal" is checked, project, goal, and target are all required
+                if (tieToGoal) {
+                    if (!project) {
+                        validationErrors.push(`Target #${i}: You must select a project when "Tie to Goal" is checked.`);
+                    }
+                    if (!goal) {
+                        validationErrors.push(`Target #${i}: You must select a goal when "Tie to Goal" is checked.`);
+                    }
+                    if (!target) {
+                        validationErrors.push(`Target #${i}: You must enter a target when "Tie to Goal" is checked.`);
+                    }
+                }
+            }
+
+            // Show validation errors if any
+            if (validationErrors.length > 0) {
+                const errorMessage = validationErrors.join('<br>');
+                showFlashMessage(errorMessage, false);
+                return;
+            }
+
+            // Collect form data
+            const formData = new URLSearchParams();
+
+            // Include the date if we're editing a past agenda
+            if (currentSelectedDate) {
+                formData.append('date', currentSelectedDate);
+            }
+
+            for (let i = 1; i <= 3; i++) {
+                const project = document.getElementById(`project_${i}`).value;
+                const goal = document.getElementById(`goal_${i}`).value;
+                const target = document.getElementById(`target_${i}`).value;
+
+                formData.append(`project_${i}`, project);
+                formData.append(`goal_${i}`, goal);
+                formData.append(`target_${i}`, target);
+            }
+
+            // Include notes
+            const notes = document.getElementById('notes-textarea').value;
+            formData.append('notes', notes);
+
+            // Disable submit button and show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+
+            // Make AJAX request
+            fetch('/targets/api/save-agenda/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: formData.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFlashMessage(data.message, true);
+                    // Switch notes to view mode after successful save
+                    toggleNotesMode('view');
+                } else {
+                    showFlashMessage(data.message || 'Error saving agenda', false);
+                }
+            })
+            .catch(error => {
+                showFlashMessage('Network error: Could not save agenda', false);
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                // Re-enable button and restore text
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            });
+        });
+
+        // Calendar functionality
+        let currentCalendarDate = new Date();
+        let availableDates = [];
+        let calendarModal = null;
+
+        function showCalendarModal() {
+            // Initialize modal if not already done
+            if (!calendarModal) {
+                calendarModal = new bootstrap.Modal(document.getElementById('calendarModal'));
+            }
+
+            // Fetch available dates and show modal
+            fetch('/targets/api/available-dates/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        availableDates = data.dates;
+                        renderCalendar();
+                        calendarModal.show();
+                    } else {
+                        showFlashMessage('Error loading available dates', false);
+                    }
+                })
+                .catch(error => {
+                    showFlashMessage('Network error: Could not load dates', false);
+                    console.error('Error:', error);
+                });
+        }
+
+        function changeMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+
+            // Update month/year display
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('calendar-month-year').textContent =
+                `${monthNames[month]} ${year}`;
+
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Build calendar grid
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day header';
+                dayDiv.textContent = day;
+                grid.appendChild(dayDiv);
+            });
+
+            // Add empty cells for days before first day of month
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'calendar-day empty';
+                grid.appendChild(emptyDiv);
+            }
+
+            // Get today's date for comparison
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Add days of month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                dayDiv.textContent = day;
+
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const currentDate = new Date(year, month, day);
+
+                // Make clickable if:
+                // 1. Has an agenda (past date with data)
+                // 2. Is today or future (for creating new agendas)
+                if (availableDates.includes(dateStr)) {
+                    // Has existing agenda
+                    dayDiv.classList.add('clickable');
+                    dayDiv.onclick = () => selectDate(dateStr);
+                } else if (currentDate >= today) {
+                    // Today or future date (no agenda yet)
+                    dayDiv.classList.add('clickable');
+                    dayDiv.classList.add('future');
+                    dayDiv.onclick = () => selectDate(dateStr, true); // true = isFuture
+                }
+
+                grid.appendChild(dayDiv);
+            }
+        }
+
+        function selectDate(dateStr, isFuture = false) {
+            // Close the modal
+            calendarModal.hide();
+
+            // Store the selected date
+            currentSelectedDate = dateStr;
+
+            // Show the "Return to Today" button
+            document.getElementById('return-to-today-btn').style.display = 'block';
+
+            if (isFuture) {
+                // For future dates, load an empty agenda form
+                loadEmptyAgendaForDate(dateStr);
+            } else {
+                // For past/existing dates, fetch the agenda
+                fetch(`/targets/api/agenda-for-date/?date=${dateStr}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadAgendaIntoForm(data.agenda);
+                        } else {
+                            showFlashMessage('Error loading agenda for selected date', false);
+                        }
+                    })
+                    .catch(error => {
+                        showFlashMessage('Network error: Could not load agenda', false);
+                        console.error('Error:', error);
+                    });
+            }
+        }
+
+        function loadEmptyAgendaForDate(dateStr) {
+            // Parse and format the date
+            const date = new Date(dateStr + 'T00:00:00');
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = date.toLocaleDateString('en-US', options);
+
+            // Add ordinal suffix
+            const day = date.getDate();
+            const suffix = (day) => {
+                if (day > 3 && day < 21) return 'th';
+                switch (day % 10) {
+                    case 1: return 'st';
+                    case 2: return 'nd';
+                    case 3: return 'rd';
+                    default: return 'th';
+                }
+            };
+            const parts = formattedDate.split(' ');
+            parts[2] = day + suffix(day) + ',';
+            document.getElementById('today-date').textContent = parts.join(' ');
+
+            // Clear all three targets
+            for (let i = 1; i <= 3; i++) {
+                // Enable inputs for editing
+                document.getElementById(`project_${i}`).value = '';
+                document.getElementById(`goal_${i}`).value = '';
+                document.getElementById(`goal_${i}`).disabled = true;
+                document.getElementById(`goal_${i}`).innerHTML = '<option value="">-- Select Goal --</option>';
+                document.getElementById(`target_${i}`).value = '';
+                document.getElementById(`target_${i}`).disabled = true;
+                document.getElementById(`tie_to_goal_${i}`).checked = false;
+                document.getElementById(`goal_section_${i}`).style.display = 'none';
+
+                // Hide score sections (no scoring for future dates)
+                const scoreSection = document.getElementById(`score_section_${i}`);
+                if (scoreSection) {
+                    scoreSection.style.display = 'none';
+                    scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
+                }
+
+                // Hide time display (no time tracking for future dates)
+                const timeDisplay = document.getElementById(`time_display_${i}`);
+                if (timeDisplay) {
+                    timeDisplay.style.display = 'none';
+                }
+            }
+
+            // Clear notes
+            document.getElementById('notes-textarea').value = '';
+            renderMarkdown('');
+        }
+
+        function returnToToday() {
+            // Clear the selected date
+            currentSelectedDate = null;
+
+            // Hide the "Return to Today" button
+            document.getElementById('return-to-today-btn').style.display = 'none';
+
+            // Reload the page to get today's agenda
+            window.location.reload();
+        }
+
+        function setScore(targetNum, score) {
+            // Get the date (either selected past date or today)
+            let dateStr;
+            if (currentSelectedDate) {
+                dateStr = currentSelectedDate;
+            } else {
+                // Use today's date in YYYY-MM-DD format
+                const today = new Date();
+                dateStr = today.toISOString().split('T')[0];
+            }
+
+            // Get CSRF token
+            const csrftoken = getCSRFToken();
+
+            // Make AJAX request to save score
+            fetch('/targets/api/save-target-score/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: `date=${dateStr}&target_num=${targetNum}&score=${score}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update UI to show selected score
+                    updateScoreButtons(targetNum, score);
+                    showFlashMessage('Score saved!', true);
+
+                    // Refresh the day score display
+                    refreshDayScoreDisplay();
+                } else {
+                    showFlashMessage('Error saving score: ' + data.error, false);
+                }
+            })
+            .catch(error => {
+                showFlashMessage('Network error: Could not save score', false);
+                console.error('Error:', error);
+            });
+        }
+
+        function clearScore(targetNum) {
+            // Get the date (either selected past date or today)
+            let dateStr;
+            if (currentSelectedDate) {
+                dateStr = currentSelectedDate;
+            } else {
+                // Use today's date in YYYY-MM-DD format
+                const today = new Date();
+                dateStr = today.toISOString().split('T')[0];
+            }
+
+            // Get CSRF token
+            const csrftoken = getCSRFToken();
+
+            // Make AJAX request to clear score (send null)
+            fetch('/targets/api/save-target-score/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: `date=${dateStr}&target_num=${targetNum}&score=null`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Clear UI - remove active class from all buttons
+                    updateScoreButtons(targetNum, null);
+                    showFlashMessage('Score cleared!', true);
+
+                    // Refresh the day score display
+                    refreshDayScoreDisplay();
+                } else {
+                    showFlashMessage('Error clearing score: ' + data.error, false);
+                }
+            })
+            .catch(error => {
+                showFlashMessage('Network error: Could not clear score', false);
+                console.error('Error:', error);
+            });
+        }
+
+        function updateScoreButtons(targetNum, score) {
+            // Remove active class from all buttons for this target
+            const scoreButtons = document.querySelector(`.score-buttons[data-target="${targetNum}"]`);
+            scoreButtons.querySelectorAll('.score-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Add active class to the selected button
+            const selectedBtn = scoreButtons.querySelector(`[data-score="${score}"]`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('active');
+            }
+        }
+
+        function loadScoresFromAgenda() {
+            // Load scores from the agenda object (if available)
+            {% if agenda %}
+                {% if agenda.target_1_score is not None %}
+                    updateScoreButtons(1, {{ agenda.target_1_score }});
+                {% endif %}
+                {% if agenda.target_2_score is not None %}
+                    updateScoreButtons(2, {{ agenda.target_2_score }});
+                {% endif %}
+                {% if agenda.target_3_score is not None %}
+                    updateScoreButtons(3, {{ agenda.target_3_score }});
+                {% endif %}
+            {% endif %}
+        }
+
+        function displayDayScore(agenda) {
+            const dayScoreBox = document.getElementById('day-score-box');
+            const dayScoreText = document.getElementById('day-score-text');
+
+            // Only show for past days, not today or future
+            if (isFutureDate() || isToday()) {
+                dayScoreBox.style.display = 'none';
+                return;
+            }
+
+            // Check if any targets are set
+            let hasAnyTarget = false;
+            let hasUnscoredTarget = false;
+            let targetsSet = 0;
+            let totalScore = 0;
+
+            for (let i = 0; i < agenda.targets.length; i++) {
+                const target = agenda.targets[i];
+                const targetScore = agenda[`target_${i + 1}_score`];
+
+                // Check if target has a name (is set)
+                if (target.target_name) {
+                    hasAnyTarget = true;
+                    targetsSet++;
+
+                    // Check if it has no score
+                    if (targetScore === null || targetScore === undefined) {
+                        hasUnscoredTarget = true;
+                    } else {
+                        totalScore += targetScore;
+                    }
+                }
+            }
+
+            // If no targets are set, don't show the box
+            if (!hasAnyTarget) {
+                dayScoreBox.style.display = 'none';
+                return;
+            }
+
+            // Show the box
+            dayScoreBox.style.display = 'block';
+
+            // Display "Unscored" or the calculated score
+            if (hasUnscoredTarget) {
+                dayScoreText.textContent = 'Unscored';
+            } else {
+                // Calculate the percentage
+                const percentage = Math.round((totalScore / targetsSet) * 100);
+                dayScoreText.textContent = `Score: ${percentage}%`;
+            }
+        }
+
+        // Helper function to check if viewing today
+        function isToday() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const viewingDate = currentSelectedDate || todayStr;
+            return viewingDate === todayStr;
+        }
+
+        // Refresh the day score display after a score change
+        function refreshDayScoreDisplay() {
+            // Get the current viewing date
+            let dateStr;
+            if (currentSelectedDate) {
+                dateStr = currentSelectedDate;
+            } else {
+                const today = new Date();
+                dateStr = today.toISOString().split('T')[0];
+            }
+
+            // Fetch the updated agenda data
+            fetch(`/targets/api/agenda-for-date/?date=${dateStr}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayDayScore(data.agenda);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error refreshing day score:', error);
+                });
+        }
+
+        // Load scores when page loads
+        window.addEventListener('DOMContentLoaded', loadScoresFromAgenda);
+
+        // Notes functionality
+        let notesInEditMode = false;
+
+        function toggleNotesMode(mode) {
+            const editMode = document.getElementById('notes-edit-mode');
+            const viewMode = document.getElementById('notes-view-mode');
+            const editBtn = document.getElementById('notes-edit-btn');
+            const viewBtn = document.getElementById('notes-view-btn');
+            const textarea = document.getElementById('notes-textarea');
+
+            if (mode === 'edit') {
+                editMode.style.display = 'block';
+                viewMode.style.display = 'none';
+                editBtn.style.display = 'none';
+                viewBtn.style.display = 'inline-block';
+                notesInEditMode = true;
+            } else {
+                // Switching to view mode - render the current markdown
+                const currentText = textarea.value;
+                renderMarkdown(currentText);
+
+                editMode.style.display = 'none';
+                viewMode.style.display = 'block';
+                editBtn.style.display = 'inline-block';
+                viewBtn.style.display = 'none';
+                notesInEditMode = false;
+            }
+        }
+
+        function renderMarkdown(markdown) {
+            const renderedDiv = document.getElementById('notes-rendered');
+            if (markdown && markdown.trim()) {
+                // Parse markdown to HTML
+                const html = marked.parse(markdown);
+                renderedDiv.innerHTML = html;
+            } else {
+                renderedDiv.innerHTML = '<em class="text-muted">No notes yet. Click Edit to add notes.</em>';
+            }
+        }
+
+        function insertTodoSection() {
+            const textarea = document.getElementById('notes-textarea');
+            const content = textarea.value;
+
+            // Check if "# To Dos" section already exists (case-insensitive)
+            const todoRegex = /#\s*✅?\s*to\s*dos/i;
+            if (todoRegex.test(content)) {
+                // Section already exists, don't add it again
+                return;
+            }
+
+            // Add the To Dos section
+            // Only add leading newlines if there's already content
+            const prefix = content.trim() ? '\n\n' : '';
+            const todoSection = prefix + '# ✅ To Dos\n- [ ] ';
+
+            // Append to end of content
+            textarea.value = content + todoSection;
+
+            // Move cursor to the end (after the checkbox)
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+
+        function insertHabitsSection() {
+            const textarea = document.getElementById('notes-textarea');
+            const content = textarea.value;
+
+            // Check if "# Habits" section already exists (case-insensitive)
+            const habitsRegex = /#\s*🏆?\s*habits/i;
+            if (habitsRegex.test(content)) {
+                // Section already exists, don't add it again
+                return;
+            }
+
+            // Add the Habits section
+            // Only add leading newlines if there's already content
+            const prefix = content.trim() ? '\n\n' : '';
+            const habitsSection = prefix + '# 🏆 Habits\n- [ ] ';
+
+            // Append to end of content
+            textarea.value = content + habitsSection;
+
+            // Move cursor to the end (after the checkbox)
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+
+        function insertHabitTask(taskName) {
+            const textarea = document.getElementById('notes-textarea');
+            const content = textarea.value;
+            const taskText = `- [ ] ${taskName}`;
+
+            // Check if "# Habits" section exists (case-insensitive)
+            const habitsRegex = /#\s*🏆?\s*habits/i;
+            const match = content.match(habitsRegex);
+
+            if (match) {
+                // Habits section exists - insert under it
+                const sectionIndex = match.index + match[0].length;
+
+                // Find the next section (starts with #) or end of content
+                const afterSection = content.substring(sectionIndex);
+                const nextSectionMatch = afterSection.match(/\n#\s/);
+
+                let insertPosition;
+                if (nextSectionMatch) {
+                    // Insert before the next section
+                    insertPosition = sectionIndex + nextSectionMatch.index;
+                } else {
+                    // Insert at the end
+                    insertPosition = content.length;
+                }
+
+                // Insert the task with proper newline formatting
+                const beforeInsert = content.substring(0, insertPosition);
+                const afterInsert = content.substring(insertPosition);
+
+                // Always add newline before the task, and ensure there's a newline after the header
+                let taskWithNewline;
+                if (afterSection.trim().length === 0) {
+                    // Nothing after the header yet
+                    taskWithNewline = '\n' + taskText;
+                } else {
+                    // There's content after the header, add task on new line
+                    taskWithNewline = '\n' + taskText;
+                }
+
+                textarea.value = beforeInsert + taskWithNewline + afterInsert;
+            } else {
+                // No Habits section - append to the end
+                const prefix = content.trim() ? '\n' : '';
+                textarea.value = content + prefix + taskText;
+            }
+
+            // Move cursor to the end
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+
+        // Render markdown on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.getElementById('notes-textarea');
+            if (textarea && textarea.value) {
+                renderMarkdown(textarea.value);
+            }
+        });
+
+        function loadAgendaIntoForm(agenda) {
+            console.log('loadAgendaIntoForm called with agenda:', agenda);
+
+            // Update the date display
+            const date = new Date(agenda.date + 'T00:00:00'); // Parse as local date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = date.toLocaleDateString('en-US', options);
+
+            // Add ordinal suffix
+            const day = date.getDate();
+            const suffix = (day) => {
+                if (day > 3 && day < 21) return 'th';
+                switch (day % 10) {
+                    case 1: return 'st';
+                    case 2: return 'nd';
+                    case 3: return 'rd';
+                    default: return 'th';
+                }
+            };
+            const parts = formattedDate.split(' ');
+            parts[2] = day + suffix(day) + ',';
+            document.getElementById('today-date').textContent = parts.join(' ');
+
+            // Load each target
+            agenda.targets.forEach((target, index) => {
+                const targetNum = index + 1;
+
+                // Set project
+                const projectSelect = document.getElementById(`project_${targetNum}`);
+                if (target.project_id) {
+                    projectSelect.value = target.project_id;
+                    // Enable goal and target inputs
+                    document.getElementById(`goal_${targetNum}`).disabled = false;
+                    document.getElementById(`target_${targetNum}`).disabled = false;
+
+                    // Set target text
+                    document.getElementById(`target_${targetNum}`).value = target.target_name || '';
+
+                    // Show score section if target has text AND not viewing future date
+                    const scoreSection = document.getElementById(`score_section_${targetNum}`);
+                    if (scoreSection && target.target_name && !isFutureDate()) {
+                        scoreSection.style.display = 'block';
+                    }
+
+                    // If there's a goal, load goals (which will call updateTogglTime after goals load)
+                    // If no goal, clear goal dropdown and call updateTogglTime directly
+                    if (target.goal_id) {
+                        loadGoalsForProject(targetNum, target.project_id, target.goal_id);
+                    } else {
+                        // Clear goal dropdown
+                        const goalSelect = document.getElementById(`goal_${targetNum}`);
+                        goalSelect.innerHTML = '<option value="">-- Select Goal --</option>';
+                        goalSelect.value = '';
+                        // Call updateTogglTime with no goal
+                        updateTogglTime(targetNum);
+                    }
+                } else {
+                    projectSelect.value = '';
+                    document.getElementById(`goal_${targetNum}`).value = '';
+                    document.getElementById(`goal_${targetNum}`).disabled = true;
+                    document.getElementById(`target_${targetNum}`).value = '';
+                    document.getElementById(`target_${targetNum}`).disabled = true;
+
+                    // Hide score section if no target
+                    const scoreSection = document.getElementById(`score_section_${targetNum}`);
+                    if (scoreSection) {
+                        scoreSection.style.display = 'none';
+                    }
+
+                    // Hide time display if no project
+                    const timeDisplay = document.getElementById(`time_display_${targetNum}`);
+                    if (timeDisplay) {
+                        timeDisplay.style.display = 'none';
+                    }
+                }
+
+                // Set "Tie to Goal" checkbox
+                const tieToGoalCheckbox = document.getElementById(`tie_to_goal_${targetNum}`);
+                const goalSection = document.getElementById(`goal_section_${targetNum}`);
+                if (target.goal_id) {
+                    tieToGoalCheckbox.checked = true;
+                    goalSection.style.display = 'block';
+                } else {
+                    tieToGoalCheckbox.checked = false;
+                    goalSection.style.display = 'none';
+                }
+            });
+
+            // Load scores from the agenda
+            if (agenda.target_1_score !== null && agenda.target_1_score !== undefined) {
+                updateScoreButtons(1, agenda.target_1_score);
+            }
+            if (agenda.target_2_score !== null && agenda.target_2_score !== undefined) {
+                updateScoreButtons(2, agenda.target_2_score);
+            }
+            if (agenda.target_3_score !== null && agenda.target_3_score !== undefined) {
+                updateScoreButtons(3, agenda.target_3_score);
+            }
+
+            // Load notes from the agenda
+            if (agenda.notes) {
+                document.getElementById('notes-textarea').value = agenda.notes;
+                renderMarkdown(agenda.notes);
+            } else {
+                document.getElementById('notes-textarea').value = '';
+                renderMarkdown('');
+            }
+
+            // Display day score for past days
+            displayDayScore(agenda);
+        }
+
+        function loadGoalsForProject(targetNum, projectId, selectedGoalId = null) {
+            fetch(`/targets/api/goals/?project_id=${projectId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const goalSelect = document.getElementById(`goal_${targetNum}`);
+                    const goalSection = document.getElementById(`goal_section_${targetNum}`);
+
+                    goalSelect.innerHTML = '<option value="">-- Select Goal --</option>';
+                    goalSelect.disabled = false;
+
+                    // Show goal section if we have a selected goal
+                    if (selectedGoalId && goalSection) {
+                        goalSection.style.display = 'block';
+                    }
+
+                    data.goals.forEach(goal => {
+                        const option = document.createElement('option');
+                        option.value = goal.goal_id;
+                        option.textContent = goal.display_string;
+                        if (selectedGoalId && goal.goal_id === selectedGoalId) {
+                            option.selected = true;
+                        }
+                        goalSelect.appendChild(option);
+                    });
+
+                    // If a goal is selected, trigger time update after a brief delay to ensure DOM is updated
+                    if (selectedGoalId) {
+                        setTimeout(() => {
+                            updateTogglTime(targetNum);
+                        }, 100);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading goals:', error);
+                });
+        }
     </script>
 </body>
 </html>

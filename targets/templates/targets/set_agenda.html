@@ -1,0 +1,279 @@
+{% load targets_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set Today's Agenda</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .date-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 30px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .target-row {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+        .target-row h3 {
+            margin-top: 0;
+            color: #444;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input[list] {
+            width: 100%;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .submit-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Set Today's Agenda</h1>
+
+    <div class="date-display" id="today-date"></div>
+
+    <form method="POST" id="agenda-form">
+        {% csrf_token %}
+
+        <!-- Target 1 -->
+        <div class="target-row">
+            <h3>Target #1</h3>
+            <div class="form-group">
+                <label for="project_1">Project:</label>
+                <select name="project_1" id="project_1" class="project-select" data-target="1">
+                    <option value="">-- Select Project --</option>
+                    {% for project in projects %}
+                        <option value="{{ project.project_id }}" {% if agenda and agenda.project_1_id == project.project_id %}selected{% endif %}>
+                            {{ project.display_string }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="goal_1">Goal:</label>
+                <select name="goal_1" id="goal_1" class="goal-select" data-target="1" disabled>
+                    <option value="">-- Select Goal --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="target_1">Target:</label>
+                <input list="target_list_1" name="target_1" id="target_1" class="target-input" placeholder="Select or type new target" disabled>
+                <datalist id="target_list_1"></datalist>
+            </div>
+        </div>
+
+        <!-- Target 2 -->
+        <div class="target-row">
+            <h3>Target #2</h3>
+            <div class="form-group">
+                <label for="project_2">Project:</label>
+                <select name="project_2" id="project_2" class="project-select" data-target="2">
+                    <option value="">-- Select Project --</option>
+                    {% for project in projects %}
+                        <option value="{{ project.project_id }}" {% if agenda and agenda.project_2_id == project.project_id %}selected{% endif %}>
+                            {{ project.display_string }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="goal_2">Goal:</label>
+                <select name="goal_2" id="goal_2" class="goal-select" data-target="2" disabled>
+                    <option value="">-- Select Goal --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="target_2">Target:</label>
+                <input list="target_list_2" name="target_2" id="target_2" class="target-input" placeholder="Select or type new target" disabled>
+                <datalist id="target_list_2"></datalist>
+            </div>
+        </div>
+
+        <!-- Target 3 -->
+        <div class="target-row">
+            <h3>Target #3</h3>
+            <div class="form-group">
+                <label for="project_3">Project:</label>
+                <select name="project_3" id="project_3" class="project-select" data-target="3">
+                    <option value="">-- Select Project --</option>
+                    {% for project in projects %}
+                        <option value="{{ project.project_id }}" {% if agenda and agenda.project_3_id == project.project_id %}selected{% endif %}>
+                            {{ project.display_string }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="goal_3">Goal:</label>
+                <select name="goal_3" id="goal_3" class="goal-select" data-target="3" disabled>
+                    <option value="">-- Select Goal --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="target_3">Target:</label>
+                <input list="target_list_3" name="target_3" id="target_3" class="target-input" placeholder="Select or type new target" disabled>
+                <datalist id="target_list_3"></datalist>
+            </div>
+        </div>
+
+        <div class="submit-container">
+            <button type="submit">Set Today's Agenda</button>
+        </div>
+    </form>
+
+    <script>
+        // Format today's date
+        const today = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const formattedDate = today.toLocaleDateString('en-US', options);
+
+        // Add ordinal suffix to day
+        const day = today.getDate();
+        const suffix = (day) => {
+            if (day > 3 && day < 21) return 'th';
+            switch (day % 10) {
+                case 1: return 'st';
+                case 2: return 'nd';
+                case 3: return 'rd';
+                default: return 'th';
+            }
+        };
+
+        const parts = formattedDate.split(' ');
+        parts[2] = day + suffix(day) + ',';
+        document.getElementById('today-date').textContent = parts.join(' ');
+
+        // Handle project selection changes
+        document.querySelectorAll('.project-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const targetNum = this.dataset.target;
+                const projectId = this.value;
+                const goalSelect = document.getElementById(`goal_${targetNum}`);
+                const targetInput = document.getElementById(`target_${targetNum}`);
+
+                // Reset goal and target
+                goalSelect.innerHTML = '<option value="">-- Select Goal --</option>';
+                goalSelect.disabled = !projectId;
+                targetInput.value = '';
+                targetInput.disabled = true;
+                document.getElementById(`target_list_${targetNum}`).innerHTML = '';
+
+                if (projectId) {
+                    // Fetch goals for this project
+                    fetch(`/targets/api/goals/?project_id=${projectId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            data.goals.forEach(goal => {
+                                const option = document.createElement('option');
+                                option.value = goal.goal_id;
+                                option.textContent = goal.display_string;
+                                goalSelect.appendChild(option);
+                            });
+                        });
+                }
+            });
+        });
+
+        // Handle goal selection changes
+        document.querySelectorAll('.goal-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const targetNum = this.dataset.target;
+                const goalId = this.value;
+                const targetInput = document.getElementById(`target_${targetNum}`);
+                const targetList = document.getElementById(`target_list_${targetNum}`);
+
+                // Reset target
+                targetInput.value = '';
+                targetInput.disabled = !goalId;
+                targetList.innerHTML = '';
+
+                if (goalId) {
+                    // Fetch targets for this goal
+                    fetch(`/targets/api/targets/?goal_id=${goalId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            data.targets.forEach(target => {
+                                const option = document.createElement('option');
+                                option.value = target.target_id;
+                                option.textContent = target.target_name;
+                                targetList.appendChild(option);
+                            });
+                        });
+                }
+            });
+        });
+
+        // Load existing agenda data if present
+        {% if agenda %}
+            {% for i in "123" %}
+                const project{{ i }} = document.getElementById('project_{{ i }}');
+                if (project{{ i }}.value) {
+                    project{{ i }}.dispatchEvent(new Event('change'));
+
+                    setTimeout(() => {
+                        {% if agenda %}
+                            const goal{{ i }} = document.getElementById('goal_{{ i }}');
+                            {% if agenda|attr:"goal_"|add:i|attr:"_id" %}
+                                goal{{ i }}.value = '{{ agenda|attr:"goal_"|add:i|attr:"_id" }}';
+                                goal{{ i }}.dispatchEvent(new Event('change'));
+
+                                setTimeout(() => {
+                                    {% if agenda|attr:"target_"|add:i %}
+                                        document.getElementById('target_{{ i }}').value = '{{ agenda|attr:"target_"|add:i|attr:".target_id" }}';
+                                    {% endif %}
+                                }, 200);
+                            {% endif %}
+                        {% endif %}
+                    }, 200);
+                }
+            {% endfor %}
+        {% endif %}
+    </script>
+</body>
+</html>

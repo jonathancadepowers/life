@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "time_logs",
     "goals",
     "projects",
+    "targets",
 ]
 
 MIDDLEWARE = [

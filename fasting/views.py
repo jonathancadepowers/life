@@ -11,7 +11,25 @@ import uuid
 
 def activity_logger(request):
     """Render the Activity Logger page."""
-    return render(request, 'fasting/activity_logger.html')
+    from projects.models import Project
+    from targets.models import DailyAgenda
+
+    # Get all projects for the dropdowns
+    projects = Project.objects.all().order_by('display_string')
+
+    # Get today's agenda if it exists (using UTC date)
+    today = timezone.now().date()  # timezone.now() returns current UTC time
+    try:
+        agenda = DailyAgenda.objects.get(date=today)
+    except DailyAgenda.DoesNotExist:
+        agenda = None
+
+    context = {
+        'projects': projects,
+        'agenda': agenda,
+    }
+
+    return render(request, 'fasting/activity_logger.html', context)
 
 
 @require_http_methods(["POST"])
