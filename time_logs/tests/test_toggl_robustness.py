@@ -17,8 +17,8 @@ class TestTogglRobustness(TestCase):
     """Test robustness and error handling"""
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
-    @mock.patch('requests.request')
-    def test_network_timeout_error(self, mock_request, mock_getenv):
+    @mock.patch('requests.post')
+    def test_network_timeout_error(self, mock_post, mock_getenv):
         """Should raise clear error on network timeout"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -27,7 +27,7 @@ class TestTogglRobustness(TestCase):
         }.get(key)
 
         # Mock: Network timeout
-        mock_request.side_effect = requests.exceptions.Timeout('Connection timeout')
+        mock_post.side_effect = requests.exceptions.Timeout('Connection timeout')
 
         # Assert: Timeout exception raised
         client = TogglAPIClient()
@@ -35,8 +35,8 @@ class TestTogglRobustness(TestCase):
             client.get_time_entries()
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
-    @mock.patch('requests.request')
-    def test_network_connection_error(self, mock_request, mock_getenv):
+    @mock.patch('requests.post')
+    def test_network_connection_error(self, mock_post, mock_getenv):
         """Should raise clear error on connection failure"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -45,7 +45,7 @@ class TestTogglRobustness(TestCase):
         }.get(key)
 
         # Mock: Connection error
-        mock_request.side_effect = requests.exceptions.ConnectionError('Failed to connect')
+        mock_post.side_effect = requests.exceptions.ConnectionError('Failed to connect')
 
         # Assert: Connection exception raised
         client = TogglAPIClient()
@@ -78,8 +78,8 @@ class TestTogglRobustness(TestCase):
         self.assertEqual(context.exception.response.status_code, 404)
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
-    @mock.patch('requests.request')
-    def test_api_rate_limiting(self, mock_request, mock_getenv):
+    @mock.patch('requests.post')
+    def test_api_rate_limiting(self, mock_post, mock_getenv):
         """Should handle 429 rate limit errors"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -93,7 +93,7 @@ class TestTogglRobustness(TestCase):
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
             '429 Client Error: Too Many Requests', response=mock_response
         )
-        mock_request.return_value = mock_response
+        mock_post.return_value = mock_response
 
         # Assert: HTTPError raised
         client = TogglAPIClient()
@@ -104,8 +104,8 @@ class TestTogglRobustness(TestCase):
         self.assertEqual(context.exception.response.status_code, 429)
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
-    @mock.patch('requests.request')
-    def test_server_error_handling(self, mock_request, mock_getenv):
+    @mock.patch('requests.post')
+    def test_server_error_handling(self, mock_post, mock_getenv):
         """Should handle 5xx server errors from Toggl API"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -119,7 +119,7 @@ class TestTogglRobustness(TestCase):
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
             '500 Server Error: Internal Server Error', response=mock_response
         )
-        mock_request.return_value = mock_response
+        mock_post.return_value = mock_response
 
         # Assert: HTTPError raised
         client = TogglAPIClient()
@@ -130,8 +130,9 @@ class TestTogglRobustness(TestCase):
         self.assertEqual(context.exception.response.status_code, 500)
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
+    @mock.patch('requests.post')
     @mock.patch('requests.request')
-    def test_invalid_json_response(self, mock_request, mock_getenv):
+    def test_invalid_json_response(self, mock_request, mock_post, mock_getenv):
         """Should handle malformed JSON responses"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -139,11 +140,17 @@ class TestTogglRobustness(TestCase):
             'TOGGL_WORKSPACE_ID': '12345'
         }.get(key)
 
-        # Mock: API returns invalid JSON
-        mock_response = mock.Mock()
-        mock_response.status_code = 200
-        mock_response.json.side_effect = ValueError('Invalid JSON')
-        mock_request.return_value = mock_response
+        # Mock: get_tags returns valid data first
+        mock_request_response = mock.Mock()
+        mock_request_response.status_code = 200
+        mock_request_response.json.return_value = []
+        mock_request.return_value = mock_request_response
+
+        # Mock: get_time_entries API returns invalid JSON
+        mock_post_response = mock.Mock()
+        mock_post_response.status_code = 200
+        mock_post_response.json.side_effect = ValueError('Invalid JSON')
+        mock_post.return_value = mock_post_response
 
         # Assert: JSON parsing error raised
         client = TogglAPIClient()
@@ -151,8 +158,9 @@ class TestTogglRobustness(TestCase):
             client.get_time_entries()
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
+    @mock.patch('requests.post')
     @mock.patch('requests.request')
-    def test_empty_response_handling(self, mock_request, mock_getenv):
+    def test_empty_response_handling(self, mock_request, mock_post, mock_getenv):
         """Should handle empty response gracefully"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -164,6 +172,7 @@ class TestTogglRobustness(TestCase):
         mock_response = mock.Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = []
+        mock_post.return_value = mock_response
         mock_request.return_value = mock_response
 
         # Fetch time entries
@@ -174,8 +183,9 @@ class TestTogglRobustness(TestCase):
         self.assertEqual(entries, [])
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
+    @mock.patch('requests.post')
     @mock.patch('requests.request')
-    def test_date_range_parameter_formatting(self, mock_request, mock_getenv):
+    def test_date_range_parameter_formatting(self, mock_request, mock_post, mock_getenv):
         """Should format date range parameters correctly"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -187,6 +197,7 @@ class TestTogglRobustness(TestCase):
         mock_response = mock.Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = []
+        mock_post.return_value = mock_response
         mock_request.return_value = mock_response
 
         # Make request with specific dates
@@ -197,15 +208,16 @@ class TestTogglRobustness(TestCase):
             end_date=datetime(2023, 10, 31, 23, 59, 59)
         )
 
-        # Assert: Parameters formatted correctly
-        call_args = mock_request.call_args
-        params = call_args[1]['params']
-        self.assertEqual(params['start_date'], '2023-10-01T00:00:00Z')
-        self.assertEqual(params['end_date'], '2023-10-31T23:59:59Z')
+        # Assert: Parameters formatted correctly (now in JSON payload)
+        call_args = mock_post.call_args
+        params = call_args[1]['json']
+        self.assertEqual(params['start_date'], '2023-10-01')
+        self.assertEqual(params['end_date'], '2023-10-31')
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
+    @mock.patch('requests.post')
     @mock.patch('requests.request')
-    def test_default_date_range(self, mock_request, mock_getenv):
+    def test_default_date_range(self, mock_request, mock_post, mock_getenv):
         """Should use default 30-day range if no dates provided"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -217,6 +229,7 @@ class TestTogglRobustness(TestCase):
         mock_response = mock.Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = []
+        mock_post.return_value = mock_response
         mock_request.return_value = mock_response
 
         # Make request without dates
@@ -224,7 +237,7 @@ class TestTogglRobustness(TestCase):
         client.get_time_entries()
 
         # Assert: Request was made (default dates used)
-        self.assertTrue(mock_request.called)
+        self.assertTrue(mock_post.called)
 
     def test_time_log_duration_calculation(self):
         """Should calculate duration correctly"""
@@ -243,8 +256,9 @@ class TestTogglRobustness(TestCase):
         self.assertEqual(time_log.duration_minutes, 120.0)
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
+    @mock.patch('requests.post')
     @mock.patch('requests.request')
-    def test_handles_null_values_in_response(self, mock_request, mock_getenv):
+    def test_handles_null_values_in_response(self, mock_request, mock_post, mock_getenv):
         """Should handle null/None values in API response"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -252,19 +266,30 @@ class TestTogglRobustness(TestCase):
             'TOGGL_WORKSPACE_ID': '12345'
         }.get(key)
 
-        # Mock: API returns entry with null project_id (should be skipped)
-        mock_response = mock.Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = [
+        # Mock: API returns grouped entry with null project_id (new Reports API format)
+        mock_post_response = mock.Mock()
+        mock_post_response.status_code = 200
+        mock_post_response.json.return_value = [
             {
-                'id': 123456789,
-                'start': '2023-10-25T10:00:00Z',
-                'stop': '2023-10-25T12:00:00Z',
                 'project_id': None,  # Null project
-                'tags': []
+                'tag_ids': [],
+                'time_entries': [
+                    {
+                        'id': 123456789,
+                        'start': '2023-10-25T10:00:00Z',
+                        'stop': '2023-10-25T12:00:00Z',
+                        'seconds': 7200
+                    }
+                ]
             }
         ]
-        mock_request.return_value = mock_response
+        mock_post.return_value = mock_post_response
+
+        # Mock: get_tags() and get_current_time_entry() responses
+        mock_request_response = mock.Mock()
+        mock_request_response.status_code = 200
+        mock_request_response.json.return_value = []
+        mock_request.return_value = mock_request_response
 
         # Fetch time entries
         client = TogglAPIClient()

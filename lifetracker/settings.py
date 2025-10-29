@@ -44,8 +44,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     # Custom apps
     "oauth_integration",
+    "external_data",
     "workouts",
     "weight",
     "fasting",

@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path('', views.set_agenda, name='set_agenda'),
+    path('activity-report/', views.activity_report, name='activity_report'),
     path('api/goals/', views.get_goals_for_project, name='get_goals_for_project'),
     path('api/targets/', views.get_targets_for_goal, name='get_targets_for_goal'),
     path('api/save-agenda/', views.save_agenda, name='save_agenda'),

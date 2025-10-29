@@ -40,6 +40,13 @@ class Workout(models.Model):
         blank=True,
         help_text="Total calories burned during workout"
     )
+    distance_in_miles = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Distance covered in miles (for applicable sports)"
+    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)

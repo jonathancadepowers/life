@@ -12,6 +12,7 @@ class WorkoutAdmin(admin.ModelAdmin):
         'average_heart_rate',
         'max_heart_rate',
         'calories_burned',
+        'distance_in_miles',
     )
     list_filter = ('source', 'sport_id', 'start')
     search_fields = ('source', 'source_id', 'sport_id')
@@ -34,6 +35,7 @@ class WorkoutAdmin(admin.ModelAdmin):
                 'average_heart_rate',
                 'max_heart_rate',
                 'calories_burned',
+                'distance_in_miles',
             )
         }),
         ('Audit Information', {

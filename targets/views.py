@@ -573,3 +573,247 @@ def save_target_score(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+def activity_report(request):
+    """View for activity summary report across a date range."""
+    from django.db.models import Sum, Avg, Count, Min, Max
+    from fasting.models import FastingSession
+    from nutrition.models import NutritionEntry
+    from weight.models import WeighIn
+    from workouts.models import Workout
+    from external_data.models import WhoopSportId
+
+    # Load sport ID to name mapping from database
+    sport_names_dict = {sport.sport_id: sport.sport_name for sport in WhoopSportId.objects.all()}
+
+    # Get date range from query params or default to current week
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    if start_date_str and end_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    else:
+        # Default to current week (Monday-Sunday)
+        today = date.today()
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(days=6)
+
+    # Convert to datetime for filtering
+    start_datetime = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.max.time()))
+    days_in_range = (end_date - start_date).days + 1
+
+    # FASTING DATA
+    fasting_sessions = FastingSession.objects.filter(
+        fast_end_date__gte=start_datetime,
+        fast_end_date__lte=end_datetime
+    )
+    # Count unique days with fasts
+    from django.db.models.functions import TruncDate
+    days_with_fasts = fasting_sessions.annotate(
+        fast_date=TruncDate('fast_end_date')
+    ).values('fast_date').distinct().count()
+
+    # Get total fasts from all time
+    year_fast_count = FastingSession.objects.count()
+
+    fasting_stats = {
+        'count': fasting_sessions.count(),
+        'avg_duration': fasting_sessions.aggregate(Avg('duration'))['duration__avg'] or 0,
+        'max_duration': fasting_sessions.aggregate(Max('duration'))['duration__max'] or 0,
+        'total_hours': fasting_sessions.aggregate(Sum('duration'))['duration__sum'] or 0,
+        'year_count': year_fast_count,
+        'percent_days_fasted': round((days_with_fasts / days_in_range * 100), 1) if days_in_range > 0 else 0,
+    }
+
+    # NUTRITION DATA
+    nutrition_entries = NutritionEntry.objects.filter(
+        consumption_date__gte=start_datetime,
+        consumption_date__lte=end_datetime
+    )
+
+    # Count unique days with nutrition data
+    days_tracked = nutrition_entries.values('consumption_date__date').distinct().count()
+    percent_tracked = round((days_tracked / days_in_range * 100), 1) if days_in_range > 0 else 0
+
+    nutrition_agg = nutrition_entries.aggregate(
+        total_calories=Sum('calories'),
+        total_protein=Sum('protein'),
+        total_carbs=Sum('carbs'),
+        total_fat=Sum('fat'),
+    )
+
+    # Calculate averages per day tracked (not per day in range)
+    nutrition_stats = {
+        'days_tracked': days_tracked,
+        'days_in_range': days_in_range,
+        'percent_tracked': percent_tracked,
+        'avg_calories': float(nutrition_agg['total_calories'] or 0) / days_tracked if days_tracked > 0 else 0,
+        'avg_protein': float(nutrition_agg['total_protein'] or 0) / days_tracked if days_tracked > 0 else 0,
+        'avg_carbs': float(nutrition_agg['total_carbs'] or 0) / days_tracked if days_tracked > 0 else 0,
+        'avg_fat': float(nutrition_agg['total_fat'] or 0) / days_tracked if days_tracked > 0 else 0,
+    }
+
+    # WEIGHT DATA
+    weigh_ins = WeighIn.objects.filter(
+        measurement_time__gte=start_datetime,
+        measurement_time__lte=end_datetime
+    ).order_by('measurement_time')
+
+    weight_stats = {
+        'count': weigh_ins.count(),
+        'start_weight': None,
+        'end_weight': None,
+        'change': None,
+        'avg_weight': None,
+        'year_change': None
+    }
+
+    if weigh_ins.exists():
+        weight_stats['start_weight'] = float(weigh_ins.first().weight)
+        weight_stats['end_weight'] = float(weigh_ins.last().weight)
+        weight_stats['change'] = weight_stats['end_weight'] - weight_stats['start_weight']
+        weight_stats['avg_weight'] = float(weigh_ins.aggregate(Avg('weight'))['weight__avg'])
+
+        # Calculate change from earliest weight in database to current
+        earliest_weigh_in = WeighIn.objects.order_by('measurement_time').first()
+        if earliest_weigh_in:
+            earliest_weight = float(earliest_weigh_in.weight)
+            weight_stats['year_change'] = weight_stats['end_weight'] - earliest_weight
+
+    # WORKOUT DATA - Group by sport_id
+    workouts = Workout.objects.filter(
+        start__gte=start_datetime,
+        start__lte=end_datetime
+    )
+
+    workouts_by_sport = {}
+    for workout in workouts:
+        sport_id = workout.sport_id
+        sport_name = sport_names_dict.get(sport_id, f'Sport {sport_id}')
+
+        if sport_name not in workouts_by_sport:
+            workouts_by_sport[sport_name] = {
+                'count': 0,
+                'total_calories': 0,
+                'total_seconds': 0,
+                'total_hours': 0,
+                'total_miles': 0,
+                'avg_heart_rate': []
+            }
+
+        workouts_by_sport[sport_name]['count'] += 1
+        if workout.calories_burned:
+            workouts_by_sport[sport_name]['total_calories'] += float(workout.calories_burned)
+        if workout.distance_in_miles:
+            workouts_by_sport[sport_name]['total_miles'] += float(workout.distance_in_miles)
+        if workout.end:
+            duration = (workout.end - workout.start).total_seconds()
+            workouts_by_sport[sport_name]['total_seconds'] += duration
+        if workout.average_heart_rate:
+            workouts_by_sport[sport_name]['avg_heart_rate'].append(workout.average_heart_rate)
+
+    # Calculate averages and format for each sport
+    for sport_name in workouts_by_sport:
+        sport_data = workouts_by_sport[sport_name]
+        sport_data['total_hours'] = round(sport_data['total_seconds'] / 3600, 1)
+        if sport_data['avg_heart_rate']:
+            sport_data['avg_heart_rate'] = round(sum(sport_data['avg_heart_rate']) / len(sport_data['avg_heart_rate']))
+        else:
+            sport_data['avg_heart_rate'] = 0
+        del sport_data['total_seconds']  # Remove intermediate value
+
+    # Sort by workout count (descending)
+    workouts_by_sport = dict(sorted(
+        workouts_by_sport.items(),
+        key=lambda x: x[1]['count'],
+        reverse=True
+    ))
+
+    # TIME LOGS DATA - Group by project and goal
+    time_logs = TimeLog.objects.filter(
+        start__gte=start_datetime,
+        start__lte=end_datetime
+    ).prefetch_related('goals')
+
+    time_by_project = {}
+
+    for log in time_logs:
+        try:
+            project = Project.objects.get(project_id=log.project_id)
+            project_name = project.display_string
+        except Project.DoesNotExist:
+            project_name = f"Project {log.project_id}"
+
+        duration_hours = (log.end - log.start).total_seconds() / 3600
+
+        if project_name not in time_by_project:
+            time_by_project[project_name] = {
+                'total_hours': 0,
+                'goals': {}
+            }
+
+        time_by_project[project_name]['total_hours'] += duration_hours
+
+        # Add goal breakdown
+        for goal in log.goals.all():
+            goal_name = goal.display_string
+            if goal_name not in time_by_project[project_name]['goals']:
+                time_by_project[project_name]['goals'][goal_name] = 0
+            time_by_project[project_name]['goals'][goal_name] += duration_hours
+
+    # Sort projects by hours (descending)
+    time_by_project = dict(sorted(
+        time_by_project.items(),
+        key=lambda x: x[1]['total_hours'],
+        reverse=True
+    ))
+
+    # Sort goals within each project
+    for project_name in time_by_project:
+        time_by_project[project_name]['goals'] = dict(sorted(
+            time_by_project[project_name]['goals'].items(),
+            key=lambda x: x[1],
+            reverse=True
+        ))
+
+    # Calculate total hours across all projects
+    total_time_hours = sum(project_data['total_hours'] for project_data in time_by_project.values())
+
+    # Add percentage for each project and goal
+    for project_name, project_data in time_by_project.items():
+        # Calculate project percentage
+        if total_time_hours > 0:
+            project_data['percentage'] = round((project_data['total_hours'] / total_time_hours) * 100)
+        else:
+            project_data['percentage'] = 0
+
+        # Calculate goal percentages
+        project_total = project_data['total_hours']
+        for goal_name in project_data['goals']:
+            if project_total > 0:
+                goal_hours = project_data['goals'][goal_name]
+                project_data['goals'][goal_name] = {
+                    'hours': goal_hours,
+                    'percentage': round((goal_hours / total_time_hours) * 100)
+                }
+            else:
+                project_data['goals'][goal_name] = {
+                    'hours': project_data['goals'][goal_name],
+                    'percentage': 0
+                }
+
+    context = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'days_in_range': days_in_range,
+        'fasting': fasting_stats,
+        'nutrition': nutrition_stats,
+        'weight': weight_stats,
+        'workouts_by_sport': workouts_by_sport,
+        'time_by_project': time_by_project,
+        'total_time_hours': round(total_time_hours, 1),
+    }
+
+    return render(request, 'targets/activity_report.html', context)

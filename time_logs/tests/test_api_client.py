@@ -91,8 +91,9 @@ class TestTogglAPIClient(TestCase):
         self.assertEqual(context.exception.response.status_code, 401)
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
+    @mock.patch('requests.post')
     @mock.patch('requests.request')
-    def test_get_time_entries_success(self, mock_request, mock_getenv):
+    def test_get_time_entries_success(self, mock_request, mock_post, mock_getenv):
         """Should fetch time entries with date range parameters"""
         # Mock: Environment variables
         mock_getenv.side_effect = lambda key: {
@@ -100,19 +101,33 @@ class TestTogglAPIClient(TestCase):
             'TOGGL_WORKSPACE_ID': '12345'
         }.get(key)
 
-        # Mock: API returns time entries
-        mock_response = mock.Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = [
+        # Mock: API returns grouped time entries (new Reports API format)
+        mock_post_response = mock.Mock()
+        mock_post_response.status_code = 200
+        mock_post_response.json.return_value = [
             {
-                'id': 123456789,
-                'start': '2023-10-25T10:00:00Z',
-                'stop': '2023-10-25T12:00:00Z',
                 'project_id': 999,
-                'tags': ['coding', 'backend']
+                'tag_ids': [1, 2],
+                'time_entries': [
+                    {
+                        'id': 123456789,
+                        'start': '2023-10-25T10:00:00Z',
+                        'stop': '2023-10-25T12:00:00Z',
+                        'seconds': 7200
+                    }
+                ]
             }
         ]
-        mock_request.return_value = mock_response
+        mock_post.return_value = mock_post_response
+
+        # Mock: get_tags() and get_current_time_entry() responses
+        mock_request_response = mock.Mock()
+        mock_request_response.status_code = 200
+        mock_request_response.json.return_value = [
+            {'id': 1, 'name': 'coding'},
+            {'id': 2, 'name': 'backend'}
+        ]
+        mock_request.return_value = mock_request_response
 
         # Fetch time entries
         client = TogglAPIClient()
@@ -126,6 +141,7 @@ class TestTogglAPIClient(TestCase):
         self.assertIsInstance(entries, list)
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]['id'], 123456789)
+        self.assertEqual(entries[0]['tags'], ['coding', 'backend'])
 
     @mock.patch('time_logs.services.toggl_client.os.getenv')
     @mock.patch('requests.request')
