@@ -198,6 +198,19 @@
                                 </a>
                             </div>
 
+                            <!-- Global column headers (only Target and Result) -->
+                            <table class="table table-sm table-borderless mb-1">
+                                <thead>
+                                    <tr>
+                                        <th></th> <!-- Empty for Objective column -->
+                                        <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Target</th>
+                                        <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Result</th>
+                                        <th style="width: 300px;"></th> <!-- Empty for Progress column -->
+                                        <th style="width: 50px;"></th> <!-- Empty for edit icon -->
+                                    </tr>
+                                </thead>
+                            </table>
+
                             <!-- Display objectives grouped by category in bordered sections -->
                             {% for category, config in monthly_objectives.category_config.items %}
                                 {% if monthly_objectives.objectives_by_category|get_item:category %}
@@ -207,15 +220,6 @@
                                     </legend>
                                     <div class="table-responsive">
                                         <table class="table table-sm table-borderless mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th style="font-size: 0.9rem; text-decoration: underline;">Objective</th>
-                                                    <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Target</th>
-                                                    <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Result</th>
-                                                    <th style="width: 300px; font-size: 0.9rem; text-decoration: underline;">Progress</th>
-                                                    <th style="width: 50px;"></th>
-                                                </tr>
-                                            </thead>
                                             <tbody>
                                                 {% for objective in monthly_objectives.objectives_by_category|get_item:category %}
                                                 <tr>
@@ -264,15 +268,6 @@
                                 </legend>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-borderless mb-0">
-                                        <thead>
-                                            <tr>
-                                                <th style="font-size: 0.9rem; text-decoration: underline;">Objective</th>
-                                                <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Target</th>
-                                                <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Result</th>
-                                                <th style="width: 300px; font-size: 0.9rem; text-decoration: underline;">Progress</th>
-                                                <th style="width: 50px;"></th>
-                                            </tr>
-                                        </thead>
                                         <tbody>
                                             {% for objective in monthly_objectives.uncategorized %}
                                             <tr>
