@@ -493,45 +493,62 @@
                 <form id="createObjectiveForm">
                     <div class="modal-body">
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="objectiveId" class="form-label">Objective ID</label>
-                                <input type="text" class="form-control" id="objectiveId" name="objective_id" required
-                                       placeholder="e.g., dec_2025_running_workouts">
-                                <div class="form-text">Unique identifier for this objective</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="label" class="form-label">Label</label>
+                            <div class="col-12">
+                                <label for="label" class="form-label">
+                                    Label
+                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
+                                       title="Description of the objective (e.g., '15 Running Workouts')"></i>
+                                </label>
                                 <input type="text" class="form-control" id="label" name="label" required
                                        placeholder="e.g., 15 Running Workouts">
-                                <div class="form-text">Description of the objective</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="startDate" class="form-label">Start Date</label>
-                                <input type="date" class="form-control" id="startDate" name="start" required>
-                                <div class="form-text">First day of the month</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="endDate" class="form-label">End Date</label>
-                                <input type="date" class="form-control" id="endDate" name="end" required>
-                                <div class="form-text">Last day of the month</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="timezone" class="form-label">Timezone</label>
-                                <input type="text" class="form-control" id="timezone" name="timezone" required
-                                       value="America/Chicago">
-                                <div class="form-text">e.g., America/Chicago</div>
                             </div>
                             <div class="col-md-6">
-                                <label for="objectiveValue" class="form-label">Target Value</label>
-                                <input type="number" class="form-control" id="objectiveValue" name="objective_value"
-                                       step="0.1" required placeholder="e.g., 15">
-                                <div class="form-text">Goal to achieve</div>
+                                <label for="objectiveMonth" class="form-label">
+                                    Month
+                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
+                                       title="The month for this objective"></i>
+                                </label>
+                                <select class="form-select" id="objectiveMonth" name="month" required>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="objectiveYear" class="form-label">
+                                    Year
+                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
+                                       title="The year for this objective"></i>
+                                </label>
+                                <input type="number" class="form-control" id="objectiveYear" name="year" required
+                                       min="2020" max="2050" placeholder="e.g., 2025">
                             </div>
                             <div class="col-12">
-                                <label for="objectiveDefinition" class="form-label">Objective Definition (SQL)</label>
+                                <label for="objectiveValue" class="form-label">
+                                    Target Value
+                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
+                                       title="Numeric goal to achieve (e.g., 15 for 15 workouts)"></i>
+                                </label>
+                                <input type="number" class="form-control" id="objectiveValue" name="objective_value"
+                                       step="0.01" required placeholder="e.g., 15">
+                            </div>
+                            <div class="col-12">
+                                <label for="objectiveDefinition" class="form-label">
+                                    Objective Definition (SQL)
+                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
+                                       title="SQL query that measures this objective"></i>
+                                </label>
                                 <textarea class="form-control" id="objectiveDefinition" name="objective_definition"
                                           rows="4" required placeholder="SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0 AND DATE(start) >= '2025-12-01' AND DATE(start) <= '2025-12-31'"></textarea>
-                                <div class="form-text">SQL query that measures this objective</div>
                             </div>
                         </div>
                         <div id="createObjectiveError" class="alert alert-danger mt-3 d-none"></div>
@@ -571,12 +588,30 @@
             startDateInput.addEventListener('change', reloadReport);
             endDateInput.addEventListener('change', reloadReport);
 
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
             // Handle Create Objective form submission
             const createObjectiveForm = document.getElementById('createObjectiveForm');
             const createObjectiveError = document.getElementById('createObjectiveError');
             const createObjectiveSuccess = document.getElementById('createObjectiveSuccess');
             const createObjectiveModal = document.getElementById('createObjectiveModal');
             const modal = bootstrap.Modal.getInstance(createObjectiveModal) || new bootstrap.Modal(createObjectiveModal);
+            const objectiveMonthSelect = document.getElementById('objectiveMonth');
+            const objectiveYearInput = document.getElementById('objectiveYear');
+
+            // Pre-populate month/year from current end_date when modal opens
+            createObjectiveModal.addEventListener('show.bs.modal', function() {
+                const currentEndDate = endDateInput.value;
+                if (currentEndDate) {
+                    const endDate = new Date(currentEndDate);
+                    objectiveMonthSelect.value = endDate.getMonth() + 1; // getMonth() is 0-indexed
+                    objectiveYearInput.value = endDate.getFullYear();
+                }
+            });
 
             createObjectiveForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -589,6 +624,10 @@
                 const formData = new FormData(createObjectiveForm);
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
+
+                // Check for duplicate objective_id on frontend before submitting
+                // The objective_id will be generated on backend, but we can check the label
+                // Actually, backend generates objective_id, so we'll let backend handle duplicate check
 
                 try {
                     const response = await fetch('/targets/api/create-objective/', {
@@ -605,10 +644,6 @@
                     if (response.ok) {
                         createObjectiveSuccess.textContent = result.message || 'Objective created successfully!';
                         createObjectiveSuccess.classList.remove('d-none');
-
-                        // Check if the new objective is in the current date range
-                        const currentStartDate = startDateInput.value;
-                        const currentEndDate = endDateInput.value;
 
                         if (result.in_current_range) {
                             // Reload the page to show the new objective

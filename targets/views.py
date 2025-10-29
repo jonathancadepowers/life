@@ -912,34 +912,39 @@ def activity_report(request):
 def create_objective(request):
     """API endpoint to create a new monthly objective."""
     import json
+    import re
+    from calendar import monthrange
     from monthly_objectives.models import MonthlyObjective
+    from settings.models import Setting
 
     try:
         # Parse JSON data
         data = json.loads(request.body)
 
         # Extract and validate fields
-        objective_id = data.get('objective_id', '').strip()
         label = data.get('label', '').strip()
-        start = data.get('start', '').strip()
-        end = data.get('end', '').strip()
-        timezone_str = data.get('timezone', '').strip()
+        month = data.get('month', '')
+        year = data.get('year', '')
         objective_value = data.get('objective_value', '')
         objective_definition = data.get('objective_definition', '').strip()
 
         # Validate required fields
-        if not all([objective_id, label, start, end, timezone_str, objective_value, objective_definition]):
+        if not all([label, month, year, objective_value, objective_definition]):
             return JsonResponse({
                 'error': 'All fields are required'
             }, status=400)
 
-        # Parse dates
+        # Parse month and year
         try:
-            start_date = datetime.strptime(start, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end, '%Y-%m-%d').date()
-        except ValueError as e:
+            month = int(month)
+            year = int(year)
+            if not (1 <= month <= 12):
+                raise ValueError("Month must be between 1 and 12")
+            if not (2020 <= year <= 2050):
+                raise ValueError("Year must be between 2020 and 2050")
+        except (ValueError, TypeError) as e:
             return JsonResponse({
-                'error': f'Invalid date format: {str(e)}'
+                'error': f'Invalid month or year: {str(e)}'
             }, status=400)
 
         # Parse objective value
@@ -950,10 +955,29 @@ def create_objective(request):
                 'error': 'Invalid objective value - must be a number'
             }, status=400)
 
+        # Get timezone from Settings
+        timezone_str = Setting.get('default_timezone_for_monthly_objectives', 'America/Chicago')
+
+        # Calculate start and end dates
+        start_date = datetime(year, month, 1).date()
+        last_day = monthrange(year, month)[1]
+        end_date = datetime(year, month, last_day).date()
+
+        # Generate objective_id from label, month, and year
+        # Create slug from label
+        label_slug = re.sub(r'[^\w\s-]', '', label.lower())
+        label_slug = re.sub(r'[-\s]+', '_', label_slug).strip('_')
+
+        # Get month abbreviation
+        month_abbrev = datetime(year, month, 1).strftime('%b').lower()
+
+        # Combine into objective_id
+        objective_id = f"{label_slug}_{month_abbrev}_{year}"
+
         # Check if objective_id already exists
         if MonthlyObjective.objects.filter(objective_id=objective_id).exists():
             return JsonResponse({
-                'error': f'Objective ID "{objective_id}" already exists'
+                'error': f'An objective with this label already exists for {month_abbrev.capitalize()} {year}. Please use a different label.'
             }, status=400)
 
         # Create the objective
