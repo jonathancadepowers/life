@@ -603,6 +603,34 @@
 
                             projectSelect.appendChild(option);
                         });
+
+                        // Also refresh goal dropdowns for targets that have "Tie to Goal" checked
+                        const tieToGoalCheckbox = document.getElementById(`tie_to_goal_${i}`);
+                        const goalSelect = document.getElementById(`goal_${i}`);
+
+                        if (tieToGoalCheckbox && tieToGoalCheckbox.checked && goalSelect) {
+                            const currentGoalValue = goalSelect.value;
+
+                            // Fetch all goals (not filtered by project)
+                            fetch('/targets/api/goals/?all=true')
+                                .then(response => response.json())
+                                .then(goalData => {
+                                    goalSelect.innerHTML = '<option value="">-- Select Goal --</option>';
+
+                                    goalData.goals.forEach(goal => {
+                                        const option = document.createElement('option');
+                                        option.value = goal.goal_id;
+                                        option.textContent = goal.display_string;
+
+                                        // Restore previously selected value if it still exists
+                                        if (goal.goal_id === currentGoalValue) {
+                                            option.selected = true;
+                                        }
+
+                                        goalSelect.appendChild(option);
+                                    });
+                                });
+                        }
                     }
                 } else {
                     // Show error message

@@ -55,16 +55,21 @@ def set_agenda(request):
 def get_goals_for_project(request):
     """AJAX endpoint to get goals associated with a project."""
     project_id = request.GET.get('project_id')
+    show_all = request.GET.get('all', 'false').lower() == 'true'
 
-    if not project_id:
+    if not project_id and not show_all:
         return JsonResponse({'goals': []})
 
-    # Find goals that have been used with this project in time logs
-    goal_ids = TimeLog.objects.filter(
-        project_id=project_id
-    ).values_list('goals__goal_id', flat=True).distinct()
+    if show_all:
+        # Return all goals from database (useful after syncing from Toggl)
+        goals = Goal.objects.all().values('goal_id', 'display_string')
+    else:
+        # Find goals that have been used with this project in time logs
+        goal_ids = TimeLog.objects.filter(
+            project_id=project_id
+        ).values_list('goals__goal_id', flat=True).distinct()
 
-    goals = Goal.objects.filter(goal_id__in=goal_ids).values('goal_id', 'display_string')
+        goals = Goal.objects.filter(goal_id__in=goal_ids).values('goal_id', 'display_string')
 
     return JsonResponse({'goals': list(goals)})
 
