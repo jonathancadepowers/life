@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "projects",
     "targets",
     "monthly_objectives",
+    "settings",
 ]
 
 MIDDLEWARE = [

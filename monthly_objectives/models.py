@@ -1,6 +1,15 @@
 from django.db import models
 
 
+def get_default_timezone():
+    """
+    Get the default timezone for monthly objectives from settings.
+    Falls back to 'America/Chicago' if setting doesn't exist.
+    """
+    from settings.models import Setting
+    return Setting.get('default_timezone_for_monthly_objectives', 'America/Chicago')
+
+
 class MonthlyObjective(models.Model):
     """
     Represents a monthly objective with a SQL-based definition.
@@ -24,7 +33,7 @@ class MonthlyObjective(models.Model):
     )
     timezone = models.CharField(
         max_length=50,
-        default='America/Chicago',
+        default=get_default_timezone,
         help_text="Timezone for date range (e.g., 'America/Chicago', 'America/New_York')"
     )
     label = models.CharField(
