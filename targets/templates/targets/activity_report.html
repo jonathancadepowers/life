@@ -234,7 +234,7 @@
                                                     </div>
                                                 </td>
                                                 <td class="text-end">
-                                                    <a href="#" class="text-primary edit-objective-btn"
+                                                    <a href="#" class="text-primary edit-objective-btn me-2"
                                                        data-objective-id="{{ objective.objective_id }}"
                                                        data-label="{{ objective.label }}"
                                                        data-month="{{ objective.start|date:'n' }}"
@@ -244,6 +244,12 @@
                                                        data-category="{{ objective.category|default:'' }}"
                                                        title="Edit objective">
                                                         <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a href="#" class="text-danger delete-objective-btn"
+                                                       data-objective-id="{{ objective.objective_id }}"
+                                                       data-label="{{ objective.label }}"
+                                                       title="Delete objective">
+                                                        <i class="bi bi-trash"></i>
                                                     </a>
                                                 </td>
                                             </tr>
@@ -267,7 +273,7 @@
                                                 </div>
                                             </td>
                                             <td class="text-end">
-                                                <a href="#" class="text-primary edit-objective-btn"
+                                                <a href="#" class="text-primary edit-objective-btn me-2"
                                                    data-objective-id="{{ objective.objective_id }}"
                                                    data-label="{{ objective.label }}"
                                                    data-month="{{ objective.start|date:'n' }}"
@@ -277,6 +283,12 @@
                                                    data-category="{{ objective.category|default:'' }}"
                                                    title="Edit objective">
                                                     <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a href="#" class="text-danger delete-objective-btn"
+                                                   data-objective-id="{{ objective.objective_id }}"
+                                                   data-label="{{ objective.label }}"
+                                                   title="Delete objective">
+                                                    <i class="bi bi-trash"></i>
                                                 </a>
                                             </td>
                                         </tr>
