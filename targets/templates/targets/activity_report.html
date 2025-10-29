@@ -596,11 +596,17 @@
             const objectiveValueInput = document.getElementById('objectiveValue');
             const objectiveDefinitionInput = document.getElementById('objectiveDefinition');
 
+            // Track whether we're in edit mode
+            let isEditMode = false;
+
             // Handle edit button clicks using event delegation
             document.body.addEventListener('click', function(e) {
                 const editBtn = e.target.closest('.edit-objective-btn');
                 if (editBtn) {
                     e.preventDefault();
+
+                    // Set edit mode flag BEFORE opening modal
+                    isEditMode = true;
 
                     // Debug: Log all dataset values
                     console.log('Edit button clicked. Dataset:', {
@@ -641,8 +647,8 @@
 
             // Pre-populate month/year from current end_date when modal opens for CREATE
             createObjectiveModal.addEventListener('show.bs.modal', function(e) {
-                // Check if this is triggered by the Create button (not Edit button)
-                if (!e.relatedTarget || !e.relatedTarget.classList.contains('edit-objective-btn')) {
+                // Check if we're NOT in edit mode
+                if (!isEditMode) {
                     // Reset form for create mode
                     createObjectiveForm.reset();
                     editObjectiveId.value = '';
@@ -656,6 +662,8 @@
                         objectiveYearInput.value = endDate.getFullYear();
                     }
                 }
+                // Reset the flag after modal is shown
+                isEditMode = false;
             });
 
             createObjectiveForm.addEventListener('submit', async function(e) {
