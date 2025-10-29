@@ -208,7 +208,7 @@
                                             <th class="text-center">Target</th>
                                             <th class="text-center">Target/Day</th>
                                             <th class="text-center">Current</th>
-                                            <th class="text-center">Remaining</th>
+                                            <th class="text-center" style="padding-right: 30px;">Remaining</th>
                                             <th style="width: 200px;">Progress</th>
                                             <th></th>
                                         </tr>
@@ -221,14 +221,14 @@
                                                 {% if forloop.first %}
                                                 <td class="align-middle" rowspan="{{ objectives|length }}">{{ objective.category|default:"—" }}</td>
                                                 {% endif %}
-                                                <td>{{ objective.label }}</td>
-                                                <td class="text-center">{{ objective.target|floatformat:0 }}</td>
-                                                <td class="text-center">{{ objective.target_per_day|floatformat:1 }}</td>
-                                                <td class="text-center">{{ objective.result|floatformat:0 }}</td>
-                                                <td class="text-center">{{ objective.remaining|floatformat:0 }}</td>
-                                                <td>
+                                                <td class="align-middle">{{ objective.label }}</td>
+                                                <td class="text-center align-middle">{{ objective.target|floatformat:0 }}</td>
+                                                <td class="text-center align-middle">{{ objective.target_per_day|floatformat:1 }}</td>
+                                                <td class="text-center align-middle">{{ objective.result|floatformat:0 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.remaining|floatformat:0 }}</td>
+                                                <td class="align-middle">
                                                     <!-- Linear progress indicator with marker -->
-                                                    <div style="position: relative; height: 20px; background: #e9ecef; border-radius: 3px;">
+                                                    <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">
                                                         <div style="position: absolute; left: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%; top: 0; width: 2px; height: 20px; background: {% if objective.achieved %}#198754{% else %}#6c757d{% endif %};"></div>
                                                         <span style="position: absolute; left: 5px; top: 2px; font-size: 0.75rem;">{{ objective.progress_pct }}%</span>
                                                     </div>
@@ -253,15 +253,15 @@
 
                                         {% for objective in monthly_objectives.uncategorized %}
                                         <tr style="height: 45px;">
-                                            <td class="text-secondary">—</td>
-                                            <td>{{ objective.label }}</td>
-                                            <td class="text-center">{{ objective.target|floatformat:0 }}</td>
-                                            <td class="text-center">{{ objective.target_per_day|floatformat:1 }}</td>
-                                            <td class="text-center">{{ objective.result|floatformat:0 }}</td>
-                                            <td class="text-center">{{ objective.remaining|floatformat:0 }}</td>
-                                            <td>
+                                            <td class="text-secondary align-middle">—</td>
+                                            <td class="align-middle">{{ objective.label }}</td>
+                                            <td class="text-center align-middle">{{ objective.target|floatformat:0 }}</td>
+                                            <td class="text-center align-middle">{{ objective.target_per_day|floatformat:1 }}</td>
+                                            <td class="text-center align-middle">{{ objective.result|floatformat:0 }}</td>
+                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.remaining|floatformat:0 }}</td>
+                                            <td class="align-middle">
                                                 <!-- Linear progress indicator with marker -->
-                                                <div style="position: relative; height: 20px; background: #e9ecef; border-radius: 3px;">
+                                                <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">
                                                     <div style="position: absolute; left: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%; top: 0; width: 2px; height: 20px; background: {% if objective.achieved %}#198754{% else %}#6c757d{% endif %};"></div>
                                                     <span style="position: absolute; left: 5px; top: 2px; font-size: 0.75rem;">{{ objective.progress_pct }}%</span>
                                                 </div>
