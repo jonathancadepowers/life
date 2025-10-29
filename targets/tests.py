@@ -1113,3 +1113,38 @@ class ActivityReportViewsTestCase(TestCase):
         self.assertEqual(response.context['weight']['count'], 0)
         self.assertEqual(len(response.context['workouts_by_sport']), 0)
         self.assertEqual(len(response.context['time_by_project']), 0)
+
+    def test_time_tracking_with_numeric_tag_ids(self):
+        """Test that time tracking works with numeric Toggl tag IDs (new format)"""
+        # Create a goal with numeric tag ID (Toggl format after migration)
+        goal_with_tag_id = Goal.objects.create(
+            goal_id='19527134',  # Numeric tag ID from Toggl
+            display_string='build_kpi_module'
+        )
+
+        # Create time log with the numeric tag ID goal
+        start_time = timezone.make_aware(datetime.combine(self.week_start, datetime.min.time()))
+        time_log = self.TimeLog.objects.create(
+            source='Toggl',
+            source_id='toggl-entry-1',
+            project_id=self.project.project_id,
+            start=start_time,
+            end=start_time + timedelta(hours=3)
+        )
+        time_log.goals.add(goal_with_tag_id)
+
+        # Get activity report
+        response = self.client.get(reverse('activity_report'))
+        time_data = response.context['time_by_project']
+
+        # Verify project appears
+        self.assertIn('Test Project', time_data)
+        project_data = time_data['Test Project']
+
+        # Verify goal appears with display_string (not the numeric ID)
+        self.assertIn('build_kpi_module', project_data['goals'])
+        self.assertEqual(project_data['goals']['build_kpi_module']['hours'], 3.0)
+        self.assertEqual(project_data['goals']['build_kpi_module']['percentage'], 100)
+
+        # Verify total hours
+        self.assertEqual(project_data['total_hours'], 3.0)
