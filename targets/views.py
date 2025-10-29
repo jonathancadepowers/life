@@ -928,7 +928,7 @@ def activity_report(request):
         'Exercise': {'icon': 'bi-lightning-charge-fill', 'color': 'danger'},
         'Nutrition': {'icon': 'bi-egg-fried', 'color': 'success'},
         'Weight': {'icon': 'bi-speedometer2', 'color': 'info'},
-        'Time Management': {'icon': 'bi-clock-fill', 'color': 'warning'},
+        'Time Mgmt': {'icon': 'bi-clock-fill', 'color': 'warning'},
     }
 
     monthly_objectives_context = {
