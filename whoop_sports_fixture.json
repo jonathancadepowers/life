@@ -1,0 +1,856 @@
+[
+{
+  "model": "external_data.whoopsportid",
+  "pk": -1,
+  "fields": {
+    "sport_name": "Activity"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 0,
+  "fields": {
+    "sport_name": "Running"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 1,
+  "fields": {
+    "sport_name": "Cycling"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 16,
+  "fields": {
+    "sport_name": "Baseball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 17,
+  "fields": {
+    "sport_name": "Basketball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 18,
+  "fields": {
+    "sport_name": "Rowing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 19,
+  "fields": {
+    "sport_name": "Fencing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 20,
+  "fields": {
+    "sport_name": "Field Hockey"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 21,
+  "fields": {
+    "sport_name": "Football"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 22,
+  "fields": {
+    "sport_name": "Golf"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 24,
+  "fields": {
+    "sport_name": "Ice Hockey"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 25,
+  "fields": {
+    "sport_name": "Lacrosse"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 27,
+  "fields": {
+    "sport_name": "Rugby"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 28,
+  "fields": {
+    "sport_name": "Sailing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 29,
+  "fields": {
+    "sport_name": "Skiing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 30,
+  "fields": {
+    "sport_name": "Soccer"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 31,
+  "fields": {
+    "sport_name": "Softball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 32,
+  "fields": {
+    "sport_name": "Squash"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 33,
+  "fields": {
+    "sport_name": "Swimming"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 34,
+  "fields": {
+    "sport_name": "Tennis"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 35,
+  "fields": {
+    "sport_name": "Track & Field"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 36,
+  "fields": {
+    "sport_name": "Volleyball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 37,
+  "fields": {
+    "sport_name": "Water Polo"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 38,
+  "fields": {
+    "sport_name": "Wrestling"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 39,
+  "fields": {
+    "sport_name": "Boxing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 42,
+  "fields": {
+    "sport_name": "Dance"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 43,
+  "fields": {
+    "sport_name": "Pilates"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 44,
+  "fields": {
+    "sport_name": "Yoga"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 45,
+  "fields": {
+    "sport_name": "Weightlifting"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 47,
+  "fields": {
+    "sport_name": "Cross Country Skiing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 48,
+  "fields": {
+    "sport_name": "Functional Fitness"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 49,
+  "fields": {
+    "sport_name": "Duathlon"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 51,
+  "fields": {
+    "sport_name": "Gymnastics"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 52,
+  "fields": {
+    "sport_name": "Hiking/Rucking"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 53,
+  "fields": {
+    "sport_name": "Horseback Riding"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 55,
+  "fields": {
+    "sport_name": "Kayaking"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 56,
+  "fields": {
+    "sport_name": "Martial Arts"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 57,
+  "fields": {
+    "sport_name": "Mountain Biking"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 59,
+  "fields": {
+    "sport_name": "Powerlifting"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 60,
+  "fields": {
+    "sport_name": "Rock Climbing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 61,
+  "fields": {
+    "sport_name": "Paddleboarding"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 62,
+  "fields": {
+    "sport_name": "Triathlon"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 63,
+  "fields": {
+    "sport_name": "Walking"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 64,
+  "fields": {
+    "sport_name": "Surfing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 65,
+  "fields": {
+    "sport_name": "Elliptical"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 66,
+  "fields": {
+    "sport_name": "Stairmaster"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 70,
+  "fields": {
+    "sport_name": "Meditation"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 71,
+  "fields": {
+    "sport_name": "Other"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 73,
+  "fields": {
+    "sport_name": "Diving"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 74,
+  "fields": {
+    "sport_name": "Operations - Tactical"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 75,
+  "fields": {
+    "sport_name": "Operations - Medical"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 76,
+  "fields": {
+    "sport_name": "Operations - Flying"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 77,
+  "fields": {
+    "sport_name": "Operations - Water"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 82,
+  "fields": {
+    "sport_name": "Ultimate"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 83,
+  "fields": {
+    "sport_name": "Climber"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 84,
+  "fields": {
+    "sport_name": "Jumping Rope"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 85,
+  "fields": {
+    "sport_name": "Australian Football"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 86,
+  "fields": {
+    "sport_name": "Skateboarding"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 87,
+  "fields": {
+    "sport_name": "Coaching"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 88,
+  "fields": {
+    "sport_name": "Ice Bath"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 89,
+  "fields": {
+    "sport_name": "Commuting"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 90,
+  "fields": {
+    "sport_name": "Gaming"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 91,
+  "fields": {
+    "sport_name": "Snowboarding"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 92,
+  "fields": {
+    "sport_name": "Motocross"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 93,
+  "fields": {
+    "sport_name": "Caddying"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 94,
+  "fields": {
+    "sport_name": "Obstacle Course Racing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 95,
+  "fields": {
+    "sport_name": "Motor Racing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 96,
+  "fields": {
+    "sport_name": "HIIT"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 97,
+  "fields": {
+    "sport_name": "Spin"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 98,
+  "fields": {
+    "sport_name": "Jiu Jitsu"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 99,
+  "fields": {
+    "sport_name": "Manual Labor"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 100,
+  "fields": {
+    "sport_name": "Cricket"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 101,
+  "fields": {
+    "sport_name": "Pickleball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 102,
+  "fields": {
+    "sport_name": "Inline Skating"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 103,
+  "fields": {
+    "sport_name": "Box Fitness"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 104,
+  "fields": {
+    "sport_name": "Spikeball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 105,
+  "fields": {
+    "sport_name": "Wheelchair Pushing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 106,
+  "fields": {
+    "sport_name": "Paddle Tennis"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 107,
+  "fields": {
+    "sport_name": "Barre"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 108,
+  "fields": {
+    "sport_name": "Stage Performance"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 109,
+  "fields": {
+    "sport_name": "High Stress Work"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 110,
+  "fields": {
+    "sport_name": "Parkour"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 111,
+  "fields": {
+    "sport_name": "Gaelic Football"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 112,
+  "fields": {
+    "sport_name": "Hurling/Camogie"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 113,
+  "fields": {
+    "sport_name": "Circus Arts"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 121,
+  "fields": {
+    "sport_name": "Massage Therapy"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 123,
+  "fields": {
+    "sport_name": "Strength Trainer"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 125,
+  "fields": {
+    "sport_name": "Watching Sports"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 126,
+  "fields": {
+    "sport_name": "Assault Bike"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 127,
+  "fields": {
+    "sport_name": "Kickboxing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 128,
+  "fields": {
+    "sport_name": "Stretching"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 230,
+  "fields": {
+    "sport_name": "Table Tennis"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 231,
+  "fields": {
+    "sport_name": "Badminton"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 232,
+  "fields": {
+    "sport_name": "Netball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 233,
+  "fields": {
+    "sport_name": "Sauna"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 234,
+  "fields": {
+    "sport_name": "Disc Golf"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 235,
+  "fields": {
+    "sport_name": "Yard Work"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 236,
+  "fields": {
+    "sport_name": "Air Compression"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 237,
+  "fields": {
+    "sport_name": "Percussive Massage"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 238,
+  "fields": {
+    "sport_name": "Paintball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 239,
+  "fields": {
+    "sport_name": "Ice Skating"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 240,
+  "fields": {
+    "sport_name": "Handball"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 248,
+  "fields": {
+    "sport_name": "F45 Training"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 249,
+  "fields": {
+    "sport_name": "Padel"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 250,
+  "fields": {
+    "sport_name": "Barry's"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 251,
+  "fields": {
+    "sport_name": "Dedicated Parenting"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 252,
+  "fields": {
+    "sport_name": "Stroller Walking"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 253,
+  "fields": {
+    "sport_name": "Stroller Jogging"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 254,
+  "fields": {
+    "sport_name": "Toddlerwearing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 255,
+  "fields": {
+    "sport_name": "Babywearing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 258,
+  "fields": {
+    "sport_name": "Barre3"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 259,
+  "fields": {
+    "sport_name": "Hot Yoga"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 261,
+  "fields": {
+    "sport_name": "Stadium Steps"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 262,
+  "fields": {
+    "sport_name": "Polo"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 263,
+  "fields": {
+    "sport_name": "Musical Performance"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 264,
+  "fields": {
+    "sport_name": "Kite Boarding"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 266,
+  "fields": {
+    "sport_name": "Dog Walking"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 267,
+  "fields": {
+    "sport_name": "Water Skiing"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 268,
+  "fields": {
+    "sport_name": "Wakeboarding"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 269,
+  "fields": {
+    "sport_name": "Cooking"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 270,
+  "fields": {
+    "sport_name": "Cleaning"
+  }
+},
+{
+  "model": "external_data.whoopsportid",
+  "pk": 272,
+  "fields": {
+    "sport_name": "Public Speaking"
+  }
+}
+]
