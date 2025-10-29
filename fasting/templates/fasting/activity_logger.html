@@ -1605,19 +1605,26 @@
 
         // Initialize form with agenda data on page load
         function initializeFormFromAgenda() {
+            console.log('initializeFormFromAgenda called');
             {% if agenda %}
+                console.log('Agenda exists in template context');
                 // Target 1
                 {% if agenda.project_1_id %}
+                    console.log('Target 1: Initializing with project_id={{ agenda.project_1_id }}');
                     const goalInput1 = document.getElementById('goal_1');
                     const targetInput1 = document.getElementById('target_1');
                     goalInput1.disabled = false;
                     targetInput1.disabled = false;
                     {% if agenda.goal_1_id %}
+                        console.log('Target 1: Loading goals with goal_id={{ agenda.goal_1_id }}');
                         loadGoalsForProject(1, {{ agenda.project_1_id }}, '{{ agenda.goal_1_id }}');
                     {% else %}
+                        console.log('Target 1: No goal, calling updateTogglTime');
                         // No goal selected, but still update time display
                         updateTogglTime(1);
                     {% endif %}
+                {% else %}
+                    console.log('Target 1: No project_1_id found');
                 {% endif %}
 
                 // Target 2
@@ -1645,6 +1652,8 @@
                         updateTogglTime(3);
                     {% endif %}
                 {% endif %}
+            {% else %}
+                console.log('No agenda in template context');
             {% endif %}
         }
 
