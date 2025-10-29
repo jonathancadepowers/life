@@ -198,40 +198,25 @@
                                 </a>
                             </div>
 
-                            <!-- Global column headers (only Target and Result) -->
-                            <table class="table table-sm table-borderless mb-1" style="table-layout: fixed;">
-                                <colgroup>
-                                    <col style="width: auto;"> <!-- Objective column -->
-                                    <col style="width: 140px;"> <!-- Target column -->
-                                    <col style="width: 140px;"> <!-- Result column -->
-                                    <col style="width: 300px;"> <!-- Progress column -->
-                                    <col style="width: 50px;"> <!-- Edit icon column -->
-                                </colgroup>
-                                <thead>
-                                    <tr>
-                                        <th></th> <!-- Empty for Objective column -->
-                                        <th class="text-center" style="font-size: 0.9rem; text-decoration: underline;">Target</th>
-                                        <th class="text-center" style="font-size: 0.9rem; text-decoration: underline;">Result</th>
-                                        <th></th> <!-- Empty for Progress column -->
-                                        <th></th> <!-- Empty for edit icon -->
-                                    </tr>
-                                </thead>
-                            </table>
-
                             <!-- Display objectives grouped by category in bordered sections -->
                             {% for category, config in monthly_objectives.category_config.items %}
                                 {% if monthly_objectives.objectives_by_category|get_item:category %}
-                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.25rem 0.5rem;">
+                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.25rem 0.5rem; position: relative;">
                                     <legend class="text-{{ config.color }} fw-bold float-none w-auto px-2 mb-0" style="font-size: 0.9rem;">
                                         {{ category }}
                                     </legend>
+                                    {% if forloop.first %}
+                                    <!-- Target and Result headers as legend-style elements on first category border -->
+                                    <span class="text-center" style="position: absolute; top: -0.55em; left: 270px; background: white; padding: 0 0.5rem; font-size: 0.9rem; text-decoration: underline;">Target</span>
+                                    <span class="text-center" style="position: absolute; top: -0.55em; left: 370px; background: white; padding: 0 0.5rem; font-size: 0.9rem; text-decoration: underline;">Result</span>
+                                    {% endif %}
                                     <div class="table-responsive">
                                         <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
                                             <colgroup>
-                                                <col style="width: auto;"> <!-- Objective column -->
-                                                <col style="width: 140px;"> <!-- Target column -->
-                                                <col style="width: 140px;"> <!-- Result column -->
-                                                <col style="width: 300px;"> <!-- Progress column -->
+                                                <col style="width: 250px;"> <!-- Objective column - fixed narrow width -->
+                                                <col style="width: 100px;"> <!-- Target column - narrower -->
+                                                <col style="width: 100px;"> <!-- Result column - narrower -->
+                                                <col style="width: auto;"> <!-- Progress column - takes remaining space -->
                                                 <col style="width: 50px;"> <!-- Edit icon column -->
                                             </colgroup>
                                             <tbody>
@@ -283,10 +268,10 @@
                                 <div class="table-responsive">
                                     <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
                                         <colgroup>
-                                            <col style="width: auto;"> <!-- Objective column -->
-                                            <col style="width: 140px;"> <!-- Target column -->
-                                            <col style="width: 140px;"> <!-- Result column -->
-                                            <col style="width: 300px;"> <!-- Progress column -->
+                                            <col style="width: 250px;"> <!-- Objective column - fixed narrow width -->
+                                            <col style="width: 100px;"> <!-- Target column - narrower -->
+                                            <col style="width: 100px;"> <!-- Result column - narrower -->
+                                            <col style="width: auto;"> <!-- Progress column - takes remaining space -->
                                             <col style="width: 50px;"> <!-- Edit icon column -->
                                         </colgroup>
                                         <tbody>
