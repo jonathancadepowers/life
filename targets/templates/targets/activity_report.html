@@ -206,6 +206,7 @@
                                             <th>Category</th>
                                             <th>Objective</th>
                                             <th class="text-center">Target</th>
+                                            <th class="text-center">Target/Day</th>
                                             <th class="text-center">Result</th>
                                             <th style="width: 200px;">Progress</th>
                                             <th></th>
@@ -221,6 +222,7 @@
                                                 {% endif %}
                                                 <td>{{ objective.label }}</td>
                                                 <td class="text-center">{{ objective.target|floatformat:0 }}</td>
+                                                <td class="text-center">{{ objective.target_per_day|floatformat:1 }}</td>
                                                 <td class="text-center">{{ objective.result|floatformat:0 }}</td>
                                                 <td>
                                                     <!-- Linear progress indicator with marker -->
@@ -252,6 +254,7 @@
                                             <td class="text-secondary">—</td>
                                             <td>{{ objective.label }}</td>
                                             <td class="text-center">{{ objective.target|floatformat:0 }}</td>
+                                            <td class="text-center">{{ objective.target_per_day|floatformat:1 }}</td>
                                             <td class="text-center">{{ objective.result|floatformat:0 }}</td>
                                             <td>
                                                 <!-- Linear progress indicator with marker -->

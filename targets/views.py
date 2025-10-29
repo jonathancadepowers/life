@@ -894,6 +894,10 @@ def activity_report(request):
         if result is not None and obj.objective_value > 0:
             progress_pct = (result / obj.objective_value) * 100
 
+        # Calculate target per day
+        days_in_month = monthrange(obj.start.year, obj.start.month)[1]
+        target_per_day = obj.objective_value / days_in_month if days_in_month > 0 else 0
+
         objectives_data.append({
             'objective_id': obj.objective_id,
             'label': obj.label,
@@ -905,6 +909,8 @@ def activity_report(request):
             'objective_value': obj.objective_value,
             'objective_definition': obj.objective_definition,
             'category': obj.category,
+            'target_per_day': round(target_per_day, 1),
+            'days_in_month': days_in_month,
         })
 
     # Get distinct categories from all objectives (not just current month)
