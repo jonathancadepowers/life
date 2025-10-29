@@ -12,4 +12,5 @@ urlpatterns = [
     path('api/save-target-score/', views.save_target_score, name='save_target_score'),
     path('api/create-objective/', views.create_objective, name='create_objective'),
     path('api/update-objective/', views.update_objective, name='update_objective'),
+    path('api/delete-objective/', views.delete_objective, name='delete_objective'),
 ]

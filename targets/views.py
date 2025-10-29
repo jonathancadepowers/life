@@ -1195,3 +1195,46 @@ def update_objective(request):
         return JsonResponse({
             'error': f'Error updating objective: {str(e)}'
         }, status=500)
+
+
+def delete_objective(request):
+    """API endpoint to delete a monthly objective."""
+    import json
+    from monthly_objectives.models import MonthlyObjective
+
+    try:
+        # Parse JSON data
+        data = json.loads(request.body)
+
+        # Extract objective_id
+        objective_id = data.get('objective_id', '').strip()
+
+        # Validate required field
+        if not objective_id:
+            return JsonResponse({
+                'error': 'Objective ID is required'
+            }, status=400)
+
+        # Get the existing objective
+        try:
+            objective = MonthlyObjective.objects.get(objective_id=objective_id)
+            objective_label = objective.label
+            objective.delete()
+        except MonthlyObjective.DoesNotExist:
+            return JsonResponse({
+                'error': 'Objective not found'
+            }, status=404)
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Objective "{objective_label}" deleted successfully!'
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Error deleting objective: {str(e)}'
+        }, status=500)
