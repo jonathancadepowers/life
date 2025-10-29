@@ -1196,6 +1196,9 @@
             .then(data => {
                 if (data.success) {
                     showFlashMessage(data.message, true);
+                    // Re-render markdown with the saved content before switching to view mode
+                    const savedNotes = document.getElementById('notes-textarea').value;
+                    renderMarkdown(savedNotes);
                     // Switch notes to view mode after successful save
                     toggleNotesMode('view');
                 } else {
