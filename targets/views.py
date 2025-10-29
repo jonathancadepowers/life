@@ -912,8 +912,30 @@ def activity_report(request):
         category__isnull=False
     ).exclude(category='').values_list('category', flat=True).distinct().order_by('category')
 
+    # Group objectives by category
+    from collections import defaultdict
+    objectives_by_category = defaultdict(list)
+    uncategorized = []
+
+    for obj in objectives_data:
+        if obj['category']:
+            objectives_by_category[obj['category']].append(obj)
+        else:
+            uncategorized.append(obj)
+
+    # Define category display order and icons
+    category_config = {
+        'Exercise': {'icon': 'bi-lightning-charge-fill', 'color': 'danger'},
+        'Nutrition': {'icon': 'bi-egg-fried', 'color': 'success'},
+        'Weight': {'icon': 'bi-speedometer2', 'color': 'info'},
+        'Time Management': {'icon': 'bi-clock-fill', 'color': 'warning'},
+    }
+
     monthly_objectives_context = {
         'objectives': objectives_data,
+        'objectives_by_category': dict(objectives_by_category),
+        'uncategorized': uncategorized,
+        'category_config': category_config,
         'target_month': end_date.strftime('%B %Y'),
         'crosses_months': crosses_months,
         'categories': list(distinct_categories),
