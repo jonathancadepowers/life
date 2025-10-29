@@ -4,7 +4,7 @@ from .models import MonthlyObjective
 
 @admin.register(MonthlyObjective)
 class MonthlyObjectiveAdmin(admin.ModelAdmin):
-    list_display = ['objective_id', 'label', 'start', 'end', 'objective_value', 'created_at']
+    list_display = ['objective_id', 'label', 'start', 'end', 'objective_value', 'result', 'created_at']
     list_filter = ['start', 'end']
     readonly_fields = ['created_at', 'updated_at']
     date_hierarchy = 'start'
@@ -19,6 +19,10 @@ class MonthlyObjectiveAdmin(admin.ModelAdmin):
         }),
         ('SQL Definition', {
             'fields': ('objective_definition',)
+        }),
+        ('Result', {
+            'fields': ('result',),
+            'description': 'Actual result from executing the SQL query. Will be populated automatically.'
         }),
         ('Audit Information', {
             'fields': ('created_at', 'updated_at'),

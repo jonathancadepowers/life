@@ -46,6 +46,11 @@ class MonthlyObjective(models.Model):
     objective_definition = models.TextField(
         help_text="SQL query that defines how to measure this objective"
     )
+    result = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Actual result value from executing the objective_definition SQL query"
+    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
