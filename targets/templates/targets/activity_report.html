@@ -207,16 +207,16 @@
                                     </legend>
                                     {% if forloop.first %}
                                     <!-- Target and Result headers as legend-style elements on first category border -->
-                                    <span class="text-center" style="position: absolute; top: -0.55em; left: 270px; background: white; padding: 0 0.5rem; font-size: 0.9rem; text-decoration: underline;">Target</span>
-                                    <span class="text-center" style="position: absolute; top: -0.55em; left: 370px; background: white; padding: 0 0.5rem; font-size: 0.9rem; text-decoration: underline;">Result</span>
+                                    <legend class="text-center float-none w-auto px-2 mb-0" style="position: absolute; top: -0.6em; left: 410px; font-size: 0.9rem; text-decoration: underline;">Target</legend>
+                                    <legend class="text-center float-none w-auto px-2 mb-0" style="position: absolute; top: -0.6em; left: 520px; font-size: 0.9rem; text-decoration: underline;">Result</legend>
                                     {% endif %}
                                     <div class="table-responsive">
                                         <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
                                             <colgroup>
-                                                <col style="width: 250px;"> <!-- Objective column - fixed narrow width -->
-                                                <col style="width: 100px;"> <!-- Target column - narrower -->
-                                                <col style="width: 100px;"> <!-- Result column - narrower -->
-                                                <col style="width: auto;"> <!-- Progress column - takes remaining space -->
+                                                <col style="width: 390px;"> <!-- Objective column - wider to move right -->
+                                                <col style="width: 100px;"> <!-- Target column -->
+                                                <col style="width: 100px;"> <!-- Result column -->
+                                                <col style="width: 180px;"> <!-- Progress column - 40% narrower, fixed width -->
                                                 <col style="width: 50px;"> <!-- Edit icon column -->
                                             </colgroup>
                                             <tbody>
@@ -268,10 +268,10 @@
                                 <div class="table-responsive">
                                     <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
                                         <colgroup>
-                                            <col style="width: 250px;"> <!-- Objective column - fixed narrow width -->
-                                            <col style="width: 100px;"> <!-- Target column - narrower -->
-                                            <col style="width: 100px;"> <!-- Result column - narrower -->
-                                            <col style="width: auto;"> <!-- Progress column - takes remaining space -->
+                                            <col style="width: 390px;"> <!-- Objective column - wider to move right -->
+                                            <col style="width: 100px;"> <!-- Target column -->
+                                            <col style="width: 100px;"> <!-- Result column -->
+                                            <col style="width: 180px;"> <!-- Progress column - 40% narrower, fixed width -->
                                             <col style="width: 50px;"> <!-- Edit icon column -->
                                         </colgroup>
                                         <tbody>
