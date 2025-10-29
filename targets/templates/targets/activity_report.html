@@ -494,20 +494,12 @@
                     <div class="modal-body">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label for="label" class="form-label">
-                                    Label
-                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
-                                       title="Description of the objective (e.g., '15 Running Workouts')"></i>
-                                </label>
+                                <label for="label" class="form-label">Label</label>
                                 <input type="text" class="form-control" id="label" name="label" required
                                        placeholder="e.g., 15 Running Workouts">
                             </div>
                             <div class="col-md-6">
-                                <label for="objectiveMonth" class="form-label">
-                                    Month
-                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
-                                       title="The month for this objective"></i>
-                                </label>
+                                <label for="objectiveMonth" class="form-label">Month</label>
                                 <select class="form-select" id="objectiveMonth" name="month" required>
                                     <option value="1">January</option>
                                     <option value="2">February</option>
@@ -524,29 +516,17 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="objectiveYear" class="form-label">
-                                    Year
-                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
-                                       title="The year for this objective"></i>
-                                </label>
+                                <label for="objectiveYear" class="form-label">Year</label>
                                 <input type="number" class="form-control" id="objectiveYear" name="year" required
                                        min="2020" max="2050" placeholder="e.g., 2025">
                             </div>
                             <div class="col-12">
-                                <label for="objectiveValue" class="form-label">
-                                    Target Value
-                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
-                                       title="Numeric goal to achieve (e.g., 15 for 15 workouts)"></i>
-                                </label>
+                                <label for="objectiveValue" class="form-label">Target Value</label>
                                 <input type="number" class="form-control" id="objectiveValue" name="objective_value"
                                        step="0.01" required placeholder="e.g., 15">
                             </div>
                             <div class="col-12">
-                                <label for="objectiveDefinition" class="form-label">
-                                    Objective Definition (SQL)
-                                    <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip"
-                                       title="SQL query that measures this objective"></i>
-                                </label>
+                                <label for="objectiveDefinition" class="form-label">Objective Definition (SQL)</label>
                                 <textarea class="form-control" id="objectiveDefinition" name="objective_definition"
                                           rows="4" required placeholder="SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0 AND DATE(start) >= '2025-12-01' AND DATE(start) <= '2025-12-31'"></textarea>
                             </div>
@@ -587,12 +567,6 @@
 
             startDateInput.addEventListener('change', reloadReport);
             endDateInput.addEventListener('change', reloadReport);
-
-            // Initialize Bootstrap tooltips
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
 
             // Handle Create Objective form submission
             const createObjectiveForm = document.getElementById('createObjectiveForm');
