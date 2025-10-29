@@ -118,91 +118,6 @@
         .section-header-objectives[aria-expanded="true"] .chevron {
             transform: rotate(180deg);
         }
-        .objective-bar-container {
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .objective-label {
-            font-weight: 600;
-            font-size: 1rem;
-            color: #212529;
-            min-width: 200px;
-            flex-shrink: 0;
-        }
-        .objective-bar-wrapper {
-            flex-grow: 1;
-            position: relative;
-        }
-        .objective-bar {
-            position: relative;
-            height: 50px;
-            background-color: #e9ecef;
-            border-radius: 8px;
-            overflow: visible;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .objective-bar-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            transition: width 0.6s ease;
-            border-radius: 8px;
-        }
-        .objective-bar-fill.achieved {
-            background: linear-gradient(90deg, #198754 0%, #20c997 100%);
-        }
-        .objective-bar-fill.in-progress {
-            background: linear-gradient(90deg, #0d6efd 0%, #0dcaf0 100%);
-        }
-        .objective-marker {
-            position: absolute;
-            top: -5px;
-            height: calc(100% + 10px);
-            width: 4px;
-            background: linear-gradient(180deg, #dc3545 0%, #fd7e14 100%);
-            border-radius: 2px;
-            transition: left 0.6s ease;
-            box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
-        }
-        .objective-marker::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 12px;
-            height: 12px;
-            background: #dc3545;
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .objective-stats {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 600;
-            min-width: 180px;
-            flex-shrink: 0;
-            color: #495057;
-        }
-        .objective-numbers {
-            font-size: 1rem;
-        }
-        .objective-percentage {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-        .objective-status-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            background: #198754;
-            color: white;
-        }
         .goal-breakdown {
             margin-top: 0.5rem;
             padding-left: 1rem;
@@ -271,45 +186,46 @@
                             {% endif %}
 
                             {% if monthly_objectives.objectives %}
-                            <div class="objectives-list">
-                                {% for objective in monthly_objectives.objectives %}
-                                <div class="objective-bar-container">
-                                    <!-- Label on the left -->
-                                    <div class="objective-label">{{ objective.label }}</div>
-
-                                    <!-- Progress bar in the middle -->
-                                    <div class="objective-bar-wrapper">
-                                        <div class="objective-bar">
-                                            <!-- Filled portion (progress) -->
-                                            <div class="objective-bar-fill {% if objective.achieved %}achieved{% else %}in-progress{% endif %}"
-                                                 style="width: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%">
-                                            </div>
-
-                                            <!-- Marker line for in-progress objectives -->
-                                            {% if not objective.achieved %}
-                                            <div class="objective-marker"
-                                                 style="left: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%">
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-
-                                    <!-- Stats on the right -->
-                                    <div class="objective-stats">
-                                        <span class="objective-numbers">
-                                            <strong>{{ objective.result|floatformat:0 }}</strong> / {{ objective.target|floatformat:0 }}
-                                        </span>
-                                        <span class="objective-percentage">
-                                            {{ objective.progress_pct }}%
-                                        </span>
-                                        {% if objective.achieved %}
-                                        <span class="objective-status-badge">
-                                            <i class="bi bi-check-circle-fill"></i> Achieved
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% endfor %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Objective</th>
+                                            <th class="text-center">Target</th>
+                                            <th class="text-center">Result</th>
+                                            <th class="text-center">Progress</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for objective in monthly_objectives.objectives %}
+                                        <tr>
+                                            <td>{{ objective.label }}</td>
+                                            <td class="text-center">{{ objective.target|floatformat:0 }}</td>
+                                            <td class="text-center">{{ objective.result|floatformat:0 }}</td>
+                                            <td class="text-center">
+                                                <div class="progress" style="height: 25px;">
+                                                    <div class="progress-bar {% if objective.achieved %}bg-success{% else %}bg-primary{% endif %}"
+                                                         role="progressbar"
+                                                         style="width: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%"
+                                                         aria-valuenow="{{ objective.progress_pct }}"
+                                                         aria-valuemin="0"
+                                                         aria-valuemax="100">
+                                                        {{ objective.progress_pct }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if objective.achieved %}
+                                                <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Achieved</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> In Progress</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
                             {% else %}
                             <div class="alert alert-secondary">
