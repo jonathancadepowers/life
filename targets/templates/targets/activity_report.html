@@ -191,7 +191,7 @@
                             {% if monthly_objectives.objectives %}
                             <div class="mb-3 d-flex justify-content-between align-items-center">
                                 <div class="text-muted" style="font-size: 0.85rem;">
-                                    Objectives for <strong>{{ monthly_objectives.target_month }}</strong>
+                                    <strong>{{ monthly_objectives.target_month }}</strong>
                                 </div>
                                 <a href="#" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#createObjectiveModal">
                                     <i class="bi bi-plus-circle"></i> Create Objective
@@ -217,9 +217,9 @@
                                         {% for category, config in monthly_objectives.category_config.items %}
                                             {% with objectives=monthly_objectives.objectives_by_category|get_item:category %}
                                             {% for objective in objectives %}
-                                            <tr>
+                                            <tr style="height: 45px;">
                                                 {% if forloop.first %}
-                                                <td class="text-{{ config.color }} align-middle" rowspan="{{ objectives|length }}">{{ objective.category|default:"—" }}</td>
+                                                <td class="align-middle" rowspan="{{ objectives|length }}">{{ objective.category|default:"—" }}</td>
                                                 {% endif %}
                                                 <td>{{ objective.label }}</td>
                                                 <td class="text-center">{{ objective.target|floatformat:0 }}</td>
@@ -252,7 +252,7 @@
                                         {% endfor %}
 
                                         {% for objective in monthly_objectives.uncategorized %}
-                                        <tr>
+                                        <tr style="height: 45px;">
                                             <td class="text-secondary">—</td>
                                             <td>{{ objective.label }}</td>
                                             <td class="text-center">{{ objective.target|floatformat:0 }}</td>
