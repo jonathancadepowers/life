@@ -26,4 +26,4 @@ class Goal(models.Model):
         verbose_name_plural = 'Goals'
 
     def __str__(self):
-        return self.display_string
+        return f"{self.display_string} (ID: {self.goal_id})"
