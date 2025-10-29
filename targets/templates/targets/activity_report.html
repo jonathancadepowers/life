@@ -199,14 +199,21 @@
                             </div>
 
                             <!-- Global column headers (only Target and Result) -->
-                            <table class="table table-sm table-borderless mb-1">
+                            <table class="table table-sm table-borderless mb-1" style="table-layout: fixed;">
+                                <colgroup>
+                                    <col style="width: auto;"> <!-- Objective column -->
+                                    <col style="width: 140px;"> <!-- Target column -->
+                                    <col style="width: 140px;"> <!-- Result column -->
+                                    <col style="width: 300px;"> <!-- Progress column -->
+                                    <col style="width: 50px;"> <!-- Edit icon column -->
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <th></th> <!-- Empty for Objective column -->
-                                        <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Target</th>
-                                        <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Result</th>
-                                        <th style="width: 300px;"></th> <!-- Empty for Progress column -->
-                                        <th style="width: 50px;"></th> <!-- Empty for edit icon -->
+                                        <th class="text-center" style="font-size: 0.9rem; text-decoration: underline;">Target</th>
+                                        <th class="text-center" style="font-size: 0.9rem; text-decoration: underline;">Result</th>
+                                        <th></th> <!-- Empty for Progress column -->
+                                        <th></th> <!-- Empty for edit icon -->
                                     </tr>
                                 </thead>
                             </table>
@@ -214,12 +221,19 @@
                             <!-- Display objectives grouped by category in bordered sections -->
                             {% for category, config in monthly_objectives.category_config.items %}
                                 {% if monthly_objectives.objectives_by_category|get_item:category %}
-                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem;">
-                                    <legend class="text-{{ config.color }} fw-bold float-none w-auto px-2 mb-1" style="font-size: 0.9rem;">
+                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.25rem 0.5rem;">
+                                    <legend class="text-{{ config.color }} fw-bold float-none w-auto px-2 mb-0" style="font-size: 0.9rem;">
                                         {{ category }}
                                     </legend>
                                     <div class="table-responsive">
-                                        <table class="table table-sm table-borderless mb-0">
+                                        <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
+                                            <colgroup>
+                                                <col style="width: auto;"> <!-- Objective column -->
+                                                <col style="width: 140px;"> <!-- Target column -->
+                                                <col style="width: 140px;"> <!-- Result column -->
+                                                <col style="width: 300px;"> <!-- Progress column -->
+                                                <col style="width: 50px;"> <!-- Edit icon column -->
+                                            </colgroup>
                                             <tbody>
                                                 {% for objective in monthly_objectives.objectives_by_category|get_item:category %}
                                                 <tr>
@@ -262,12 +276,19 @@
 
                             <!-- Display uncategorized objectives if any -->
                             {% if monthly_objectives.uncategorized %}
-                            <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem;">
-                                <legend class="text-secondary fw-bold float-none w-auto px-2 mb-1" style="font-size: 0.9rem;">
+                            <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.25rem 0.5rem;">
+                                <legend class="text-secondary fw-bold float-none w-auto px-2 mb-0" style="font-size: 0.9rem;">
                                     Uncategorized
                                 </legend>
                                 <div class="table-responsive">
-                                    <table class="table table-sm table-borderless mb-0">
+                                    <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
+                                        <colgroup>
+                                            <col style="width: auto;"> <!-- Objective column -->
+                                            <col style="width: 140px;"> <!-- Target column -->
+                                            <col style="width: 140px;"> <!-- Result column -->
+                                            <col style="width: 300px;"> <!-- Progress column -->
+                                            <col style="width: 50px;"> <!-- Edit icon column -->
+                                        </colgroup>
                                         <tbody>
                                             {% for objective in monthly_objectives.uncategorized %}
                                             <tr>
