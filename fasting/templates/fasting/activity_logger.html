@@ -197,6 +197,13 @@
                         <h5 class="mb-0" id="day-score-text" style="color: #0c5460; font-weight: 600;"></h5>
                     </div>
 
+                    <!-- Sync Projects/Goals Button -->
+                    <div class="mb-3 text-end">
+                        <button type="button" id="sync-toggl-btn" class="btn btn-sm btn-outline-primary" onclick="syncTogglProjectsGoals()">
+                            <i class="bi bi-arrow-repeat"></i> Sync Projects & Goals from Toggl
+                        </button>
+                    </div>
+
                     <form id="agendaForm">
                         <!-- Target 1 -->
                         <div class="mb-4 p-3 border rounded" style="position: relative;">
@@ -552,6 +559,64 @@
                 alertDiv.classList.remove('show');
                 setTimeout(() => alertDiv.remove(), 300);
             }, duration);
+        }
+
+        function syncTogglProjectsGoals() {
+            const syncBtn = document.getElementById('sync-toggl-btn');
+            const originalBtnHTML = syncBtn.innerHTML;
+
+            // Disable button and show loading state
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Syncing...';
+
+            // Make AJAX request
+            fetch('/targets/api/sync-toggl/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showFlashMessage(data.message, true);
+
+                    // Update all project dropdowns (1, 2, and 3)
+                    for (let i = 1; i <= 3; i++) {
+                        const projectSelect = document.getElementById(`project_${i}`);
+                        const currentValue = projectSelect.value;
+
+                        // Clear and rebuild dropdown
+                        projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+
+                        data.projects.forEach(project => {
+                            const option = document.createElement('option');
+                            option.value = project.project_id;
+                            option.textContent = project.display_string;
+
+                            // Restore previously selected value if it still exists
+                            if (project.project_id == currentValue) {
+                                option.selected = true;
+                            }
+
+                            projectSelect.appendChild(option);
+                        });
+                    }
+                } else {
+                    // Show error message
+                    showFlashMessage(data.message, false);
+                }
+            })
+            .catch(error => {
+                showFlashMessage('Error syncing from Toggl: ' + error.message, false);
+            })
+            .finally(() => {
+                // Re-enable button and restore original text
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = originalBtnHTML;
+            });
         }
 
         function logFast(hours, day) {

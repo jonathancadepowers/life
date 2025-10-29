@@ -7,6 +7,7 @@ from .models import DailyAgenda
 from projects.models import Project
 from goals.models import Goal
 from time_logs.models import TimeLog
+from time_logs.services.toggl_client import TogglAPIClient
 
 
 def set_agenda(request):
@@ -68,6 +69,63 @@ def get_goals_for_project(request):
     return JsonResponse({'goals': list(goals)})
 
 
+@require_http_methods(["POST"])
+def sync_toggl_projects_goals(request):
+    """AJAX endpoint to sync Projects and Goals from Toggl."""
+    try:
+        # Initialize Toggl client
+        toggl_client = TogglAPIClient()
+
+        # Fetch projects from Toggl
+        toggl_projects = toggl_client.get_projects()
+        projects_synced = 0
+
+        for project_data in toggl_projects:
+            # Toggl projects have 'id' and 'name' fields
+            project_id = project_data.get('id')
+            project_name = project_data.get('name')
+
+            if project_id and project_name:
+                # Update or create project in database
+                Project.objects.update_or_create(
+                    project_id=project_id,
+                    defaults={'display_string': project_name}
+                )
+                projects_synced += 1
+
+        # Fetch tags (goals) from Toggl
+        toggl_tags = toggl_client.get_tags()
+        goals_synced = 0
+
+        for tag_data in toggl_tags:
+            # Toggl tags have 'id' and 'name' fields
+            tag_name = tag_data.get('name')
+
+            if tag_name:
+                # Update or create goal in database
+                # goal_id is the tag name (as per the Goal model)
+                Goal.objects.update_or_create(
+                    goal_id=tag_name,
+                    defaults={'display_string': tag_name}
+                )
+                goals_synced += 1
+
+        # Return updated lists
+        projects = list(Project.objects.all().values('project_id', 'display_string'))
+        goals = list(Goal.objects.all().values('goal_id', 'display_string'))
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Synced {projects_synced} projects and {goals_synced} goals from Toggl',
+            'projects': projects,
+            'goals': goals
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error syncing from Toggl: {str(e)}'
+        }, status=500)
 
 
 @require_http_methods(["POST"])
