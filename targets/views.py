@@ -199,12 +199,24 @@ def get_toggl_time_today(request):
     """
     try:
         project_id = request.GET.get('project_id')
-        goal_id = request.GET.get('goal_id')  # This is the tag name in Toggl
+        goal_id = request.GET.get('goal_id')  # This is the tag ID from the goals table
         timezone_offset = request.GET.get('timezone_offset')  # User's timezone offset in minutes
         date_str = request.GET.get('date')  # Optional: specific date to query (YYYY-MM-DD)
 
         if not project_id:
             return JsonResponse({'error': 'project_id is required'}, status=400)
+
+        # Convert goal_id (tag ID) to tag name for Toggl API comparison
+        # The Toggl API returns tag names, not tag IDs
+        goal_tag_name = None
+        if goal_id:
+            from goals.models import Goal
+            try:
+                goal = Goal.objects.get(goal_id=goal_id)
+                goal_tag_name = goal.display_string
+            except Goal.DoesNotExist:
+                # If goal not found, skip tag filtering
+                pass
 
         # Determine the target date
         now = timezone.now()
@@ -285,8 +297,8 @@ def get_toggl_time_today(request):
                 if str(entry_project_id) != str(project_id):
                     continue
 
-                # If goal_id is specified, check if entry has this tag
-                if goal_id and goal_id not in entry_tags:
+                # If goal_id is specified, check if entry has this tag (by tag name)
+                if goal_tag_name and goal_tag_name not in entry_tags:
                     continue
 
                 # If duration is negative, it's a running timer

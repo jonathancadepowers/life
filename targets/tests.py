@@ -572,7 +572,7 @@ class DailyAgendaViewsTestCase(TestCase):
             {
                 'id': 1,
                 'project_id': int(self.project.project_id),
-                'tags': [self.goal.goal_id],
+                'tags': [self.goal.display_string],  # Toggl API returns tag names, not IDs
                 'duration': 3600,  # 1 hour in seconds
                 'start': '2025-10-28T08:00:00Z'
             }
@@ -606,7 +606,7 @@ class DailyAgendaViewsTestCase(TestCase):
             {
                 'id': 1,
                 'project_id': int(self.project.project_id),
-                'tags': [self.goal.goal_id],
+                'tags': [self.goal.display_string],  # Toggl API returns tag names, not IDs
                 'duration': -1761666221,  # Negative = running timer
                 'start': start_time.isoformat()
             }
