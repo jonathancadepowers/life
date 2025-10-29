@@ -1119,11 +1119,14 @@
         document.getElementById('agendaForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
+            // CRITICAL: Capture textarea element and value at the VERY START
+            const notesTextareaElement = document.getElementById('notes-textarea');
+            const notesValueAtStart = notesTextareaElement ? notesTextareaElement.value : '';
+
             console.log('[DEBUG FORM SUBMIT] Current selected date:', currentSelectedDate);
             console.log('[DEBUG FORM SUBMIT] Date display text:', document.getElementById('today-date').textContent);
-            console.log('[DEBUG FORM SUBMIT] Textarea value at form submit (first 100 chars):', document.getElementById('notes-textarea').value.substring(0, 100));
-            console.log('[DEBUG FORM SUBMIT] Textarea value at form submit (last 50 chars):', document.getElementById('notes-textarea').value.slice(-50));
-            console.log('[DEBUG FORM SUBMIT] Textarea value length:', document.getElementById('notes-textarea').value.length);
+            console.log('[DEBUG FORM SUBMIT] Captured notes at START, length:', notesValueAtStart.length);
+            console.log('[DEBUG FORM SUBMIT] Captured notes at START (last 50):', notesValueAtStart.slice(-50));
 
             const csrftoken = getCSRFToken();
             const submitButton = this.querySelector('button[type="submit"]');
@@ -1189,17 +1192,13 @@
             }
 
             console.log('[DEBUG AFTER TARGETS] After collecting target data');
-            console.log('[DEBUG AFTER TARGETS] Textarea value (last 50):', document.getElementById('notes-textarea').value.slice(-50));
 
-            // Include notes
-            const notesTextarea = document.getElementById('notes-textarea');
-            console.log('[DEBUG] Textarea element:', notesTextarea);
-            console.log('[DEBUG] Textarea display style:', notesTextarea ? window.getComputedStyle(notesTextarea.parentElement).display : 'N/A');
-            console.log('[DEBUG] Notes in edit mode?', notesInEditMode);
-            const notes = notesTextarea ? notesTextarea.value : '';
-            console.log('save_agenda: Sending notes to server:', notes ? notes.substring(0, 100) : '(empty)');
-            console.log('[DEBUG] Full notes length:', notes.length);
-            formData.append('notes', notes);
+            // Include notes - USE THE CAPTURED VALUE FROM START!
+            console.log('[DEBUG] Using notes value captured at start');
+            console.log('save_agenda: Sending notes to server:', notesValueAtStart ? notesValueAtStart.substring(0, 100) : '(empty)');
+            console.log('[DEBUG] Full notes length:', notesValueAtStart.length);
+            console.log('[DEBUG] Notes (last 50 chars):', notesValueAtStart.slice(-50));
+            formData.append('notes', notesValueAtStart);
 
             // Disable submit button and show loading state
             submitButton.disabled = true;
