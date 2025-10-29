@@ -1164,12 +1164,19 @@
             }
 
             // Collect form data
+            console.log('[DEBUG BEFORE COLLECT] About to collect form data');
+            console.log('[DEBUG BEFORE COLLECT] Textarea value (last 50):', document.getElementById('notes-textarea').value.slice(-50));
+            console.log('[DEBUG BEFORE COLLECT] Textarea value length:', document.getElementById('notes-textarea').value.length);
+
             const formData = new URLSearchParams();
 
             // Include the date if we're editing a past agenda
             if (currentSelectedDate) {
                 formData.append('date', currentSelectedDate);
             }
+
+            console.log('[DEBUG AFTER DATE] After adding date');
+            console.log('[DEBUG AFTER DATE] Textarea value (last 50):', document.getElementById('notes-textarea').value.slice(-50));
 
             for (let i = 1; i <= 3; i++) {
                 const project = document.getElementById(`project_${i}`).value;
@@ -1180,6 +1187,9 @@
                 formData.append(`goal_${i}`, goal);
                 formData.append(`target_${i}`, target);
             }
+
+            console.log('[DEBUG AFTER TARGETS] After collecting target data');
+            console.log('[DEBUG AFTER TARGETS] Textarea value (last 50):', document.getElementById('notes-textarea').value.slice(-50));
 
             // Include notes
             const notesTextarea = document.getElementById('notes-textarea');
@@ -1800,24 +1810,6 @@
             textarea.addEventListener('input', function(e) {
                 console.log('[DEBUG textarea input] Textarea changed, new length:', e.target.value.length);
                 console.log('[DEBUG textarea input] Last 50 chars:', e.target.value.slice(-50));
-            });
-
-            // Monitor ALL changes to textarea value (including programmatic)
-            let currentValue = textarea.value;
-            Object.defineProperty(textarea, 'value', {
-                get: function() {
-                    return currentValue;
-                },
-                set: function(newValue) {
-                    if (newValue !== currentValue) {
-                        console.log('[DEBUG textarea SETTER] Value being changed programmatically!');
-                        console.log('[DEBUG textarea SETTER] Old length:', currentValue.length, 'New length:', newValue.length);
-                        console.log('[DEBUG textarea SETTER] Old last 50:', currentValue.slice(-50));
-                        console.log('[DEBUG textarea SETTER] New last 50:', newValue.slice(-50));
-                        console.trace('[DEBUG textarea SETTER] Call stack:');
-                        currentValue = newValue;
-                    }
-                }
             });
         });
 
