@@ -879,11 +879,15 @@ def activity_report(request):
             progress_pct = (obj.result / obj.objective_value) * 100
 
         objectives_data.append({
+            'objective_id': obj.objective_id,
             'label': obj.label,
+            'start': obj.start,
             'target': obj.objective_value,
             'result': obj.result if obj.result is not None else 0,
             'progress_pct': round(progress_pct, 1),
             'achieved': obj.result is not None and obj.result >= obj.objective_value,
+            'objective_value': obj.objective_value,
+            'objective_definition': obj.objective_definition,
         })
 
     monthly_objectives_context = {
