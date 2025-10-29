@@ -198,104 +198,32 @@
                                 </a>
                             </div>
 
-                            <!-- Display objectives grouped by category in bordered sections -->
-                            {% for category, config in monthly_objectives.category_config.items %}
-                                {% if monthly_objectives.objectives_by_category|get_item:category %}
-                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.25rem 0.5rem;">
-                                    <legend class="text-{{ config.color }} fw-bold float-none w-auto px-2 mb-0" style="font-size: 0.9rem;">
-                                        {{ category }}
-                                    </legend>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
-                                            <colgroup>
-                                                <col style="width: 390px;"> <!-- Objective column - wider to move right -->
-                                                <col style="width: 100px;"> <!-- Target column -->
-                                                <col style="width: 100px;"> <!-- Result column -->
-                                                <col style="width: 180px;"> <!-- Progress column - 40% narrower, fixed width -->
-                                                <col style="width: 50px;"> <!-- Edit icon column -->
-                                            </colgroup>
-                                            {% if forloop.first %}
-                                            <thead>
-                                                <tr>
-                                                    <th></th>
-                                                    <th class="text-center" style="font-size: 0.9rem; text-decoration: underline; font-weight: normal;">Target</th>
-                                                    <th class="text-center" style="font-size: 0.9rem; text-decoration: underline; font-weight: normal;">Result</th>
-                                                    <th></th>
-                                                    <th></th>
-                                                </tr>
-                                            </thead>
-                                            {% endif %}
-                                            <tbody>
-                                                {% for objective in monthly_objectives.objectives_by_category|get_item:category %}
-                                                <tr>
-                                                    <td>{{ objective.label }}</td>
-                                                    <td class="text-center">{{ objective.target|floatformat:0 }}</td>
-                                                    <td class="text-center">{{ objective.result|floatformat:0 }}</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 25px;">
-                                                            <div class="progress-bar {% if objective.achieved %}bg-success{% else %}bg-secondary{% endif %}"
-                                                                 role="progressbar"
-                                                                 style="width: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%"
-                                                                 aria-valuenow="{{ objective.progress_pct }}"
-                                                                 aria-valuemin="0"
-                                                                 aria-valuemax="100">
-                                                                {{ objective.progress_pct }}%
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <a href="#" class="text-primary edit-objective-btn"
-                                                           data-objective-id="{{ objective.objective_id }}"
-                                                           data-label="{{ objective.label }}"
-                                                           data-month="{{ objective.start|date:'n' }}"
-                                                           data-year="{{ objective.start|date:'Y' }}"
-                                                           data-target="{{ objective.objective_value }}"
-                                                           data-definition="{{ objective.objective_definition }}"
-                                                           data-category="{{ objective.category|default:'' }}"
-                                                           title="Edit objective">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </fieldset>
-                                {% endif %}
-                            {% endfor %}
-
-                            <!-- Display uncategorized objectives if any -->
-                            {% if monthly_objectives.uncategorized %}
-                            <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.25rem 0.5rem;">
-                                <legend class="text-secondary fw-bold float-none w-auto px-2 mb-0" style="font-size: 0.9rem;">
-                                    Uncategorized
-                                </legend>
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
-                                        <colgroup>
-                                            <col style="width: 390px;"> <!-- Objective column - wider to move right -->
-                                            <col style="width: 100px;"> <!-- Target column -->
-                                            <col style="width: 100px;"> <!-- Result column -->
-                                            <col style="width: 180px;"> <!-- Progress column - 40% narrower, fixed width -->
-                                            <col style="width: 50px;"> <!-- Edit icon column -->
-                                        </colgroup>
-                                        <tbody>
-                                            {% for objective in monthly_objectives.uncategorized %}
+                            <!-- Simple table with all objectives -->
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Objective</th>
+                                            <th class="text-center">Target</th>
+                                            <th class="text-center">Result</th>
+                                            <th style="width: 200px;">Progress</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for category, config in monthly_objectives.category_config.items %}
+                                            {% for objective in monthly_objectives.objectives_by_category|get_item:category %}
                                             <tr>
+                                                <td class="text-{{ config.color }}">{{ objective.category|default:"—" }}</td>
                                                 <td>{{ objective.label }}</td>
                                                 <td class="text-center">{{ objective.target|floatformat:0 }}</td>
                                                 <td class="text-center">{{ objective.result|floatformat:0 }}</td>
                                                 <td>
-                                                    <div class="progress" style="height: 25px;">
-                                                        <div class="progress-bar {% if objective.achieved %}bg-success{% else %}bg-secondary{% endif %}"
-                                                             role="progressbar"
-                                                             style="width: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%"
-                                                             aria-valuenow="{{ objective.progress_pct }}"
-                                                             aria-valuemin="0"
-                                                             aria-valuemax="100">
-                                                            {{ objective.progress_pct }}%
-                                                        </div>
+                                                    <!-- Linear progress indicator with marker -->
+                                                    <div style="position: relative; height: 20px; background: #e9ecef; border-radius: 3px;">
+                                                        <div style="position: absolute; left: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%; top: 0; width: 2px; height: 20px; background: {% if objective.achieved %}#198754{% else %}#6c757d{% endif %};"></div>
+                                                        <span style="position: absolute; left: 5px; top: 2px; font-size: 0.75rem;">{{ objective.progress_pct }}%</span>
                                                     </div>
                                                 </td>
                                                 <td class="text-end">
@@ -313,11 +241,39 @@
                                                 </td>
                                             </tr>
                                             {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </fieldset>
-                            {% endif %}
+                                        {% endfor %}
+
+                                        {% for objective in monthly_objectives.uncategorized %}
+                                        <tr>
+                                            <td class="text-secondary">—</td>
+                                            <td>{{ objective.label }}</td>
+                                            <td class="text-center">{{ objective.target|floatformat:0 }}</td>
+                                            <td class="text-center">{{ objective.result|floatformat:0 }}</td>
+                                            <td>
+                                                <!-- Linear progress indicator with marker -->
+                                                <div style="position: relative; height: 20px; background: #e9ecef; border-radius: 3px;">
+                                                    <div style="position: absolute; left: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%; top: 0; width: 2px; height: 20px; background: {% if objective.achieved %}#198754{% else %}#6c757d{% endif %};"></div>
+                                                    <span style="position: absolute; left: 5px; top: 2px; font-size: 0.75rem;">{{ objective.progress_pct }}%</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="#" class="text-primary edit-objective-btn"
+                                                   data-objective-id="{{ objective.objective_id }}"
+                                                   data-label="{{ objective.label }}"
+                                                   data-month="{{ objective.start|date:'n' }}"
+                                                   data-year="{{ objective.start|date:'Y' }}"
+                                                   data-target="{{ objective.objective_value }}"
+                                                   data-definition="{{ objective.objective_definition }}"
+                                                   data-category="{{ objective.category|default:'' }}"
+                                                   title="Edit objective">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                             {% else %}
                             <div class="alert alert-secondary">
                                 <i class="bi bi-calendar-x"></i> No monthly objectives found for {{ monthly_objectives.target_month }}.
