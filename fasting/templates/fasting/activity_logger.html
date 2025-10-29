@@ -1062,10 +1062,10 @@
                 // Update Toggl time display
                 updateTogglTime(targetNum);
 
-                // Only fetch goals if project is selected AND "Tie to Goal" is checked
+                // Fetch ALL goals if project is selected AND "Tie to Goal" is checked (not filtered by project)
                 if (projectId && tieToGoalCheckbox.checked) {
-                    // Fetch goals for this project
-                    fetch(`/targets/api/goals/?project_id=${projectId}`)
+                    // Fetch all goals (any goal can be associated with any project)
+                    fetch(`/targets/api/goals/?all=true`)
                         .then(response => response.json())
                         .then(data => {
                             data.goals.forEach(goal => {
@@ -2003,7 +2003,8 @@
         }
 
         function loadGoalsForProject(targetNum, projectId, selectedGoalId = null) {
-            fetch(`/targets/api/goals/?project_id=${projectId}`)
+            // Fetch ALL goals (not filtered by project) - any goal can be associated with any project
+            fetch(`/targets/api/goals/?all=true`)
                 .then(response => response.json())
                 .then(data => {
                     const goalSelect = document.getElementById(`goal_${targetNum}`);
