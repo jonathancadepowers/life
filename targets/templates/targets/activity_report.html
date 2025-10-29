@@ -195,6 +195,7 @@
                                             <th class="text-center">Result</th>
                                             <th class="text-center">Progress</th>
                                             <th class="text-center">Status</th>
+                                            <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -221,7 +222,9 @@
                                                 {% else %}
                                                 <span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> In Progress</span>
                                                 {% endif %}
-                                                <a href="#" class="text-primary edit-objective-btn ms-2"
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="#" class="text-primary edit-objective-btn"
                                                    data-objective-id="{{ objective.objective_id }}"
                                                    data-label="{{ objective.label }}"
                                                    data-month="{{ objective.start|date:'n' }}"
