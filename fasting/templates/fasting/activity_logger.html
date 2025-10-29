@@ -1504,20 +1504,8 @@
             }
         }
 
-        function loadScoresFromAgenda() {
-            // Load scores from the agenda object (if available)
-            {% if agenda %}
-                {% if agenda.target_1_score is not None %}
-                    updateScoreButtons(1, {{ agenda.target_1_score }});
-                {% endif %}
-                {% if agenda.target_2_score is not None %}
-                    updateScoreButtons(2, {{ agenda.target_2_score }});
-                {% endif %}
-                {% if agenda.target_3_score is not None %}
-                    updateScoreButtons(3, {{ agenda.target_3_score }});
-                {% endif %}
-            {% endif %}
-        }
+        // Note: loadScoresFromAgenda() removed - scores are now loaded by loadAgendaIntoForm()
+        // which is called by loadTodaysAgenda() on page load
 
         function displayDayScore(agenda) {
             const dayScoreBox = document.getElementById('day-score-box');
@@ -1603,64 +1591,47 @@
                 });
         }
 
-        // Initialize form with agenda data on page load
-        function initializeFormFromAgenda() {
-            console.log('initializeFormFromAgenda called');
-            {% if agenda %}
-                console.log('Agenda exists in template context');
-                // Target 1
-                {% if agenda.project_1_id %}
-                    console.log('Target 1: Initializing with project_id={{ agenda.project_1_id }}');
-                    const goalInput1 = document.getElementById('goal_1');
-                    const targetInput1 = document.getElementById('target_1');
-                    goalInput1.disabled = false;
-                    targetInput1.disabled = false;
-                    {% if agenda.goal_1_id %}
-                        console.log('Target 1: Loading goals with goal_id={{ agenda.goal_1_id }}');
-                        loadGoalsForProject(1, {{ agenda.project_1_id }}, '{{ agenda.goal_1_id }}');
-                    {% else %}
-                        console.log('Target 1: No goal, calling updateTogglTime');
-                        // No goal selected, but still update time display
-                        updateTogglTime(1);
-                    {% endif %}
-                {% else %}
-                    console.log('Target 1: No project_1_id found');
-                {% endif %}
+        // Fetch and load today's agenda on page load
+        function loadTodaysAgenda() {
+            console.log('loadTodaysAgenda: Fetching agenda for user\'s local date');
 
-                // Target 2
-                {% if agenda.project_2_id %}
-                    const goalInput2 = document.getElementById('goal_2');
-                    const targetInput2 = document.getElementById('target_2');
-                    goalInput2.disabled = false;
-                    targetInput2.disabled = false;
-                    {% if agenda.goal_2_id %}
-                        loadGoalsForProject(2, {{ agenda.project_2_id }}, '{{ agenda.goal_2_id }}');
-                    {% else %}
-                        updateTogglTime(2);
-                    {% endif %}
-                {% endif %}
+            // Get today's date in user's local timezone
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
 
-                // Target 3
-                {% if agenda.project_3_id %}
-                    const goalInput3 = document.getElementById('goal_3');
-                    const targetInput3 = document.getElementById('target_3');
-                    goalInput3.disabled = false;
-                    targetInput3.disabled = false;
-                    {% if agenda.goal_3_id %}
-                        loadGoalsForProject(3, {{ agenda.project_3_id }}, '{{ agenda.goal_3_id }}');
-                    {% else %}
-                        updateTogglTime(3);
-                    {% endif %}
-                {% endif %}
-            {% else %}
-                console.log('No agenda in template context');
-            {% endif %}
+            console.log(`loadTodaysAgenda: User's local date is ${todayStr}`);
+
+            // Fetch agenda for today
+            fetch(`/targets/api/agenda-for-date/?date=${todayStr}`)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            console.log('loadTodaysAgenda: No agenda found for today');
+                            return null;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.success && data.agenda) {
+                        console.log('loadTodaysAgenda: Agenda found, loading into form');
+                        loadAgendaIntoForm(data.agenda);
+                    } else {
+                        console.log('loadTodaysAgenda: No agenda for today');
+                    }
+                })
+                .catch(error => {
+                    console.error('loadTodaysAgenda: Error fetching agenda:', error);
+                });
         }
 
-        // Load scores and initialize form when page loads
+        // Load agenda when page loads
         window.addEventListener('DOMContentLoaded', function() {
-            loadScoresFromAgenda();
-            initializeFormFromAgenda();
+            loadTodaysAgenda();
         });
 
         // Notes functionality

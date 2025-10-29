@@ -10,35 +10,21 @@ import uuid
 
 
 def activity_logger(request):
-    """Render the Activity Logger page."""
-    from projects.models import Project
-    from targets.models import DailyAgenda
-    import logging
+    """Render the Activity Logger page.
 
-    logger = logging.getLogger(__name__)
+    Note: We don't pass today's agenda in the context because we want
+    JavaScript to determine "today" based on the user's browser timezone,
+    not the server's timezone. JavaScript will fetch the agenda via AJAX
+    on page load.
+    """
+    from projects.models import Project
 
     # Get all projects for the dropdowns
     projects = Project.objects.all().order_by('display_string')
 
-    # Get today's agenda if it exists (using local timezone date)
-    # timezone.now() returns UTC time, so we need to convert to local timezone first
-    local_now = timezone.localtime(timezone.now())
-    today = local_now.date()
-    logger.info(f"Activity Logger: Looking for agenda for date: {today}")
-    logger.info(f"Activity Logger: timezone.now() = {timezone.now()}")
-    logger.info(f"Activity Logger: timezone.localtime() = {local_now}")
-    logger.info(f"Activity Logger: Available agendas in DB: {list(DailyAgenda.objects.values_list('date', flat=True))}")
-
-    try:
-        agenda = DailyAgenda.objects.get(date=today)
-        logger.info(f"Activity Logger: Found agenda for {today}")
-    except DailyAgenda.DoesNotExist:
-        agenda = None
-        logger.warning(f"Activity Logger: No agenda found for {today}")
-
     context = {
         'projects': projects,
-        'agenda': agenda,
+        'agenda': None,  # JavaScript will fetch today's agenda based on user's timezone
     }
 
     return render(request, 'fasting/activity_logger.html', context)
