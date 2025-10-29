@@ -83,15 +83,23 @@ def convert_goal_names_to_ids(apps, schema_editor):
             display_string=display_string
         )
 
-        # Update all TimeLog.goals relationships
-        # Get all TimeLogs that reference the old goal
+        # Update all TimeLog.goals relationships (many-to-many)
         time_logs_with_old_goal = TimeLog.objects.filter(goals=old_goal)
-
         for time_log in time_logs_with_old_goal:
-            # Add the new goal to this time log
             time_log.goals.add(new_goal)
-            # Remove the old goal from this time log
             time_log.goals.remove(old_goal)
+
+        # Update all DailyAgenda foreign key relationships
+        DailyAgenda = apps.get_model('targets', 'DailyAgenda')
+
+        # Update goal_1 references
+        DailyAgenda.objects.filter(goal_1=old_goal).update(goal_1=new_goal)
+
+        # Update goal_2 references
+        DailyAgenda.objects.filter(goal_2=old_goal).update(goal_2=new_goal)
+
+        # Update goal_3 references
+        DailyAgenda.objects.filter(goal_3=old_goal).update(goal_3=new_goal)
 
         # Delete the old goal
         old_goal.delete()
@@ -108,6 +116,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('goals', '0002_fix_goal_id_datatype'),
         ('time_logs', '0001_initial'),  # Need TimeLog model for relationship updates
+        ('targets', '0008_clean_target_timestamps'),  # Need DailyAgenda model for FK updates
     ]
 
     operations = [
