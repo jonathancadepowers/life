@@ -20,10 +20,13 @@ def activity_logger(request):
     # Get all projects for the dropdowns
     projects = Project.objects.all().order_by('display_string')
 
-    # Get today's agenda if it exists (using timezone-aware date)
-    today = timezone.now().date()
+    # Get today's agenda if it exists (using local timezone date)
+    # timezone.now() returns UTC time, so we need to convert to local timezone first
+    local_now = timezone.localtime(timezone.now())
+    today = local_now.date()
     logger.info(f"Activity Logger: Looking for agenda for date: {today}")
     logger.info(f"Activity Logger: timezone.now() = {timezone.now()}")
+    logger.info(f"Activity Logger: timezone.localtime() = {local_now}")
     logger.info(f"Activity Logger: Available agendas in DB: {list(DailyAgenda.objects.values_list('date', flat=True))}")
 
     try:
