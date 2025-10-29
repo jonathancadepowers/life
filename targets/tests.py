@@ -1245,3 +1245,80 @@ class ActivityReportViewsTestCase(TestCase):
 
         # Verify total hours
         self.assertEqual(project_data['total_hours'], 3.0)
+
+    def test_monthly_objectives_edit_data_fields(self):
+        """
+        Test that monthly objectives include all required fields for editing.
+
+        Regression test: Clicking the edit button should pre-populate the modal
+        with the objective's data. This requires the view to pass all fields:
+        - objective_id
+        - label
+        - start (for extracting month/year)
+        - objective_value
+        - objective_definition
+        """
+        from monthly_objectives.models import MonthlyObjective
+        from calendar import monthrange
+
+        # Create a test objective for November 2025
+        start_date = date(2025, 11, 1)
+        last_day = monthrange(2025, 11)[1]
+        end_date = date(2025, 11, last_day)
+
+        objective = MonthlyObjective.objects.create(
+            objective_id='test_objective_nov_2025',
+            label='15 Running Workouts',
+            start=start_date,
+            end=end_date,
+            timezone='America/Chicago',
+            objective_value=15.0,
+            objective_definition='SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0',
+            result=10.0  # 10 out of 15 completed
+        )
+
+        # Request activity report for November 2025
+        response = self.client.get(
+            reverse('activity_report'),
+            {'start_date': start_date.isoformat(), 'end_date': end_date.isoformat()}
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify monthly_objectives context exists
+        self.assertIn('monthly_objectives', response.context)
+        monthly_objectives_context = response.context['monthly_objectives']
+
+        # Verify objectives list exists
+        self.assertIn('objectives', monthly_objectives_context)
+        objectives = monthly_objectives_context['objectives']
+        self.assertEqual(len(objectives), 1)
+
+        # CRITICAL: Verify all required fields are present for editing
+        obj_data = objectives[0]
+
+        # These fields are required by the edit modal
+        self.assertIn('objective_id', obj_data, "objective_id is required for identifying which objective to update")
+        self.assertIn('label', obj_data, "label is required for pre-populating the form")
+        self.assertIn('start', obj_data, "start date is required for extracting month/year")
+        self.assertIn('objective_value', obj_data, "objective_value is required for pre-populating target value")
+        self.assertIn('objective_definition', obj_data, "objective_definition (SQL) is required for pre-populating the SQL field")
+
+        # Verify the values are correct
+        self.assertEqual(obj_data['objective_id'], 'test_objective_nov_2025')
+        self.assertEqual(obj_data['label'], '15 Running Workouts')
+        self.assertEqual(obj_data['start'], start_date)
+        self.assertEqual(obj_data['objective_value'], 15.0)
+        self.assertEqual(obj_data['objective_definition'], 'SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0')
+
+        # Verify display fields also exist (these were there before)
+        self.assertIn('target', obj_data)  # Display name for objective_value
+        self.assertIn('result', obj_data)
+        self.assertIn('progress_pct', obj_data)
+        self.assertIn('achieved', obj_data)
+
+        # Verify the displayed values
+        self.assertEqual(obj_data['target'], 15.0)
+        self.assertEqual(obj_data['result'], 10.0)
+        self.assertAlmostEqual(obj_data['progress_pct'], 66.7, places=1)
+        self.assertFalse(obj_data['achieved'])
