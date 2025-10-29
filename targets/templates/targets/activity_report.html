@@ -201,7 +201,7 @@
                             <!-- Display objectives grouped by category in bordered sections -->
                             {% for category, config in monthly_objectives.category_config.items %}
                                 {% if monthly_objectives.objectives_by_category|get_item:category %}
-                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem;">
+                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem;">
                                     <legend class="text-{{ config.color }} fw-bold float-none w-auto px-2 mb-1" style="font-size: 0.9rem;">
                                         {{ category }}
                                     </legend>
@@ -209,11 +209,11 @@
                                         <table class="table table-sm table-borderless mb-0">
                                             <thead>
                                                 <tr>
-                                                    <th style="border-bottom: 1px solid #dee2e6;">Objective</th>
-                                                    <th class="text-center" style="width: 140px; border-bottom: 1px solid #dee2e6;">Target</th>
-                                                    <th class="text-center" style="width: 140px; border-bottom: 1px solid #dee2e6;">Result</th>
-                                                    <th class="text-center" style="width: 300px; border-bottom: 1px solid #dee2e6;">Progress</th>
-                                                    <th style="width: 50px; border-bottom: 1px solid #dee2e6;"></th>
+                                                    <th>Objective</th>
+                                                    <th class="text-center" style="width: 140px;">Target</th>
+                                                    <th class="text-center" style="width: 140px;">Result</th>
+                                                    <th class="text-center" style="width: 300px;">Progress</th>
+                                                    <th style="width: 50px;"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -258,7 +258,7 @@
 
                             <!-- Display uncategorized objectives if any -->
                             {% if monthly_objectives.uncategorized %}
-                            <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem;">
+                            <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem;">
                                 <legend class="text-secondary fw-bold float-none w-auto px-2 mb-1" style="font-size: 0.9rem;">
                                     Uncategorized
                                 </legend>
@@ -266,11 +266,11 @@
                                     <table class="table table-sm table-borderless mb-0">
                                         <thead>
                                             <tr>
-                                                <th style="border-bottom: 1px solid #dee2e6;">Objective</th>
-                                                <th class="text-center" style="width: 140px; border-bottom: 1px solid #dee2e6;">Target</th>
-                                                <th class="text-center" style="width: 140px; border-bottom: 1px solid #dee2e6;">Result</th>
-                                                <th class="text-center" style="width: 300px; border-bottom: 1px solid #dee2e6;">Progress</th>
-                                                <th style="width: 50px; border-bottom: 1px solid #dee2e6;"></th>
+                                                <th>Objective</th>
+                                                <th class="text-center" style="width: 140px;">Target</th>
+                                                <th class="text-center" style="width: 140px;">Result</th>
+                                                <th class="text-center" style="width: 300px;">Progress</th>
+                                                <th style="width: 50px;"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
