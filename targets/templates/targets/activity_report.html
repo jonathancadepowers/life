@@ -213,9 +213,12 @@
                                     </thead>
                                     <tbody>
                                         {% for category, config in monthly_objectives.category_config.items %}
-                                            {% for objective in monthly_objectives.objectives_by_category|get_item:category %}
+                                            {% with objectives=monthly_objectives.objectives_by_category|get_item:category %}
+                                            {% for objective in objectives %}
                                             <tr>
-                                                <td class="text-{{ config.color }}">{{ objective.category|default:"—" }}</td>
+                                                {% if forloop.first %}
+                                                <td class="text-{{ config.color }} align-middle" rowspan="{{ objectives|length }}">{{ objective.category|default:"—" }}</td>
+                                                {% endif %}
                                                 <td>{{ objective.label }}</td>
                                                 <td class="text-center">{{ objective.target|floatformat:0 }}</td>
                                                 <td class="text-center">{{ objective.result|floatformat:0 }}</td>
@@ -241,6 +244,7 @@
                                                 </td>
                                             </tr>
                                             {% endfor %}
+                                            {% endwith %}
                                         {% endfor %}
 
                                         {% for objective in monthly_objectives.uncategorized %}
