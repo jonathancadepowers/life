@@ -1176,8 +1176,13 @@
             }
 
             // Include notes
-            const notes = document.getElementById('notes-textarea').value;
+            const notesTextarea = document.getElementById('notes-textarea');
+            console.log('[DEBUG] Textarea element:', notesTextarea);
+            console.log('[DEBUG] Textarea display style:', notesTextarea ? window.getComputedStyle(notesTextarea.parentElement).display : 'N/A');
+            console.log('[DEBUG] Notes in edit mode?', notesInEditMode);
+            const notes = notesTextarea ? notesTextarea.value : '';
             console.log('save_agenda: Sending notes to server:', notes ? notes.substring(0, 100) : '(empty)');
+            console.log('[DEBUG] Full notes length:', notes.length);
             formData.append('notes', notes);
 
             // Disable submit button and show loading state
@@ -1886,6 +1891,8 @@
             }
 
             // Load notes from the agenda
+            console.log('[DEBUG loadAgendaIntoForm] Loading notes from agenda:', agenda.notes ? agenda.notes.substring(0, 50) + '...' : '(empty)');
+            console.log('[DEBUG loadAgendaIntoForm] Current textarea value before load:', document.getElementById('notes-textarea').value.substring(0, 50));
             if (agenda.notes) {
                 document.getElementById('notes-textarea').value = agenda.notes;
                 renderMarkdown(agenda.notes);
@@ -1893,6 +1900,7 @@
                 document.getElementById('notes-textarea').value = '';
                 renderMarkdown('');
             }
+            console.log('[DEBUG loadAgendaIntoForm] Textarea value after load:', document.getElementById('notes-textarea').value.substring(0, 50));
 
             // Display day score for past days
             displayDayScore(agenda);
