@@ -1,0 +1,16 @@
+/* Remove bold styling from all Django admin field labels */
+.form-row label,
+.flex-container label,
+div.help,
+label,
+.aligned label,
+.form-row td label,
+th label {
+    font-weight: normal !important;
+}
+
+/* Also target required field labels specifically */
+.required label,
+label.required {
+    font-weight: normal !important;
+}

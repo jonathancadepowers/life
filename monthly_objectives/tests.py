@@ -156,3 +156,97 @@ class MonthlyObjectiveTimezoneTests(TestCase):
         # Verify all have Denver timezone
         for obj in objectives:
             self.assertEqual(obj.timezone, 'America/Denver')
+
+
+class MonthlyObjectiveUnitOfMeasurementTests(TestCase):
+    """
+    Tests to ensure the unit_of_measurement field works correctly.
+    """
+
+    def tearDown(self):
+        """Clean up after each test"""
+        MonthlyObjective.objects.all().delete()
+
+    def test_unit_of_measurement_can_be_set(self):
+        """
+        Test that unit_of_measurement can be set and retrieved.
+        """
+        objective = MonthlyObjective.objects.create(
+            objective_id='test_with_unit',
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            label='Test Objective',
+            objective_value=30,
+            objective_definition='SELECT COUNT(*) FROM test',
+            unit_of_measurement='minutes'
+        )
+
+        # Verify the unit was saved
+        self.assertEqual(objective.unit_of_measurement, 'minutes')
+
+        # Verify it persists after refresh from database
+        objective.refresh_from_db()
+        self.assertEqual(objective.unit_of_measurement, 'minutes')
+
+    def test_unit_of_measurement_can_be_null(self):
+        """
+        Test that unit_of_measurement can be null (backwards compatibility).
+        """
+        objective = MonthlyObjective.objects.create(
+            objective_id='test_without_unit',
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            label='Test Objective Without Unit',
+            objective_value=25,
+            objective_definition='SELECT COUNT(*) FROM test'
+            # Note: unit_of_measurement not provided
+        )
+
+        # Verify it's None/null
+        self.assertIsNone(objective.unit_of_measurement)
+
+        # Verify it persists as None after refresh
+        objective.refresh_from_db()
+        self.assertIsNone(objective.unit_of_measurement)
+
+    def test_unit_of_measurement_various_values(self):
+        """
+        Test that various common unit values can be stored.
+        """
+        test_units = ['minutes', 'sessions', 'days', 'pounds', 'workouts', 'hours']
+
+        for i, unit in enumerate(test_units):
+            objective = MonthlyObjective.objects.create(
+                objective_id=f'test_unit_{i}',
+                start=date(2025, 11, 1),
+                end=date(2025, 11, 30),
+                label=f'Test {unit}',
+                objective_value=10,
+                objective_definition='SELECT COUNT(*) FROM test',
+                unit_of_measurement=unit
+            )
+
+            # Verify each unit is saved correctly
+            self.assertEqual(objective.unit_of_measurement, unit)
+
+    def test_unit_of_measurement_can_be_updated(self):
+        """
+        Test that unit_of_measurement can be updated after creation.
+        """
+        objective = MonthlyObjective.objects.create(
+            objective_id='test_update_unit',
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            label='Test Update',
+            objective_value=20,
+            objective_definition='SELECT COUNT(*) FROM test',
+            unit_of_measurement='minutes'
+        )
+
+        # Update the unit
+        objective.unit_of_measurement = 'hours'
+        objective.save()
+
+        # Verify the update persisted
+        objective.refresh_from_db()
+        self.assertEqual(objective.unit_of_measurement, 'hours')

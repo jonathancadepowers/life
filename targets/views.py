@@ -894,9 +894,10 @@ def activity_report(request):
         if result is not None and obj.objective_value > 0:
             progress_pct = (result / obj.objective_value) * 100
 
-        # Calculate target per day
+        # Calculate target per week
         days_in_month = monthrange(obj.start.year, obj.start.month)[1]
-        target_per_day = obj.objective_value / days_in_month if days_in_month > 0 else 0
+        weeks_in_month = days_in_month / 7.0
+        target_per_week = obj.objective_value / weeks_in_month if weeks_in_month > 0 else 0
 
         # Calculate remaining (0 if achieved or exceeded)
         remaining = max(0, obj.objective_value - (result if result is not None else 0))
@@ -904,6 +905,7 @@ def activity_report(request):
         objectives_data.append({
             'objective_id': obj.objective_id,
             'label': obj.label,
+            'description': obj.description,
             'start': obj.start,
             'target': obj.objective_value,
             'result': result if result is not None else 0,
@@ -912,15 +914,11 @@ def activity_report(request):
             'objective_value': obj.objective_value,
             'objective_definition': obj.objective_definition,
             'category': obj.category,
-            'target_per_day': round(target_per_day, 1),
+            'target_per_week': round(target_per_week, 1),
             'days_in_month': days_in_month,
             'remaining': round(remaining, 1),
+            'unit': obj.unit_of_measurement,
         })
-
-    # Get distinct categories from all objectives (not just current month)
-    distinct_categories = MonthlyObjective.objects.filter(
-        category__isnull=False
-    ).exclude(category='').values_list('category', flat=True).distinct().order_by('category')
 
     # Group objectives by category
     from collections import defaultdict
@@ -933,7 +931,7 @@ def activity_report(request):
         else:
             uncategorized.append(obj)
 
-    # Define category display order and icons
+    # Define category display config for predefined categories (icons and colors)
     category_config = {
         'Exercise': {'icon': 'bi-lightning-charge-fill', 'color': 'danger'},
         'Nutrition': {'icon': 'bi-egg-fried', 'color': 'success'},
@@ -941,14 +939,28 @@ def activity_report(request):
         'Time Mgmt': {'icon': 'bi-clock-fill', 'color': 'warning'},
     }
 
+    # Get all categories from the current month's objectives
+    # Start with predefined categories in order, then add any custom categories alphabetically
+    all_categories = []
+    predefined_order = ['Exercise', 'Nutrition', 'Weight', 'Time Mgmt']
+
+    # Add predefined categories first (if they have objectives)
+    for cat in predefined_order:
+        if cat in objectives_by_category and objectives_by_category[cat]:
+            all_categories.append(cat)
+
+    # Add any custom categories (not in predefined list) alphabetically
+    custom_categories = sorted([cat for cat in objectives_by_category.keys() if cat not in predefined_order])
+    all_categories.extend(custom_categories)
+
     monthly_objectives_context = {
         'objectives': objectives_data,
         'objectives_by_category': dict(objectives_by_category),
         'uncategorized': uncategorized,
         'category_config': category_config,
+        'all_categories': all_categories,  # All categories with objectives (predefined + custom)
         'target_month': end_date.strftime('%b %Y').upper(),
         'crosses_months': crosses_months,
-        'categories': list(distinct_categories),
     }
 
     context = {

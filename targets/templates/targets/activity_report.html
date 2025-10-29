@@ -204,32 +204,46 @@
 
                             <!-- Simple table with all objectives -->
                             <div class="table-responsive">
-                                <table class="table table-sm table-hover">
+                                <table class="table table-sm">
                                     <thead>
                                         <tr>
-                                            <th style="width: 100px;">Category</th>
-                                            <th style="width: 300px;">Objective</th>
-                                            <th class="text-center" style="width: 70px;">Target</th>
-                                            <th class="text-center" style="width: 80px;">Target/Day</th>
-                                            <th class="text-center" style="width: 70px;">Current</th>
-                                            <th class="text-center" style="width: 80px; padding-right: 60px;">Remaining</th>
-                                            <th style="width: 200px;">Progress</th>
-                                            <th style="width: 50px;"></th>
+                                            <th style="width: 120px;">Category</th>
+                                            <th style="white-space: nowrap;">Objective</th>
+                                            <th></th>
+                                            <th class="text-center" style="width: 80px; padding-right: 30px;">Target</th>
+                                            <th class="text-center" style="width: 80px; padding-right: 30px;">Current</th>
+                                            <th class="text-center" style="width: 95px; padding-right: 30px;">Remaining</th>
+                                            <th class="text-center" style="width: 110px; padding-right: 30px;">Target/Week</th>
+                                            <th class="text-center" style="width: 90px; padding-right: 30px;">Unit</th>
+                                            <th style="width: 250px;">Progress</th>
+                                            <th style="width: 80px;"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for category, config in monthly_objectives.category_config.items %}
+                                        {% for category in monthly_objectives.all_categories %}
                                             {% with objectives=monthly_objectives.objectives_by_category|get_item:category %}
+                                            {% if objectives %}
                                             {% for objective in objectives %}
                                             <tr style="height: 45px;">
                                                 {% if forloop.first %}
-                                                <td class="align-middle" rowspan="{{ objectives|length }}">{{ objective.category|default:"—" }}</td>
+                                                <td class="align-middle" rowspan="{{ objectives|length }}">{{ category }}</td>
                                                 {% endif %}
-                                                <td class="align-middle">{{ objective.label }}</td>
-                                                <td class="text-center align-middle">{{ objective.target|floatformat:0 }}</td>
-                                                <td class="text-center align-middle">{{ objective.target_per_day|floatformat:1 }}</td>
-                                                <td class="text-center align-middle">{{ objective.result|floatformat:0 }}</td>
-                                                <td class="text-center align-middle" style="padding-right: 60px;">{{ objective.remaining|floatformat:0 }}</td>
+                                                <td class="align-middle" style="white-space: nowrap;">
+                                                    {{ objective.label }}
+                                                    {% if objective.description %}
+                                                    <i class="bi bi-info-circle ms-1"
+                                                       style="cursor: help; font-size: 0.6rem; opacity: 0.4; color: #6c757d;"
+                                                       data-bs-toggle="tooltip"
+                                                       data-bs-placement="right"
+                                                       title="{{ objective.description }}"></i>
+                                                    {% endif %}
+                                                </td>
+                                                <td></td>
+                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.target|floatformat:0 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.result|floatformat:0 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.remaining|floatformat:0 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.target_per_week|floatformat:1 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.unit|default:"-" }}</td>
                                                 <td class="align-middle">
                                                     <!-- Linear progress indicator with marker -->
                                                     <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">
@@ -258,17 +272,29 @@
                                                 </td>
                                             </tr>
                                             {% endfor %}
+                                            {% endif %}
                                             {% endwith %}
                                         {% endfor %}
 
                                         {% for objective in monthly_objectives.uncategorized %}
                                         <tr style="height: 45px;">
                                             <td class="text-secondary align-middle">—</td>
-                                            <td class="align-middle">{{ objective.label }}</td>
-                                            <td class="text-center align-middle">{{ objective.target|floatformat:0 }}</td>
-                                            <td class="text-center align-middle">{{ objective.target_per_day|floatformat:1 }}</td>
-                                            <td class="text-center align-middle">{{ objective.result|floatformat:0 }}</td>
-                                            <td class="text-center align-middle" style="padding-right: 60px;">{{ objective.remaining|floatformat:0 }}</td>
+                                            <td class="align-middle" style="white-space: nowrap;">
+                                                {{ objective.label }}
+                                                {% if objective.description %}
+                                                <i class="bi bi-info-circle ms-1"
+                                                   style="cursor: help; font-size: 0.6rem; opacity: 0.4; color: #6c757d;"
+                                                   data-bs-toggle="tooltip"
+                                                   data-bs-placement="right"
+                                                   title="{{ objective.description }}"></i>
+                                                {% endif %}
+                                            </td>
+                                            <td></td>
+                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.target|floatformat:0 }}</td>
+                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.result|floatformat:0 }}</td>
+                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.remaining|floatformat:0 }}</td>
+                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.target_per_week|floatformat:1 }}</td>
+                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.unit|default:"-" }}</td>
                                             <td class="align-middle">
                                                 <!-- Linear progress indicator with marker -->
                                                 <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">
@@ -648,6 +674,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
             const startDateInput = document.getElementById('start_date');
             const endDateInput = document.getElementById('end_date');
             const spinner = document.getElementById('loading-spinner');
@@ -826,7 +858,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        'X-CSRFToken': getCookie('csrftoken')
                     },
                     body: JSON.stringify({
                         objective_id: deleteObjectiveId

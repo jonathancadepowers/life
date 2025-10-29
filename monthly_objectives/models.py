@@ -40,6 +40,11 @@ class MonthlyObjective(models.Model):
         max_length=255,
         help_text="Name/description of the objective (e.g., '30 Running Workouts')"
     )
+    description = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Detailed, quantitative description of the objective (e.g., '13 Weigh-In Days')"
+    )
     objective_value = models.FloatField(
         help_text="Target value for this objective (e.g., 30 for '30 running workouts')"
     )
@@ -51,6 +56,12 @@ class MonthlyObjective(models.Model):
         null=True,
         blank=True,
         help_text="Category for this objective (e.g., 'Nutrition', 'Weight', 'Exercise', 'Time Management')"
+    )
+    unit_of_measurement = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Unit of measurement for this objective (e.g., 'minutes', 'sessions', 'days', 'pounds')"
     )
     result = models.FloatField(
         null=True,

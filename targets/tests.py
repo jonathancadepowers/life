@@ -2545,3 +2545,174 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
         # Verify all three have edit buttons
         edit_buttons = self.selenium.find_elements(By.CLASS_NAME, 'edit-objective-btn')
         self.assertEqual(len(edit_buttons), 3, "Should have 3 edit buttons")
+
+
+class MonthlyObjectivesCustomCategoryTests(TestCase):
+    """
+    Test that monthly objectives with custom (non-predefined) categories
+    are displayed in the activity_report view.
+    
+    Regression test for bug where only objectives with predefined categories
+    (Exercise, Nutrition, Weight, Time Mgmt) were shown, while objectives
+    with custom categories were hidden.
+    """
+    
+    def setUp(self):
+        """Set up test data"""
+        from monthly_objectives.models import MonthlyObjective
+        from datetime import date
+        
+        # Create objectives for November 2025 with different categories
+        self.exercise_obj = MonthlyObjective.objects.create(
+            objective_id='test_exercise',
+            label='Run 100 miles',
+            category='Exercise',  # Predefined category
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            objective_value=100,
+            objective_definition='SELECT 50'  # Returns 50
+        )
+        
+        self.custom_obj = MonthlyObjective.objects.create(
+            objective_id='test_custom',
+            label='Custom Category Test',
+            category='MyCustomCategory',  # Custom category
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            objective_value=200,
+            objective_definition='SELECT 75'  # Returns 75
+        )
+        
+        self.uncategorized_obj = MonthlyObjective.objects.create(
+            objective_id='test_uncategorized',
+            label='No Category Test',
+            category=None,  # No category
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            objective_value=150,
+            objective_definition='SELECT 100'  # Returns 100
+        )
+    
+    def tearDown(self):
+        """Clean up test data"""
+        from monthly_objectives.models import MonthlyObjective
+        MonthlyObjective.objects.all().delete()
+    
+    def test_activity_report_includes_all_categories(self):
+        """
+        Test that activity_report view includes objectives with:
+        - Predefined categories (Exercise, Nutrition, Weight, Time Mgmt)
+        - Custom categories (any other non-empty string)
+        - No category (None or empty string)
+        """
+        from django.test import Client
+        from datetime import date
+        
+        client = Client()
+        
+        # Request activity report for November 2025
+        response = client.get('/activity-report/', {
+            'start_date': '2025-11-01',
+            'end_date': '2025-11-30'
+        })
+        
+        self.assertEqual(response.status_code, 200)
+        
+        # Check that context contains monthly_objectives
+        self.assertIn('monthly_objectives', response.context)
+        monthly_obj_context = response.context['monthly_objectives']
+        
+        # Verify all_categories contains both predefined and custom
+        all_categories = monthly_obj_context['all_categories']
+        self.assertIn('Exercise', all_categories, "Should include predefined category 'Exercise'")
+        self.assertIn('MyCustomCategory', all_categories, "Should include custom category 'MyCustomCategory'")
+        
+        # Verify objectives_by_category contains all categorized objectives
+        objectives_by_cat = monthly_obj_context['objectives_by_category']
+        self.assertIn('Exercise', objectives_by_cat)
+        self.assertIn('MyCustomCategory', objectives_by_cat)
+        
+        # Verify the objectives are in the right categories
+        exercise_objs = objectives_by_cat['Exercise']
+        self.assertEqual(len(exercise_objs), 1)
+        self.assertEqual(exercise_objs[0]['label'], 'Run 100 miles')
+        
+        custom_objs = objectives_by_cat['MyCustomCategory']
+        self.assertEqual(len(custom_objs), 1)
+        self.assertEqual(custom_objs[0]['label'], 'Custom Category Test')
+        
+        # Verify uncategorized objectives are included
+        uncategorized = monthly_obj_context['uncategorized']
+        self.assertEqual(len(uncategorized), 1)
+        self.assertEqual(uncategorized[0]['label'], 'No Category Test')
+        
+        # Verify total objectives count (should be 3)
+        all_objectives = monthly_obj_context['objectives']
+        self.assertEqual(len(all_objectives), 3, "Should include all 3 objectives")
+    
+    def test_category_display_order(self):
+        """
+        Test that categories are displayed in the correct order:
+        1. Predefined categories first (Exercise, Nutrition, Weight, Time Mgmt)
+        2. Custom categories alphabetically after predefined ones
+        """
+        from monthly_objectives.models import MonthlyObjective
+        from datetime import date
+        from django.test import Client
+        
+        # Create additional objectives to test ordering
+        MonthlyObjective.objects.create(
+            objective_id='test_zcustom',
+            label='Z Category (should be last)',
+            category='ZCustom',
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            objective_value=50,
+            objective_definition='SELECT 25'
+        )
+        
+        MonthlyObjective.objects.create(
+            objective_id='test_acustom',
+            label='A Category (should be before Z)',
+            category='ACustom',
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            objective_value=50,
+            objective_definition='SELECT 25'
+        )
+        
+        MonthlyObjective.objects.create(
+            objective_id='test_nutrition',
+            label='Nutrition Test',
+            category='Nutrition',  # Predefined
+            start=date(2025, 11, 1),
+            end=date(2025, 11, 30),
+            objective_value=50,
+            objective_definition='SELECT 25'
+        )
+        
+        client = Client()
+        response = client.get('/activity-report/', {
+            'start_date': '2025-11-01',
+            'end_date': '2025-11-30'
+        })
+        
+        all_categories = response.context['monthly_objectives']['all_categories']
+        
+        # Predefined categories should come first
+        predefined = ['Exercise', 'Nutrition', 'Weight', 'Time Mgmt']
+        predefined_in_response = [cat for cat in all_categories if cat in predefined]
+        
+        # Check that predefined categories appear before custom ones
+        if predefined_in_response:
+            last_predefined_idx = max(all_categories.index(cat) for cat in predefined_in_response)
+            custom_categories = [cat for cat in all_categories if cat not in predefined]
+            if custom_categories:
+                first_custom_idx = min(all_categories.index(cat) for cat in custom_categories)
+                self.assertLess(last_predefined_idx, first_custom_idx,
+                    "Predefined categories should appear before custom categories")
+        
+        # Custom categories should be alphabetically sorted
+        custom_categories = [cat for cat in all_categories if cat not in predefined]
+        self.assertEqual(custom_categories, sorted(custom_categories),
+            "Custom categories should be sorted alphabetically")
