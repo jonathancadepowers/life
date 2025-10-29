@@ -17,10 +17,12 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from targets import views as targets_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("oauth/", include("oauth_integration.urls")),
+    path("activity-report/", targets_views.activity_report, name='activity_report'),
     path("targets/", include("targets.urls")),
     path("", include("fasting.urls")),
     path("", include("nutrition.urls")),
