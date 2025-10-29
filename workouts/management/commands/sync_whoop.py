@@ -132,12 +132,12 @@ class Command(BaseCommand):
             return 'skipped'
 
         # Convert kilojoules to calories (1 kJ = 0.239006 kcal)
-        kilojoules = score.get('kilojoule', 0)
-        calories = kilojoules * 0.239006 if kilojoules else None
+        kilojoules = score.get('kilojoule')
+        calories = round(kilojoules * 0.239006, 2) if kilojoules is not None else None
 
         # Convert distance from meters to miles (1 meter = 0.000621371 miles)
-        distance_meters = score.get('distance_meter', 0)
-        distance_miles = distance_meters * 0.000621371 if distance_meters else None
+        distance_meters = score.get('distance_meter')
+        distance_miles = round(distance_meters * 0.000621371, 2) if distance_meters is not None else None
 
         # Prepare workout data for our model
         workout_defaults = {
@@ -146,8 +146,8 @@ class Command(BaseCommand):
             'sport_id': workout_data.get('sport_id', 0),
             'average_heart_rate': score.get('average_heart_rate'),
             'max_heart_rate': score.get('max_heart_rate'),
-            'calories_burned': round(calories, 2) if calories else None,
-            'distance_in_miles': round(distance_miles, 2) if distance_miles else None,
+            'calories_burned': calories,
+            'distance_in_miles': distance_miles,
         }
 
         # Create or update workout

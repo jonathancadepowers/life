@@ -1,23 +1,5 @@
 from django.contrib import admin
-from .models import Target, DailyAgenda
-
-
-@admin.register(Target)
-class TargetAdmin(admin.ModelAdmin):
-    list_display = ['target_id', 'target_name', 'goal_id', 'created_at', 'updated_at']
-    list_filter = ['goal_id', 'created_at']
-    search_fields = ['target_id', 'target_name']
-    readonly_fields = ['created_at', 'updated_at']
-
-    fieldsets = (
-        ('Target Information', {
-            'fields': ('target_id', 'target_name', 'goal_id')
-        }),
-        ('Audit Information', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
+from .models import DailyAgenda
 
 
 @admin.register(DailyAgenda)

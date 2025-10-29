@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from datetime import date, datetime, timedelta
-from .models import Target, DailyAgenda
+from .models import DailyAgenda
 from projects.models import Project
 from goals.models import Goal
 from time_logs.models import TimeLog
@@ -25,19 +25,10 @@ def set_agenda(request):
             target_input = request.POST.get(f'target_{i}')
 
             if project_id and goal_id and target_input:
-                # Get or create target
-                target, _ = Target.objects.get_or_create(
-                    target_id=target_input,
-                    defaults={
-                        'target_name': target_input,
-                        'goal_id_id': goal_id
-                    }
-                )
-
-                # Set agenda fields
+                # Set agenda fields directly with text
                 setattr(agenda, f'project_{i}_id', project_id)
                 setattr(agenda, f'goal_{i}_id', goal_id)
-                setattr(agenda, f'target_{i}', target)
+                setattr(agenda, f'target_{i}', target_input)
 
         agenda.save()
         return redirect('set_agenda')
@@ -77,16 +68,6 @@ def get_goals_for_project(request):
     return JsonResponse({'goals': list(goals)})
 
 
-def get_targets_for_goal(request):
-    """AJAX endpoint to get targets associated with a goal."""
-    goal_id = request.GET.get('goal_id')
-
-    if not goal_id:
-        return JsonResponse({'targets': []})
-
-    targets = Target.objects.filter(goal_id=goal_id).values('target_id', 'target_name')
-
-    return JsonResponse({'targets': list(targets)})
 
 
 @require_http_methods(["POST"])
@@ -116,28 +97,10 @@ def save_agenda(request):
 
             # Save if we have project and target (goal is optional)
             if project_id and target_input:
-                # Get or create target (goal_id is optional)
-                # Use goal_id if provided, otherwise use a default goal or None
-                target_goal_id = goal_id if goal_id else None
-
-                # Create a unique target_id that includes timestamp to allow duplicates
-                # Target_id should be unique per target entry
-                from datetime import datetime
-                unique_target_id = f"{target_input}_{datetime.now().timestamp()}"
-
-                # Get or create target
-                target, _ = Target.objects.get_or_create(
-                    target_id=unique_target_id,
-                    defaults={
-                        'target_name': target_input,
-                        'goal_id_id': target_goal_id
-                    }
-                )
-
-                # Set agenda fields
+                # Set agenda fields directly with text
                 setattr(agenda, f'project_{i}_id', project_id)
                 setattr(agenda, f'goal_{i}_id', goal_id if goal_id else None)
-                setattr(agenda, f'target_{i}', target)
+                setattr(agenda, f'target_{i}', target_input)
             else:
                 # Clear fields if not provided
                 setattr(agenda, f'project_{i}_id', None)
@@ -446,15 +409,15 @@ def get_agenda_for_date(request):
             for i in range(1, 4):
                 project = getattr(agenda, f'project_{i}')
                 goal = getattr(agenda, f'goal_{i}')
-                target = getattr(agenda, f'target_{i}')
+                target_text = getattr(agenda, f'target_{i}')
 
                 target_data = {
                     'project_id': project.project_id if project else None,
                     'project_name': project.display_string if project else None,
                     'goal_id': goal.goal_id if goal else None,
                     'goal_name': goal.display_string if goal else None,
-                    'target_id': target.target_id if target else None,
-                    'target_name': target.target_name if target else None
+                    'target_id': target_text,  # Just the text now
+                    'target_name': target_text  # Just the text now
                 }
 
                 agenda_data['targets'].append(target_data)
@@ -700,15 +663,12 @@ def activity_report(request):
                 'total_calories': 0,
                 'total_seconds': 0,
                 'total_hours': 0,
-                'total_miles': 0,
                 'avg_heart_rate': []
             }
 
         workouts_by_sport[sport_name]['count'] += 1
         if workout.calories_burned:
             workouts_by_sport[sport_name]['total_calories'] += float(workout.calories_burned)
-        if workout.distance_in_miles:
-            workouts_by_sport[sport_name]['total_miles'] += float(workout.distance_in_miles)
         if workout.end:
             duration = (workout.end - workout.start).total_seconds()
             workouts_by_sport[sport_name]['total_seconds'] += duration

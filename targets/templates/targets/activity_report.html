@@ -304,13 +304,8 @@
                                 <div class="text-muted small">Total Time Spent</div>
                             </div>
                             <div class="col-4">
-                                {% if sport_data.total_miles > 0 %}
-                                <div class="fw-bold">{{ sport_data.total_miles|floatformat:1 }}</div>
-                                <div class="text-muted small">Miles</div>
-                                {% else %}
                                 <div class="fw-bold">{{ sport_data.total_calories|floatformat:0|intcomma }}</div>
                                 <div class="text-muted small">Calories Burned</div>
-                                {% endif %}
                             </div>
                             <div class="col-4">
                                 <div class="fw-bold">{% if sport_data.avg_heart_rate > 0 %}{{ sport_data.avg_heart_rate }}{% else %}-{% endif %}</div>

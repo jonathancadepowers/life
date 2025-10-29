@@ -1,40 +1,6 @@
 from django.db import models
 
 
-class Target(models.Model):
-    """
-    Represents a target associated with a goal.
-    """
-    target_id = models.CharField(
-        max_length=255,
-        primary_key=True,
-        help_text="Unique identifier for the target"
-    )
-    target_name = models.CharField(
-        max_length=255,
-        help_text="Name of the target"
-    )
-    goal_id = models.ForeignKey(
-        'goals.Goal',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        help_text="Associated goal (optional)"
-    )
-
-    # Audit fields
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['target_name']
-        verbose_name = 'Target'
-        verbose_name_plural = 'Targets'
-
-    def __str__(self):
-        return self.target_name
-
-
 class DailyAgenda(models.Model):
     """
     Represents a user's daily agenda with up to 3 targets.
@@ -61,13 +27,11 @@ class DailyAgenda(models.Model):
         related_name='daily_agendas_1',
         help_text="Goal for target 1"
     )
-    target_1 = models.ForeignKey(
-        'Target',
-        on_delete=models.SET_NULL,
-        null=True,
+    target_1 = models.CharField(
+        max_length=255,
         blank=True,
-        related_name='daily_agendas_1',
-        help_text="Target 1"
+        null=True,
+        help_text="Target 1 text"
     )
 
     # Target 2
@@ -87,13 +51,11 @@ class DailyAgenda(models.Model):
         related_name='daily_agendas_2',
         help_text="Goal for target 2"
     )
-    target_2 = models.ForeignKey(
-        'Target',
-        on_delete=models.SET_NULL,
-        null=True,
+    target_2 = models.CharField(
+        max_length=255,
         blank=True,
-        related_name='daily_agendas_2',
-        help_text="Target 2"
+        null=True,
+        help_text="Target 2 text"
     )
 
     # Target 3
@@ -113,13 +75,11 @@ class DailyAgenda(models.Model):
         related_name='daily_agendas_3',
         help_text="Goal for target 3"
     )
-    target_3 = models.ForeignKey(
-        'Target',
-        on_delete=models.SET_NULL,
-        null=True,
+    target_3 = models.CharField(
+        max_length=255,
         blank=True,
-        related_name='daily_agendas_3',
-        help_text="Target 3"
+        null=True,
+        help_text="Target 3 text"
     )
 
     # Score fields (0 = sad, 0.5 = neutral, 1 = happy)
