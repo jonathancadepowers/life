@@ -4,14 +4,14 @@ from .models import MonthlyObjective
 
 @admin.register(MonthlyObjective)
 class MonthlyObjectiveAdmin(admin.ModelAdmin):
-    list_display = ['objective_id', 'label', 'start', 'end', 'objective_value', 'result', 'created_at']
-    list_filter = ['start', 'end']
+    list_display = ['objective_id', 'label', 'category', 'start', 'end', 'objective_value', 'result', 'created_at']
+    list_filter = ['category', 'start', 'end']
     readonly_fields = ['created_at', 'updated_at']
     date_hierarchy = 'start'
 
     fieldsets = (
         ('Objective Details', {
-            'fields': ('objective_id', 'label', 'objective_value')
+            'fields': ('objective_id', 'label', 'category', 'objective_value')
         }),
         ('Date Range', {
             'fields': ('start', 'end', 'timezone'),
