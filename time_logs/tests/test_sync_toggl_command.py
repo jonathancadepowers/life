@@ -73,9 +73,10 @@ class TestSyncTogglCommand(TestCase):
         self.assertEqual(time_log1.source, 'Toggl')
         self.assertEqual(time_log1.project_id, 999)
 
-        # Assert: Start and end times parsed correctly
-        expected_start = timezone.make_aware(datetime(2023, 10, 25, 10, 0, 0))
-        expected_end = timezone.make_aware(datetime(2023, 10, 25, 12, 0, 0))
+        # Assert: Start and end times parsed correctly (API returns UTC times)
+        from datetime import timezone as dt_timezone
+        expected_start = datetime(2023, 10, 25, 10, 0, 0, tzinfo=dt_timezone.utc)
+        expected_end = datetime(2023, 10, 25, 12, 0, 0, tzinfo=dt_timezone.utc)
         self.assertEqual(time_log1.start, expected_start)
         self.assertEqual(time_log1.end, expected_end)
 
@@ -108,10 +109,11 @@ class TestSyncTogglCommand(TestCase):
         # Assert: Still only 1 time log (not duplicated)
         self.assertEqual(TimeLog.objects.count(), 1)
 
-        # Assert: Time log was updated with new times
+        # Assert: Time log was updated with new times (API returns UTC times)
         existing_log.refresh_from_db()
-        expected_start = timezone.make_aware(datetime(2023, 10, 25, 10, 0, 0))
-        expected_end = timezone.make_aware(datetime(2023, 10, 25, 12, 0, 0))
+        from datetime import timezone as dt_timezone
+        expected_start = datetime(2023, 10, 25, 10, 0, 0, tzinfo=dt_timezone.utc)
+        expected_end = datetime(2023, 10, 25, 12, 0, 0, tzinfo=dt_timezone.utc)
         self.assertEqual(existing_log.start, expected_start)
         self.assertEqual(existing_log.end, expected_end)
 

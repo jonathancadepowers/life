@@ -11,7 +11,8 @@ from time_logs.models import TimeLog
 
 def set_agenda(request):
     """View to set today's agenda with 3 targets."""
-    today = date.today()
+    # Use timezone-aware date to handle different timezones correctly
+    today = timezone.now().date()
 
     if request.method == 'POST':
         # Get or create today's agenda

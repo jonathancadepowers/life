@@ -90,11 +90,13 @@ class FastingAPITestCase(TestCase):
         self.assertTrue(result['success'])
         self.assertIn('Yesterday', result['message'])
 
-        # Verify the end date is yesterday at noon
+        # Verify the end date is yesterday at noon (in local timezone)
         fast = FastingSession.objects.get(id=result['fast_id'])
         yesterday = timezone.now() - timedelta(days=1)
         self.assertEqual(fast.fast_end_date.date(), yesterday.date())
-        self.assertEqual(fast.fast_end_date.hour, 12)
+        # Convert to local timezone before checking hour
+        local_time = timezone.localtime(fast.fast_end_date)
+        self.assertEqual(local_time.hour, 12)
 
     def test_log_fast_invalid_hours(self):
         """Test logging a fast with invalid duration"""
