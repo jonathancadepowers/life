@@ -212,7 +212,7 @@
                                                     <th style="font-size: 0.9rem; text-decoration: underline;">Objective</th>
                                                     <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Target</th>
                                                     <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Result</th>
-                                                    <th class="text-center" style="width: 300px; font-size: 0.9rem; text-decoration: underline;">Progress</th>
+                                                    <th style="width: 300px; font-size: 0.9rem; text-decoration: underline;">Progress</th>
                                                     <th style="width: 50px;"></th>
                                                 </tr>
                                             </thead>
@@ -222,7 +222,7 @@
                                                     <td>{{ objective.label }}</td>
                                                     <td class="text-center">{{ objective.target|floatformat:0 }}</td>
                                                     <td class="text-center">{{ objective.result|floatformat:0 }}</td>
-                                                    <td class="text-center">
+                                                    <td>
                                                         <div class="progress" style="height: 25px;">
                                                             <div class="progress-bar {% if objective.achieved %}bg-success{% else %}bg-secondary{% endif %}"
                                                                  role="progressbar"
@@ -269,7 +269,7 @@
                                                 <th style="font-size: 0.9rem; text-decoration: underline;">Objective</th>
                                                 <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Target</th>
                                                 <th class="text-center" style="width: 140px; font-size: 0.9rem; text-decoration: underline;">Result</th>
-                                                <th class="text-center" style="width: 300px; font-size: 0.9rem; text-decoration: underline;">Progress</th>
+                                                <th style="width: 300px; font-size: 0.9rem; text-decoration: underline;">Progress</th>
                                                 <th style="width: 50px;"></th>
                                             </tr>
                                         </thead>
@@ -279,7 +279,7 @@
                                                 <td>{{ objective.label }}</td>
                                                 <td class="text-center">{{ objective.target|floatformat:0 }}</td>
                                                 <td class="text-center">{{ objective.result|floatformat:0 }}</td>
-                                                <td class="text-center">
+                                                <td>
                                                     <div class="progress" style="height: 25px;">
                                                         <div class="progress-bar {% if objective.achieved %}bg-success{% else %}bg-secondary{% endif %}"
                                                              role="progressbar"
