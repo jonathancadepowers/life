@@ -1628,12 +1628,13 @@
                 return;
             }
 
-            // Check if any targets are set
+            // Check if any targets or other_plans are set
             let hasAnyTarget = false;
             let hasUnscoredTarget = false;
             let targetsSet = 0;
             let totalScore = 0;
 
+            // Check targets 1-3
             for (let i = 0; i < agenda.targets.length; i++) {
                 const target = agenda.targets[i];
                 const targetScore = agenda[`target_${i + 1}_score`];
@@ -1652,7 +1653,20 @@
                 }
             }
 
-            // If no targets are set, don't show the box
+            // Check other_plans
+            if (agenda.other_plans) {
+                hasAnyTarget = true;
+                targetsSet++;
+
+                // Check if it has no score
+                if (agenda.other_plans_score === null || agenda.other_plans_score === undefined) {
+                    hasUnscoredTarget = true;
+                } else {
+                    totalScore += agenda.other_plans_score;
+                }
+            }
+
+            // If no targets/plans are set, don't show the box
             if (!hasAnyTarget) {
                 dayScoreBox.style.display = 'none';
                 return;
