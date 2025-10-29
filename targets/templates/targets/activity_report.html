@@ -207,7 +207,8 @@
                                             <th>Objective</th>
                                             <th class="text-center">Target</th>
                                             <th class="text-center">Target/Day</th>
-                                            <th class="text-center">Result</th>
+                                            <th class="text-center">Current</th>
+                                            <th class="text-center">Remaining</th>
                                             <th style="width: 200px;">Progress</th>
                                             <th></th>
                                         </tr>
@@ -224,6 +225,7 @@
                                                 <td class="text-center">{{ objective.target|floatformat:0 }}</td>
                                                 <td class="text-center">{{ objective.target_per_day|floatformat:1 }}</td>
                                                 <td class="text-center">{{ objective.result|floatformat:0 }}</td>
+                                                <td class="text-center">{{ objective.remaining|floatformat:0 }}</td>
                                                 <td>
                                                     <!-- Linear progress indicator with marker -->
                                                     <div style="position: relative; height: 20px; background: #e9ecef; border-radius: 3px;">
@@ -256,6 +258,7 @@
                                             <td class="text-center">{{ objective.target|floatformat:0 }}</td>
                                             <td class="text-center">{{ objective.target_per_day|floatformat:1 }}</td>
                                             <td class="text-center">{{ objective.result|floatformat:0 }}</td>
+                                            <td class="text-center">{{ objective.remaining|floatformat:0 }}</td>
                                             <td>
                                                 <!-- Linear progress indicator with marker -->
                                                 <div style="position: relative; height: 20px; background: #e9ecef; border-radius: 3px;">

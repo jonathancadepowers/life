@@ -898,6 +898,9 @@ def activity_report(request):
         days_in_month = monthrange(obj.start.year, obj.start.month)[1]
         target_per_day = obj.objective_value / days_in_month if days_in_month > 0 else 0
 
+        # Calculate remaining (0 if achieved or exceeded)
+        remaining = max(0, obj.objective_value - (result if result is not None else 0))
+
         objectives_data.append({
             'objective_id': obj.objective_id,
             'label': obj.label,
@@ -911,6 +914,7 @@ def activity_report(request):
             'category': obj.category,
             'target_per_day': round(target_per_day, 1),
             'days_in_month': days_in_month,
+            'remaining': round(remaining, 1),
         })
 
     # Get distinct categories from all objectives (not just current month)
