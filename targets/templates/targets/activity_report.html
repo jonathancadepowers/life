@@ -195,7 +195,6 @@
                                             <th class="text-center">Result</th>
                                             <th class="text-center">Progress</th>
                                             <th class="text-center">Status</th>
-                                            <th class="text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -222,9 +221,7 @@
                                                 {% else %}
                                                 <span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> In Progress</span>
                                                 {% endif %}
-                                            </td>
-                                            <td class="text-center">
-                                                <a href="#" class="text-primary edit-objective-btn"
+                                                <a href="#" class="text-primary edit-objective-btn ms-2"
                                                    data-objective-id="{{ objective.objective_id }}"
                                                    data-label="{{ objective.label }}"
                                                    data-month="{{ objective.start|date:'n' }}"
@@ -596,18 +593,19 @@
             const objectiveValueInput = document.getElementById('objectiveValue');
             const objectiveDefinitionInput = document.getElementById('objectiveDefinition');
 
-            // Handle edit button clicks
-            document.querySelectorAll('.edit-objective-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
+            // Handle edit button clicks using event delegation
+            document.body.addEventListener('click', function(e) {
+                const editBtn = e.target.closest('.edit-objective-btn');
+                if (editBtn) {
                     e.preventDefault();
 
                     // Populate form with objective data
-                    editObjectiveId.value = this.dataset.objectiveId;
-                    labelInput.value = this.dataset.label;
-                    objectiveMonthSelect.value = this.dataset.month;
-                    objectiveYearInput.value = this.dataset.year;
-                    objectiveValueInput.value = this.dataset.target;
-                    objectiveDefinitionInput.value = this.dataset.definition;
+                    editObjectiveId.value = editBtn.dataset.objectiveId;
+                    labelInput.value = editBtn.dataset.label;
+                    objectiveMonthSelect.value = editBtn.dataset.month;
+                    objectiveYearInput.value = editBtn.dataset.year;
+                    objectiveValueInput.value = editBtn.dataset.target;
+                    objectiveDefinitionInput.value = editBtn.dataset.definition;
 
                     // Update modal title
                     modalTitleText.textContent = 'Edit Monthly Objective';
@@ -615,7 +613,7 @@
                     // Open modal
                     const modalInstance = bootstrap.Modal.getInstance(createObjectiveModal) || new bootstrap.Modal(createObjectiveModal);
                     modalInstance.show();
-                });
+                }
             });
 
             // Pre-populate month/year from current end_date when modal opens for CREATE
