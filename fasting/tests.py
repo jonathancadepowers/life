@@ -193,6 +193,39 @@ class FastingAPITestCase(TestCase):
         response = self.client.get(reverse('fasting:activity_logger'))
         self.assertEqual(response.status_code, 200)
 
+    def test_activity_logger_does_not_pass_agenda_in_context(self):
+        """
+        Test that activity_logger view does NOT pass agenda in context.
+
+        This ensures we maintain timezone-agnostic behavior where JavaScript
+        determines the user's local date and fetches the agenda via AJAX,
+        rather than the server determining "today" in a hardcoded timezone.
+
+        Regression test for timezone bug where server-side date lookup
+        failed for users in different timezones.
+        """
+        # Create test data
+        project = Project.objects.create(
+            project_id=123,
+            display_string='Test Project'
+        )
+        today = timezone.now().date()
+        DailyAgenda.objects.create(
+            date=today,
+            project_1=project
+        )
+
+        # Get the response
+        response = self.client.get(reverse('fasting:activity_logger'))
+        self.assertEqual(response.status_code, 200)
+
+        # CRITICAL: Verify that agenda is None in context
+        # This forces JavaScript to fetch agenda based on user's browser timezone
+        self.assertIsNone(response.context.get('agenda'),
+            "activity_logger view should NOT pass agenda in context. "
+            "JavaScript should fetch it based on user's local timezone to avoid timezone bugs."
+        )
+
 
 class FastingModelTestCase(TestCase):
     """Tests for Fasting model"""
