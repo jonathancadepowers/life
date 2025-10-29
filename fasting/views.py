@@ -13,16 +13,25 @@ def activity_logger(request):
     """Render the Activity Logger page."""
     from projects.models import Project
     from targets.models import DailyAgenda
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     # Get all projects for the dropdowns
     projects = Project.objects.all().order_by('display_string')
 
-    # Get today's agenda if it exists (using UTC date)
-    today = timezone.now().date()  # timezone.now() returns current UTC time
+    # Get today's agenda if it exists (using timezone-aware date)
+    today = timezone.now().date()
+    logger.info(f"Activity Logger: Looking for agenda for date: {today}")
+    logger.info(f"Activity Logger: timezone.now() = {timezone.now()}")
+    logger.info(f"Activity Logger: Available agendas in DB: {list(DailyAgenda.objects.values_list('date', flat=True))}")
+
     try:
         agenda = DailyAgenda.objects.get(date=today)
+        logger.info(f"Activity Logger: Found agenda for {today}")
     except DailyAgenda.DoesNotExist:
         agenda = None
+        logger.warning(f"Activity Logger: No agenda found for {today}")
 
     context = {
         'projects': projects,
