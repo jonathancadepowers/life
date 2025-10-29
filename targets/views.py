@@ -148,17 +148,9 @@ def save_agenda(request):
 
         # Save notes if provided
         notes = request.POST.get('notes', '')
-        print(f"[DEBUG save_agenda] Received notes from POST: {repr(notes[:100] if notes else 'None')}")
-        print(f"[DEBUG save_agenda] Notes type: {type(notes)}, length: {len(notes)}")
         agenda.notes = notes
-        print(f"[DEBUG save_agenda] Set agenda.notes to: {repr(agenda.notes[:100] if agenda.notes else 'None')}")
 
         agenda.save()
-        print(f"[DEBUG save_agenda] Saved agenda ID {agenda.id} with notes length: {len(agenda.notes) if agenda.notes else 0}")
-
-        # Verify by re-fetching from database
-        refetched = DailyAgenda.objects.get(id=agenda.id)
-        print(f"[DEBUG save_agenda] Re-fetched from DB - notes length: {len(refetched.notes) if refetched.notes else 0}")
 
         return JsonResponse({
             'success': True,

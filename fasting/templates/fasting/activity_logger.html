@@ -1119,14 +1119,9 @@
         document.getElementById('agendaForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // CRITICAL: Capture textarea element and value at the VERY START
+            // CRITICAL: Capture textarea value at the VERY START to ensure we save what the user typed
             const notesTextareaElement = document.getElementById('notes-textarea');
             const notesValueAtStart = notesTextareaElement ? notesTextareaElement.value : '';
-
-            console.log('[DEBUG FORM SUBMIT] Current selected date:', currentSelectedDate);
-            console.log('[DEBUG FORM SUBMIT] Date display text:', document.getElementById('today-date').textContent);
-            console.log('[DEBUG FORM SUBMIT] Captured notes at START, length:', notesValueAtStart.length);
-            console.log('[DEBUG FORM SUBMIT] Captured notes at START (last 50):', notesValueAtStart.slice(-50));
 
             const csrftoken = getCSRFToken();
             const submitButton = this.querySelector('button[type="submit"]');
@@ -1167,10 +1162,6 @@
             }
 
             // Collect form data
-            console.log('[DEBUG BEFORE COLLECT] About to collect form data');
-            console.log('[DEBUG BEFORE COLLECT] Textarea value (last 50):', document.getElementById('notes-textarea').value.slice(-50));
-            console.log('[DEBUG BEFORE COLLECT] Textarea value length:', document.getElementById('notes-textarea').value.length);
-
             const formData = new URLSearchParams();
 
             // ALWAYS include the date (use currentSelectedDate if viewing past, otherwise use today's local date)
@@ -1186,10 +1177,6 @@
                 dateToSave = `${year}-${month}-${day}`;
             }
             formData.append('date', dateToSave);
-            console.log('[DEBUG] Saving to date:', dateToSave);
-
-            console.log('[DEBUG AFTER DATE] After adding date');
-            console.log('[DEBUG AFTER DATE] Textarea value (last 50):', document.getElementById('notes-textarea').value.slice(-50));
 
             for (let i = 1; i <= 3; i++) {
                 const project = document.getElementById(`project_${i}`).value;
@@ -1201,13 +1188,7 @@
                 formData.append(`target_${i}`, target);
             }
 
-            console.log('[DEBUG AFTER TARGETS] After collecting target data');
-
             // Include notes - USE THE CAPTURED VALUE FROM START!
-            console.log('[DEBUG] Using notes value captured at start');
-            console.log('save_agenda: Sending notes to server:', notesValueAtStart ? notesValueAtStart.substring(0, 100) : '(empty)');
-            console.log('[DEBUG] Full notes length:', notesValueAtStart.length);
-            console.log('[DEBUG] Notes (last 50 chars):', notesValueAtStart.slice(-50));
             formData.append('notes', notesValueAtStart);
 
             // Disable submit button and show loading state
@@ -1815,16 +1796,9 @@
                 renderMarkdown(textarea.value);
             }
 
-            // Add debugging for textarea changes
-            textarea.addEventListener('input', function(e) {
-                console.log('[DEBUG textarea input] Textarea changed, new length:', e.target.value.length);
-                console.log('[DEBUG textarea input] Last 50 chars:', e.target.value.slice(-50));
-            });
         });
 
         function loadAgendaIntoForm(agenda) {
-            console.log('[DEBUG loadAgendaIntoForm] !!!!! CALLED !!!!! with agenda:', agenda);
-            console.trace('[DEBUG loadAgendaIntoForm] Call stack:');
 
             // Update the date display
             const date = new Date(agenda.date + 'T00:00:00'); // Parse as local date
@@ -1923,8 +1897,6 @@
             }
 
             // Load notes from the agenda
-            console.log('[DEBUG loadAgendaIntoForm] Loading notes from agenda:', agenda.notes ? agenda.notes.substring(0, 50) + '...' : '(empty)');
-            console.log('[DEBUG loadAgendaIntoForm] Current textarea value before load:', document.getElementById('notes-textarea').value.substring(0, 50));
             if (agenda.notes) {
                 document.getElementById('notes-textarea').value = agenda.notes;
                 renderMarkdown(agenda.notes);
@@ -1932,7 +1904,6 @@
                 document.getElementById('notes-textarea').value = '';
                 renderMarkdown('');
             }
-            console.log('[DEBUG loadAgendaIntoForm] Textarea value after load:', document.getElementById('notes-textarea').value.substring(0, 50));
 
             // Display day score for past days
             displayDayScore(agenda);
