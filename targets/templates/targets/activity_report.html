@@ -202,7 +202,7 @@
                             {% for category, config in monthly_objectives.category_config.items %}
                                 {% if monthly_objectives.objectives_by_category|get_item:category %}
                                 <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem;">
-                                    <legend class="text-{{ config.color }} fw-bold float-none w-auto px-2 mb-3" style="font-size: 0.9rem;">
+                                    <legend class="text-{{ config.color }} fw-bold float-none w-auto px-2 mb-1" style="font-size: 0.9rem;">
                                         {{ category }}
                                     </legend>
                                     <div class="table-responsive">
@@ -210,8 +210,8 @@
                                             <thead class="table-light">
                                                 <tr>
                                                     <th>Objective</th>
-                                                    <th class="text-center" style="width: 100px;">Target</th>
-                                                    <th class="text-center" style="width: 100px;">Result</th>
+                                                    <th class="text-center" style="width: 140px;">Target</th>
+                                                    <th class="text-center" style="width: 140px;">Result</th>
                                                     <th class="text-center" style="width: 300px;">Progress</th>
                                                     <th style="width: 50px;"></th>
                                                 </tr>
@@ -259,7 +259,7 @@
                             <!-- Display uncategorized objectives if any -->
                             {% if monthly_objectives.uncategorized %}
                             <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem;">
-                                <legend class="text-secondary fw-bold float-none w-auto px-2 mb-3" style="font-size: 0.9rem;">
+                                <legend class="text-secondary fw-bold float-none w-auto px-2 mb-1" style="font-size: 0.9rem;">
                                     Uncategorized
                                 </legend>
                                 <div class="table-responsive">
@@ -267,8 +267,8 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th>Objective</th>
-                                                <th class="text-center" style="width: 100px;">Target</th>
-                                                <th class="text-center" style="width: 100px;">Result</th>
+                                                <th class="text-center" style="width: 140px;">Target</th>
+                                                <th class="text-center" style="width: 140px;">Result</th>
                                                 <th class="text-center" style="width: 300px;">Progress</th>
                                                 <th style="width: 50px;"></th>
                                             </tr>
