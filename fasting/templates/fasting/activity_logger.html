@@ -1173,10 +1173,20 @@
 
             const formData = new URLSearchParams();
 
-            // Include the date if we're editing a past agenda
+            // ALWAYS include the date (use currentSelectedDate if viewing past, otherwise use today's local date)
+            let dateToSave;
             if (currentSelectedDate) {
-                formData.append('date', currentSelectedDate);
+                dateToSave = currentSelectedDate;
+            } else {
+                // Get today's date in user's local timezone (same logic as loadTodaysAgenda)
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                dateToSave = `${year}-${month}-${day}`;
             }
+            formData.append('date', dateToSave);
+            console.log('[DEBUG] Saving to date:', dateToSave);
 
             console.log('[DEBUG AFTER DATE] After adding date');
             console.log('[DEBUG AFTER DATE] Textarea value (last 50):', document.getElementById('notes-textarea').value.slice(-50));
