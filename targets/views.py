@@ -906,3 +906,84 @@ def activity_report(request):
     }
 
     return render(request, 'targets/activity_report.html', context)
+
+
+@require_http_methods(["POST"])
+def create_objective(request):
+    """API endpoint to create a new monthly objective."""
+    import json
+    from monthly_objectives.models import MonthlyObjective
+
+    try:
+        # Parse JSON data
+        data = json.loads(request.body)
+
+        # Extract and validate fields
+        objective_id = data.get('objective_id', '').strip()
+        label = data.get('label', '').strip()
+        start = data.get('start', '').strip()
+        end = data.get('end', '').strip()
+        timezone_str = data.get('timezone', '').strip()
+        objective_value = data.get('objective_value', '')
+        objective_definition = data.get('objective_definition', '').strip()
+
+        # Validate required fields
+        if not all([objective_id, label, start, end, timezone_str, objective_value, objective_definition]):
+            return JsonResponse({
+                'error': 'All fields are required'
+            }, status=400)
+
+        # Parse dates
+        try:
+            start_date = datetime.strptime(start, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end, '%Y-%m-%d').date()
+        except ValueError as e:
+            return JsonResponse({
+                'error': f'Invalid date format: {str(e)}'
+            }, status=400)
+
+        # Parse objective value
+        try:
+            objective_value = float(objective_value)
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'error': 'Invalid objective value - must be a number'
+            }, status=400)
+
+        # Check if objective_id already exists
+        if MonthlyObjective.objects.filter(objective_id=objective_id).exists():
+            return JsonResponse({
+                'error': f'Objective ID "{objective_id}" already exists'
+            }, status=400)
+
+        # Create the objective
+        objective = MonthlyObjective.objects.create(
+            objective_id=objective_id,
+            label=label,
+            start=start_date,
+            end=end_date,
+            timezone=timezone_str,
+            objective_value=objective_value,
+            objective_definition=objective_definition,
+            result=None  # Will be calculated later
+        )
+
+        # Check if this objective is in the current date range (from query params or session)
+        # For simplicity, we'll just return a flag and let the frontend decide whether to reload
+        in_current_range = False
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Objective "{label}" created successfully!',
+            'objective_id': objective.objective_id,
+            'in_current_range': in_current_range
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Error creating objective: {str(e)}'
+        }, status=500)

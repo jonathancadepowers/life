@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/available-dates/', views.get_available_agenda_dates, name='get_available_agenda_dates'),
     path('api/agenda-for-date/', views.get_agenda_for_date, name='get_agenda_for_date'),
     path('api/save-target-score/', views.save_target_score, name='save_target_score'),
+    path('api/create-objective/', views.create_objective, name='create_objective'),
 ]
