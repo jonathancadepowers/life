@@ -201,15 +201,10 @@
                             <!-- Display objectives grouped by category in bordered sections -->
                             {% for category, config in monthly_objectives.category_config.items %}
                                 {% if monthly_objectives.objectives_by_category|get_item:category %}
-                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.25rem 0.5rem; position: relative;">
+                                <fieldset class="mb-2" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.25rem 0.5rem;">
                                     <legend class="text-{{ config.color }} fw-bold float-none w-auto px-2 mb-0" style="font-size: 0.9rem;">
                                         {{ category }}
                                     </legend>
-                                    {% if forloop.first %}
-                                    <!-- Target and Result headers as legend-style elements on first category border -->
-                                    <legend class="text-center float-none w-auto px-2 mb-0" style="position: absolute; top: -0.6em; left: 440px; font-size: 0.9rem; text-decoration: underline;">Target</legend>
-                                    <legend class="text-center float-none w-auto px-2 mb-0" style="position: absolute; top: -0.6em; left: 540px; font-size: 0.9rem; text-decoration: underline;">Result</legend>
-                                    {% endif %}
                                     <div class="table-responsive">
                                         <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
                                             <colgroup>
@@ -219,6 +214,17 @@
                                                 <col style="width: 180px;"> <!-- Progress column - 40% narrower, fixed width -->
                                                 <col style="width: 50px;"> <!-- Edit icon column -->
                                             </colgroup>
+                                            {% if forloop.first %}
+                                            <thead>
+                                                <tr>
+                                                    <th></th>
+                                                    <th class="text-center" style="font-size: 0.9rem; text-decoration: underline; font-weight: normal;">Target</th>
+                                                    <th class="text-center" style="font-size: 0.9rem; text-decoration: underline; font-weight: normal;">Result</th>
+                                                    <th></th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            {% endif %}
                                             <tbody>
                                                 {% for objective in monthly_objectives.objectives_by_category|get_item:category %}
                                                 <tr>
