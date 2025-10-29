@@ -1177,6 +1177,7 @@
 
             // Include notes
             const notes = document.getElementById('notes-textarea').value;
+            console.log('save_agenda: Sending notes to server:', notes ? notes.substring(0, 100) : '(empty)');
             formData.append('notes', notes);
 
             // Disable submit button and show loading state

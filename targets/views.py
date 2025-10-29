@@ -148,9 +148,14 @@ def save_agenda(request):
 
         # Save notes if provided
         notes = request.POST.get('notes', '')
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"save_agenda: Received notes from POST: {repr(notes[:100] if notes else 'None')}")
         agenda.notes = notes
+        logger.info(f"save_agenda: Set agenda.notes to: {repr(agenda.notes[:100] if agenda.notes else 'None')}")
 
         agenda.save()
+        logger.info(f"save_agenda: Saved agenda with notes length: {len(agenda.notes) if agenda.notes else 0}")
 
         return JsonResponse({
             'success': True,
