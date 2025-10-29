@@ -6,6 +6,14 @@ class MonthlyObjective(models.Model):
     Represents a monthly objective with a SQL-based definition.
     Each objective applies to a specific calendar month.
     """
+    objective_id = models.CharField(
+        max_length=255,
+        unique=True,
+        db_index=True,
+        null=True,  # Temporarily allow null for migration
+        blank=True,
+        help_text="Unique identifier for this objective"
+    )
     start = models.DateField(
         help_text="First day of the month for this objective",
         db_index=True
