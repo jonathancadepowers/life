@@ -193,9 +193,9 @@
                                 <table class="table table-hover">
                                     <thead>
                                         <tr>
-                                            <th>Objective</th>
-                                            <th class="text-center" style="width: 100px;">Target</th>
-                                            <th class="text-center" style="width: 100px;">Result</th>
+                                            <th style="width: 250px;">Objective</th>
+                                            <th class="text-center" style="width: 100px; padding-left: 30px;">Target</th>
+                                            <th class="text-center" style="width: 100px; padding-left: 30px;">Result</th>
                                             <th class="text-center" style="width: 300px;">Progress</th>
                                             <th style="width: 50px;"></th>
                                         </tr>
@@ -204,8 +204,8 @@
                                         {% for objective in monthly_objectives.objectives %}
                                         <tr>
                                             <td>{{ objective.label }}</td>
-                                            <td class="text-center">{{ objective.target|floatformat:0 }}</td>
-                                            <td class="text-center">{{ objective.result|floatformat:0 }}</td>
+                                            <td class="text-center" style="padding-left: 30px;">{{ objective.target|floatformat:0 }}</td>
+                                            <td class="text-center" style="padding-left: 30px;">{{ objective.result|floatformat:0 }}</td>
                                             <td class="text-center">
                                                 <div class="progress" style="height: 25px;">
                                                     <div class="progress-bar {% if objective.achieved %}bg-success{% else %}bg-primary{% endif %}"
