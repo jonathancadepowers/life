@@ -36,8 +36,7 @@ class DailyAgendaViewsTestCase(TestCase):
             project_1=self.project,
             goal_1=self.goal,
             target_1='Test Target 1',  # Now just text
-            target_1_score=1.0,
-            other_plans='# Test Notes\n- Item 1'
+            target_1_score=1.0
         )
 
     def test_set_agenda_page_loads(self):
@@ -498,6 +497,42 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertTrue(result['success'])
         self.assertEqual(result['agenda']['day_score'], 0.5)
 
+    def test_day_score_with_other_plans(self):
+        """Test day_score calculation includes other_plans when present"""
+        # Add other_plans and a second target
+        self.agenda.other_plans = '# My other plans\n- Task 1\n- Task 2'
+        self.agenda.target_2 = 'Test Target 2'
+        self.agenda.save()
+
+        # Score target 1 with 1.0
+        self.client.post(reverse('save_target_score'), data={
+            'date': self.today.isoformat(),
+            'target_num': '1',
+            'score': '1.0'
+        })
+
+        # Score target 2 with 0.5
+        self.client.post(reverse('save_target_score'), data={
+            'date': self.today.isoformat(),
+            'target_num': '2',
+            'score': '0.5'
+        })
+
+        # Score other_plans (target_num=4) with 0.5
+        response = self.client.post(reverse('save_target_score'), data={
+            'date': self.today.isoformat(),
+            'target_num': '4',
+            'score': '0.5'
+        })
+        result = json.loads(response.content)
+
+        # Day score should be (1.0 + 0.5 + 0.5) / 3 = 0.667
+        self.assertAlmostEqual(result['day_score'], 0.6666666666666666, places=5)
+
+        agenda = DailyAgenda.objects.get(date=self.today)
+        self.assertAlmostEqual(agenda.day_score, 0.6666666666666666, places=5)
+        self.assertEqual(agenda.other_plans_score, 0.5)
+
     def test_get_available_agenda_dates(self):
         """Test getting available agenda dates"""
         # Create agenda for yesterday
@@ -525,7 +560,8 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertEqual(result['agenda']['date'], self.today.isoformat())
         self.assertEqual(len(result['agenda']['targets']), 3)
         self.assertIsNotNone(result['agenda']['targets'][0]['target_name'])
-        self.assertEqual(result['agenda']['other_plans'], '# Test Notes\n- Item 1')
+        # other_plans is None by default (not set in setUp)
+        self.assertIsNone(result['agenda']['other_plans'])
 
     @patch('time_logs.services.toggl_client.TogglAPIClient')
     def test_get_toggl_time_today(self, mock_toggl_client):

@@ -402,6 +402,19 @@
                                     {% endif %}
                                 </div>
                             </div>
+
+                            <!-- Score Section for Other Plans -->
+                            <div class="mt-3 p-2 border-top score-section" id="score_section_4" style="{% if not agenda or not agenda.other_plans %}display: none;{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted"><strong>How did you do?</strong></small>
+                                    <div class="score-buttons" data-target="4">
+                                        <button type="button" class="btn btn-sm score-btn" data-score="1" onclick="setScore(4, 1)" title="Great!">😊</button>
+                                        <button type="button" class="btn btn-sm score-btn" data-score="0.5" onclick="setScore(4, 0.5)" title="Okay">😐</button>
+                                        <button type="button" class="btn btn-sm score-btn" data-score="0" onclick="setScore(4, 0)" title="Not great">😞</button>
+                                        <button type="button" class="btn btn-sm score-btn clear-score-btn" onclick="clearScore(4)" title="Clear score">✖️</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 mt-3">Set Today's Agenda</button>
@@ -1983,9 +1996,17 @@
             if (agenda.other_plans) {
                 document.getElementById('notes-textarea').value = agenda.other_plans;
                 renderMarkdown(agenda.other_plans);
+                // Show score section for other_plans
+                document.getElementById('score_section_4').style.display = 'block';
+                // Load other_plans score if it exists
+                if (agenda.other_plans_score !== null && agenda.other_plans_score !== undefined) {
+                    updateScoreButtons(4, agenda.other_plans_score);
+                }
             } else {
                 document.getElementById('notes-textarea').value = '';
                 renderMarkdown('');
+                // Hide score section for other_plans
+                document.getElementById('score_section_4').style.display = 'none';
             }
 
             // Display day score for past days
