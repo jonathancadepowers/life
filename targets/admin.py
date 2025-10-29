@@ -25,8 +25,8 @@ class DailyAgendaAdmin(admin.ModelAdmin):
         ('Overall Score', {
             'fields': ('day_score',)
         }),
-        ('Notes', {
-            'fields': ('notes',)
+        ('Other Plans', {
+            'fields': ('other_plans',)
         }),
         ('Audit Information', {
             'fields': ('created_at', 'updated_at'),

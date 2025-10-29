@@ -37,7 +37,7 @@ class DailyAgendaViewsTestCase(TestCase):
             goal_1=self.goal,
             target_1='Test Target 1',  # Now just text
             target_1_score=1.0,
-            notes='# Test Notes\n- Item 1'
+            other_plans='# Test Notes\n- Item 1'
         )
 
     def test_set_agenda_page_loads(self):
@@ -61,7 +61,7 @@ class DailyAgendaViewsTestCase(TestCase):
             'project_3': '',
             'goal_3': '',
             'target_3': '',
-            'notes': '# Tomorrow Notes'
+            'other_plans': '# Tomorrow Notes'
         }
 
         response = self.client.post(
@@ -79,7 +79,7 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertEqual(agenda.goal_1, self.goal)
         self.assertIsNotNone(agenda.target_1)
         self.assertEqual(agenda.target_1, 'New target for tomorrow')  # Now just text
-        self.assertEqual(agenda.notes, '# Tomorrow Notes')
+        self.assertEqual(agenda.other_plans, '# Tomorrow Notes')
 
     def test_save_agenda_update_existing(self):
         """Test updating an existing daily agenda"""
@@ -94,7 +94,7 @@ class DailyAgendaViewsTestCase(TestCase):
             'project_3': '',
             'goal_3': '',
             'target_3': '',
-            'notes': '# Updated Notes'
+            'other_plans': '# Updated Notes'
         }
 
         response = self.client.post(
@@ -109,7 +109,7 @@ class DailyAgendaViewsTestCase(TestCase):
         # Verify agenda was updated
         agenda = DailyAgenda.objects.get(date=self.today)
         self.assertEqual(agenda.target_1, 'Updated target')  # Now just text
-        self.assertEqual(agenda.notes, '# Updated Notes')
+        self.assertEqual(agenda.other_plans, '# Updated Notes')
 
     def test_save_agenda_with_explicit_date_not_utc(self):
         """
@@ -141,7 +141,7 @@ class DailyAgendaViewsTestCase(TestCase):
             'project_3': '',
             'goal_3': '',
             'target_3': '',
-            'notes': '# Test Notes\n- Added at 10pm local time\n- Should save to Oct 28'
+            'other_plans': '# Test Notes\n- Added at 10pm local time\n- Should save to Oct 28'
         }
 
         response = self.client.post(
@@ -155,7 +155,7 @@ class DailyAgendaViewsTestCase(TestCase):
 
         # CRITICAL: Verify agenda was saved to the USER'S date, not UTC date
         agenda = DailyAgenda.objects.get(date=user_local_date)
-        self.assertEqual(agenda.notes, '# Test Notes\n- Added at 10pm local time\n- Should save to Oct 28')
+        self.assertEqual(agenda.other_plans, '# Test Notes\n- Added at 10pm local time\n- Should save to Oct 28')
 
         # Ensure no agenda was created for the "wrong" date (e.g., Oct 29)
         wrong_date = user_local_date + timedelta(days=1)
@@ -525,7 +525,7 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertEqual(result['agenda']['date'], self.today.isoformat())
         self.assertEqual(len(result['agenda']['targets']), 3)
         self.assertIsNotNone(result['agenda']['targets'][0]['target_name'])
-        self.assertEqual(result['agenda']['notes'], '# Test Notes\n- Item 1')
+        self.assertEqual(result['agenda']['other_plans'], '# Test Notes\n- Item 1')
 
     @patch('time_logs.services.toggl_client.TogglAPIClient')
     def test_get_toggl_time_today(self, mock_toggl_client):
@@ -601,11 +601,11 @@ class DailyAgendaModelTestCase(TestCase):
         today = timezone.now().date()
         agenda = DailyAgenda.objects.create(
             date=today,
-            notes='Test notes'
+            other_plans='Test notes'
         )
 
         self.assertEqual(agenda.date, today)
-        self.assertEqual(agenda.notes, 'Test notes')
+        self.assertEqual(agenda.other_plans, 'Test notes')
         self.assertEqual(str(agenda), f"Agenda for {today}")
 
     def test_unique_date_constraint(self):

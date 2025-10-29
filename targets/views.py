@@ -173,9 +173,9 @@ def save_agenda(request):
                 # Also clear the score if target is removed
                 setattr(agenda, f'target_{i}_score', None)
 
-        # Save notes if provided
-        notes = request.POST.get('notes', '')
-        agenda.notes = notes
+        # Save other plans if provided
+        other_plans = request.POST.get('other_plans', '')
+        agenda.other_plans = other_plans
 
         agenda.save()
 
@@ -465,7 +465,7 @@ def get_agenda_for_date(request):
                 'target_2_score': agenda.target_2_score,
                 'target_3_score': agenda.target_3_score,
                 'day_score': agenda.day_score,
-                'notes': agenda.notes,
+                'other_plans': agenda.other_plans,
                 'targets': []
             }
 

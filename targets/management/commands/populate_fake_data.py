@@ -319,12 +319,12 @@ class Command(BaseCommand):
 
         agenda, created = DailyAgenda.objects.get_or_create(
             date=current_date,
-            defaults={'notes': f'[TEST] Daily agenda for {current_date}'}
+            defaults={'other_plans': f'[TEST] Daily agenda for {current_date}'}
         )
 
         if not created:
             # Update existing test agenda
-            agenda.notes = f'[TEST] Daily agenda for {current_date}'
+            agenda.other_plans = f'[TEST] Daily agenda for {current_date}'
 
         # Set up targets
         for i in range(num_targets):

@@ -106,11 +106,11 @@ class DailyAgenda(models.Model):
         help_text="Overall score for the day (0.0 to 1.0, calculated from target scores)"
     )
 
-    # Notes field (supports markdown)
-    notes = models.TextField(
+    # Other plans field (supports markdown)
+    other_plans = models.TextField(
         blank=True,
         null=True,
-        help_text="Free-form notes for the day (supports Markdown)"
+        help_text="Other plans or notes for the day (supports Markdown)"
     )
 
     # Audit fields

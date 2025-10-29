@@ -389,16 +389,16 @@
                                         ♨️ Sauna
                                     </button>
                                 </div>
-                                <textarea id="notes-textarea" name="notes" class="form-control" rows="6" placeholder="Enter your notes here (Markdown supported)...">{% if agenda and agenda.notes %}{{ agenda.notes }}{% endif %}</textarea>
+                                <textarea id="notes-textarea" name="other_plans" class="form-control" rows="6" placeholder="Enter your other plans here (Markdown supported)...">{% if agenda and agenda.other_plans %}{{ agenda.other_plans }}{% endif %}</textarea>
                             </div>
 
                             <!-- View Mode -->
                             <div id="notes-view-mode">
                                 <div id="notes-rendered" class="notes-content">
-                                    {% if agenda and agenda.notes %}
-                                        {{ agenda.notes }}
+                                    {% if agenda and agenda.other_plans %}
+                                        {{ agenda.other_plans }}
                                     {% else %}
-                                        <em class="text-muted">No notes yet. Click Edit to add notes.</em>
+                                        <em class="text-muted">No other plans yet. Click Edit to add plans.</em>
                                     {% endif %}
                                 </div>
                             </div>
@@ -1979,10 +1979,10 @@
                 updateScoreButtons(3, agenda.target_3_score);
             }
 
-            // Load notes from the agenda
-            if (agenda.notes) {
-                document.getElementById('notes-textarea').value = agenda.notes;
-                renderMarkdown(agenda.notes);
+            // Load other plans from the agenda
+            if (agenda.other_plans) {
+                document.getElementById('notes-textarea').value = agenda.other_plans;
+                renderMarkdown(agenda.other_plans);
             } else {
                 document.getElementById('notes-textarea').value = '';
                 renderMarkdown('');
