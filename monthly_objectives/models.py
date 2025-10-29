@@ -46,6 +46,12 @@ class MonthlyObjective(models.Model):
     objective_definition = models.TextField(
         help_text="SQL query that defines how to measure this objective"
     )
+    category = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Category for this objective (e.g., 'Nutrition', 'Weight', 'Exercise', 'Time Management')"
+    )
     result = models.FloatField(
         null=True,
         blank=True,

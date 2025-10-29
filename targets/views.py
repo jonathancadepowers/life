@@ -904,12 +904,19 @@ def activity_report(request):
             'achieved': result is not None and result >= obj.objective_value,
             'objective_value': obj.objective_value,
             'objective_definition': obj.objective_definition,
+            'category': obj.category,
         })
+
+    # Get distinct categories from all objectives (not just current month)
+    distinct_categories = MonthlyObjective.objects.filter(
+        category__isnull=False
+    ).exclude(category='').values_list('category', flat=True).distinct().order_by('category')
 
     monthly_objectives_context = {
         'objectives': objectives_data,
         'target_month': end_date.strftime('%B %Y'),
         'crosses_months': crosses_months,
+        'categories': list(distinct_categories),
     }
 
     context = {
@@ -947,6 +954,7 @@ def create_objective(request):
         year = data.get('year', '')
         objective_value = data.get('objective_value', '')
         objective_definition = data.get('objective_definition', '').strip()
+        category = data.get('category', '').strip() or None
 
         # Validate required fields
         if not all([label, month, year, objective_value, objective_definition]):
@@ -1009,6 +1017,7 @@ def create_objective(request):
             timezone=timezone_str,
             objective_value=objective_value,
             objective_definition=objective_definition,
+            category=category,
             result=None  # Will be calculated later
         )
 
@@ -1053,6 +1062,7 @@ def update_objective(request):
         year = data.get('year', '')
         objective_value = data.get('objective_value', '')
         objective_definition = data.get('objective_definition', '').strip()
+        category = data.get('category', '').strip() or None
 
         # Validate required fields
         if not all([objective_id, label, month, year, objective_value, objective_definition]):
@@ -1104,6 +1114,7 @@ def update_objective(request):
         objective.timezone = timezone_str
         objective.objective_value = objective_value
         objective.objective_definition = objective_definition
+        objective.category = category
         objective.save()
 
         # Re-calculate the result by running the SQL query

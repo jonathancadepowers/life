@@ -229,6 +229,7 @@
                                                    data-year="{{ objective.start|date:'Y' }}"
                                                    data-target="{{ objective.objective_value }}"
                                                    data-definition="{{ objective.objective_definition }}"
+                                                   data-category="{{ objective.category|default:'' }}"
                                                    title="Edit objective">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
@@ -538,6 +539,15 @@
                                        step="0.01" required placeholder="e.g., 15">
                             </div>
                             <div class="col-12">
+                                <label for="objectiveCategory" class="form-label">Category (Optional)</label>
+                                <select class="form-select" id="objectiveCategory" name="category">
+                                    <option value="">-- Select Category --</option>
+                                    {% for category in monthly_objectives.categories %}
+                                    <option value="{{ category }}">{{ category }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
                                 <label for="objectiveDefinition" class="form-label">Objective Definition (SQL)</label>
                                 <textarea class="form-control" id="objectiveDefinition" name="objective_definition"
                                           rows="4" required placeholder="SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0 AND DATE(start) >= '2025-12-01' AND DATE(start) <= '2025-12-31'"></textarea>
@@ -592,6 +602,7 @@
             const modalTitleText = document.getElementById('modalTitleText');
             const labelInput = document.getElementById('label');
             const objectiveValueInput = document.getElementById('objectiveValue');
+            const objectiveCategorySelect = document.getElementById('objectiveCategory');
             const objectiveDefinitionInput = document.getElementById('objectiveDefinition');
             const submitBtnText = document.getElementById('submitBtnText');
             const submitBtnIcon = document.getElementById('submitBtnIcon');
@@ -683,6 +694,7 @@
                     objectiveMonthSelect.value = editBtn.dataset.month || '';
                     objectiveYearInput.value = editBtn.dataset.year || '';
                     objectiveValueInput.value = editBtn.dataset.target || '';
+                    objectiveCategorySelect.value = editBtn.dataset.category || '';
                     objectiveDefinitionInput.value = editBtn.dataset.definition || '';
 
                     // Debug: Log form values after setting
@@ -779,6 +791,7 @@
 
                         // Reset form
                         createObjectiveForm.reset();
+                        editObjectiveId.value = '';
                     } else {
                         createObjectiveError.textContent = result.error || 'Failed to save objective';
                         createObjectiveError.classList.remove('d-none');
