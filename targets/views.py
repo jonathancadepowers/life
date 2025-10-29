@@ -1011,3 +1011,93 @@ def create_objective(request):
         return JsonResponse({
             'error': f'Error creating objective: {str(e)}'
         }, status=500)
+
+
+@require_http_methods(["POST"])
+def update_objective(request):
+    """API endpoint to update an existing monthly objective."""
+    import json
+    import re
+    from calendar import monthrange
+    from monthly_objectives.models import MonthlyObjective
+    from settings.models import Setting
+
+    try:
+        # Parse JSON data
+        data = json.loads(request.body)
+
+        # Extract and validate fields
+        objective_id = data.get('objective_id', '').strip()
+        label = data.get('label', '').strip()
+        month = data.get('month', '')
+        year = data.get('year', '')
+        objective_value = data.get('objective_value', '')
+        objective_definition = data.get('objective_definition', '').strip()
+
+        # Validate required fields
+        if not all([objective_id, label, month, year, objective_value, objective_definition]):
+            return JsonResponse({
+                'error': 'All fields are required'
+            }, status=400)
+
+        # Get the existing objective
+        try:
+            objective = MonthlyObjective.objects.get(objective_id=objective_id)
+        except MonthlyObjective.DoesNotExist:
+            return JsonResponse({
+                'error': 'Objective not found'
+            }, status=404)
+
+        # Parse month and year
+        try:
+            month = int(month)
+            year = int(year)
+            if not (1 <= month <= 12):
+                raise ValueError("Month must be between 1 and 12")
+            if not (2020 <= year <= 2050):
+                raise ValueError("Year must be between 2020 and 2050")
+        except (ValueError, TypeError) as e:
+            return JsonResponse({
+                'error': f'Invalid month or year: {str(e)}'
+            }, status=400)
+
+        # Parse objective value
+        try:
+            objective_value = float(objective_value)
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'error': 'Invalid objective value - must be a number'
+            }, status=400)
+
+        # Get timezone from Settings
+        timezone_str = Setting.get('default_timezone_for_monthly_objectives', 'America/Chicago')
+
+        # Calculate start and end dates
+        start_date = datetime(year, month, 1).date()
+        last_day = monthrange(year, month)[1]
+        end_date = datetime(year, month, last_day).date()
+
+        # Update the objective
+        objective.label = label
+        objective.start = start_date
+        objective.end = end_date
+        objective.timezone = timezone_str
+        objective.objective_value = objective_value
+        objective.objective_definition = objective_definition
+        objective.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Objective "{label}" updated successfully!',
+            'objective_id': objective.objective_id,
+            'in_current_range': False
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Error updating objective: {str(e)}'
+        }, status=500)

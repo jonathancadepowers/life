@@ -195,6 +195,7 @@
                                             <th class="text-center">Result</th>
                                             <th class="text-center">Progress</th>
                                             <th class="text-center">Status</th>
+                                            <th class="text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -221,6 +222,18 @@
                                                 {% else %}
                                                 <span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> In Progress</span>
                                                 {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="#" class="text-primary edit-objective-btn"
+                                                   data-objective-id="{{ objective.objective_id }}"
+                                                   data-label="{{ objective.label }}"
+                                                   data-month="{{ objective.start|date:'n' }}"
+                                                   data-year="{{ objective.start|date:'Y' }}"
+                                                   data-target="{{ objective.target }}"
+                                                   data-definition="{{ objective.definition }}"
+                                                   title="Edit objective">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -486,11 +499,12 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="createObjectiveModalLabel">
-                        <i class="bi bi-bullseye"></i> Create Monthly Objective
+                        <i class="bi bi-bullseye"></i> <span id="modalTitleText">Create Monthly Objective</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="createObjectiveForm">
+                    <input type="hidden" id="editObjectiveId" name="objective_id" value="">
                     <div class="modal-body">
                         <div class="row g-3">
                             <div class="col-12">
@@ -568,7 +582,7 @@
             startDateInput.addEventListener('change', reloadReport);
             endDateInput.addEventListener('change', reloadReport);
 
-            // Handle Create Objective form submission
+            // Handle Create/Edit Objective form
             const createObjectiveForm = document.getElementById('createObjectiveForm');
             const createObjectiveError = document.getElementById('createObjectiveError');
             const createObjectiveSuccess = document.getElementById('createObjectiveSuccess');
@@ -576,14 +590,50 @@
             const modal = bootstrap.Modal.getInstance(createObjectiveModal) || new bootstrap.Modal(createObjectiveModal);
             const objectiveMonthSelect = document.getElementById('objectiveMonth');
             const objectiveYearInput = document.getElementById('objectiveYear');
+            const editObjectiveId = document.getElementById('editObjectiveId');
+            const modalTitleText = document.getElementById('modalTitleText');
+            const labelInput = document.getElementById('label');
+            const objectiveValueInput = document.getElementById('objectiveValue');
+            const objectiveDefinitionInput = document.getElementById('objectiveDefinition');
 
-            // Pre-populate month/year from current end_date when modal opens
-            createObjectiveModal.addEventListener('show.bs.modal', function() {
-                const currentEndDate = endDateInput.value;
-                if (currentEndDate) {
-                    const endDate = new Date(currentEndDate);
-                    objectiveMonthSelect.value = endDate.getMonth() + 1; // getMonth() is 0-indexed
-                    objectiveYearInput.value = endDate.getFullYear();
+            // Handle edit button clicks
+            document.querySelectorAll('.edit-objective-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    // Populate form with objective data
+                    editObjectiveId.value = this.dataset.objectiveId;
+                    labelInput.value = this.dataset.label;
+                    objectiveMonthSelect.value = this.dataset.month;
+                    objectiveYearInput.value = this.dataset.year;
+                    objectiveValueInput.value = this.dataset.target;
+                    objectiveDefinitionInput.value = this.dataset.definition;
+
+                    // Update modal title
+                    modalTitleText.textContent = 'Edit Monthly Objective';
+
+                    // Open modal
+                    const modalInstance = bootstrap.Modal.getInstance(createObjectiveModal) || new bootstrap.Modal(createObjectiveModal);
+                    modalInstance.show();
+                });
+            });
+
+            // Pre-populate month/year from current end_date when modal opens for CREATE
+            createObjectiveModal.addEventListener('show.bs.modal', function(e) {
+                // Check if this is triggered by the Create button (not Edit button)
+                if (!e.relatedTarget || !e.relatedTarget.classList.contains('edit-objective-btn')) {
+                    // Reset form for create mode
+                    createObjectiveForm.reset();
+                    editObjectiveId.value = '';
+                    modalTitleText.textContent = 'Create Monthly Objective';
+
+                    // Pre-populate month/year from current end_date
+                    const currentEndDate = endDateInput.value;
+                    if (currentEndDate) {
+                        const endDate = new Date(currentEndDate);
+                        objectiveMonthSelect.value = endDate.getMonth() + 1; // getMonth() is 0-indexed
+                        objectiveYearInput.value = endDate.getFullYear();
+                    }
                 }
             });
 
@@ -599,12 +649,12 @@
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
 
-                // Check for duplicate objective_id on frontend before submitting
-                // The objective_id will be generated on backend, but we can check the label
-                // Actually, backend generates objective_id, so we'll let backend handle duplicate check
+                // Determine if we're creating or updating
+                const isEdit = editObjectiveId.value !== '';
+                const url = isEdit ? '/targets/api/update-objective/' : '/targets/api/create-objective/';
 
                 try {
-                    const response = await fetch('/targets/api/create-objective/', {
+                    const response = await fetch(url, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
