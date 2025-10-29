@@ -1603,8 +1603,56 @@
                 });
         }
 
-        // Load scores when page loads
-        window.addEventListener('DOMContentLoaded', loadScoresFromAgenda);
+        // Initialize form with agenda data on page load
+        function initializeFormFromAgenda() {
+            {% if agenda %}
+                // Target 1
+                {% if agenda.project_1_id %}
+                    const goalInput1 = document.getElementById('goal_1');
+                    const targetInput1 = document.getElementById('target_1');
+                    goalInput1.disabled = false;
+                    targetInput1.disabled = false;
+                    {% if agenda.goal_1_id %}
+                        loadGoalsForProject(1, {{ agenda.project_1_id }}, '{{ agenda.goal_1_id }}');
+                    {% else %}
+                        // No goal selected, but still update time display
+                        updateTogglTime(1);
+                    {% endif %}
+                {% endif %}
+
+                // Target 2
+                {% if agenda.project_2_id %}
+                    const goalInput2 = document.getElementById('goal_2');
+                    const targetInput2 = document.getElementById('target_2');
+                    goalInput2.disabled = false;
+                    targetInput2.disabled = false;
+                    {% if agenda.goal_2_id %}
+                        loadGoalsForProject(2, {{ agenda.project_2_id }}, '{{ agenda.goal_2_id }}');
+                    {% else %}
+                        updateTogglTime(2);
+                    {% endif %}
+                {% endif %}
+
+                // Target 3
+                {% if agenda.project_3_id %}
+                    const goalInput3 = document.getElementById('goal_3');
+                    const targetInput3 = document.getElementById('target_3');
+                    goalInput3.disabled = false;
+                    targetInput3.disabled = false;
+                    {% if agenda.goal_3_id %}
+                        loadGoalsForProject(3, {{ agenda.project_3_id }}, '{{ agenda.goal_3_id }}');
+                    {% else %}
+                        updateTogglTime(3);
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        }
+
+        // Load scores and initialize form when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            loadScoresFromAgenda();
+            initializeFormFromAgenda();
+        });
 
         // Notes functionality
         let notesInEditMode = false;
