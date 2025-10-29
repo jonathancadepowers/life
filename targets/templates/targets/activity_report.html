@@ -145,6 +145,9 @@
     </style>
 </head>
 <body>
+    <!-- Flash Message Container -->
+    <div id="flashMessageContainer" class="container mt-4" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;"></div>
+
     <div class="container mt-4">
         <!-- Header -->
         <div class="row mb-4">
@@ -550,8 +553,8 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-danger">
-                            <i class="bi bi-plus-circle"></i> Create Objective
+                        <button type="submit" id="submitObjectiveBtn" class="btn btn-danger">
+                            <i class="bi bi-plus-circle" id="submitBtnIcon"></i> <span id="submitBtnText">Create Objective</span>
                         </button>
                     </div>
                 </form>
@@ -595,9 +598,78 @@
             const labelInput = document.getElementById('label');
             const objectiveValueInput = document.getElementById('objectiveValue');
             const objectiveDefinitionInput = document.getElementById('objectiveDefinition');
+            const submitBtnText = document.getElementById('submitBtnText');
+            const submitBtnIcon = document.getElementById('submitBtnIcon');
+            const flashMessageContainer = document.getElementById('flashMessageContainer');
 
             // Track whether we're in edit mode
             let isEditMode = false;
+
+            // Helper function to show flash message on main page
+            function showFlashMessage(message, isError = false) {
+                const alertClass = isError ? 'alert-danger' : 'alert-success';
+                const iconClass = isError ? 'bi-x-circle-fill' : 'bi-check-circle-fill';
+
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert ${alertClass} alert-dismissible fade show`;
+                alertDiv.innerHTML = `
+                    <i class="bi ${iconClass}"></i> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                flashMessageContainer.appendChild(alertDiv);
+
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alertDiv.classList.remove('show');
+                    setTimeout(() => alertDiv.remove(), 150);
+                }, 5000);
+            }
+
+            // Helper function to update objective row after editing
+            function updateObjectiveRow(objectiveId, objective) {
+                // Find the edit button with this objective ID
+                const editBtn = document.querySelector(`.edit-objective-btn[data-objective-id="${objectiveId}"]`);
+                if (!editBtn) return;
+
+                // Get the row
+                const row = editBtn.closest('tr');
+                if (!row) return;
+
+                const cells = row.querySelectorAll('td');
+
+                // Update label (first cell)
+                cells[0].textContent = objective.label;
+
+                // Update target (second cell)
+                cells[1].textContent = Math.round(objective.target);
+
+                // Update result (third cell)
+                cells[2].textContent = Math.round(objective.result);
+
+                // Update progress bar (fourth cell)
+                const progressDiv = cells[3].querySelector('.progress-bar');
+                const progressWidth = objective.progress_pct > 100 ? 100 : objective.progress_pct;
+                progressDiv.style.width = progressWidth + '%';
+                progressDiv.setAttribute('aria-valuenow', objective.progress_pct);
+                progressDiv.textContent = objective.progress_pct + '%';
+                progressDiv.className = `progress-bar ${objective.achieved ? 'bg-success' : 'bg-primary'}`;
+
+                // Update status badge (fifth cell)
+                const statusCell = cells[4];
+                if (objective.achieved) {
+                    statusCell.innerHTML = '<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Achieved</span>';
+                } else {
+                    statusCell.innerHTML = '<span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> In Progress</span>';
+                }
+
+                // Update edit button data attributes (sixth cell)
+                editBtn.dataset.label = objective.label;
+                editBtn.dataset.month = objective.month;
+                editBtn.dataset.year = objective.year;
+                editBtn.dataset.target = objective.objective_value;
+                editBtn.dataset.definition = objective.objective_definition;
+            }
 
             // Handle edit button clicks using event delegation
             document.body.addEventListener('click', function(e) {
@@ -636,8 +708,10 @@
                         definition: objectiveDefinitionInput.value
                     });
 
-                    // Update modal title
+                    // Update modal title and button text for edit mode
                     modalTitleText.textContent = 'Edit Monthly Objective';
+                    submitBtnText.textContent = 'Save Changes';
+                    submitBtnIcon.className = 'bi bi-save';
 
                     // Open modal
                     const modalInstance = bootstrap.Modal.getInstance(createObjectiveModal) || new bootstrap.Modal(createObjectiveModal);
@@ -653,6 +727,8 @@
                     createObjectiveForm.reset();
                     editObjectiveId.value = '';
                     modalTitleText.textContent = 'Create Monthly Objective';
+                    submitBtnText.textContent = 'Create Objective';
+                    submitBtnIcon.className = 'bi bi-plus-circle';
 
                     // Pre-populate month/year from current end_date
                     const currentEndDate = endDateInput.value;
@@ -695,24 +771,29 @@
                     const result = await response.json();
 
                     if (response.ok) {
-                        createObjectiveSuccess.textContent = result.message || 'Objective created successfully!';
-                        createObjectiveSuccess.classList.remove('d-none');
+                        // Close the modal immediately
+                        const modalInstance = bootstrap.Modal.getInstance(createObjectiveModal);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
 
-                        if (result.in_current_range) {
-                            // Reload the page to show the new objective
+                        // Show flash message on main page
+                        showFlashMessage(result.message || 'Objective saved successfully!');
+
+                        // If editing, update the table row with new data
+                        if (isEdit && result.objective) {
+                            updateObjectiveRow(result.objective_id, result.objective);
+                        } else if (result.in_current_range) {
+                            // If creating a new objective in current range, reload to show it
                             setTimeout(() => {
                                 window.location.reload();
                             }, 1000);
-                        } else {
-                            // Just close the modal after a delay
-                            setTimeout(() => {
-                                modal.hide();
-                                createObjectiveForm.reset();
-                                createObjectiveSuccess.classList.add('d-none');
-                            }, 2000);
                         }
+
+                        // Reset form
+                        createObjectiveForm.reset();
                     } else {
-                        createObjectiveError.textContent = result.error || 'Failed to create objective';
+                        createObjectiveError.textContent = result.error || 'Failed to save objective';
                         createObjectiveError.classList.remove('d-none');
                     }
                 } catch (error) {

@@ -1090,11 +1090,42 @@ def update_objective(request):
         objective.objective_definition = objective_definition
         objective.save()
 
+        # Re-calculate the result by running the SQL query
+        from django.db import connection
+        result = None
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(objective_definition)
+                row = cursor.fetchone()
+                if row:
+                    result = float(row[0]) if row[0] is not None else 0
+        except Exception as e:
+            # If SQL execution fails, result stays None
+            pass
+
+        # Calculate progress
+        progress_pct = 0
+        achieved = False
+        if result is not None and objective_value > 0:
+            progress_pct = round((result / objective_value) * 100, 1)
+            achieved = result >= objective_value
+
         return JsonResponse({
             'success': True,
             'message': f'Objective "{label}" updated successfully!',
             'objective_id': objective.objective_id,
-            'in_current_range': False
+            'in_current_range': False,
+            'objective': {
+                'label': label,
+                'target': objective_value,
+                'result': result if result is not None else 0,
+                'progress_pct': progress_pct,
+                'achieved': achieved,
+                'month': month,
+                'year': year,
+                'objective_value': objective_value,
+                'objective_definition': objective_definition
+            }
         })
 
     except json.JSONDecodeError:
