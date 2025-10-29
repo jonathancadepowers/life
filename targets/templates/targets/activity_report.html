@@ -168,7 +168,7 @@
         </div>
 
         <!-- Monthly Objectives Section -->
-        <div class="row mt-4 mb-3">
+        <div class="row mt-5 mb-3">
             <div class="col-12">
                 <h3 class="section-header-objectives" data-bs-toggle="collapse" data-bs-target="#monthlyObjectivesSection" aria-expanded="false" aria-controls="monthlyObjectivesSection">
                     <i class="bi bi-bullseye"></i> Monthly Objectives
@@ -194,11 +194,10 @@
                                     <thead>
                                         <tr>
                                             <th>Objective</th>
-                                            <th class="text-center">Target</th>
-                                            <th class="text-center">Result</th>
-                                            <th class="text-center">Progress</th>
-                                            <th class="text-center">Status</th>
-                                            <th></th>
+                                            <th class="text-center" style="width: 100px;">Target</th>
+                                            <th class="text-center" style="width: 100px;">Result</th>
+                                            <th class="text-center" style="width: 300px;">Progress</th>
+                                            <th style="width: 50px;"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -218,13 +217,6 @@
                                                         {{ objective.progress_pct }}%
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td class="text-center">
-                                                {% if objective.achieved %}
-                                                <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Achieved</span>
-                                                {% else %}
-                                                <span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> In Progress</span>
-                                                {% endif %}
                                             </td>
                                             <td class="text-end">
                                                 <a href="#" class="text-primary edit-objective-btn"
@@ -638,16 +630,16 @@
 
                 const cells = row.querySelectorAll('td');
 
-                // Update label (first cell)
+                // Update label (cell 0)
                 cells[0].textContent = objective.label;
 
-                // Update target (second cell)
+                // Update target (cell 1)
                 cells[1].textContent = Math.round(objective.target);
 
-                // Update result (third cell)
+                // Update result (cell 2)
                 cells[2].textContent = Math.round(objective.result);
 
-                // Update progress bar (fourth cell)
+                // Update progress bar (cell 3)
                 const progressDiv = cells[3].querySelector('.progress-bar');
                 const progressWidth = objective.progress_pct > 100 ? 100 : objective.progress_pct;
                 progressDiv.style.width = progressWidth + '%';
@@ -655,15 +647,7 @@
                 progressDiv.textContent = objective.progress_pct + '%';
                 progressDiv.className = `progress-bar ${objective.achieved ? 'bg-success' : 'bg-primary'}`;
 
-                // Update status badge (fifth cell)
-                const statusCell = cells[4];
-                if (objective.achieved) {
-                    statusCell.innerHTML = '<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Achieved</span>';
-                } else {
-                    statusCell.innerHTML = '<span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> In Progress</span>';
-                }
-
-                // Update edit button data attributes (sixth cell)
+                // Update edit button data attributes (cell 4)
                 editBtn.dataset.label = objective.label;
                 editBtn.dataset.month = objective.month;
                 editBtn.dataset.year = objective.year;
