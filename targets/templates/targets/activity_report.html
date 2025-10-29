@@ -602,13 +602,33 @@
                 if (editBtn) {
                     e.preventDefault();
 
+                    // Debug: Log all dataset values
+                    console.log('Edit button clicked. Dataset:', {
+                        objectiveId: editBtn.dataset.objectiveId,
+                        label: editBtn.dataset.label,
+                        month: editBtn.dataset.month,
+                        year: editBtn.dataset.year,
+                        target: editBtn.dataset.target,
+                        definition: editBtn.dataset.definition
+                    });
+
                     // Populate form with objective data
-                    editObjectiveId.value = editBtn.dataset.objectiveId;
-                    labelInput.value = editBtn.dataset.label;
-                    objectiveMonthSelect.value = editBtn.dataset.month;
-                    objectiveYearInput.value = editBtn.dataset.year;
-                    objectiveValueInput.value = editBtn.dataset.target;
-                    objectiveDefinitionInput.value = editBtn.dataset.definition;
+                    editObjectiveId.value = editBtn.dataset.objectiveId || '';
+                    labelInput.value = editBtn.dataset.label || '';
+                    objectiveMonthSelect.value = editBtn.dataset.month || '';
+                    objectiveYearInput.value = editBtn.dataset.year || '';
+                    objectiveValueInput.value = editBtn.dataset.target || '';
+                    objectiveDefinitionInput.value = editBtn.dataset.definition || '';
+
+                    // Debug: Log form values after setting
+                    console.log('Form values set:', {
+                        editObjectiveId: editObjectiveId.value,
+                        label: labelInput.value,
+                        month: objectiveMonthSelect.value,
+                        year: objectiveYearInput.value,
+                        target: objectiveValueInput.value,
+                        definition: objectiveDefinitionInput.value
+                    });
 
                     // Update modal title
                     modalTitleText.textContent = 'Edit Monthly Objective';
