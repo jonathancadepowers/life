@@ -205,10 +205,10 @@
                                         <tr>
                                             <th>Category</th>
                                             <th>Objective</th>
-                                            <th class="text-center">Target</th>
-                                            <th class="text-center">Target/Day</th>
-                                            <th class="text-center">Current</th>
-                                            <th class="text-center" style="padding-right: 60px;">Remaining</th>
+                                            <th>Target</th>
+                                            <th>Target/Day</th>
+                                            <th>Current</th>
+                                            <th style="padding-right: 60px;">Remaining</th>
                                             <th style="width: 200px;">Progress</th>
                                             <th></th>
                                         </tr>
@@ -222,10 +222,10 @@
                                                 <td class="align-middle" rowspan="{{ objectives|length }}">{{ objective.category|default:"—" }}</td>
                                                 {% endif %}
                                                 <td class="align-middle">{{ objective.label }}</td>
-                                                <td class="text-center align-middle">{{ objective.target|floatformat:0 }}</td>
-                                                <td class="text-center align-middle">{{ objective.target_per_day|floatformat:1 }}</td>
-                                                <td class="text-center align-middle">{{ objective.result|floatformat:0 }}</td>
-                                                <td class="text-center align-middle" style="padding-right: 60px;">{{ objective.remaining|floatformat:0 }}</td>
+                                                <td class="align-middle">{{ objective.target|floatformat:0 }}</td>
+                                                <td class="align-middle">{{ objective.target_per_day|floatformat:1 }}</td>
+                                                <td class="align-middle">{{ objective.result|floatformat:0 }}</td>
+                                                <td class="align-middle" style="padding-right: 60px;">{{ objective.remaining|floatformat:0 }}</td>
                                                 <td class="align-middle">
                                                     <!-- Linear progress indicator with marker -->
                                                     <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">
