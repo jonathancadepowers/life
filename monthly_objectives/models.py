@@ -22,6 +22,11 @@ class MonthlyObjective(models.Model):
         help_text="Last day of the month for this objective",
         db_index=True
     )
+    timezone = models.CharField(
+        max_length=50,
+        default='America/Chicago',
+        help_text="Timezone for date range (e.g., 'America/Chicago', 'America/New_York')"
+    )
     label = models.CharField(
         max_length=255,
         help_text="Name/description of the objective (e.g., '30 Running Workouts')"

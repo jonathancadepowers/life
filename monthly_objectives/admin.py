@@ -14,8 +14,8 @@ class MonthlyObjectiveAdmin(admin.ModelAdmin):
             'fields': ('objective_id', 'label', 'objective_value')
         }),
         ('Date Range', {
-            'fields': ('start', 'end'),
-            'description': 'Must span a full calendar month (first day to last day)'
+            'fields': ('start', 'end', 'timezone'),
+            'description': 'Must span a full calendar month (first day to last day). Timezone determines how dates are interpreted.'
         }),
         ('SQL Definition', {
             'fields': ('objective_definition',)
