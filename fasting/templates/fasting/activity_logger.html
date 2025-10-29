@@ -1801,10 +1801,29 @@
                 console.log('[DEBUG textarea input] Textarea changed, new length:', e.target.value.length);
                 console.log('[DEBUG textarea input] Last 50 chars:', e.target.value.slice(-50));
             });
+
+            // Monitor ALL changes to textarea value (including programmatic)
+            let currentValue = textarea.value;
+            Object.defineProperty(textarea, 'value', {
+                get: function() {
+                    return currentValue;
+                },
+                set: function(newValue) {
+                    if (newValue !== currentValue) {
+                        console.log('[DEBUG textarea SETTER] Value being changed programmatically!');
+                        console.log('[DEBUG textarea SETTER] Old length:', currentValue.length, 'New length:', newValue.length);
+                        console.log('[DEBUG textarea SETTER] Old last 50:', currentValue.slice(-50));
+                        console.log('[DEBUG textarea SETTER] New last 50:', newValue.slice(-50));
+                        console.trace('[DEBUG textarea SETTER] Call stack:');
+                        currentValue = newValue;
+                    }
+                }
+            });
         });
 
         function loadAgendaIntoForm(agenda) {
-            console.log('loadAgendaIntoForm called with agenda:', agenda);
+            console.log('[DEBUG loadAgendaIntoForm] !!!!! CALLED !!!!! with agenda:', agenda);
+            console.trace('[DEBUG loadAgendaIntoForm] Call stack:');
 
             // Update the date display
             const date = new Date(agenda.date + 'T00:00:00'); // Parse as local date
