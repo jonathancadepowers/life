@@ -1789,6 +1789,12 @@
             if (textarea && textarea.value) {
                 renderMarkdown(textarea.value);
             }
+
+            // Add debugging for textarea changes
+            textarea.addEventListener('input', function(e) {
+                console.log('[DEBUG textarea input] Textarea changed, new length:', e.target.value.length);
+                console.log('[DEBUG textarea input] Last 50 chars:', e.target.value.slice(-50));
+            });
         });
 
         function loadAgendaIntoForm(agenda) {
