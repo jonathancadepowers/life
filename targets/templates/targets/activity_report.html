@@ -335,7 +335,7 @@
                             </div>
                             <div class="d-flex justify-content-between">
                                 <span class="text-muted">Longest:</span>
-                                <span>{{ fasting.max_duration }}h</span>
+                                <span>{{ fasting.max_duration|floatformat:1 }}h</span>
                             </div>
                         </div>
                         {% endif %}
