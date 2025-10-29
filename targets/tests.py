@@ -233,10 +233,10 @@ class DailyAgendaViewsTestCase(TestCase):
             {'id': 123, 'name': 'Updated Test Project'},  # Update existing
         ]
 
-        # Mock tags (goals) data
+        # Mock tags (goals) data - now includes IDs
         mock_client_instance.get_tags.return_value = [
-            {'name': 'new_goal_from_toggl'},
-            {'name': 'test_goal'},  # Already exists
+            {'id': 456, 'name': 'new_goal_from_toggl'},
+            {'id': 789, 'name': 'test_goal'},  # Already exists
         ]
 
         # Make request
@@ -248,16 +248,22 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertTrue(result['success'])
         self.assertIn('Synced 2 projects and 2 goals', result['message'])
         self.assertEqual(len(result['projects']), 2)
-        self.assertEqual(len(result['goals']), 2)
+        # 3 goals total: 1 from setUp (old format 'test_goal') + 2 new from sync ('456', '789')
+        self.assertEqual(len(result['goals']), 3)
 
         # Verify projects were created/updated
         self.assertTrue(Project.objects.filter(project_id=999).exists())
         updated_project = Project.objects.get(project_id=123)
         self.assertEqual(updated_project.display_string, 'Updated Test Project')
 
-        # Verify goals were created/updated
-        self.assertTrue(Goal.objects.filter(goal_id='new_goal_from_toggl').exists())
-        self.assertTrue(Goal.objects.filter(goal_id='test_goal').exists())
+        # Verify goals were created/updated using tag IDs (not names)
+        self.assertTrue(Goal.objects.filter(goal_id='456').exists())
+        new_goal = Goal.objects.get(goal_id='456')
+        self.assertEqual(new_goal.display_string, 'new_goal_from_toggl')
+
+        self.assertTrue(Goal.objects.filter(goal_id='789').exists())
+        existing_goal = Goal.objects.get(goal_id='789')
+        self.assertEqual(existing_goal.display_string, 'test_goal')
 
     @patch('targets.views.TogglAPIClient')
     def test_sync_toggl_projects_goals_error(self, mock_toggl_client):
@@ -274,6 +280,53 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertFalse(result['success'])
         self.assertIn('Error syncing from Toggl', result['message'])
         self.assertIn('API connection failed', result['message'])
+
+    @patch('targets.views.TogglAPIClient')
+    def test_sync_toggl_tag_rename(self, mock_toggl_client):
+        """Test that renaming a tag in Toggl updates the goal display_string without creating duplicates"""
+        # Mock Toggl API responses
+        mock_client_instance = MagicMock()
+        mock_toggl_client.return_value = mock_client_instance
+
+        # Initial sync: Create a goal with tag ID 555 and name "original_name"
+        mock_client_instance.get_projects.return_value = [
+            {'id': 123, 'name': 'Test Project'},
+        ]
+        mock_client_instance.get_tags.return_value = [
+            {'id': 555, 'name': 'original_name'},
+        ]
+
+        # First sync
+        response = self.client.post(reverse('sync_toggl_projects_goals'))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify goal was created with tag ID
+        self.assertTrue(Goal.objects.filter(goal_id='555').exists())
+        goal = Goal.objects.get(goal_id='555')
+        self.assertEqual(goal.display_string, 'original_name')
+        initial_goal_count = Goal.objects.count()
+
+        # Second sync: Same tag ID but renamed to "renamed_tag"
+        mock_client_instance.get_tags.return_value = [
+            {'id': 555, 'name': 'renamed_tag'},  # Same ID, different name
+        ]
+
+        # Sync again
+        response = self.client.post(reverse('sync_toggl_projects_goals'))
+        self.assertEqual(response.status_code, 200)
+
+        # CRITICAL: Verify no duplicate was created
+        final_goal_count = Goal.objects.count()
+        self.assertEqual(final_goal_count, initial_goal_count,
+                        "Tag rename should not create duplicate goals")
+
+        # Verify the goal still exists with the same ID
+        self.assertTrue(Goal.objects.filter(goal_id='555').exists())
+
+        # Verify the display_string was updated to the new name
+        goal_after_rename = Goal.objects.get(goal_id='555')
+        self.assertEqual(goal_after_rename.display_string, 'renamed_tag',
+                        "Goal display_string should be updated when tag is renamed in Toggl")
 
     def test_save_target_score(self):
         """Test saving a target score"""

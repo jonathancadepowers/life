@@ -61,6 +61,14 @@ class Command(BaseCommand):
             # Build lookup dictionary for project names
             project_names = {p['id']: p['name'] for p in toggl_projects}
 
+            # Fetch Toggl tags for auto-creation (Goals in our database)
+            self.stdout.write('Fetching tags from Toggl...')
+            toggl_tags = client.get_tags()
+
+            # Build lookup dictionary: tag name -> tag ID
+            # This allows us to map tag names (returned in time entries) to tag IDs
+            tag_name_to_id = {tag['name']: str(tag['id']) for tag in toggl_tags}
+
             # Fetch time entries
             self.stdout.write('Fetching time entries from Toggl...')
             time_entries = client.get_time_entries(
@@ -81,7 +89,7 @@ class Command(BaseCommand):
                 start = entry.get('start')
                 stop = entry.get('stop')  # Note: Toggl uses 'stop' not 'end'
                 toggl_project_id = entry.get('project_id')  # Toggl Project → DB Project
-                toggl_tags = entry.get('tags', [])  # Toggl Tags → DB Goals (array)
+                entry_tags = entry.get('tags', [])  # Toggl Tags → DB Goals (array)
 
                 # Skip entries without required fields: must have end time and project
                 # Tags are optional
@@ -107,12 +115,14 @@ class Command(BaseCommand):
                     )
 
                 # Auto-create Goals for each tag (Toggl Tags → DB Goals)
-                # Toggl returns tag names as strings, not IDs
+                # Time entries return tag names, but we need to use tag IDs as primary keys
+                # to handle tag renames correctly
                 goal_objects = []
-                for tag_name in toggl_tags:
-                    if tag_name:
-                        goal, _ = Goal.objects.get_or_create(
-                            goal_id=tag_name,
+                for tag_name in entry_tags:
+                    if tag_name and tag_name in tag_name_to_id:
+                        tag_id = tag_name_to_id[tag_name]
+                        goal, _ = Goal.objects.update_or_create(
+                            goal_id=tag_id,  # Use Toggl tag ID as primary key
                             defaults={'display_string': tag_name}
                         )
                         goal_objects.append(goal)

@@ -53,13 +53,21 @@ class TestSyncTogglCommand(TestCase):
             {'id': 888, 'name': 'Content Creation'}
         ]
 
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_tags')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_projects')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_time_entries')
-    def test_sync_creates_new_time_logs(self, mock_get_entries, mock_get_projects):
+    def test_sync_creates_new_time_logs(self, mock_get_entries, mock_get_projects, mock_get_tags):
         """Should create time log records from API data"""
         # Mock: API returns 2 time entries and projects
         mock_get_entries.return_value = self.sample_time_entries
         mock_get_projects.return_value = self.sample_projects
+
+        # Mock: API returns tags
+        mock_get_tags.return_value = [
+            {'id': 201, 'name': 'coding'},
+            {'id': 202, 'name': 'backend'},
+            {'id': 203, 'name': 'writing'}
+        ]
 
         # Run the sync command
         out = StringIO()
@@ -85,9 +93,10 @@ class TestSyncTogglCommand(TestCase):
         self.assertIn('Created: 2', output)
         self.assertIn('Found 2 time entries', output)
 
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_tags')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_projects')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_time_entries')
-    def test_sync_updates_existing_time_logs(self, mock_get_entries, mock_get_projects):
+    def test_sync_updates_existing_time_logs(self, mock_get_entries, mock_get_projects, mock_get_tags):
         """Should update existing time logs using source_id, not create duplicates"""
         # Setup: Create existing time log in database
         existing_log = TimeLog.objects.create(
@@ -101,6 +110,12 @@ class TestSyncTogglCommand(TestCase):
         # Mock: API returns updated data for same entry
         mock_get_entries.return_value = [self.sample_time_entries[0]]
         mock_get_projects.return_value = [self.sample_projects[0]]
+
+        # Mock: API returns tags
+        mock_get_tags.return_value = [
+            {'id': 201, 'name': 'coding'},
+            {'id': 202, 'name': 'backend'}
+        ]
 
         # Run the sync command
         out = StringIO()
@@ -122,9 +137,10 @@ class TestSyncTogglCommand(TestCase):
         self.assertIn('Created: 0', output)
         self.assertIn('Updated: 1', output)
 
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_tags')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_projects')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_time_entries')
-    def test_sync_auto_creates_projects(self, mock_get_entries, mock_get_projects):
+    def test_sync_auto_creates_projects(self, mock_get_entries, mock_get_projects, mock_get_tags):
         """Should auto-create Project records from Toggl projects"""
         # Assert: No projects exist initially
         self.assertEqual(Project.objects.count(), 0)
@@ -132,6 +148,13 @@ class TestSyncTogglCommand(TestCase):
         # Mock: API returns time entries with projects
         mock_get_entries.return_value = self.sample_time_entries
         mock_get_projects.return_value = self.sample_projects
+
+        # Mock: API returns tags
+        mock_get_tags.return_value = [
+            {'id': 201, 'name': 'coding'},
+            {'id': 202, 'name': 'backend'},
+            {'id': 203, 'name': 'writing'}
+        ]
 
         # Run the sync command
         call_command('sync_toggl', days=7, stdout=StringIO())
@@ -147,16 +170,24 @@ class TestSyncTogglCommand(TestCase):
         project2 = Project.objects.get(project_id=888)
         self.assertEqual(project2.display_string, 'Content Creation')
 
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_tags')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_projects')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_time_entries')
-    def test_sync_auto_creates_goals_from_tags(self, mock_get_entries, mock_get_projects):
-        """Should auto-create Goal records from Toggl tags"""
+    def test_sync_auto_creates_goals_from_tags(self, mock_get_entries, mock_get_projects, mock_get_tags):
+        """Should auto-create Goal records from Toggl tags using tag IDs"""
         # Assert: No goals exist initially
         self.assertEqual(Goal.objects.count(), 0)
 
-        # Mock: API returns time entries with tags
+        # Mock: API returns time entries with tags (tag names in entries)
         mock_get_entries.return_value = self.sample_time_entries
         mock_get_projects.return_value = self.sample_projects
+
+        # Mock: API returns tags with IDs and names
+        mock_get_tags.return_value = [
+            {'id': 101, 'name': 'coding'},
+            {'id': 102, 'name': 'backend'},
+            {'id': 103, 'name': 'writing'}
+        ]
 
         # Run the sync command
         call_command('sync_toggl', days=7, stdout=StringIO())
@@ -164,20 +195,83 @@ class TestSyncTogglCommand(TestCase):
         # Assert: 3 unique goals auto-created (coding, backend, writing)
         self.assertEqual(Goal.objects.count(), 3)
 
-        # Assert: Goal 'coding' created
-        goal1 = Goal.objects.get(goal_id='coding')
+        # Assert: Goals created with tag IDs (not tag names)
+        goal1 = Goal.objects.get(goal_id='101')
         self.assertEqual(goal1.display_string, 'coding')
+
+        goal2 = Goal.objects.get(goal_id='102')
+        self.assertEqual(goal2.display_string, 'backend')
 
         # Assert: ManyToMany relationship set correctly
         time_log1 = TimeLog.objects.get(source_id='123456789')
-        goal_names = list(time_log1.goals.values_list('goal_id', flat=True))
-        self.assertIn('coding', goal_names)
-        self.assertIn('backend', goal_names)
-        self.assertEqual(len(goal_names), 2)
+        goal_ids = list(time_log1.goals.values_list('goal_id', flat=True))
+        self.assertIn('101', goal_ids)  # Tag IDs, not names
+        self.assertIn('102', goal_ids)
+        self.assertEqual(len(goal_ids), 2)
 
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_tags')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_projects')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_time_entries')
-    def test_sync_skips_entries_without_required_fields(self, mock_get_entries, mock_get_projects):
+    def test_sync_handles_tag_rename_without_duplicates(self, mock_get_entries, mock_get_projects, mock_get_tags):
+        """Should update goal display_string when tag is renamed in Toggl, not create duplicates"""
+        # Setup: Initial sync with tag "old_name"
+        mock_get_projects.return_value = self.sample_projects
+
+        # First sync with tag ID 555 and name "old_name"
+        mock_get_tags.return_value = [
+            {'id': 555, 'name': 'old_name'}
+        ]
+        mock_get_entries.return_value = [
+            {
+                'id': 123456789,
+                'start': '2023-10-25T10:00:00Z',
+                'stop': '2023-10-25T12:00:00Z',
+                'project_id': 999,
+                'tags': ['old_name']
+            }
+        ]
+
+        # Run first sync
+        call_command('sync_toggl', days=7, stdout=StringIO())
+
+        # Assert: Goal created with tag ID 555
+        self.assertEqual(Goal.objects.count(), 1)
+        goal = Goal.objects.get(goal_id='555')
+        self.assertEqual(goal.display_string, 'old_name')
+
+        # Second sync: Tag renamed to "renamed_tag" in Toggl (same ID 555)
+        mock_get_tags.return_value = [
+            {'id': 555, 'name': 'renamed_tag'}  # Same ID, different name
+        ]
+        mock_get_entries.return_value = [
+            {
+                'id': 123456789,
+                'start': '2023-10-25T10:00:00Z',
+                'stop': '2023-10-25T12:00:00Z',
+                'project_id': 999,
+                'tags': ['renamed_tag']  # Tag name updated in entry
+            }
+        ]
+
+        # Run second sync
+        call_command('sync_toggl', days=7, stdout=StringIO())
+
+        # CRITICAL: Assert no duplicate goal was created
+        self.assertEqual(Goal.objects.count(), 1,
+                        "Tag rename should not create duplicate goals")
+
+        # Assert: Goal still has same ID (555)
+        self.assertTrue(Goal.objects.filter(goal_id='555').exists())
+
+        # Assert: Goal display_string was updated to new name
+        goal_after_rename = Goal.objects.get(goal_id='555')
+        self.assertEqual(goal_after_rename.display_string, 'renamed_tag',
+                        "Goal display_string should be updated when tag is renamed")
+
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_tags')
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_projects')
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_time_entries')
+    def test_sync_skips_entries_without_required_fields(self, mock_get_entries, mock_get_projects, mock_get_tags):
         """Should skip time entries missing required fields"""
         # Mock: API returns entries with missing fields
         malformed_entries = [
@@ -212,6 +306,7 @@ class TestSyncTogglCommand(TestCase):
         ]
         mock_get_entries.return_value = malformed_entries
         mock_get_projects.return_value = self.sample_projects
+        mock_get_tags.return_value = []  # No tags needed for this test
 
         # Run the sync command
         out = StringIO()
@@ -225,9 +320,10 @@ class TestSyncTogglCommand(TestCase):
         output = out.getvalue()
         self.assertIn('Skipped: 3', output)
 
+    @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_tags')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_projects')
     @mock.patch('time_logs.services.toggl_client.TogglAPIClient.get_time_entries')
-    def test_sync_handles_entries_without_tags(self, mock_get_entries, mock_get_projects):
+    def test_sync_handles_entries_without_tags(self, mock_get_entries, mock_get_projects, mock_get_tags):
         """Should handle time entries without tags (goals are optional)"""
         # Mock: API returns entry with no tags
         entry_without_tags = {
@@ -239,6 +335,7 @@ class TestSyncTogglCommand(TestCase):
         }
         mock_get_entries.return_value = [entry_without_tags]
         mock_get_projects.return_value = [self.sample_projects[0]]
+        mock_get_tags.return_value = []  # No tags needed for this test
 
         # Run the sync command
         call_command('sync_toggl', days=7, stdout=StringIO())

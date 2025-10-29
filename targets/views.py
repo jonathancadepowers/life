@@ -104,13 +104,14 @@ def sync_toggl_projects_goals(request):
 
         for tag_data in toggl_tags:
             # Toggl tags have 'id' and 'name' fields
+            tag_id = tag_data.get('id')
             tag_name = tag_data.get('name')
 
-            if tag_name:
+            if tag_id and tag_name:
                 # Update or create goal in database
-                # goal_id is the tag name (as per the Goal model)
+                # goal_id stores the Toggl tag ID, display_string stores the tag name
                 Goal.objects.update_or_create(
-                    goal_id=tag_name,
+                    goal_id=str(tag_id),  # Use Toggl tag ID as primary key
                     defaults={'display_string': tag_name}
                 )
                 goals_synced += 1

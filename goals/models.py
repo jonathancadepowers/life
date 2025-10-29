@@ -9,7 +9,7 @@ class Goal(models.Model):
     goal_id = models.CharField(
         max_length=255,
         primary_key=True,
-        help_text="Unique goal identifier (Toggl Tag name)"
+        help_text="Unique goal identifier (Toggl Tag ID)"
     )
     display_string = models.CharField(
         max_length=255,
