@@ -1325,6 +1325,84 @@ class ActivityReportViewsTestCase(TestCase):
         self.assertAlmostEqual(obj_data['progress_pct'], 66.7, places=1)
         self.assertFalse(obj_data['achieved'])
 
+    def test_monthly_objectives_execute_sql_query(self):
+        """
+        Regression test: Ensure Activity Report executes SQL queries to calculate results.
+
+        Bug: The view was displaying obj.result (which was None) instead of executing
+        the SQL query (obj.objective_definition) to calculate the actual result.
+
+        This test verifies that the view executes the SQL and returns the calculated value.
+        """
+        from monthly_objectives.models import MonthlyObjective
+        from workouts.models import Workout
+        from external_data.models import WhoopSportId
+        from calendar import monthrange
+
+        # Ensure Running sport exists
+        WhoopSportId.objects.get_or_create(sport_id=0, defaults={'sport_name': 'Running'})
+
+        # Create a test objective for the current week's month
+        target_month = self.week_start.replace(day=1)
+        last_day = monthrange(self.week_start.year, self.week_start.month)[1]
+        target_month_end = self.week_start.replace(day=last_day)
+
+        # Create 5 running workouts in the test month
+        for i in range(5):
+            workout_time = timezone.make_aware(
+                datetime.combine(self.week_start + timedelta(days=i), datetime.min.time())
+            )
+            Workout.objects.create(
+                source='Test',
+                source_id=f'regression_test_workout_{i}',
+                start=workout_time,
+                end=workout_time + timedelta(minutes=10),
+                sport_id=0,
+                average_heart_rate=120
+            )
+
+        # Create objective with SQL that counts these workouts
+        # Using SQLite syntax since tests run on SQLite
+        objective = MonthlyObjective.objects.create(
+            objective_id='test_sql_execution',
+            label='5 Running Workouts',
+            start=target_month,
+            end=target_month_end,
+            timezone='America/Chicago',
+            objective_value=5.0,
+            objective_definition=f"""SELECT COUNT(*)
+FROM workouts_workout
+WHERE sport_id = 0
+AND start >= '{target_month.isoformat()} 00:00:00'
+AND start < '{(target_month_end + timedelta(days=1)).isoformat()} 00:00:00'""",
+            result=None  # Intentionally None - view should calculate it
+        )
+
+        # Request activity report for the test month
+        response = self.client.get(
+            reverse('activity_report'),
+            {'start_date': target_month.isoformat(), 'end_date': target_month_end.isoformat()}
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Get monthly objectives from context
+        monthly_objectives_context = response.context['monthly_objectives']
+        objectives = monthly_objectives_context['objectives']
+
+        # Find our test objective
+        test_obj = None
+        for obj in objectives:
+            if obj['objective_id'] == 'test_sql_execution':
+                test_obj = obj
+                break
+
+        # CRITICAL: Verify the SQL was executed and result is calculated
+        self.assertIsNotNone(test_obj, "Test objective should be in context")
+        self.assertEqual(test_obj['result'], 5.0,
+                        "Result should be calculated by executing SQL, not reading from obj.result field")
+        self.assertEqual(test_obj['progress_pct'], 100.0)
+        self.assertTrue(test_obj['achieved'])
+
 
 class MonthlyObjectiveBackendTestCase(TestCase):
     """Comprehensive backend tests for Monthly Objectives CRUD operations."""

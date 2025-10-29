@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from django.db import connection
 from datetime import date, datetime, timedelta
 from .models import DailyAgenda
 from projects.models import Project
@@ -874,18 +875,33 @@ def activity_report(request):
     # Format objectives data for template
     objectives_data = []
     for obj in monthly_objectives:
+        # Execute SQL query to get current result
+        result = None
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(obj.objective_definition)
+                row = cursor.fetchone()
+                if row:
+                    result = float(row[0]) if row[0] is not None else 0
+                else:
+                    result = 0
+        except Exception as e:
+            # If SQL fails, default to 0
+            result = 0
+
+        # Calculate progress
         progress_pct = 0
-        if obj.result is not None and obj.objective_value > 0:
-            progress_pct = (obj.result / obj.objective_value) * 100
+        if result is not None and obj.objective_value > 0:
+            progress_pct = (result / obj.objective_value) * 100
 
         objectives_data.append({
             'objective_id': obj.objective_id,
             'label': obj.label,
             'start': obj.start,
             'target': obj.objective_value,
-            'result': obj.result if obj.result is not None else 0,
+            'result': result if result is not None else 0,
             'progress_pct': round(progress_pct, 1),
-            'achieved': obj.result is not None and obj.result >= obj.objective_value,
+            'achieved': result is not None and result >= obj.objective_value,
             'objective_value': obj.objective_value,
             'objective_definition': obj.objective_definition,
         })
