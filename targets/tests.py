@@ -186,6 +186,95 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertEqual(len(result['goals']), 1)
         self.assertEqual(result['goals'][0]['goal_id'], self.goal.goal_id)
 
+    def test_get_goals_for_project_all_parameter(self):
+        """Test getting all goals with all=true parameter"""
+        # Create additional goals that aren't linked to the project
+        goal2 = Goal.objects.create(
+            goal_id='test_goal_2',
+            display_string='Test Goal 2'
+        )
+        goal3 = Goal.objects.create(
+            goal_id='test_goal_3',
+            display_string='Test Goal 3'
+        )
+
+        # Test without all parameter - should return empty (no TimeLog linking goals to project)
+        response = self.client.get(
+            reverse('get_goals_for_project'),
+            {'project_id': str(self.project.project_id)}
+        )
+        self.assertEqual(response.status_code, 200)
+        result = json.loads(response.content)
+        self.assertEqual(len(result['goals']), 0)  # No goals linked via TimeLog
+
+        # Test with all=true parameter - should return all goals
+        response = self.client.get(
+            reverse('get_goals_for_project'),
+            {'all': 'true'}
+        )
+        self.assertEqual(response.status_code, 200)
+        result = json.loads(response.content)
+        self.assertEqual(len(result['goals']), 3)  # All goals in database
+        goal_ids = [g['goal_id'] for g in result['goals']]
+        self.assertIn(self.goal.goal_id, goal_ids)
+        self.assertIn(goal2.goal_id, goal_ids)
+        self.assertIn(goal3.goal_id, goal_ids)
+
+    @patch('targets.views.TogglAPIClient')
+    def test_sync_toggl_projects_goals_success(self, mock_toggl_client):
+        """Test successful sync from Toggl"""
+        # Mock Toggl API responses
+        mock_client_instance = MagicMock()
+        mock_toggl_client.return_value = mock_client_instance
+
+        # Mock projects data
+        mock_client_instance.get_projects.return_value = [
+            {'id': 999, 'name': 'New Project from Toggl'},
+            {'id': 123, 'name': 'Updated Test Project'},  # Update existing
+        ]
+
+        # Mock tags (goals) data
+        mock_client_instance.get_tags.return_value = [
+            {'name': 'new_goal_from_toggl'},
+            {'name': 'test_goal'},  # Already exists
+        ]
+
+        # Make request
+        response = self.client.post(reverse('sync_toggl_projects_goals'))
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        result = json.loads(response.content)
+        self.assertTrue(result['success'])
+        self.assertIn('Synced 2 projects and 2 goals', result['message'])
+        self.assertEqual(len(result['projects']), 2)
+        self.assertEqual(len(result['goals']), 2)
+
+        # Verify projects were created/updated
+        self.assertTrue(Project.objects.filter(project_id=999).exists())
+        updated_project = Project.objects.get(project_id=123)
+        self.assertEqual(updated_project.display_string, 'Updated Test Project')
+
+        # Verify goals were created/updated
+        self.assertTrue(Goal.objects.filter(goal_id='new_goal_from_toggl').exists())
+        self.assertTrue(Goal.objects.filter(goal_id='test_goal').exists())
+
+    @patch('targets.views.TogglAPIClient')
+    def test_sync_toggl_projects_goals_error(self, mock_toggl_client):
+        """Test error handling when Toggl API fails"""
+        # Mock Toggl API to raise an exception
+        mock_toggl_client.side_effect = Exception('API connection failed')
+
+        # Make request
+        response = self.client.post(reverse('sync_toggl_projects_goals'))
+
+        # Check response
+        self.assertEqual(response.status_code, 500)
+        result = json.loads(response.content)
+        self.assertFalse(result['success'])
+        self.assertIn('Error syncing from Toggl', result['message'])
+        self.assertIn('API connection failed', result['message'])
+
     def test_save_target_score(self):
         """Test saving a target score"""
         data = {
