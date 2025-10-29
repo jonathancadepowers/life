@@ -946,7 +946,7 @@ def activity_report(request):
         'objectives_by_category': dict(objectives_by_category),
         'uncategorized': uncategorized,
         'category_config': category_config,
-        'target_month': end_date.strftime('%b %Y'),
+        'target_month': end_date.strftime('%b %Y').upper(),
         'crosses_months': crosses_months,
         'categories': list(distinct_categories),
     }
