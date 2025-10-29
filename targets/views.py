@@ -853,6 +853,45 @@ def activity_report(request):
                     'percentage': 0
                 }
 
+    # MONTHLY OBJECTIVES
+    from monthly_objectives.models import MonthlyObjective
+    from calendar import monthrange
+
+    # Check if date range crosses month boundaries
+    crosses_months = (start_date.year != end_date.year) or (start_date.month != end_date.month)
+
+    # Use end_date's month for objectives
+    target_month_first_day = end_date.replace(day=1)
+    last_day = monthrange(end_date.year, end_date.month)[1]
+    target_month_last_day = end_date.replace(day=last_day)
+
+    # Query objectives for the target month
+    monthly_objectives = MonthlyObjective.objects.filter(
+        start=target_month_first_day,
+        end=target_month_last_day
+    ).order_by('label')
+
+    # Format objectives data for template
+    objectives_data = []
+    for obj in monthly_objectives:
+        progress_pct = 0
+        if obj.result is not None and obj.objective_value > 0:
+            progress_pct = (obj.result / obj.objective_value) * 100
+
+        objectives_data.append({
+            'label': obj.label,
+            'target': obj.objective_value,
+            'result': obj.result if obj.result is not None else 0,
+            'progress_pct': round(progress_pct, 1),
+            'achieved': obj.result is not None and obj.result >= obj.objective_value,
+        })
+
+    monthly_objectives_context = {
+        'objectives': objectives_data,
+        'target_month': end_date.strftime('%B %Y'),
+        'crosses_months': crosses_months,
+    }
+
     context = {
         'start_date': start_date,
         'end_date': end_date,
@@ -863,6 +902,7 @@ def activity_report(request):
         'workouts_by_sport': workouts_by_sport,
         'time_by_project': time_by_project,
         'total_time_hours': round(total_time_hours, 1),
+        'monthly_objectives': monthly_objectives_context,
     }
 
     return render(request, 'targets/activity_report.html', context)

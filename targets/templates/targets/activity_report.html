@@ -93,6 +93,31 @@
         .section-header[aria-expanded="true"] .chevron {
             transform: rotate(180deg);
         }
+        .section-header-objectives {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #495057;
+            border-bottom: 3px solid #dc3545;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s;
+        }
+        .section-header-objectives:hover {
+            background-color: rgba(220, 53, 69, 0.05);
+            padding-left: 0.5rem;
+        }
+        .section-header-objectives i {
+            color: #dc3545;
+        }
+        .section-header-objectives .chevron {
+            float: right;
+            transition: transform 0.3s;
+        }
+        .section-header-objectives[aria-expanded="true"] .chevron {
+            transform: rotate(180deg);
+        }
         .goal-breakdown {
             margin-top: 0.5rem;
             padding-left: 1rem;
@@ -134,6 +159,80 @@
                     <span class="badge bg-primary ms-2">{{ days_in_range }} days</span>
                     <div class="spinner-border spinner-border-sm ms-2 d-none" role="status" id="loading-spinner">
                         <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Objectives Section -->
+        <div class="row mt-4 mb-3">
+            <div class="col-12">
+                <h3 class="section-header-objectives" data-bs-toggle="collapse" data-bs-target="#monthlyObjectivesSection" aria-expanded="false" aria-controls="monthlyObjectivesSection">
+                    <i class="bi bi-bullseye"></i> Monthly Objectives
+                    <i class="bi bi-chevron-down chevron"></i>
+                </h3>
+            </div>
+        </div>
+
+        <div id="monthlyObjectivesSection" class="collapse">
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            {% if monthly_objectives.crosses_months %}
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle"></i> Your selected date range crosses multiple months. Showing objectives for <strong>{{ monthly_objectives.target_month }}</strong>.
+                            </div>
+                            {% endif %}
+
+                            {% if monthly_objectives.objectives %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Objective</th>
+                                            <th class="text-center">Target</th>
+                                            <th class="text-center">Result</th>
+                                            <th class="text-center">Progress</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for objective in monthly_objectives.objectives %}
+                                        <tr>
+                                            <td>{{ objective.label }}</td>
+                                            <td class="text-center">{{ objective.target|floatformat:0 }}</td>
+                                            <td class="text-center">{{ objective.result|floatformat:0 }}</td>
+                                            <td class="text-center">
+                                                <div class="progress" style="height: 25px;">
+                                                    <div class="progress-bar {% if objective.achieved %}bg-success{% else %}bg-primary{% endif %}"
+                                                         role="progressbar"
+                                                         style="width: {% if objective.progress_pct > 100 %}100{% else %}{{ objective.progress_pct }}{% endif %}%"
+                                                         aria-valuenow="{{ objective.progress_pct }}"
+                                                         aria-valuemin="0"
+                                                         aria-valuemax="100">
+                                                        {{ objective.progress_pct }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if objective.achieved %}
+                                                <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Achieved</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary"><i class="bi bi-hourglass-split"></i> In Progress</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-secondary">
+                                <i class="bi bi-calendar-x"></i> No monthly objectives found for {{ monthly_objectives.target_month }}.
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
