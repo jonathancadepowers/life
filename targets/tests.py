@@ -628,6 +628,67 @@ class DailyAgendaViewsTestCase(TestCase):
         # Should have some time logged (running timer should be included)
         self.assertGreaterEqual(result['total_seconds'], 3600)  # At least 1 hour
 
+    @patch('django.core.cache.cache.get')
+    @patch('django.core.cache.cache.set')
+    @patch('time_logs.services.toggl_client.TogglAPIClient')
+    def test_goal_id_to_tag_name_conversion(self, mock_toggl_client, mock_cache_set, mock_cache_get):
+        """
+        Regression test: Ensure goal_id (tag ID) is converted to tag name before comparing with Toggl API results.
+
+        This test prevents the bug where passing a tag ID (e.g., '268751883') to the API
+        would fail to match entries because Toggl API returns tag NAMES (e.g., 'build_kpi_model').
+        """
+        # Create a goal with a numeric tag ID and a different display string
+        regression_goal = Goal.objects.create(
+            goal_id='999888777',  # Numeric tag ID
+            display_string='test_regression_tag'  # Tag name that Toggl API will return
+        )
+
+        # Mock cache to return None (forcing API call)
+        mock_cache_get.return_value = None
+
+        # Mock Toggl API to return entries with tag NAMES (not IDs)
+        mock_client_instance = MagicMock()
+        mock_client_instance.get_time_entries.return_value = [
+            {
+                'id': 1,
+                'project_id': int(self.project.project_id),
+                'tags': ['test_regression_tag'],  # Toggl returns tag NAME, not ID
+                'duration': 7200,  # 2 hours
+                'start': '2025-10-28T08:00:00Z'
+            },
+            {
+                'id': 2,
+                'project_id': int(self.project.project_id),
+                'tags': ['different_tag'],  # Entry with different tag - should be excluded
+                'duration': 3600,
+                'start': '2025-10-28T10:00:00Z'
+            }
+        ]
+        mock_toggl_client.return_value = mock_client_instance
+
+        # Pass the goal_id (tag ID) to the API - it should convert to tag name internally
+        response = self.client.get(
+            reverse('get_toggl_time_today'),
+            {
+                'project_id': str(self.project.project_id),
+                'goal_id': regression_goal.goal_id,  # Passing tag ID (999888777)
+                'timezone_offset': '300'
+            }
+        )
+
+        self.assertEqual(response.status_code, 200)
+        result = json.loads(response.content)
+        self.assertTrue(result['success'])
+
+        # Should only count the first entry (7200 seconds = 2 hours)
+        # The second entry should be excluded because its tag doesn't match
+        self.assertEqual(result['total_seconds'], 7200)
+        self.assertEqual(result['display'], '2h 0m')
+
+        # Verify debug info shows the correct tag name was used
+        self.assertEqual(result['debug']['entries_count'], 1)
+
 
 class DailyAgendaModelTestCase(TestCase):
     """Tests for Daily Agenda model"""
