@@ -1083,19 +1083,9 @@
         document.querySelectorAll('.goal-select').forEach(select => {
             select.addEventListener('change', function() {
                 const targetNum = this.dataset.target;
-                const targetInput = document.getElementById(`target_${targetNum}`);
-                const scoreSection = document.getElementById(`score_section_${targetNum}`);
-
-                // Clear target value when goal changes
-                targetInput.value = '';
-
-                // Hide score section when target is cleared
-                if (scoreSection) {
-                    scoreSection.style.display = 'none';
-                    scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
-                }
 
                 // Update Toggl time display with the selected goal filter
+                // (Don't clear target text or scores - preserve user's existing input)
                 updateTogglTime(targetNum);
             });
         });
