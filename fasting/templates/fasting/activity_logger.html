@@ -1119,6 +1119,12 @@
         document.getElementById('agendaForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
+            console.log('[DEBUG FORM SUBMIT] Current selected date:', currentSelectedDate);
+            console.log('[DEBUG FORM SUBMIT] Date display text:', document.getElementById('today-date').textContent);
+            console.log('[DEBUG FORM SUBMIT] Textarea value at form submit (first 100 chars):', document.getElementById('notes-textarea').value.substring(0, 100));
+            console.log('[DEBUG FORM SUBMIT] Textarea value at form submit (last 50 chars):', document.getElementById('notes-textarea').value.slice(-50));
+            console.log('[DEBUG FORM SUBMIT] Textarea value length:', document.getElementById('notes-textarea').value.length);
+
             const csrftoken = getCSRFToken();
             const submitButton = this.querySelector('button[type="submit"]');
             const originalButtonText = submitButton.innerHTML;
