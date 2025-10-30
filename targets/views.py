@@ -178,11 +178,46 @@ def save_agenda(request):
         other_plans = request.POST.get('other_plans', '')
         agenda.other_plans = other_plans
 
+        # If other_plans is being cleared, also clear its score
+        if not other_plans:
+            agenda.other_plans_score = None
+
+        # Calculate and save overall day score
+        # Count how many targets/plans are set
+        targets_set = 0
+        total_score = 0
+
+        # Check targets 1-3
+        for i in range(1, 4):
+            target = getattr(agenda, f'target_{i}')
+            target_score = getattr(agenda, f'target_{i}_score')
+
+            # Target is set if it exists
+            if target:
+                targets_set += 1
+                # Add score if it exists (0, 0.5, or 1)
+                if target_score is not None:
+                    total_score += target_score
+
+        # Check other_plans
+        if agenda.other_plans:
+            targets_set += 1
+            # Add score if it exists (0, 0.5, or 1)
+            if agenda.other_plans_score is not None:
+                total_score += agenda.other_plans_score
+
+        # Calculate day score if any targets/plans are set
+        if targets_set > 0:
+            agenda.day_score = total_score / targets_set
+        else:
+            agenda.day_score = None
+
         agenda.save()
 
         return JsonResponse({
             'success': True,
-            'message': 'Today\'s agenda has been set!'
+            'message': 'Today\'s agenda has been set!',
+            'day_score': agenda.day_score
         })
 
     except Exception as e:
