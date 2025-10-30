@@ -224,8 +224,8 @@
                                     <li class="mb-2">
                                         <span class="badge bg-success">{{ todays_activity.sport_names|get_item:workout.sport_id|default:"Unknown" }}</span>
                                         {{ workout.start|date:"g:i A" }} - {{ workout.end|date:"g:i A" }}
-                                        {% if workout.calories %}
-                                        <span class="text-muted">({{ workout.calories|floatformat:0 }} cal)</span>
+                                        {% if workout.calories_burned %}
+                                        <span class="text-muted">({{ workout.calories_burned|floatformat:0 }} cal)</span>
                                         {% endif %}
                                     </li>
                                     {% endfor %}
