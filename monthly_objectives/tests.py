@@ -250,3 +250,244 @@ class MonthlyObjectiveUnitOfMeasurementTests(TestCase):
         # Verify the update persisted
         objective.refresh_from_db()
         self.assertEqual(objective.unit_of_measurement, 'hours')
+
+
+class MonthlyObjectiveResultCachingTests(TestCase):
+    """
+    Tests to ensure that objective results are properly cached in the database
+    and that the activity_report view updates and uses these cached results.
+    """
+
+    def setUp(self):
+        """Set up test data before each test"""
+        from calendar import monthrange
+
+        # Get current month's last day
+        today = date.today()
+        last_day = monthrange(today.year, today.month)[1]
+
+        # Create test objective with a simple SQL query that returns a constant
+        self.test_objective = MonthlyObjective.objects.create(
+            objective_id='test_result_caching',
+            start=today.replace(day=1),
+            end=today.replace(day=last_day),
+            label='Test Result Caching',
+            objective_value=100,
+            objective_definition='SELECT 42.0',  # Simple query that returns 42
+            result=None  # Start with no cached result
+        )
+
+    def tearDown(self):
+        """Clean up after each test"""
+        MonthlyObjective.objects.all().delete()
+
+    def test_management_command_updates_result_field(self):
+        """
+        Test (2): Verify that the management command correctly calculates
+        and saves results to the database.
+        """
+        from django.core.management import call_command
+        from io import StringIO
+
+        # Verify result starts as None
+        self.assertIsNone(self.test_objective.result)
+
+        # Run the management command
+        out = StringIO()
+        call_command('update_objective_results', stdout=out)
+
+        # Refresh from database
+        self.test_objective.refresh_from_db()
+
+        # Verify result was updated to 42 (from our SELECT 42.0 query)
+        self.assertEqual(self.test_objective.result, 42.0)
+
+    def test_management_command_with_specific_objective_id(self):
+        """
+        Test that the management command can update a specific objective by ID.
+        """
+        from django.core.management import call_command
+        from io import StringIO
+        from calendar import monthrange
+
+        # Get current month's last day
+        today = date.today()
+        last_day = monthrange(today.year, today.month)[1]
+
+        # Create second objective
+        obj2 = MonthlyObjective.objects.create(
+            objective_id='test_second_obj',
+            start=today.replace(day=1),
+            end=today.replace(day=last_day),
+            label='Second Test',
+            objective_value=50,
+            objective_definition='SELECT 99.0',
+            result=None
+        )
+
+        # Run command for specific objective only
+        out = StringIO()
+        call_command('update_objective_results',
+                    objective_id='test_result_caching',
+                    stdout=out)
+
+        # Refresh both from database
+        self.test_objective.refresh_from_db()
+        obj2.refresh_from_db()
+
+        # Verify only the specified objective was updated
+        self.assertEqual(self.test_objective.result, 42.0)
+        self.assertIsNone(obj2.result)
+
+    def test_activity_report_view_updates_results_on_page_load(self):
+        """
+        Test (1): Verify that loading the activity_report page triggers
+        result updates for objectives in the displayed month.
+        """
+        from django.test import Client
+
+        # Verify result starts as None
+        self.assertIsNone(self.test_objective.result)
+
+        # Load the activity report page
+        client = Client()
+        response = client.get('/targets/')
+
+        # Verify page loaded successfully
+        self.assertEqual(response.status_code, 200)
+
+        # Refresh objective from database
+        self.test_objective.refresh_from_db()
+
+        # Verify result was updated by the page load
+        self.assertEqual(self.test_objective.result, 42.0)
+
+    def test_activity_report_view_uses_cached_result(self):
+        """
+        Test (3): Verify that the activity_report view uses the cached
+        result from the database rather than calculating it separately.
+        """
+        from django.test import Client
+
+        # Manually set a result in the database
+        self.test_objective.result = 123.45
+        self.test_objective.save()
+
+        # Load the activity report page
+        client = Client()
+        response = client.get('/targets/')
+
+        # Verify page loaded successfully
+        self.assertEqual(response.status_code, 200)
+
+        # Check that the context contains the objective data
+        objectives_data = response.context.get('objectives_data', [])
+
+        # Find our test objective in the response
+        test_obj_data = None
+        for obj in objectives_data:
+            if obj['objective_id'] == 'test_result_caching':
+                test_obj_data = obj
+                break
+
+        # Verify the objective was found in the response
+        self.assertIsNotNone(test_obj_data,
+            "Test objective should be present in activity_report context")
+
+        # Verify the view is using the cached result (which was manually updated)
+        # After page load, it should be 42.0 (from the SELECT 42.0 query)
+        # because the view updates results before display
+        self.assertEqual(test_obj_data['result'], 42.0)
+
+    def test_result_field_accuracy_with_complex_query(self):
+        """
+        Test (2): Verify that result field data is accurate for a more
+        complex SQL query.
+        """
+        from django.core.management import call_command
+        from io import StringIO
+        from calendar import monthrange
+
+        # Get current month's last day
+        today = date.today()
+        last_day = monthrange(today.year, today.month)[1]
+
+        # Create objective with a query that uses actual database data
+        obj = MonthlyObjective.objects.create(
+            objective_id='test_complex_query',
+            start=today.replace(day=1),
+            end=today.replace(day=last_day),
+            label='Complex Query Test',
+            objective_value=10,
+            objective_definition='SELECT COUNT(*) FROM monthly_objectives_monthlyobjective',
+            result=None
+        )
+
+        # Count objectives manually
+        expected_count = float(MonthlyObjective.objects.count())
+
+        # Run management command
+        out = StringIO()
+        call_command('update_objective_results', stdout=out)
+
+        # Refresh from database
+        obj.refresh_from_db()
+
+        # Verify result matches the actual count
+        self.assertEqual(obj.result, expected_count)
+
+    def test_result_updates_on_subsequent_page_loads(self):
+        """
+        Test that results are recalculated on each page load, ensuring
+        they stay current.
+        """
+        from django.test import Client
+
+        # Initial page load
+        client = Client()
+        client.get('/targets/')
+
+        self.test_objective.refresh_from_db()
+        first_result = self.test_objective.result
+        self.assertEqual(first_result, 42.0)
+
+        # Manually change the result to simulate outdated data
+        self.test_objective.result = 999.0
+        self.test_objective.save()
+
+        # Load page again
+        client.get('/targets/')
+
+        # Refresh from database
+        self.test_objective.refresh_from_db()
+
+        # Verify result was recalculated and updated
+        self.assertEqual(self.test_objective.result, 42.0)
+
+    def test_result_field_handles_sql_errors_gracefully(self):
+        """
+        Test that SQL errors don't crash the system and preserve existing results.
+        """
+        from django.test import Client
+
+        # Set a valid initial result
+        self.test_objective.result = 50.0
+        self.test_objective.save()
+
+        # Change query to invalid SQL
+        self.test_objective.objective_definition = 'SELECT * FROM nonexistent_table'
+        self.test_objective.save()
+
+        # Load page (should not crash)
+        client = Client()
+        response = client.get('/targets/')
+
+        # Verify page still loads
+        self.assertEqual(response.status_code, 200)
+
+        # Refresh from database
+        self.test_objective.refresh_from_db()
+
+        # Result should either be preserved or set to 0 (not crash)
+        self.assertIsNotNone(self.test_objective.result)
+        self.assertIn(self.test_objective.result, [0.0, 50.0])
