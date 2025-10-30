@@ -1309,6 +1309,16 @@
                     renderMarkdown(savedNotes);
                     // Switch notes to view mode after successful save
                     toggleNotesMode('view');
+
+                    // Show/hide the Other Plans score section based on whether there's content
+                    const scoreSection = document.getElementById('score_section_4');
+                    if (scoreSection) {
+                        if (savedNotes && savedNotes.trim()) {
+                            scoreSection.style.display = 'block';
+                        } else {
+                            scoreSection.style.display = 'none';
+                        }
+                    }
                 } else {
                     showFlashMessage(data.message || 'Error saving agenda', false);
                 }
