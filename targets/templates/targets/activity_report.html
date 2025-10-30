@@ -257,6 +257,8 @@
                                                        data-target="{{ objective.objective_value }}"
                                                        data-definition="{{ objective.objective_definition }}"
                                                        data-category="{{ objective.category|default:'' }}"
+                                                       data-description="{{ objective.description|default:'' }}"
+                                                       data-unit="{{ objective.unit|default:'' }}"
                                                        title="Edit objective">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
@@ -308,6 +310,8 @@
                                                    data-target="{{ objective.objective_value }}"
                                                    data-definition="{{ objective.objective_definition }}"
                                                    data-category="{{ objective.category|default:'' }}"
+                                                   data-description="{{ objective.description|default:'' }}"
+                                                   data-unit="{{ objective.unit|default:'' }}"
                                                    title="Edit objective">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
@@ -616,13 +620,23 @@
                                        step="0.01" required placeholder="e.g., 15">
                             </div>
                             <div class="col-12">
-                                <label for="objectiveCategory" class="form-label">Category (Optional)</label>
-                                <select class="form-select" id="objectiveCategory" name="category">
+                                <label for="objectiveCategory" class="form-label">Category</label>
+                                <select class="form-select" id="objectiveCategory" name="category" required>
                                     <option value="">-- Select Category --</option>
-                                    {% for category in monthly_objectives.categories %}
+                                    {% for category in monthly_objectives.all_categories %}
                                     <option value="{{ category }}">{{ category }}</option>
                                     {% endfor %}
                                 </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="objectiveDescription" class="form-label">Description</label>
+                                <input type="text" class="form-control" id="objectiveDescription" name="description" required
+                                       placeholder="e.g., Track running workouts for the month">
+                            </div>
+                            <div class="col-12">
+                                <label for="objectiveUnit" class="form-label">Unit of Measurement</label>
+                                <input type="text" class="form-control" id="objectiveUnit" name="unit_of_measurement" required
+                                       placeholder="e.g., minutes, sessions, days, pounds">
                             </div>
                             <div class="col-12">
                                 <label for="objectiveDefinition" class="form-label">Objective Definition (SQL)</label>
@@ -710,6 +724,8 @@
             const labelInput = document.getElementById('label');
             const objectiveValueInput = document.getElementById('objectiveValue');
             const objectiveCategorySelect = document.getElementById('objectiveCategory');
+            const objectiveDescriptionInput = document.getElementById('objectiveDescription');
+            const objectiveUnitInput = document.getElementById('objectiveUnit');
             const objectiveDefinitionInput = document.getElementById('objectiveDefinition');
             const submitBtnText = document.getElementById('submitBtnText');
             const submitBtnIcon = document.getElementById('submitBtnIcon');
@@ -741,39 +757,98 @@
 
             // Helper function to update objective row after editing
             function updateObjectiveRow(objectiveId, objective) {
+                console.log('updateObjectiveRow called with:', objectiveId, objective);
+
                 // Find the edit button with this objective ID
                 const editBtn = document.querySelector(`.edit-objective-btn[data-objective-id="${objectiveId}"]`);
-                if (!editBtn) return;
+                if (!editBtn) {
+                    console.error('Edit button not found for objective:', objectiveId);
+                    return;
+                }
 
                 // Get the row
                 const row = editBtn.closest('tr');
-                if (!row) return;
+                if (!row) {
+                    console.error('Row not found for objective:', objectiveId);
+                    return;
+                }
 
+                console.log('Found row, updating cells...');
                 const cells = row.querySelectorAll('td');
+                console.log('Number of cells:', cells.length);
 
-                // Update label (cell 0)
-                cells[0].textContent = objective.label;
+                // Determine if this is the first row in a category (has 7 cells) or not (has 6 cells)
+                // First row has category cell with rowspan
+                const hasCategoryCell = cells.length === 7;
+                const offset = hasCategoryCell ? 1 : 0;
 
-                // Update target (cell 1)
-                cells[1].textContent = Math.round(objective.target);
+                // Update label cell
+                const labelCell = cells[offset];
+                labelCell.innerHTML = '';
+                labelCell.appendChild(document.createTextNode(objective.label));
 
-                // Update result (cell 2)
-                cells[2].textContent = Math.round(objective.result);
+                // Add description icon if present
+                if (objective.description) {
+                    labelCell.appendChild(document.createTextNode(' '));
+                    const icon = document.createElement('i');
+                    icon.className = 'bi bi-info-circle ms-1';
+                    icon.style.cssText = 'cursor: help; font-size: 0.6rem; opacity: 0.4; color: #6c757d;';
+                    icon.setAttribute('data-bs-toggle', 'tooltip');
+                    icon.setAttribute('data-bs-placement', 'right');
+                    icon.setAttribute('title', objective.description);
+                    labelCell.appendChild(icon);
 
-                // Update progress bar (cell 3)
-                const progressDiv = cells[3].querySelector('.progress-bar');
-                const progressWidth = objective.progress_pct > 100 ? 100 : objective.progress_pct;
-                progressDiv.style.width = progressWidth + '%';
-                progressDiv.setAttribute('aria-valuenow', objective.progress_pct);
-                progressDiv.textContent = objective.progress_pct + '%';
-                progressDiv.className = `progress-bar ${objective.achieved ? 'bg-success' : 'bg-primary'}`;
+                    // Initialize the new tooltip
+                    new bootstrap.Tooltip(icon);
+                }
 
-                // Update edit button data attributes (cell 4)
+                // Cell offsets (skip empty cell at offset+1)
+                const targetCell = cells[offset + 2];
+                const resultCell = cells[offset + 3];
+                const progressCell = cells[offset + 4];
+
+                // Update target with unit and tooltip
+                targetCell.textContent = Math.round(objective.target) + (objective.unit ? ' ' + objective.unit : '');
+                targetCell.setAttribute('title', `Target/week = ${objective.target_per_week}`);
+
+                // Reinitialize tooltip for target cell
+                const existingTooltip = bootstrap.Tooltip.getInstance(targetCell);
+                if (existingTooltip) {
+                    existingTooltip.dispose();
+                }
+                new bootstrap.Tooltip(targetCell);
+
+                // Update result
+                resultCell.textContent = Math.round(objective.result);
+
+                // Update progress bar
+                const progressContainer = progressCell.querySelector('div');
+                if (progressContainer) {
+                    const progressMarker = progressContainer.querySelector('div[style*="position: absolute"]');
+                    const progressText = progressContainer.querySelector('span');
+
+                    const progressWidth = objective.progress_pct > 100 ? 100 : objective.progress_pct;
+                    if (progressMarker) {
+                        progressMarker.style.left = progressWidth + '%';
+                        progressMarker.style.background = objective.achieved ? '#198754' : '#6c757d';
+                    }
+                    progressContainer.style.background = objective.achieved ? '#d4edda' : '#e9ecef';
+                    if (progressText) {
+                        progressText.textContent = objective.progress_pct + '%';
+                    }
+                }
+
+                // Update edit button data attributes
                 editBtn.dataset.label = objective.label;
                 editBtn.dataset.month = objective.month;
                 editBtn.dataset.year = objective.year;
                 editBtn.dataset.target = objective.objective_value;
                 editBtn.dataset.definition = objective.objective_definition;
+                editBtn.dataset.category = objective.category || '';
+                editBtn.dataset.description = objective.description || '';
+                editBtn.dataset.unit = objective.unit || '';
+
+                console.log('Row update complete');
             }
 
             // Handle edit button clicks using event delegation
@@ -802,6 +877,8 @@
                     objectiveYearInput.value = editBtn.dataset.year || '';
                     objectiveValueInput.value = editBtn.dataset.target || '';
                     objectiveCategorySelect.value = editBtn.dataset.category || '';
+                    objectiveDescriptionInput.value = editBtn.dataset.description || '';
+                    objectiveUnitInput.value = editBtn.dataset.unit || '';
                     objectiveDefinitionInput.value = editBtn.dataset.definition || '';
 
                     // Debug: Log form values after setting

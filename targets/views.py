@@ -999,9 +999,11 @@ def create_objective(request):
         objective_value = data.get('objective_value', '')
         objective_definition = data.get('objective_definition', '').strip()
         category = data.get('category', '').strip() or None
+        description = data.get('description', '').strip() or None
+        unit_of_measurement = data.get('unit_of_measurement', '').strip() or None
 
         # Validate required fields
-        if not all([label, month, year, objective_value, objective_definition]):
+        if not all([label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
             return JsonResponse({
                 'error': 'All fields are required'
             }, status=400)
@@ -1068,6 +1070,8 @@ def create_objective(request):
             objective_value=objective_value,
             objective_definition=objective_definition,
             category=category,
+            description=description,
+            unit_of_measurement=unit_of_measurement,
             result=None  # Will be calculated later
         )
 
@@ -1113,9 +1117,11 @@ def update_objective(request):
         objective_value = data.get('objective_value', '')
         objective_definition = data.get('objective_definition', '').strip()
         category = data.get('category', '').strip() or None
+        description = data.get('description', '').strip() or None
+        unit_of_measurement = data.get('unit_of_measurement', '').strip() or None
 
         # Validate required fields
-        if not all([objective_id, label, month, year, objective_value, objective_definition]):
+        if not all([objective_id, label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
             return JsonResponse({
                 'error': 'All fields are required'
             }, status=400)
@@ -1171,6 +1177,8 @@ def update_objective(request):
         objective.objective_value = objective_value
         objective.objective_definition = objective_definition
         objective.category = category
+        objective.description = description
+        objective.unit_of_measurement = unit_of_measurement
         objective.save()
 
         # Re-calculate the result by running the SQL query
@@ -1193,6 +1201,11 @@ def update_objective(request):
             progress_pct = round((result / objective_value) * 100, 1)
             achieved = result >= objective_value
 
+        # Calculate target per week
+        days_in_month = monthrange(year, month)[1]
+        weeks_in_month = days_in_month / 7.0
+        target_per_week = objective_value / weeks_in_month if weeks_in_month > 0 else 0
+
         return JsonResponse({
             'success': True,
             'message': f'Objective "{label}" updated successfully!',
@@ -1207,7 +1220,11 @@ def update_objective(request):
                 'month': month,
                 'year': year,
                 'objective_value': objective_value,
-                'objective_definition': objective_definition
+                'objective_definition': objective_definition,
+                'category': category,
+                'description': description,
+                'unit': unit_of_measurement,
+                'target_per_week': round(target_per_week, 1)
             }
         })
 
