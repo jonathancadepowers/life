@@ -22,11 +22,11 @@ class DailyAgendaAdmin(admin.ModelAdmin):
         ('Target 3', {
             'fields': ('project_3', 'goal_3', 'target_3', 'target_3_score')
         }),
-        ('Overall Score', {
-            'fields': ('day_score',)
-        }),
         ('Other Plans', {
             'fields': ('other_plans', 'other_plans_score')
+        }),
+        ('Overall Score', {
+            'fields': ('day_score',)
         }),
         ('Audit Information', {
             'fields': ('created_at', 'updated_at'),
