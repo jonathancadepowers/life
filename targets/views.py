@@ -1027,6 +1027,12 @@ def create_objective(request):
                 'error': 'Invalid objective value - must be a number'
             }, status=400)
 
+        # Validate objective value is not negative
+        if objective_value < 0:
+            return JsonResponse({
+                'error': 'Objective value must be greater than or equal to zero'
+            }, status=400)
+
         # Get timezone from Settings
         timezone_str = Setting.get('default_timezone_for_monthly_objectives', 'America/Chicago')
 
@@ -1141,6 +1147,12 @@ def update_objective(request):
         except (ValueError, TypeError):
             return JsonResponse({
                 'error': 'Invalid objective value - must be a number'
+            }, status=400)
+
+        # Validate objective value is not negative
+        if objective_value < 0:
+            return JsonResponse({
+                'error': 'Objective value must be greater than or equal to zero'
             }, status=400)
 
         # Get timezone from Settings

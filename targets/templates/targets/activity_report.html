@@ -210,11 +210,8 @@
                                             <th style="width: 120px;">Category</th>
                                             <th style="white-space: nowrap;">Objective</th>
                                             <th></th>
-                                            <th class="text-center" style="width: 80px; padding-right: 30px;">Target</th>
+                                            <th class="text-center" style="width: 140px; padding-right: 30px; white-space: nowrap;">Target</th>
                                             <th class="text-center" style="width: 80px; padding-right: 30px;">Current</th>
-                                            <th class="text-center" style="width: 95px; padding-right: 30px;">Remaining</th>
-                                            <th class="text-center" style="width: 110px; padding-right: 30px;">Target/Week</th>
-                                            <th class="text-center" style="width: 90px; padding-right: 30px;">Unit</th>
                                             <th style="width: 250px;">Progress</th>
                                             <th style="width: 80px;"></th>
                                         </tr>
@@ -239,11 +236,11 @@
                                                     {% endif %}
                                                 </td>
                                                 <td></td>
-                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.target|floatformat:0 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px; cursor: help;"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
                                                 <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.result|floatformat:0 }}</td>
-                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.remaining|floatformat:0 }}</td>
-                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.target_per_week|floatformat:1 }}</td>
-                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.unit|default:"-" }}</td>
                                                 <td class="align-middle">
                                                     <!-- Linear progress indicator with marker -->
                                                     <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">
@@ -290,11 +287,11 @@
                                                 {% endif %}
                                             </td>
                                             <td></td>
-                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.target|floatformat:0 }}</td>
+                                            <td class="text-center align-middle" style="padding-right: 30px; cursor: help;"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
+                                                title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
                                             <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.result|floatformat:0 }}</td>
-                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.remaining|floatformat:0 }}</td>
-                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.target_per_week|floatformat:1 }}</td>
-                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.unit|default:"-" }}</td>
                                             <td class="align-middle">
                                                 <!-- Linear progress indicator with marker -->
                                                 <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">
@@ -936,10 +933,8 @@
 
                     if (response.ok) {
                         // Close the modal immediately
-                        const modalInstance = bootstrap.Modal.getInstance(createObjectiveModal);
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        }
+                        const modalInstance = bootstrap.Modal.getInstance(createObjectiveModal) || new bootstrap.Modal(createObjectiveModal);
+                        modalInstance.hide();
 
                         // Show flash message on main page
                         showFlashMessage(result.message || 'Objective saved successfully!');

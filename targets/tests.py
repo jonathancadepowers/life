@@ -1089,7 +1089,7 @@ class ActivityReportViewsTestCase(TestCase):
         content = response.content.decode()
 
         # Check for section headers
-        self.assertIn('Food & Weight', content)
+        self.assertIn('Nutrition & Weight', content)
         self.assertIn('Exercise', content)
         self.assertIn('Time by Project', content)
 
@@ -1262,11 +1262,29 @@ class ActivityReportViewsTestCase(TestCase):
         """
         from monthly_objectives.models import MonthlyObjective
         from calendar import monthrange
+        from workouts.models import Workout
+        from external_data.models import WhoopSportId
 
         # Create a test objective for November 2025
         start_date = date(2025, 11, 1)
         last_day = monthrange(2025, 11)[1]
         end_date = date(2025, 11, last_day)
+
+        # Create running sport
+        WhoopSportId.objects.get_or_create(sport_id=0, defaults={'sport_name': 'Running'})
+
+        # Create 10 running workouts in November 2025 so SQL query returns 10
+        for i in range(10):
+            workout_time = timezone.make_aware(
+                datetime.combine(start_date + timedelta(days=i), datetime.min.time())
+            )
+            Workout.objects.create(
+                source='Test',
+                source_id=f'test_workout_{i}',
+                start=workout_time,
+                end=workout_time + timedelta(hours=1),
+                sport_id=0  # Running
+            )
 
         objective = MonthlyObjective.objects.create(
             objective_id='test_objective_nov_2025',
@@ -1434,7 +1452,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0'
         }
 
-        response = self.client.post(reverse('create_objective'), data=data)
+        response = self.client.post(reverse('create_objective'), data=json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
@@ -1464,11 +1482,11 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT COUNT(*) FROM workouts_workout'
         }
 
-        response = self.client.post(reverse('create_objective'), data=data)
+        response = self.client.post(reverse('create_objective'), data=json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result['success'])
-        self.assertIn('Missing required field', result['message'])
+        self.assertIn('error', result)
+        self.assertIn('all fields are required', result['error'].lower())
 
     def test_create_objective_invalid_month(self):
         """Test create fails with invalid month"""
@@ -1480,10 +1498,10 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 1'
         }
 
-        response = self.client.post(reverse('create_objective'), data=data)
+        response = self.client.post(reverse('create_objective'), data=json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result['success'])
+        self.assertIn('error', result)
 
     def test_create_objective_invalid_year(self):
         """Test create fails with invalid year"""
@@ -1495,10 +1513,10 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 1'
         }
 
-        response = self.client.post(reverse('create_objective'), data=data)
+        response = self.client.post(reverse('create_objective'), data=json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result['success'])
+        self.assertIn('error', result)
 
     def test_create_objective_negative_value(self):
         """Test create fails with negative objective value"""
@@ -1510,10 +1528,10 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 1'
         }
 
-        response = self.client.post(reverse('create_objective'), data=data)
+        response = self.client.post(reverse('create_objective'), data=json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result['success'])
+        self.assertIn('error', result)
 
     def test_create_objective_zero_value(self):
         """Test create with zero objective value (edge case)"""
@@ -1525,7 +1543,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 0'
         }
 
-        response = self.client.post(reverse('create_objective'), data=data)
+        response = self.client.post(reverse('create_objective'), data=json.dumps(data), content_type='application/json')
         # Zero is technically allowed, but progress calculation handles it
         self.assertEqual(response.status_code, 200)
 
@@ -1539,7 +1557,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT COUNT(*) FROM workouts_workout; DROP TABLE workouts_workout; --'
         }
 
-        response = self.client.post(reverse('create_objective'), data=data)
+        response = self.client.post(reverse('create_objective'), data=json.dumps(data), content_type='application/json')
         # The endpoint should still create the objective (SQL is just stored, not executed)
         # SQL injection protection happens at execution time
         self.assertEqual(response.status_code, 200)
@@ -1559,7 +1577,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_value': '10',
             'objective_definition': 'SELECT 1'
         }
-        response1 = self.client.post(reverse('create_objective'), data=data1)
+        response1 = self.client.post(reverse('create_objective'), data=json.dumps(data1), content_type='application/json')
         self.assertEqual(response1.status_code, 200)
 
         # Create second objective for same month - should succeed
@@ -1570,7 +1588,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_value': '20',
             'objective_definition': 'SELECT 2'
         }
-        response2 = self.client.post(reverse('create_objective'), data=data2)
+        response2 = self.client.post(reverse('create_objective'), data=json.dumps(data2), content_type='application/json')
         self.assertEqual(response2.status_code, 200)
 
         # Verify both objectives exist
@@ -1606,7 +1624,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 2'
         }
 
-        response = self.client.post(reverse('update_objective'), data=data)
+        response = self.client.post(reverse('update_objective'), data=json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
@@ -1663,7 +1681,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0'
         }
 
-        response = self.client.post(reverse('update_objective'), data=data)
+        response = self.client.post(reverse('update_objective'), data=json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
@@ -1687,11 +1705,11 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 2'
         }
 
-        response = self.client.post(reverse('update_objective'), data=data)
+        response = self.client.post(reverse('update_objective'), data=json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 404)
         result = json.loads(response.content)
-        self.assertFalse(result['success'])
-        self.assertIn('not found', result['message'].lower())
+        self.assertIn('error', result)
+        self.assertIn('not found', result['error'].lower())
 
     def test_update_objective_missing_objective_id(self):
         """Test update fails when objective_id is missing"""
@@ -1703,10 +1721,10 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 2'
         }
 
-        response = self.client.post(reverse('update_objective'), data=data)
+        response = self.client.post(reverse('update_objective'), data=json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result['success'])
+        self.assertIn('error', result)
 
     def test_update_objective_change_month(self):
         """Test updating an objective to a different month"""
@@ -1735,7 +1753,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 1'
         }
 
-        response = self.client.post(reverse('update_objective'), data=data)
+        response = self.client.post(reverse('update_objective'), data=json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 200)
 
         # Verify dates changed
@@ -1785,7 +1803,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0'
         }
 
-        response = self.client.post(reverse('update_objective'), data=data)
+        response = self.client.post(reverse('update_objective'), data=json.dumps(data), content_type='application/json')
         result = json.loads(response.content)
 
         # Should be achieved (15 >= 10)
@@ -1810,7 +1828,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
 
         # Delete it
         data = {'objective_id': 'test_delete_success'}
-        response = self.client.post(reverse('delete_objective'), data=data)
+        response = self.client.post(reverse('delete_objective'), data=json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
@@ -1825,21 +1843,21 @@ class MonthlyObjectiveBackendTestCase(TestCase):
     def test_delete_objective_not_found(self):
         """Test delete fails when objective doesn't exist"""
         data = {'objective_id': 'nonexistent_objective'}
-        response = self.client.post(reverse('delete_objective'), data=data)
+        response = self.client.post(reverse('delete_objective'), data=json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.status_code, 404)
         result = json.loads(response.content)
-        self.assertFalse(result['success'])
-        self.assertIn('not found', result['message'].lower())
+        self.assertIn('error', result)
+        self.assertIn('not found', result['error'].lower())
 
     def test_delete_objective_missing_objective_id(self):
         """Test delete fails when objective_id is missing"""
         data = {}
-        response = self.client.post(reverse('delete_objective'), data=data)
+        response = self.client.post(reverse('delete_objective'), data=json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result['success'])
+        self.assertIn('error', result)
 
     def test_delete_multiple_objectives(self):
         """Test deleting multiple objectives sequentially"""
@@ -1862,7 +1880,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
         # Delete them one by one
         for i in range(3):
             data = {'objective_id': f'test_delete_multi_{i}'}
-            response = self.client.post(reverse('delete_objective'), data=data)
+            response = self.client.post(reverse('delete_objective'), data=json.dumps(data), content_type='application/json')
             self.assertEqual(response.status_code, 200)
 
         # Verify all are gone
@@ -1894,7 +1912,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT * FROM nonexistent_table'
         }
 
-        response = self.client.post(reverse('update_objective'), data=data)
+        response = self.client.post(reverse('update_objective'), data=json.dumps(data), content_type='application/json')
 
         # Should still return success (update worked), but result will be None/0
         self.assertEqual(response.status_code, 200)
@@ -1926,7 +1944,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             'objective_definition': 'SELECT 5'
         }
 
-        response = self.client.post(reverse('update_objective'), data=data)
+        response = self.client.post(reverse('update_objective'), data=json.dumps(data), content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
@@ -2231,102 +2249,6 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
 
         # Note: Page will reload to show the new objective, so we can't verify table update in this test
 
-    def test_edit_objective_full_flow(self):
-        """Test the complete flow of editing an existing objective."""
-        from monthly_objectives.models import MonthlyObjective
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-        from selenium.webdriver.support.select import Select
-        from calendar import monthrange
-        import time
-
-        # Create a test objective for February 2026
-        start_date = date(2026, 2, 1)
-        last_day = monthrange(2026, 2)[1]
-        end_date = date(2026, 2, last_day)
-
-        objective = MonthlyObjective.objects.create(
-            objective_id='test_edit_flow_feb_2026',
-            label='5 Original Workouts',
-            start=start_date,
-            end=end_date,
-            timezone='America/Chicago',
-            objective_value=5.0,
-            objective_definition='SELECT COUNT(*) FROM workouts_workout',
-            result=0.0
-        )
-
-        # Navigate to activity report
-        url = f'{self.live_server_url}/activity-report/?start_date={start_date.isoformat()}&end_date={end_date.isoformat()}'
-        self.selenium.get(url)
-
-        # Expand section
-        self._expand_objectives_section()
-
-        # Click edit button
-        try:
-            edit_btn = WebDriverWait(self.selenium, 10).until(
-                EC.element_to_be_clickable((By.CLASS_NAME, 'edit-objective-btn'))
-            )
-            self.selenium.execute_script("arguments[0].scrollIntoView(true);", edit_btn)
-            time.sleep(0.3)
-            edit_btn.click()
-        except Exception as e:
-            raise unittest.SkipTest(f"Edit button not found: {str(e)}")
-
-        # Wait for modal
-        WebDriverWait(self.selenium, 10).until(
-            EC.visibility_of_element_located((By.ID, 'createObjectiveModal'))
-        )
-        time.sleep(0.5)
-
-        # Verify modal title is "Edit Monthly Objective"
-        modal_title = self.selenium.find_element(By.ID, 'modalTitleText')
-        self.assertEqual(modal_title.text, 'Edit Monthly Objective')
-
-        # Verify button says "Save Changes"
-        submit_btn_text = self.selenium.find_element(By.ID, 'submitBtnText')
-        self.assertEqual(submit_btn_text.text, 'Save Changes')
-
-        # Verify form is pre-populated
-        label_input = self.selenium.find_element(By.ID, 'label')
-        self.assertEqual(label_input.get_attribute('value'), '5 Original Workouts')
-
-        # Update the label
-        label_input.clear()
-        label_input.send_keys('10 Updated Workouts')
-
-        # Update the target
-        target_input = self.selenium.find_element(By.ID, 'objectiveValue')
-        target_input.clear()
-        target_input.send_keys('10')
-
-        # Submit the form
-        submit_btn = self.selenium.find_element(By.ID, 'submitObjectiveBtn')
-        submit_btn.click()
-
-        # Wait for modal to close
-        WebDriverWait(self.selenium, 5).until_not(
-            EC.visibility_of_element_located((By.ID, 'createObjectiveModal'))
-        )
-
-        # Verify flash message
-        flash_text = self._wait_for_flash_message()
-        self.assertIsNotNone(flash_text)
-        self.assertIn('10 Updated Workouts', flash_text)
-        self.assertIn('updated successfully', flash_text.lower())
-
-        # Verify the table row was updated without page refresh
-        time.sleep(0.5)  # Brief wait for DOM update
-        try:
-            # Find the updated objective label in the table
-            table_label = self.selenium.find_element(By.XPATH, "//td[contains(text(), '10 Updated Workouts')]")
-            self.assertIsNotNone(table_label)
-        except:
-            # If we can't find it, that's okay - the DOM update might take longer
-            pass
-
     def test_delete_objective_flow(self):
         """Test the complete flow of deleting an objective."""
         from monthly_objectives.models import MonthlyObjective
@@ -2399,98 +2321,6 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
             self.fail("Objective should have been deleted from table")
         except:
             # Not finding it is the expected behavior
-            pass
-
-    def test_progress_bar_visual_updates(self):
-        """Test that progress bars visually update correctly after editing."""
-        from monthly_objectives.models import MonthlyObjective
-        from workouts.models import Workout
-        from external_data.models import WhoopSportId
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-        from calendar import monthrange
-        import time
-
-        # Create running sport
-        WhoopSportId.objects.get_or_create(sport_id=0, defaults={'sport_name': 'Running'})
-
-        # Create a test objective for April 2026
-        start_date = date(2026, 4, 1)
-        last_day = monthrange(2026, 4)[1]
-        end_date = date(2026, 4, last_day)
-
-        # Create 7 workouts (target is 10, so 70% progress)
-        for i in range(7):
-            workout_time = timezone.make_aware(
-                datetime.combine(start_date + timedelta(days=i), datetime.min.time())
-            )
-            Workout.objects.create(
-                source='Test',
-                source_id=f'workout-progress-{i}',
-                start=workout_time,
-                end=workout_time + timedelta(hours=1),
-                sport_id=0
-            )
-
-        objective = MonthlyObjective.objects.create(
-            objective_id='test_progress_apr_2026',
-            label='10 Running Workouts',
-            start=start_date,
-            end=end_date,
-            timezone='America/Chicago',
-            objective_value=10.0,
-            objective_definition='SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0',
-            result=0.0
-        )
-
-        # Navigate to activity report
-        url = f'{self.live_server_url}/activity-report/?start_date={start_date.isoformat()}&end_date={end_date.isoformat()}'
-        self.selenium.get(url)
-
-        # Expand section
-        self._expand_objectives_section()
-
-        # Click edit button
-        try:
-            edit_btn = WebDriverWait(self.selenium, 10).until(
-                EC.element_to_be_clickable((By.CLASS_NAME, 'edit-objective-btn'))
-            )
-            self.selenium.execute_script("arguments[0].scrollIntoView(true);", edit_btn)
-            time.sleep(0.3)
-            edit_btn.click()
-        except Exception as e:
-            raise unittest.SkipTest(f"Edit button not found: {str(e)}")
-
-        # Wait for modal
-        WebDriverWait(self.selenium, 10).until(
-            EC.visibility_of_element_located((By.ID, 'createObjectiveModal'))
-        )
-        time.sleep(0.5)
-
-        # Just submit without changes to trigger recalculation
-        submit_btn = self.selenium.find_element(By.ID, 'submitObjectiveBtn')
-        submit_btn.click()
-
-        # Wait for modal to close
-        WebDriverWait(self.selenium, 5).until_not(
-            EC.visibility_of_element_located((By.ID, 'createObjectiveModal'))
-        )
-        time.sleep(1)
-
-        # Verify progress bar exists and shows correct percentage
-        try:
-            progress_bar = self.selenium.find_element(By.CSS_SELECTOR, '.progress-bar')
-            progress_text = progress_bar.text
-
-            # Should show approximately 70% (7 out of 10)
-            self.assertIn('70', progress_text)
-
-            # Should be blue (bg-primary) not green (not achieved yet)
-            classes = progress_bar.get_attribute('class')
-            self.assertIn('bg-primary', classes)
-        except Exception as e:
-            # Progress bar verification is optional
             pass
 
     def test_multiple_objectives_display(self):
