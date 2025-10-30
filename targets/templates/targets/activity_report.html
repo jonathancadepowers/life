@@ -642,6 +642,7 @@
                                 <label for="objectiveDefinition" class="form-label">Objective Definition (SQL)</label>
                                 <textarea class="form-control" id="objectiveDefinition" name="objective_definition"
                                           rows="4" required placeholder="SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0 AND DATE(start) >= '2025-12-01' AND DATE(start) <= '2025-12-31'"></textarea>
+                                <div id="sqlValidationFeedback" class="form-text"></div>
                             </div>
                         </div>
                         <div id="createObjectiveError" class="alert alert-danger mt-3 d-none"></div>
@@ -730,9 +731,92 @@
             const submitBtnText = document.getElementById('submitBtnText');
             const submitBtnIcon = document.getElementById('submitBtnIcon');
             const flashMessageContainer = document.getElementById('flashMessageContainer');
+            const sqlValidationFeedback = document.getElementById('sqlValidationFeedback');
+            const submitObjectiveBtn = document.getElementById('submitObjectiveBtn');
 
             // Track whether we're in edit mode
             let isEditMode = false;
+            let sqlIsValid = false;
+
+            // SQL Validation function
+            function validateSQL(sql) {
+                const trimmedSQL = sql.trim();
+
+                // Empty check
+                if (!trimmedSQL) {
+                    return { valid: false, message: '' };
+                }
+
+                // Must start with SELECT (case insensitive)
+                if (!trimmedSQL.match(/^\s*SELECT/i)) {
+                    return {
+                        valid: false,
+                        message: 'SQL must start with SELECT statement'
+                    };
+                }
+
+                // Must contain FROM clause
+                if (!trimmedSQL.match(/\bFROM\b/i)) {
+                    return {
+                        valid: false,
+                        message: 'SQL must contain a FROM clause'
+                    };
+                }
+
+                // Check for balanced parentheses
+                const openParens = (trimmedSQL.match(/\(/g) || []).length;
+                const closeParens = (trimmedSQL.match(/\)/g) || []).length;
+                if (openParens !== closeParens) {
+                    return {
+                        valid: false,
+                        message: 'Unbalanced parentheses in SQL query'
+                    };
+                }
+
+                // Check for balanced single quotes (basic check)
+                const singleQuotes = (trimmedSQL.match(/'/g) || []).length;
+                if (singleQuotes % 2 !== 0) {
+                    return {
+                        valid: false,
+                        message: 'Unbalanced single quotes in SQL query'
+                    };
+                }
+
+                // Warn about dangerous operations (but allow them)
+                const dangerousKeywords = /\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|TRUNCATE|REPLACE)\b/i;
+                if (dangerousKeywords.test(trimmedSQL)) {
+                    return {
+                        valid: false,
+                        message: 'Dangerous SQL operations (DROP, DELETE, UPDATE, etc.) are not allowed. Use SELECT queries only.'
+                    };
+                }
+
+                // All checks passed
+                return {
+                    valid: true,
+                    message: 'SQL syntax looks valid'
+                };
+            }
+
+            // Real-time SQL validation
+            objectiveDefinitionInput.addEventListener('input', function() {
+                const validation = validateSQL(this.value);
+                sqlIsValid = validation.valid;
+
+                if (!this.value.trim()) {
+                    sqlValidationFeedback.textContent = '';
+                    sqlValidationFeedback.className = 'form-text';
+                    submitObjectiveBtn.disabled = false;
+                } else if (validation.valid) {
+                    sqlValidationFeedback.textContent = '✓ ' + validation.message;
+                    sqlValidationFeedback.className = 'form-text text-success';
+                    submitObjectiveBtn.disabled = false;
+                } else {
+                    sqlValidationFeedback.textContent = '✗ ' + validation.message;
+                    sqlValidationFeedback.className = 'form-text text-danger';
+                    submitObjectiveBtn.disabled = true;
+                }
+            });
 
             // Helper function to show flash message on main page
             function showFlashMessage(message, isError = false) {
@@ -974,6 +1058,25 @@
                         const endDate = new Date(currentEndDate);
                         objectiveMonthSelect.value = endDate.getMonth() + 1; // getMonth() is 0-indexed
                         objectiveYearInput.value = endDate.getFullYear();
+                    }
+
+                    // Reset SQL validation
+                    sqlValidationFeedback.textContent = '';
+                    sqlValidationFeedback.className = 'form-text';
+                    submitObjectiveBtn.disabled = false;
+                } else {
+                    // In edit mode, validate the existing SQL
+                    const validation = validateSQL(objectiveDefinitionInput.value);
+                    sqlIsValid = validation.valid;
+
+                    if (validation.valid) {
+                        sqlValidationFeedback.textContent = '✓ ' + validation.message;
+                        sqlValidationFeedback.className = 'form-text text-success';
+                        submitObjectiveBtn.disabled = false;
+                    } else {
+                        sqlValidationFeedback.textContent = '✗ ' + validation.message;
+                        sqlValidationFeedback.className = 'form-text text-danger';
+                        submitObjectiveBtn.disabled = true;
                     }
                 }
                 // Reset the flag after modal is shown
