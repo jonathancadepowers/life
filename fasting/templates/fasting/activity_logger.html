@@ -90,6 +90,15 @@
         .calendar-day.clickable.future:hover {
             background: #218838;
         }
+        .calendar-day.clickable.today {
+            background: #fd7e14;
+            color: white;
+            border: 2px solid #dc6502;
+            font-weight: 600;
+        }
+        .calendar-day.clickable.today:hover {
+            background: #e8590c;
+        }
         .calendar-day.empty {
             border: none;
             background: transparent;
@@ -1418,14 +1427,24 @@
                 // Make clickable if:
                 // 1. Has an agenda (past date with data)
                 // 2. Is today or future (for creating new agendas)
+                const isToday = currentDate.getTime() === today.getTime();
+
                 if (availableDates.includes(dateStr)) {
                     // Has existing agenda
                     dayDiv.classList.add('clickable');
+                    // Check if it's also today
+                    if (isToday) {
+                        dayDiv.classList.add('today');
+                    }
                     dayDiv.onclick = () => selectDate(dateStr);
                 } else if (currentDate >= today) {
                     // Today or future date (no agenda yet)
                     dayDiv.classList.add('clickable');
-                    dayDiv.classList.add('future');
+                    if (isToday) {
+                        dayDiv.classList.add('today');
+                    } else {
+                        dayDiv.classList.add('future');
+                    }
                     dayDiv.onclick = () => selectDate(dateStr, true); // true = isFuture
                 }
 
