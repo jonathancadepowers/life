@@ -907,22 +907,32 @@ def activity_report(request):
         end=target_month_last_day
     ).order_by('label')
 
-    # Format objectives data for template
-    objectives_data = []
+    # Update objective results before displaying
     for obj in monthly_objectives:
-        # Execute SQL query to get current result
-        result = None
         try:
             with connection.cursor() as cursor:
                 cursor.execute(obj.objective_definition)
                 row = cursor.fetchone()
-                if row:
-                    result = float(row[0]) if row[0] is not None else 0
+
+                if row and row[0] is not None:
+                    result = float(row[0])
                 else:
-                    result = 0
-        except Exception as e:
-            # If SQL fails, default to 0
-            result = 0
+                    result = 0.0
+
+                # Update the result field in database
+                obj.result = result
+                obj.save(update_fields=['result'])
+        except Exception:
+            # If SQL fails, keep existing result or set to 0
+            if obj.result is None:
+                obj.result = 0.0
+                obj.save(update_fields=['result'])
+
+    # Format objectives data for template
+    objectives_data = []
+    for obj in monthly_objectives:
+        # Use cached result from database
+        result = obj.result if obj.result is not None else 0
 
         # Calculate progress
         progress_pct = 0
