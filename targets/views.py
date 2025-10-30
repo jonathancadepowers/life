@@ -1008,6 +1008,50 @@ def activity_report(request):
         'crosses_months': crosses_months,
     }
 
+    # TODAY'S ACTIVITY DATA
+    today = timezone.now().date()
+    today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+    today_end = timezone.make_aware(datetime.combine(today, datetime.max.time()))
+
+    # Today's workouts
+    todays_workouts = Workout.objects.filter(
+        start__gte=today_start,
+        start__lte=today_end
+    ).order_by('-start')
+
+    # Today's time logs with projects and goals
+    todays_time_logs = TimeLog.objects.filter(
+        start__gte=today_start,
+        start__lte=today_end
+    ).prefetch_related('goals').order_by('-start')
+
+    # Today's fasting sessions
+    todays_fasts = FastingSession.objects.filter(
+        fast_end_date__gte=today_start,
+        fast_end_date__lte=today_end
+    ).order_by('-fast_end_date')
+
+    # Today's nutrition entries
+    todays_nutrition = NutritionEntry.objects.filter(
+        consumption_date__gte=today_start,
+        consumption_date__lte=today_end
+    ).order_by('-consumption_date')
+
+    # Today's weigh-ins
+    todays_weighins = WeighIn.objects.filter(
+        measurement_time__gte=today_start,
+        measurement_time__lte=today_end
+    ).order_by('-measurement_time')
+
+    todays_activity = {
+        'workouts': todays_workouts,
+        'time_logs': todays_time_logs,
+        'fasts': todays_fasts,
+        'nutrition': todays_nutrition,
+        'weighins': todays_weighins,
+        'sport_names': sport_names_dict,
+    }
+
     context = {
         'start_date': start_date,
         'end_date': end_date,
@@ -1019,6 +1063,8 @@ def activity_report(request):
         'time_by_project': time_by_project,
         'total_time_hours': round(total_time_hours, 1),
         'monthly_objectives': monthly_objectives_context,
+        'todays_activity': todays_activity,
+        'today': today,
     }
 
     return render(request, 'targets/activity_report.html', context)

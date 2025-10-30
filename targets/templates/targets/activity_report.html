@@ -122,6 +122,31 @@
         .section-header-objectives[aria-expanded="true"] .chevron {
             transform: rotate(180deg);
         }
+        .section-header-activity {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #495057;
+            border-bottom: 3px solid #198754;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s;
+        }
+        .section-header-activity:hover {
+            background-color: rgba(25, 135, 84, 0.05);
+            padding-left: 0.5rem;
+        }
+        .section-header-activity i {
+            color: #198754;
+        }
+        .section-header-activity .chevron {
+            float: right;
+            transition: transform 0.3s;
+        }
+        .section-header-activity[aria-expanded="true"] .chevron {
+            transform: rotate(180deg);
+        }
         .goal-breakdown {
             margin-top: 0.5rem;
             padding-left: 1rem;
@@ -166,6 +191,126 @@
                     <span class="badge bg-primary ms-2">{{ days_in_range }} days</span>
                     <div class="spinner-border spinner-border-sm ms-2 d-none" role="status" id="loading-spinner">
                         <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Activity Section -->
+        <div class="row mt-5 mb-3">
+            <div class="col-12">
+                <h3 class="section-header-activity" data-bs-toggle="collapse" data-bs-target="#todaysActivitySection" aria-expanded="true" aria-controls="todaysActivitySection">
+                    <i class="bi bi-calendar-check"></i> Today's Activity
+                    <i class="bi bi-chevron-down chevron"></i>
+                </h3>
+            </div>
+        </div>
+
+        <div id="todaysActivitySection" class="collapse show">
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="text-muted mb-3" style="font-size: 0.9rem;">
+                                <strong>{{ today|date:"l, F j, Y" }}</strong>
+                            </div>
+
+                            <!-- Workouts -->
+                            {% if todays_activity.workouts %}
+                            <div class="mb-4">
+                                <h6 class="text-success mb-2"><i class="bi bi-lightning-charge"></i> Workouts</h6>
+                                <ul class="list-unstyled ms-3">
+                                    {% for workout in todays_activity.workouts %}
+                                    <li class="mb-2">
+                                        <span class="badge bg-success">{{ todays_activity.sport_names|get_item:workout.sport_id|default:"Unknown" }}</span>
+                                        {{ workout.start|date:"g:i A" }} - {{ workout.end|date:"g:i A" }}
+                                        {% if workout.calories %}
+                                        <span class="text-muted">({{ workout.calories|floatformat:0 }} cal)</span>
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <!-- Time Logs -->
+                            {% if todays_activity.time_logs %}
+                            <div class="mb-4">
+                                <h6 class="text-success mb-2"><i class="bi bi-clock-history"></i> Time Tracking</h6>
+                                <ul class="list-unstyled ms-3">
+                                    {% for log in todays_activity.time_logs %}
+                                    <li class="mb-2">
+                                        <strong>{{ log.project_id }}</strong>
+                                        {% if log.goals.all %}
+                                        <span class="text-muted">
+                                            ({% for goal in log.goals.all %}{{ goal.display_string }}{% if not forloop.last %}, {% endif %}{% endfor %})
+                                        </span>
+                                        {% endif %}
+                                        - {{ log.duration_minutes|floatformat:0 }} min
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <!-- Fasts -->
+                            {% if todays_activity.fasts %}
+                            <div class="mb-4">
+                                <h6 class="text-success mb-2"><i class="bi bi-hourglass-split"></i> Fasting</h6>
+                                <ul class="list-unstyled ms-3">
+                                    {% for fast in todays_activity.fasts %}
+                                    <li class="mb-2">
+                                        Completed {{ fast.duration|floatformat:1 }} hour fast
+                                        <span class="text-muted">(ended {{ fast.fast_end_date|date:"g:i A" }})</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <!-- Nutrition -->
+                            {% if todays_activity.nutrition %}
+                            <div class="mb-4">
+                                <h6 class="text-success mb-2"><i class="bi bi-egg-fried"></i> Nutrition</h6>
+                                <ul class="list-unstyled ms-3">
+                                    {% for entry in todays_activity.nutrition %}
+                                    <li class="mb-2">
+                                        {{ entry.consumption_date|date:"g:i A" }}
+                                        - {{ entry.calories|floatformat:0 }} cal
+                                        {% if entry.protein or entry.carbs or entry.fat %}
+                                        <span class="text-muted">
+                                            (P: {{ entry.protein|floatformat:0 }}g, C: {{ entry.carbs|floatformat:0 }}g, F: {{ entry.fat|floatformat:0 }}g)
+                                        </span>
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <!-- Weigh-ins -->
+                            {% if todays_activity.weighins %}
+                            <div class="mb-4">
+                                <h6 class="text-success mb-2"><i class="bi bi-speedometer2"></i> Weigh-ins</h6>
+                                <ul class="list-unstyled ms-3">
+                                    {% for weighin in todays_activity.weighins %}
+                                    <li class="mb-2">
+                                        {{ weighin.weight|floatformat:1 }} lbs
+                                        <span class="text-muted">({{ weighin.measurement_time|date:"g:i A" }})</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <!-- Empty state -->
+                            {% if not todays_activity.workouts and not todays_activity.time_logs and not todays_activity.fasts and not todays_activity.nutrition and not todays_activity.weighins %}
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                                <p class="mt-2">No activity recorded for today yet.</p>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
