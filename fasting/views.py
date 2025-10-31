@@ -195,7 +195,16 @@ def master_sync(request):
         auth_errors = {}
         if 'Whoop refresh token expired' in full_output or 'python manage.py whoop_auth' in full_output:
             auth_errors['whoop'] = True
-        if 'Withings' in full_output and ('refresh token' in full_output.lower() or 'python manage.py withings_auth' in full_output):
+
+        # Check for Withings auth errors (refresh token expired, invalid_token, or access token issues)
+        withings_in_output = 'Withings' in full_output or 'WITHINGS' in full_output
+        withings_auth_error = (
+            'refresh token' in full_output.lower() or
+            'python manage.py withings_auth' in full_output or
+            'invalid_token' in full_output.lower() or
+            'access token provided is invalid' in full_output.lower()
+        )
+        if withings_in_output and withings_auth_error:
             auth_errors['withings'] = True
 
         # Create message with count
