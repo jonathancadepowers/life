@@ -216,97 +216,205 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <div class="text-muted mb-3" style="font-size: 0.9rem;">
-                                <strong>{{ today|date:"l, F j, Y" }}</strong>
-                            </div>
+                            <style>
+                                .activity-section-wrapper {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 20px;
+                                }
+                                .activity-pill {
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 12px 20px;
+                                    margin: 6px;
+                                    border-radius: 12px;
+                                    background: #f8f9fa;
+                                    border: 2px solid;
+                                    font-size: 1rem;
+                                    font-weight: 500;
+                                    color: #2c3e50;
+                                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                                    transition: all 0.2s ease;
+                                    cursor: help;
+                                    position: relative;
+                                }
+                                .activity-pill:hover {
+                                    transform: translateY(-2px);
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                                    background: #ffffff;
+                                }
+                                .activity-pill i {
+                                    font-size: 1.5rem;
+                                }
+                                /* Colored borders for each activity type */
+                                .activity-pill-workouts {
+                                    border-color: #212529;
+                                }
+                                .activity-pill-workouts i {
+                                    color: #212529;
+                                }
+                                .activity-pill-fasting {
+                                    border-color: #212529;
+                                }
+                                .activity-pill-fasting i {
+                                    color: #212529;
+                                }
+                                .activity-pill-nutrition {
+                                    border-color: #212529;
+                                }
+                                .activity-pill-nutrition i {
+                                    color: #212529;
+                                }
+                                .activity-pill-weight {
+                                    border-color: #212529;
+                                }
+                                .activity-pill-weight i {
+                                    color: #212529;
+                                }
+                                .activity-pill-time {
+                                    border-color: #212529;
+                                }
+                                .activity-pill-time i {
+                                    color: #212529;
+                                }
+                                .activity-pills-container {
+                                    display: flex;
+                                    flex-wrap: wrap;
+                                    gap: 4px;
+                                    flex: 1;
+                                }
+                                .activity-date-label {
+                                    font-size: 0.75rem;
+                                    font-weight: 600;
+                                    color: #6c757d;
+                                    writing-mode: vertical-rl;
+                                    transform: rotate(180deg);
+                                    padding-right: 12px;
+                                    display: flex;
+                                    align-items: center;
+                                    letter-spacing: 0.5px;
+                                    position: relative;
+                                    top: 2px;
+                                }
+                                /* Tooltip styling */
+                                .activity-pill::after {
+                                    content: attr(data-tooltip);
+                                    position: absolute;
+                                    bottom: 100%;
+                                    left: 50%;
+                                    transform: translateX(-50%) translateY(-8px);
+                                    background: rgba(0, 0, 0, 0.9);
+                                    color: white;
+                                    padding: 10px 14px;
+                                    border-radius: 6px;
+                                    font-size: 0.85rem;
+                                    white-space: pre;
+                                    opacity: 0;
+                                    pointer-events: none;
+                                    transition: opacity 0.2s ease;
+                                    z-index: 1000;
+                                    text-align: left;
+                                }
+                                .activity-pill:hover::after {
+                                    opacity: 1;
+                                }
+                            </style>
 
-                            <!-- Workouts -->
-                            {% if todays_activity.workouts %}
-                            <div class="mb-4">
-                                <h6 class="text-success mb-2"><i class="bi bi-lightning-charge"></i> Workouts</h6>
-                                <ul class="list-unstyled ms-3">
+                            <div class="activity-section-wrapper">
+                                <div class="activity-date-label">{{ today|date:"M d"|upper }}</div>
+                                <div class="activity-pills-container">
+                                <!-- Workouts -->
+                                {% if todays_activity.workouts %}
                                     {% for workout in todays_activity.workouts %}
-                                    <li class="mb-2">
-                                        <span class="badge bg-success">{{ todays_activity.sport_names|get_item:workout.sport_id|default:"Unknown" }}</span>
-                                        {{ workout.start|date:"g:i A" }} - {{ workout.end|date:"g:i A" }}
-                                        {% if workout.calories_burned %}
-                                        <span class="text-muted">({{ workout.calories_burned|floatformat:0 }} cal)</span>
-                                        {% endif %}
-                                    </li>
+                                    {% with sport_name=todays_activity.sport_names|get_item:workout.sport_id|default:"Workout" %}
+                                    <div class="activity-pill activity-pill-workouts"
+                                         data-tooltip="{{ sport_name }} • {{ workout.start|date:'g:i A' }}-{{ workout.end|date:'g:i A' }}{% if workout.calories_burned %} • {{ workout.calories_burned|floatformat:0 }} cal{% endif %}{% if workout.average_heart_rate %} • {{ workout.average_heart_rate|floatformat:0 }} bpm avg{% endif %}">
+                                        <i class="bi bi-lightning-charge-fill"></i>
+                                        <span>{% if "Running" in sport_name %}Ran{% elif "Cycling" in sport_name %}Cycled{% elif "Swimming" in sport_name %}Swam{% elif "Walking" in sport_name %}Walked{% elif "Functional Fitness" in sport_name %}Trained{% elif "Weightlifting" in sport_name or "Weight Training" in sport_name %}Lifted{% else %}Worked Out{% endif %} {{ workout.duration_minutes|floatformat:0 }} min</span>
+                                    </div>
+                                    {% endwith %}
                                     {% endfor %}
-                                </ul>
-                            </div>
-                            {% endif %}
+                                {% endif %}
 
-                            <!-- Time Logs -->
-                            {% if todays_activity.time_logs %}
-                            <div class="mb-4">
-                                <h6 class="text-success mb-2"><i class="bi bi-clock-history"></i> Time Tracking</h6>
-                                <ul class="list-unstyled ms-3">
-                                    {% for log in todays_activity.time_logs %}
-                                    <li class="mb-2">
-                                        <strong>{{ log.project_id }}</strong>
-                                        {% if log.goals.all %}
-                                        <span class="text-muted">
-                                            ({% for goal in log.goals.all %}{{ goal.display_string }}{% if not forloop.last %}, {% endif %}{% endfor %})
-                                        </span>
-                                        {% endif %}
-                                        - {{ log.duration_minutes|floatformat:0 }} min
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            {% endif %}
-
-                            <!-- Fasts -->
-                            {% if todays_activity.fasts %}
-                            <div class="mb-4">
-                                <h6 class="text-success mb-2"><i class="bi bi-hourglass-split"></i> Fasting</h6>
-                                <ul class="list-unstyled ms-3">
+                                <!-- Fasts -->
+                                {% if todays_activity.fasts %}
                                     {% for fast in todays_activity.fasts %}
-                                    <li class="mb-2">
-                                        Completed {{ fast.duration|floatformat:1 }} hour fast
-                                        <span class="text-muted">(ended {{ fast.fast_end_date|date:"g:i A" }})</span>
-                                    </li>
+                                    <div class="activity-pill activity-pill-fasting"
+                                         data-tooltip="Completed {{ fast.duration|floatformat:1 }}-hour fast (ended {{ fast.fast_end_date|date:'g:i A' }})">
+                                        <i class="bi bi-hourglass-split"></i>
+                                        <span>Fasted {{ fast.duration|floatformat:0 }}h</span>
+                                    </div>
                                     {% endfor %}
-                                </ul>
-                            </div>
-                            {% endif %}
+                                {% endif %}
 
-                            <!-- Nutrition -->
-                            {% if todays_activity.nutrition %}
-                            <div class="mb-4">
-                                <h6 class="text-success mb-2"><i class="bi bi-egg-fried"></i> Nutrition</h6>
-                                <ul class="list-unstyled ms-3">
+                                <!-- Nutrition -->
+                                {% if todays_activity.nutrition %}
                                     {% for entry in todays_activity.nutrition %}
-                                    <li class="mb-2">
-                                        {{ entry.consumption_date|date:"g:i A" }}
-                                        - {{ entry.calories|floatformat:0 }} cal
-                                        {% if entry.protein or entry.carbs or entry.fat %}
-                                        <span class="text-muted">
-                                            (P: {{ entry.protein|floatformat:0 }}g, C: {{ entry.carbs|floatformat:0 }}g, F: {{ entry.fat|floatformat:0 }}g)
-                                        </span>
-                                        {% endif %}
-                                    </li>
+                                    <div class="activity-pill activity-pill-nutrition"
+                                         data-tooltip="{{ entry.consumption_date|date:'g:i A' }}{% if entry.protein or entry.carbs or entry.fat %} • P:{{ entry.protein|floatformat:0 }}g C:{{ entry.carbs|floatformat:0 }}g F:{{ entry.fat|floatformat:0 }}g{% endif %}">
+                                        <i class="bi bi-egg-fried"></i>
+                                        <span>Consumed {{ entry.calories|floatformat:0 }} cal</span>
+                                    </div>
                                     {% endfor %}
-                                </ul>
-                            </div>
-                            {% endif %}
+                                {% endif %}
 
-                            <!-- Weigh-ins -->
-                            {% if todays_activity.weighins %}
-                            <div class="mb-4">
-                                <h6 class="text-success mb-2"><i class="bi bi-speedometer2"></i> Weigh-ins</h6>
-                                <ul class="list-unstyled ms-3">
+                                <!-- Weigh-ins -->
+                                {% if todays_activity.weighins %}
                                     {% for weighin in todays_activity.weighins %}
-                                    <li class="mb-2">
-                                        {{ weighin.weight|floatformat:1 }} lbs
-                                        <span class="text-muted">({{ weighin.measurement_time|date:"g:i A" }})</span>
-                                    </li>
+                                    <div class="activity-pill activity-pill-weight"
+                                         data-tooltip="Weighed {{ weighin.weight|floatformat:1 }} lbs at {{ weighin.measurement_time|date:'g:i A' }}">
+                                        <i class="bi bi-speedometer2"></i>
+                                        <span>Weighed {{ weighin.weight|floatformat:1 }} lbs</span>
+                                    </div>
                                     {% endfor %}
-                                </ul>
+                                {% endif %}
+
+                                <!-- Time Worked Pill -->
+                                {% if todays_activity.time_logs %}
+                                <div class="activity-pill activity-pill-time" id="timeWorkedPill" data-tooltip="">
+                                    <i class="bi bi-clock-fill"></i>
+                                    <span id="timeWorkedText"></span>
+                                </div>
+                                {% endif %}
+                                </div>
                             </div>
-                            {% endif %}
+
+                            <script>
+                            // Calculate total time worked and build tooltip
+                            (function() {
+                                const timeLogs = {{ todays_activity.time_logs_json|safe }};
+                                if (!timeLogs || timeLogs.length === 0) return;
+
+                                // Group time by project
+                                const projectTime = {};
+                                let totalTime = 0;
+
+                                timeLogs.forEach(log => {
+                                    const projectName = log.project || 'Uncategorized';
+                                    const duration = log.duration / 3600; // Convert seconds to hours
+                                    projectTime[projectName] = (projectTime[projectName] || 0) + duration;
+                                    totalTime += duration;
+                                });
+
+                                // Sort projects by time (descending)
+                                const sortedProjects = Object.entries(projectTime)
+                                    .sort((a, b) => b[1] - a[1]);
+
+                                // Set pill text
+                                document.getElementById('timeWorkedText').textContent =
+                                    `Worked ${totalTime.toFixed(1)}h`;
+
+                                // Build tooltip as plain text
+                                let tooltipText = '';
+                                sortedProjects.forEach(([project, hours], index) => {
+                                    if (index > 0) tooltipText += '\n';
+                                    tooltipText += `${project}: ${hours.toFixed(1)}h`;
+                                });
+
+                                document.getElementById('timeWorkedPill').setAttribute('data-tooltip', tooltipText);
+                            })();
+                            </script>
 
                             <!-- Empty state -->
                             {% if not todays_activity.workouts and not todays_activity.time_logs and not todays_activity.fasts and not todays_activity.nutrition and not todays_activity.weighins %}
