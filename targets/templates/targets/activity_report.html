@@ -1326,14 +1326,17 @@
 
                 // Update target with unit and tooltip
                 targetCell.textContent = Math.round(objective.target) + (objective.unit ? ' ' + objective.unit : '');
-                targetCell.setAttribute('title', `Target/week = ${objective.target_per_week}`);
 
-                // Reinitialize tooltip for target cell
+                // Update tooltip - dispose old one and create new with updated title
                 const existingTooltip = bootstrap.Tooltip.getInstance(targetCell);
                 if (existingTooltip) {
                     existingTooltip.dispose();
                 }
-                new bootstrap.Tooltip(targetCell);
+                const newTooltipTitle = `Target/week = ${objective.target_per_week}`;
+                targetCell.setAttribute('title', newTooltipTitle);
+                new bootstrap.Tooltip(targetCell, {
+                    title: newTooltipTitle
+                });
 
                 // Update result
                 resultCell.textContent = Math.round(objective.result);
