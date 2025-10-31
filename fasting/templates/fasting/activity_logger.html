@@ -163,8 +163,11 @@
     </style>
 </head>
 <body>
-    <!-- Navigation Menu - Fixed Top Right -->
-    <div style="position: fixed; top: 20px; right: 20px; z-index: 10000;">
+    <!-- Top Right Controls - Fixed Position -->
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; gap: 8px; align-items: center;">
+        <button class="btn btn-warning btn-sm" onclick="runMasterSync()">
+            <i class="bi bi-arrow-repeat"></i> Run Master Sync
+        </button>
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm" type="button" id="navMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-list" style="font-size: 1.2rem;"></i>
@@ -181,12 +184,7 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8 offset-lg-2">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <h1>Activity Logger</h1>
-                    <button class="btn btn-warning btn-sm" onclick="runMasterSync()">
-                        <i class="bi bi-arrow-repeat"></i> Run Master Sync
-                    </button>
-                </div>
+                <h1 class="mb-4">Activity Logger</h1>
 
                 <!-- Django Messages -->
                 {% if messages %}
