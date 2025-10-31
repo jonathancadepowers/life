@@ -181,7 +181,12 @@
         <!-- Header -->
         <div class="row mb-4">
             <div class="col">
-                <h1><i class="bi bi-graph-up-arrow"></i> Activity Report</h1>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h1><i class="bi bi-graph-up-arrow"></i> Activity Report</h1>
+                    <button class="btn btn-warning btn-sm" onclick="runMasterSync()">
+                        <i class="bi bi-arrow-repeat"></i> Run Master Sync
+                    </button>
+                </div>
                 <div class="d-flex align-items-center flex-wrap gap-2">
                     <input type="date" class="form-control form-control-sm date-picker-inline" id="start_date"
                            value="{{ start_date|date:'Y-m-d' }}" style="width: auto; display: inline-block;">
@@ -1305,6 +1310,113 @@
                     }
                 }
                 return cookieValue;
+            }
+
+            // Master Sync functionality
+            window.runMasterSync = function() {
+            // Get CSRF token
+            const csrftoken = getCookie('csrftoken');
+
+            // Get the sync button
+            const syncButton = document.querySelector('button[onclick="runMasterSync()"]');
+            const originalText = syncButton.innerHTML;
+
+            // Disable button and show loading state
+            syncButton.disabled = true;
+            syncButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Syncing...';
+
+            // Make AJAX request
+            fetch('{% url "fasting:master_sync" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSyncOutputModal(data.output, data.has_errors, data.auth_errors);
+                } else {
+                    showFlashMessage(data.message || 'Error running sync', true);
+                    if (data.traceback) {
+                        console.error('Sync error traceback:', data.traceback);
+                    }
+                }
+            })
+            .catch(error => {
+                showFlashMessage('Network error: Could not run sync', true);
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                syncButton.disabled = false;
+                syncButton.innerHTML = originalText;
+            });
+            }
+
+            window.showSyncOutputModal = function(output, hasErrors, authErrors = {}) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('syncOutputModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'syncOutputModal';
+                modal.className = 'modal fade';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Sync Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="authErrorsSection"></div>
+                                <pre id="syncOutputContent" style="background-color: #f8f9fa; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto;"></pre>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            // Update modal content
+            const outputContent = document.getElementById('syncOutputContent');
+            outputContent.textContent = output;
+
+            // Show authentication error section if there are auth errors
+            const authErrorsSection = document.getElementById('authErrorsSection');
+            if (authErrors && Object.keys(authErrors).length > 0) {
+                let authHtml = '<div class="alert alert-warning mb-3"><strong>🔐 Authentication Required</strong><br>';
+                authHtml += 'Some services need re-authentication. Click below to authorize:<br><br>';
+
+                if (authErrors.whoop) {
+                    authHtml += '<a href="/oauth/whoop/authorize/" class="btn btn-sm btn-primary me-2">Re-authenticate Whoop</a>';
+                }
+                if (authErrors.withings) {
+                    authHtml += '<a href="/oauth/withings/authorize/" class="btn btn-sm btn-primary me-2">Re-authenticate Withings</a>';
+                }
+
+                authHtml += '</div>';
+                authErrorsSection.innerHTML = authHtml;
+            } else {
+                authErrorsSection.innerHTML = '';
+            }
+
+            // Change modal header color based on errors
+            const modalHeader = modal.querySelector('.modal-header');
+            if (hasErrors) {
+                modalHeader.style.backgroundColor = '#fff3cd';
+                modalHeader.querySelector('.modal-title').textContent = '⚠️ Sync Details (Some Errors)';
+            } else {
+                modalHeader.style.backgroundColor = '#d1e7dd';
+                modalHeader.querySelector('.modal-title').textContent = '✓ Sync Details (Success)';
+            }
+
+            // Show the modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
             }
         });
     </script>
