@@ -195,6 +195,15 @@
                     <span class="week-label">-</span>
                     <input type="date" class="form-control form-control-sm date-picker-inline" id="end_date"
                            value="{{ end_date|date:'Y-m-d' }}" style="width: auto; display: inline-block;">
+                    <select class="form-select form-select-sm ms-2" id="quick_date_picker" style="width: auto; display: inline-block;">
+                        <option value="">Jump To Date</option>
+                        <option value="today">Today</option>
+                        <option value="this_month" id="this_month_option"></option>
+                        <option value="next_month" id="next_month_option"></option>
+                        <option value="next_next_month" id="next_next_month_option"></option>
+                        <option value="this_quarter" id="this_quarter_option"></option>
+                        <option value="this_year" id="this_year_option"></option>
+                    </select>
                     <span class="badge bg-primary ms-2">{{ days_in_range }} days</span>
                     <div class="spinner-border spinner-border-sm ms-2 d-none" role="status" id="loading-spinner">
                         <span class="visually-hidden">Loading...</span>
@@ -975,8 +984,151 @@
                 }
             }
 
-            startDateInput.addEventListener('change', reloadReport);
-            endDateInput.addEventListener('change', reloadReport);
+            // Quick Date Picker functionality
+            const quickDatePicker = document.getElementById('quick_date_picker');
+            let isDropdownTriggered = false;
+
+            // Get current date in user's timezone
+            function getUserDate() {
+                const now = new Date();
+                return now;
+            }
+
+            // Format date as YYYY-MM-DD for date input
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            // Get month name
+            function getMonthName(date) {
+                return date.toLocaleDateString('en-US', { month: 'short' });
+            }
+
+            // Get quarter name
+            function getQuarterName(date) {
+                const quarter = Math.floor(date.getMonth() / 3) + 1;
+                return `Q${quarter}`;
+            }
+
+            // Calculate date ranges based on selection
+            function getDateRange(selection) {
+                const now = getUserDate();
+                const year = now.getFullYear();
+                const month = now.getMonth();
+                const day = now.getDate();
+
+                let startDate, endDate;
+
+                switch(selection) {
+                    case 'today':
+                        startDate = new Date(year, month, day);
+                        endDate = new Date(year, month, day);
+                        break;
+
+                    case 'this_month':
+                        startDate = new Date(year, month, 1);
+                        endDate = new Date(year, month + 1, 0); // Last day of current month
+                        break;
+
+                    case 'next_month':
+                        startDate = new Date(year, month + 1, 1);
+                        endDate = new Date(year, month + 2, 0); // Last day of next month
+                        break;
+
+                    case 'next_next_month':
+                        startDate = new Date(year, month + 2, 1);
+                        endDate = new Date(year, month + 3, 0); // Last day of month after next
+                        break;
+
+                    case 'this_quarter':
+                        const quarterStartMonth = Math.floor(month / 3) * 3;
+                        startDate = new Date(year, quarterStartMonth, 1);
+                        endDate = new Date(year, quarterStartMonth + 3, 0); // Last day of quarter
+                        break;
+
+                    case 'this_year':
+                        startDate = new Date(year, 0, 1); // Jan 1
+                        endDate = new Date(year, 11, 31); // Dec 31
+                        break;
+
+                    default:
+                        return null;
+                }
+
+                return {
+                    start: formatDate(startDate),
+                    end: formatDate(endDate)
+                };
+            }
+
+            // Populate dropdown labels dynamically
+            function populateDropdownLabels() {
+                const now = getUserDate();
+
+                // This month (e.g., "Oct")
+                const thisMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                document.getElementById('this_month_option').textContent = getMonthName(thisMonthDate);
+
+                // Next month (e.g., "Nov")
+                const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                document.getElementById('next_month_option').textContent = getMonthName(nextMonthDate);
+
+                // Next next month (e.g., "Dec")
+                const nextNextMonthDate = new Date(now.getFullYear(), now.getMonth() + 2, 1);
+                document.getElementById('next_next_month_option').textContent = getMonthName(nextNextMonthDate);
+
+                // This quarter (e.g., "Q4")
+                document.getElementById('this_quarter_option').textContent = getQuarterName(now);
+
+                // This year (e.g., "2025")
+                document.getElementById('this_year_option').textContent = now.getFullYear().toString();
+            }
+
+            // Handle dropdown selection
+            quickDatePicker.addEventListener('change', function() {
+                const selection = this.value;
+
+                if (!selection) return; // "Jump To Date" selected, do nothing
+
+                const dateRange = getDateRange(selection);
+
+                if (dateRange) {
+                    // Set flag to prevent dropdown reset
+                    isDropdownTriggered = true;
+
+                    // Update date inputs
+                    startDateInput.value = dateRange.start;
+                    endDateInput.value = dateRange.end;
+
+                    // Trigger reload
+                    reloadReport();
+                }
+            });
+
+            // Initialize dropdown labels on page load
+            populateDropdownLabels();
+
+            // Add event listeners to date pickers
+            startDateInput.addEventListener('change', function() {
+                // Reset dropdown if this wasn't triggered by dropdown
+                if (!isDropdownTriggered) {
+                    quickDatePicker.value = '';
+                }
+                isDropdownTriggered = false;
+                reloadReport();
+            });
+
+            endDateInput.addEventListener('change', function() {
+                // Reset dropdown if this wasn't triggered by dropdown
+                if (!isDropdownTriggered) {
+                    quickDatePicker.value = '';
+                }
+                isDropdownTriggered = false;
+                reloadReport();
+            });
 
             // Handle Create/Edit Objective form
             const createObjectiveForm = document.getElementById('createObjectiveForm');
