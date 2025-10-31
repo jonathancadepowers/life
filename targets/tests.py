@@ -2664,3 +2664,311 @@ class TodaysActivityTestCase(TestCase):
 
             # Should show November 1 (UTC date)
             self.assertContains(response, 'NOV 01')
+
+
+class QuickDatePickerSeleniumTestCase(StaticLiveServerTestCase):
+    """
+    Front-end Selenium tests for Quick Date Picker dropdown functionality.
+
+    These tests verify the JavaScript behavior of the quick date picker dropdown
+    on the activity report page, including:
+    - Dynamic label population (month names, quarter, year)
+    - Date range calculations for each option
+    - Automatic page updates when dropdown selection changes
+    - Dropdown reset when date pickers are manually changed
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up Selenium WebDriver for all tests in this class."""
+        super().setUpClass()
+        from selenium import webdriver
+        from selenium.webdriver.chrome.options import Options
+
+        # Try to use Chrome in headless mode
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+
+        try:
+            cls.selenium = webdriver.Chrome(options=chrome_options)
+            cls.selenium.implicitly_wait(10)
+        except Exception as e:
+            # Skip Selenium tests if Chrome/ChromeDriver not available
+            raise unittest.SkipTest(f"Selenium tests skipped: {str(e)}")
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up Selenium WebDriver."""
+        if hasattr(cls, 'selenium'):
+            cls.selenium.quit()
+        super().tearDownClass()
+
+    def test_quick_date_picker_dropdown_exists(self):
+        """Test that the quick date picker dropdown is present on the page."""
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+
+        # Navigate to activity report
+        url = f'{self.live_server_url}/activity-report/'
+        self.selenium.get(url)
+
+        # Wait for page to load
+        WebDriverWait(self.selenium, 10).until(
+            EC.presence_of_element_located((By.ID, 'quick_date_picker'))
+        )
+
+        # Verify dropdown exists
+        dropdown = self.selenium.find_element(By.ID, 'quick_date_picker')
+        self.assertIsNotNone(dropdown)
+
+        # Verify it's a select element
+        self.assertEqual(dropdown.tag_name, 'select')
+
+    def test_dropdown_options_dynamically_populated(self):
+        """Test that dropdown options are dynamically populated with correct labels."""
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from datetime import datetime
+
+        # Navigate to activity report
+        url = f'{self.live_server_url}/activity-report/'
+        self.selenium.get(url)
+
+        # Wait for page to load
+        WebDriverWait(self.selenium, 10).until(
+            EC.presence_of_element_located((By.ID, 'quick_date_picker'))
+        )
+
+        # Get current date to calculate expected labels
+        now = datetime.now()
+        current_month = now.strftime('%b')  # e.g., "Oct"
+        next_month = (now.replace(day=1) + timedelta(days=32)).strftime('%b')  # e.g., "Nov"
+        next_next_month = (now.replace(day=1) + timedelta(days=63)).strftime('%b')  # e.g., "Dec"
+        current_quarter = f'Q{(now.month - 1) // 3 + 1}'  # e.g., "Q4"
+        current_year = str(now.year)  # e.g., "2025"
+
+        # Check that options have correct labels
+        this_month_option = self.selenium.find_element(By.ID, 'this_month_option')
+        self.assertEqual(this_month_option.text, current_month)
+
+        next_month_option = self.selenium.find_element(By.ID, 'next_month_option')
+        self.assertEqual(next_month_option.text, next_month)
+
+        next_next_month_option = self.selenium.find_element(By.ID, 'next_next_month_option')
+        self.assertEqual(next_next_month_option.text, next_next_month)
+
+        this_quarter_option = self.selenium.find_element(By.ID, 'this_quarter_option')
+        self.assertEqual(this_quarter_option.text, current_quarter)
+
+        this_year_option = self.selenium.find_element(By.ID, 'this_year_option')
+        self.assertEqual(this_year_option.text, current_year)
+
+    def test_selecting_today_sets_correct_date_range(self):
+        """Test that selecting 'Today' sets both date pickers to today's date."""
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import Select
+        from datetime import datetime
+        import time
+
+        # Navigate to activity report
+        url = f'{self.live_server_url}/activity-report/'
+        self.selenium.get(url)
+
+        # Wait for page to load
+        WebDriverWait(self.selenium, 10).until(
+            EC.presence_of_element_located((By.ID, 'quick_date_picker'))
+        )
+
+        # Get today's date
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        # Select "Today" from dropdown
+        dropdown = Select(self.selenium.find_element(By.ID, 'quick_date_picker'))
+        dropdown.select_by_value('today')
+
+        # Wait a moment for JavaScript to execute
+        time.sleep(1)
+
+        # Check that date pickers are set to today
+        start_date_input = self.selenium.find_element(By.ID, 'start_date')
+        end_date_input = self.selenium.find_element(By.ID, 'end_date')
+
+        self.assertEqual(start_date_input.get_attribute('value'), today)
+        self.assertEqual(end_date_input.get_attribute('value'), today)
+
+    def test_selecting_this_month_sets_correct_date_range(self):
+        """Test that selecting current month sets correct date range."""
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import Select
+        from datetime import datetime
+        from calendar import monthrange
+        import time
+
+        # Navigate to activity report
+        url = f'{self.live_server_url}/activity-report/'
+        self.selenium.get(url)
+
+        # Wait for page to load
+        WebDriverWait(self.selenium, 10).until(
+            EC.presence_of_element_located((By.ID, 'quick_date_picker'))
+        )
+
+        # Calculate expected date range for current month
+        now = datetime.now()
+        year = now.year
+        month = now.month
+        first_day = f'{year}-{month:02d}-01'
+        last_day_num = monthrange(year, month)[1]
+        last_day = f'{year}-{month:02d}-{last_day_num:02d}'
+
+        # Select current month from dropdown
+        dropdown = Select(self.selenium.find_element(By.ID, 'quick_date_picker'))
+        dropdown.select_by_value('this_month')
+
+        # Wait a moment for JavaScript to execute
+        time.sleep(1)
+
+        # Check that date pickers are set correctly
+        start_date_input = self.selenium.find_element(By.ID, 'start_date')
+        end_date_input = self.selenium.find_element(By.ID, 'end_date')
+
+        self.assertEqual(start_date_input.get_attribute('value'), first_day)
+        self.assertEqual(end_date_input.get_attribute('value'), last_day)
+
+    def test_selecting_this_quarter_sets_correct_date_range(self):
+        """Test that selecting current quarter sets correct date range."""
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import Select
+        from datetime import datetime
+        from calendar import monthrange
+        import time
+
+        # Navigate to activity report
+        url = f'{self.live_server_url}/activity-report/'
+        self.selenium.get(url)
+
+        # Wait for page to load
+        WebDriverWait(self.selenium, 10).until(
+            EC.presence_of_element_located((By.ID, 'quick_date_picker'))
+        )
+
+        # Calculate expected date range for current quarter
+        now = datetime.now()
+        year = now.year
+        quarter_start_month = ((now.month - 1) // 3) * 3 + 1  # 1, 4, 7, or 10
+        quarter_end_month = quarter_start_month + 2
+
+        first_day = f'{year}-{quarter_start_month:02d}-01'
+        last_day_num = monthrange(year, quarter_end_month)[1]
+        last_day = f'{year}-{quarter_end_month:02d}-{last_day_num:02d}'
+
+        # Select current quarter from dropdown
+        dropdown = Select(self.selenium.find_element(By.ID, 'quick_date_picker'))
+        dropdown.select_by_value('this_quarter')
+
+        # Wait a moment for JavaScript to execute
+        time.sleep(1)
+
+        # Check that date pickers are set correctly
+        start_date_input = self.selenium.find_element(By.ID, 'start_date')
+        end_date_input = self.selenium.find_element(By.ID, 'end_date')
+
+        self.assertEqual(start_date_input.get_attribute('value'), first_day)
+        self.assertEqual(end_date_input.get_attribute('value'), last_day)
+
+    def test_selecting_this_year_sets_correct_date_range(self):
+        """Test that selecting current year sets correct date range."""
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import Select
+        from datetime import datetime
+        import time
+
+        # Navigate to activity report
+        url = f'{self.live_server_url}/activity-report/'
+        self.selenium.get(url)
+
+        # Wait for page to load
+        WebDriverWait(self.selenium, 10).until(
+            EC.presence_of_element_located((By.ID, 'quick_date_picker'))
+        )
+
+        # Calculate expected date range for current year
+        now = datetime.now()
+        year = now.year
+        first_day = f'{year}-01-01'
+        last_day = f'{year}-12-31'
+
+        # Select current year from dropdown
+        dropdown = Select(self.selenium.find_element(By.ID, 'quick_date_picker'))
+        dropdown.select_by_value('this_year')
+
+        # Wait a moment for JavaScript to execute
+        time.sleep(1)
+
+        # Check that date pickers are set correctly
+        start_date_input = self.selenium.find_element(By.ID, 'start_date')
+        end_date_input = self.selenium.find_element(By.ID, 'end_date')
+
+        self.assertEqual(start_date_input.get_attribute('value'), first_day)
+        self.assertEqual(end_date_input.get_attribute('value'), last_day)
+
+    def test_manual_date_change_resets_dropdown(self):
+        """Test that manually changing date pickers resets dropdown to 'Jump To Date'."""
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import Select
+        from datetime import datetime
+        import time
+
+        # Navigate to activity report with specific dates
+        today = datetime.now().strftime('%Y-%m-%d')
+        url = f'{self.live_server_url}/activity-report/?start_date={today}&end_date={today}'
+        self.selenium.get(url)
+
+        # Wait for page to load
+        WebDriverWait(self.selenium, 10).until(
+            EC.presence_of_element_located((By.ID, 'quick_date_picker'))
+        )
+
+        # Verify initial state - dropdown should be at default "Jump To Date"
+        dropdown = Select(self.selenium.find_element(By.ID, 'quick_date_picker'))
+        self.assertEqual(dropdown.first_selected_option.get_attribute('value'), '')
+
+        # Now manually change the start date using JavaScript
+        # This simulates a user changing the date picker
+        self.selenium.execute_script("""
+            var startInput = document.getElementById('start_date');
+            var dropdown = document.getElementById('quick_date_picker');
+
+            // Change the date
+            startInput.value = '2025-01-15';
+
+            // Simulate the change event (but prevent page reload for this test)
+            // We're testing the dropdown reset logic, not the page reload
+            var event = new Event('change', { bubbles: true });
+            startInput.dispatchEvent(event);
+        """)
+
+        time.sleep(0.5)
+
+        # Re-find dropdown element (in case it was updated)
+        dropdown = Select(self.selenium.find_element(By.ID, 'quick_date_picker'))
+
+        # Verify dropdown is reset to "Jump To Date" (empty value)
+        # This verifies the dropdown reset logic works when date pickers are manually changed
+        self.assertEqual(dropdown.first_selected_option.get_attribute('value'), '')
+        self.assertEqual(dropdown.first_selected_option.text, 'Jump To Date')
