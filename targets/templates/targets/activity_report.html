@@ -324,7 +324,9 @@
                             </style>
 
                             <div class="activity-section-wrapper">
+                                {% if todays_activity.workouts or todays_activity.time_logs or todays_activity.fasts or todays_activity.nutrition or todays_activity.weighins %}
                                 <div class="activity-date-label">{{ today|date:"M d"|upper }}</div>
+                                {% endif %}
                                 <div class="activity-pills-container">
                                 <!-- Workouts -->
                                 {% if todays_activity.workouts %}
