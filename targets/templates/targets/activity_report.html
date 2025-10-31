@@ -1,5 +1,7 @@
 {% load humanize %}
 {% load targets_filters %}
+{% load tz %}
+{% timezone user_timezone %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1530,3 +1532,4 @@
     </script>
 </body>
 </html>
+{% endtimezone %}
