@@ -7,6 +7,7 @@ from .models import FastingSession
 from django.core.management import call_command
 from io import StringIO
 import uuid
+import pytz
 
 
 def activity_logger(request):
@@ -75,17 +76,26 @@ def log_fast(request):
                 'message': 'Day must be "today" or "yesterday"'
             }, status=400)
 
+        # Get user's timezone from cookie (set by browser), default to UTC
+        user_tz_str = request.COOKIES.get('user_timezone', 'UTC')
+        try:
+            user_tz = pytz.timezone(user_tz_str)
+        except pytz.exceptions.UnknownTimeZoneError:
+            user_tz = pytz.UTC
+
+        # Get current time in user's timezone
+        now_utc = timezone.now()
+        now_user = now_utc.astimezone(user_tz)
+
         # Calculate fast_end_date based on day
         if day == 'today':
-            # Fast ends now
-            fast_end_date = timezone.now()
+            # Fast ends now (in user's timezone)
+            fast_end_date = now_utc
         else:  # yesterday
-            # Fast ends at noon yesterday (12:00 PM)
-            now = timezone.now()
-            yesterday = now - timedelta(days=1)
-            fast_end_date = timezone.make_aware(
-                datetime.combine(yesterday.date(), time(12, 0))
-            )
+            # Fast ends at noon yesterday (12:00 PM in user's timezone)
+            yesterday_user = now_user - timedelta(days=1)
+            fast_end_date_naive = datetime.combine(yesterday_user.date(), time(12, 0))
+            fast_end_date = user_tz.localize(fast_end_date_naive)
 
         # Generate a unique source_id for manual entries
         source_id = str(uuid.uuid4())
