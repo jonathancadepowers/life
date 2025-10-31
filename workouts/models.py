@@ -67,3 +67,8 @@ class Workout(models.Model):
     def duration(self):
         """Calculate workout duration"""
         return self.end - self.start
+
+    @property
+    def duration_minutes(self):
+        """Calculate workout duration in minutes"""
+        return (self.end - self.start).total_seconds() / 60

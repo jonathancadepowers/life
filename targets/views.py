@@ -1053,6 +1053,24 @@ def activity_report(request):
         start__lte=today_end
     ).prefetch_related('goals').order_by('-start')
 
+    # Serialize time logs for JSON (for pie chart)
+    import json
+    time_logs_json = []
+    for log in todays_time_logs:
+        try:
+            project = Project.objects.get(project_id=log.project_id)
+            project_name = project.display_string
+        except Project.DoesNotExist:
+            project_name = f"Project {log.project_id}"
+
+        duration = (log.end - log.start).total_seconds() if log.end else 0
+        time_logs_json.append({
+            'project': project_name,
+            'duration': duration
+        })
+
+    time_logs_json_str = json.dumps(time_logs_json)
+
     # Today's fasting sessions
     todays_fasts = FastingSession.objects.filter(
         fast_end_date__gte=today_start,
@@ -1074,6 +1092,7 @@ def activity_report(request):
     todays_activity = {
         'workouts': todays_workouts,
         'time_logs': todays_time_logs,
+        'time_logs_json': time_logs_json_str,
         'fasts': todays_fasts,
         'nutrition': todays_nutrition,
         'weighins': todays_weighins,
