@@ -1224,15 +1224,53 @@ def create_objective(request):
             result=None  # Will be calculated later
         )
 
-        # Check if this objective is in the current date range (from query params or session)
-        # For simplicity, we'll just return a flag and let the frontend decide whether to reload
-        in_current_range = False
+        # Execute the SQL query to get the result
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(objective.objective_definition)
+                result = cursor.fetchone()
+                objective.result = float(result[0]) if result and result[0] is not None else 0
+                objective.save()
+        except Exception as e:
+            # If SQL execution fails, leave result as None
+            objective.result = 0
+            objective.save()
+
+        # Calculate progress percentage and other derived values
+        progress_pct = (objective.result / objective.objective_value * 100) if objective.objective_value > 0 else 0
+        achieved = objective.result >= objective.objective_value
+
+        # Calculate target per week (approximate)
+        days_in_month = (objective.end - objective.start).days + 1
+        weeks_in_month = days_in_month / 7
+        target_per_week = objective.objective_value / weeks_in_month if weeks_in_month > 0 else 0
+
+        # Always return objective data for dynamic insertion
+        objective_data = {
+            'objective_id': objective.objective_id,
+            'label': objective.label,
+            'category': objective.category,
+            'description': objective.description,
+            'unit': objective.unit_of_measurement,
+            'target': objective.objective_value,
+            'result': objective.result,
+            'progress_pct': round(progress_pct, 1),
+            'achieved': achieved,
+            'target_per_week': round(target_per_week, 1),
+            'month': month,
+            'year': year,
+            'objective_value': objective.objective_value,
+            'objective_definition': objective.objective_definition,
+            'start': objective.start.isoformat(),
+            'end': objective.end.isoformat(),
+        }
 
         return JsonResponse({
             'success': True,
             'message': f'Objective "{label}" created successfully!',
             'objective_id': objective.objective_id,
-            'in_current_range': in_current_range
+            'in_current_range': True,  # Always show newly created objectives
+            'objective': objective_data
         })
 
     except json.JSONDecodeError:
