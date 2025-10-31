@@ -716,9 +716,10 @@ def activity_report(request):
         start_date = today - timedelta(days=today.weekday())
         end_date = start_date + timedelta(days=6)
 
-    # Convert to datetime for filtering
-    start_datetime = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
-    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.max.time()))
+    # Convert to datetime for filtering using user's timezone
+    user_tz = get_user_timezone(request)
+    start_datetime = user_tz.localize(datetime.combine(start_date, datetime.min.time()))
+    end_datetime = user_tz.localize(datetime.combine(end_date, datetime.max.time()))
     days_in_range = (end_date - start_date).days + 1
 
     # FASTING DATA
