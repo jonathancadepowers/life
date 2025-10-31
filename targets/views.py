@@ -332,9 +332,9 @@ def get_toggl_time_today(request):
                         start_date=today_start,
                         end_date=now
                     )
-                    # Cache for 5 minutes (300 seconds)
-                    # This helps avoid Toggl's 30 req/hour limit on /me endpoints
-                    cache.set(cache_key, time_entries, 300)
+                    # Cache for 1 minute (60 seconds)
+                    # This balances freshness with Toggl's API rate limits (240 req/hour on Reports API)
+                    cache.set(cache_key, time_entries, 60)
                 except Exception as api_error:
                     # Check if it's a rate limit error (402 or 429)
                     error_str = str(api_error)
