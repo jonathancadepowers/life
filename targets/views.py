@@ -42,8 +42,8 @@ def get_user_today(request):
 
 def set_agenda(request):
     """View to set today's agenda with 3 targets."""
-    # Use timezone-aware date to handle different timezones correctly
-    today = timezone.now().date()
+    # Use user's timezone to determine "today"
+    today = get_user_today(request)[0]
 
     if request.method == 'POST':
         # Get or create today's agenda
@@ -176,9 +176,8 @@ def save_agenda(request):
             from datetime import datetime
             agenda_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         else:
-            # Use UTC date to ensure consistency across timezones
-            # This ensures the same UTC day is used regardless of user's location
-            agenda_date = timezone.now().date()  # timezone.now() returns current UTC time
+            # Use user's timezone to determine "today"
+            agenda_date = get_user_today(request)[0]
 
         # Get or create agenda for the specified date
         agenda, created = DailyAgenda.objects.get_or_create(date=agenda_date)
@@ -415,8 +414,15 @@ def get_toggl_time_today(request):
                 day_start_utc = local_midnight - offset_delta
                 day_end_utc = next_local_midnight - offset_delta
             else:
-                # Fallback to UTC
-                day_start_utc = timezone.make_aware(dt.combine(target_date, dt.min.time()))
+                # Fallback: try to get user timezone from cookie
+                user_tz_str = request.COOKIES.get('user_timezone', 'UTC')
+                try:
+                    import pytz
+                    user_tz = pytz.timezone(user_tz_str)
+                except (pytz.exceptions.UnknownTimeZoneError, AttributeError):
+                    user_tz = pytz.UTC
+
+                day_start_utc = user_tz.localize(dt.combine(target_date, dt.min.time()))
                 day_end_utc = day_start_utc + timedelta(days=1)
 
             # Query time logs for this date and project
@@ -711,13 +717,15 @@ def activity_report(request):
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
     else:
-        # Default to current week (Monday-Sunday)
-        today = date.today()
+        # Default to current week (Monday-Sunday) using user's timezone
+        user_tz = get_user_timezone(request)
+        today = get_user_today(request)[0]
         start_date = today - timedelta(days=today.weekday())
         end_date = start_date + timedelta(days=6)
 
-    # Convert to datetime for filtering using user's timezone
-    user_tz = get_user_timezone(request)
+    # Get user's timezone if not already fetched
+    if 'user_tz' not in locals():
+        user_tz = get_user_timezone(request)
     start_datetime = user_tz.localize(datetime.combine(start_date, datetime.min.time()))
     end_datetime = user_tz.localize(datetime.combine(end_date, datetime.max.time()))
     days_in_range = (end_date - start_date).days + 1

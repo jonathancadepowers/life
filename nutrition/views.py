@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import datetime
 from .models import NutritionEntry
 import uuid
+import pytz
 
 
 @require_http_methods(["POST"])
@@ -61,9 +62,15 @@ def log_nutrition(request):
         try:
             # Try parsing ISO format with timezone
             consumption_date = datetime.fromisoformat(consumption_date_str.replace('Z', '+00:00'))
-            # Make aware if naive
+            # Make aware if naive, using user's timezone
             if timezone.is_naive(consumption_date):
-                consumption_date = timezone.make_aware(consumption_date)
+                # Get user's timezone from cookie
+                user_tz_str = request.COOKIES.get('user_timezone', 'UTC')
+                try:
+                    user_tz = pytz.timezone(user_tz_str)
+                except pytz.exceptions.UnknownTimeZoneError:
+                    user_tz = pytz.UTC
+                consumption_date = user_tz.localize(consumption_date)
         except ValueError:
             return JsonResponse({
                 'success': False,
