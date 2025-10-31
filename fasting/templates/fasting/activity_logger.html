@@ -166,7 +166,21 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8 offset-lg-2">
-                <h1 class="mb-4">Activity Logger</h1>
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <h1>Activity Logger</h1>
+                    <!-- Navigation Menu -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm" type="button" id="navMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-list" style="font-size: 1.2rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navMenuButton">
+                            <li><a class="dropdown-item active" href="/activity-logger/"><i class="bi bi-check-circle-fill text-success me-2"></i>Activity Logger</a></li>
+                            <li><a class="dropdown-item" href="/activity-report/">Activity Report</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/">Admin</a></li>
+                        </ul>
+                    </div>
+                </div>
 
                 <!-- Django Messages -->
                 {% if messages %}

@@ -185,9 +185,23 @@
             <div class="col">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <h1><i class="bi bi-graph-up-arrow"></i> Activity Report</h1>
-                    <button class="btn btn-warning btn-sm" onclick="runMasterSync()">
-                        <i class="bi bi-arrow-repeat"></i> Run Master Sync
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-warning btn-sm" onclick="runMasterSync()">
+                            <i class="bi bi-arrow-repeat"></i> Run Master Sync
+                        </button>
+                        <!-- Navigation Menu -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm" type="button" id="navMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-list" style="font-size: 1.2rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navMenuButton">
+                                <li><a class="dropdown-item" href="/activity-logger/">Activity Logger</a></li>
+                                <li><a class="dropdown-item active" href="/activity-report/"><i class="bi bi-check-circle-fill text-success me-2"></i>Activity Report</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/admin/">Admin</a></li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
                 <div class="d-flex align-items-center flex-wrap gap-2">
                     <input type="date" class="form-control form-control-sm date-picker-inline" id="start_date"
