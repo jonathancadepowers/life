@@ -1371,6 +1371,161 @@
                 console.log('Row update complete');
             }
 
+            // Helper function to insert a new objective row dynamically
+            function insertNewObjectiveRow(objective) {
+                console.log('insertNewObjectiveRow called with:', objective);
+
+                const tbody = document.querySelector('.table-responsive table tbody');
+                if (!tbody) {
+                    console.error('Table tbody not found');
+                    return;
+                }
+
+                const category = objective.category || '';
+                const isUncategorized = !category;
+
+                // Create the new row HTML
+                const newRow = document.createElement('tr');
+                newRow.style.height = '45px';
+
+                // Check if category already exists in the table
+                let categoryCell = null;
+                let categoryRows = [];
+
+                if (!isUncategorized) {
+                    // Find all rows in this category by looking for the category cell
+                    const allRows = tbody.querySelectorAll('tr');
+                    for (let row of allRows) {
+                        const firstCell = row.querySelector('td:first-child');
+                        if (firstCell && firstCell.textContent.trim() === category) {
+                            categoryCell = firstCell;
+                            // Find all rows in this category group
+                            let currentRow = row;
+                            categoryRows.push(currentRow);
+                            while (currentRow = currentRow.nextElementSibling) {
+                                const nextFirstCell = currentRow.querySelector('td:first-child');
+                                // If next row doesn't have a category cell or has different category, stop
+                                if (!nextFirstCell || nextFirstCell.hasAttribute('rowspan') || nextFirstCell.textContent.trim() === '—') {
+                                    break;
+                                }
+                                categoryRows.push(currentRow);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Build row cells
+                let rowHTML = '';
+
+                // If category doesn't exist yet, this is the first row in the category
+                if (!isUncategorized && !categoryCell) {
+                    rowHTML += `<td class="align-middle" rowspan="1">${category}</td>`;
+                }
+
+                // Label cell with description tooltip if present
+                rowHTML += `<td class="align-middle" style="white-space: nowrap;">
+                    ${objective.label}`;
+                if (objective.description) {
+                    rowHTML += ` <i class="bi bi-info-circle ms-1"
+                       style="cursor: help; font-size: 0.6rem; opacity: 0.4; color: #6c757d;"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="right"
+                       title="${objective.description}"></i>`;
+                }
+                rowHTML += `</td>`;
+
+                // Empty cell
+                rowHTML += `<td></td>`;
+
+                // Target cell with tooltip
+                const targetPerWeek = objective.target_per_week || 0;
+                rowHTML += `<td class="text-center align-middle" style="padding-right: 30px; cursor: help;"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="top"
+                    title="Target/week = ${targetPerWeek.toFixed(1)}">${Math.round(objective.target)}${objective.unit ? ' ' + objective.unit : ''}</td>`;
+
+                // Current/Result cell
+                rowHTML += `<td class="text-center align-middle" style="padding-right: 30px;">${Math.round(objective.result)}</td>`;
+
+                // Progress bar cell
+                const progressWidth = objective.progress_pct > 100 ? 100 : objective.progress_pct;
+                const bgColor = objective.achieved ? '#d4edda' : '#e9ecef';
+                const markerColor = objective.achieved ? '#198754' : '#6c757d';
+                rowHTML += `<td class="align-middle">
+                    <div style="position: relative; height: 20px; background: ${bgColor}; border-radius: 3px;">
+                        <div style="position: absolute; left: ${progressWidth}%; top: 0; width: 2px; height: 20px; background: ${markerColor};"></div>
+                        <span style="position: absolute; left: 5px; top: 2px; font-size: 0.75rem;">${objective.progress_pct}%</span>
+                    </div>
+                </td>`;
+
+                // Actions cell
+                rowHTML += `<td class="text-end">
+                    <a href="#" class="text-primary edit-objective-btn me-2"
+                       data-objective-id="${objective.objective_id}"
+                       data-label="${objective.label}"
+                       data-month="${objective.month}"
+                       data-year="${objective.year}"
+                       data-target="${objective.objective_value}"
+                       data-definition="${objective.objective_definition}"
+                       data-category="${objective.category || ''}"
+                       data-description="${objective.description || ''}"
+                       data-unit="${objective.unit || ''}"
+                       title="Edit objective">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="#" class="text-danger delete-objective-btn"
+                       data-objective-id="${objective.objective_id}"
+                       data-label="${objective.label}"
+                       title="Delete objective">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </td>`;
+
+                // For uncategorized objectives
+                if (isUncategorized) {
+                    // Add the "—" category marker for uncategorized
+                    rowHTML = `<td class="text-secondary align-middle">—</td>` + rowHTML;
+                }
+
+                newRow.innerHTML = rowHTML;
+
+                // Insert the row in the appropriate position
+                if (!isUncategorized && categoryCell) {
+                    // Category exists - update rowspan and insert after last row in category
+                    const currentRowspan = parseInt(categoryCell.getAttribute('rowspan') || '1');
+                    categoryCell.setAttribute('rowspan', currentRowspan + 1);
+                    const lastRowInCategory = categoryRows[categoryRows.length - 1];
+                    lastRowInCategory.after(newRow);
+                } else if (!isUncategorized && !categoryCell) {
+                    // New category - insert before uncategorized section
+                    // Find first uncategorized row (has "—" in first cell)
+                    const allRows = tbody.querySelectorAll('tr');
+                    let insertBeforeRow = null;
+                    for (let row of allRows) {
+                        const firstCell = row.querySelector('td:first-child');
+                        if (firstCell && firstCell.textContent.trim() === '—') {
+                            insertBeforeRow = row;
+                            break;
+                        }
+                    }
+                    if (insertBeforeRow) {
+                        insertBeforeRow.before(newRow);
+                    } else {
+                        tbody.appendChild(newRow);
+                    }
+                } else {
+                    // Uncategorized - append to end of table
+                    tbody.appendChild(newRow);
+                }
+
+                // Initialize tooltips on the new row
+                const tooltips = newRow.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltips.forEach(el => new bootstrap.Tooltip(el));
+
+                console.log('New row inserted successfully');
+            }
+
             // Handle edit button clicks using event delegation
             document.body.addEventListener('click', function(e) {
                 const editBtn = e.target.closest('.edit-objective-btn');
@@ -1558,11 +1713,9 @@
                         // If editing, update the table row with new data
                         if (isEdit && result.objective) {
                             updateObjectiveRow(result.objective_id, result.objective);
-                        } else if (result.in_current_range) {
-                            // If creating a new objective in current range, reload to show it
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1000);
+                        } else if (result.in_current_range && result.objective) {
+                            // If creating a new objective in current range, insert it dynamically
+                            insertNewObjectiveRow(result.objective);
                         }
 
                         // Reset form
