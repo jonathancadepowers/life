@@ -1040,6 +1040,7 @@ def activity_report(request):
     # TODAY'S ACTIVITY DATA
     # Get today's date and times based on the user's browser timezone
     today, today_start, today_end = get_user_today(request)
+    user_tz = get_user_timezone(request)
 
     # Today's workouts
     todays_workouts = Workout.objects.filter(
@@ -1047,11 +1048,23 @@ def activity_report(request):
         start__lte=today_end
     ).order_by('-start')
 
+    # Convert workout timestamps to user timezone
+    for workout in todays_workouts:
+        workout.start = workout.start.astimezone(user_tz)
+        if workout.end:
+            workout.end = workout.end.astimezone(user_tz)
+
     # Today's time logs with projects and goals
     todays_time_logs = TimeLog.objects.filter(
         start__gte=today_start,
         start__lte=today_end
     ).prefetch_related('goals').order_by('-start')
+
+    # Convert time log timestamps to user timezone
+    for log in todays_time_logs:
+        log.start = log.start.astimezone(user_tz)
+        if log.end:
+            log.end = log.end.astimezone(user_tz)
 
     # Serialize time logs for JSON (for pie chart)
     import json
@@ -1077,17 +1090,29 @@ def activity_report(request):
         fast_end_date__lte=today_end
     ).order_by('-fast_end_date')
 
+    # Convert fasting timestamps to user timezone
+    for fast in todays_fasts:
+        fast.fast_end_date = fast.fast_end_date.astimezone(user_tz)
+
     # Today's nutrition entries
     todays_nutrition = NutritionEntry.objects.filter(
         consumption_date__gte=today_start,
         consumption_date__lte=today_end
     ).order_by('-consumption_date')
 
+    # Convert nutrition timestamps to user timezone
+    for entry in todays_nutrition:
+        entry.consumption_date = entry.consumption_date.astimezone(user_tz)
+
     # Today's weigh-ins
     todays_weighins = WeighIn.objects.filter(
         measurement_time__gte=today_start,
         measurement_time__lte=today_end
     ).order_by('-measurement_time')
+
+    # Convert weigh-in timestamps to user timezone
+    for weighin in todays_weighins:
+        weighin.measurement_time = weighin.measurement_time.astimezone(user_tz)
 
     todays_activity = {
         'workouts': todays_workouts,
