@@ -1002,10 +1002,10 @@ def activity_report(request):
                         if pos > 0 and pos < insert_pos:
                             insert_pos = pos
 
-                    # Build the date filter using DATE format (not TIMESTAMP) for compatibility
-                    # Most date columns in the DB are DATE type, so use simple date equality
+                    # Build the date filter using PostgreSQL's DATE() function
+                    # This works for both DATE and TIMESTAMP columns by converting to date for comparison
                     today_date_str = today.strftime('%Y-%m-%d')
-                    date_filter = f"\nAND {date_col} = '{today_date_str}'\n"
+                    date_filter = f"\nAND DATE({date_col}) = '{today_date_str}'\n"
 
                     # Insert the filter
                     modified_sql = sql[:insert_pos].rstrip() + " " + date_filter + sql[insert_pos:]
