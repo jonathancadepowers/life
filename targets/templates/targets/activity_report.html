@@ -498,6 +498,7 @@
                                             <th></th>
                                             <th class="text-center" style="width: 140px; padding-right: 30px; white-space: nowrap;">Target</th>
                                             <th class="text-center" style="width: 80px; padding-right: 30px;">Current</th>
+                                            <th class="text-center" style="width: 80px; padding-right: 30px;">Today</th>
                                             <th style="width: 250px;">Progress</th>
                                             <th style="width: 80px;"></th>
                                         </tr>
@@ -527,6 +528,7 @@
                                                     data-bs-placement="top"
                                                     title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
                                                 <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.result|floatformat:0 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.today_result|floatformat:0 }}</td>
                                                 <td class="align-middle">
                                                     <!-- Linear progress indicator with marker -->
                                                     <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">
@@ -580,6 +582,7 @@
                                                 data-bs-placement="top"
                                                 title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
                                             <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.result|floatformat:0 }}</td>
+                                            <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.today_result|floatformat:0 }}</td>
                                             <td class="align-middle">
                                                 <!-- Linear progress indicator with marker -->
                                                 <div style="position: relative; height: 20px; background: {% if objective.achieved %}#d4edda{% else %}#e9ecef{% endif %}; border-radius: 3px;">

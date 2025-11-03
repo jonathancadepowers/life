@@ -966,11 +966,58 @@ def activity_report(request):
                 obj.result = 0.0
                 obj.save(update_fields=['result'])
 
+    # Get today's date boundaries in user's timezone for "Today" column calculation
+    today, today_start, today_end = get_user_today(request)
+
     # Format objectives data for template
     objectives_data = []
     for obj in monthly_objectives:
         # Use cached result from database
         result = obj.result if obj.result is not None else 0
+
+        # Calculate today's contribution by executing SQL with today's date filter
+        today_result = 0
+        try:
+            with connection.cursor() as cursor:
+                sql = obj.objective_definition.strip()
+
+                # Identify the date column used in the query
+                date_columns = ['consumption_date', 'fast_end_date', 'measurement_time', 'start', 'created_at', 'date']
+                date_col = None
+                for col in date_columns:
+                    # Check if column exists in SQL (case-insensitive)
+                    if col in sql.lower():
+                        date_col = col
+                        break
+
+                if date_col:
+                    # For queries with existing WHERE clause, add additional date restrictions
+                    # Use a simpler approach: add the date filter at the end before any GROUP BY/ORDER BY/LIMIT
+                    sql_upper = sql.upper()
+
+                    # Find where to insert the date filter (before GROUP BY, ORDER BY, LIMIT, or at end)
+                    insert_pos = len(sql)
+                    for keyword in ['GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET']:
+                        pos = sql_upper.find(keyword)
+                        if pos > 0 and pos < insert_pos:
+                            insert_pos = pos
+
+                    # Build the date filter - make sure to use proper datetime format for PostgreSQL
+                    date_filter = f"\nAND {date_col} >= '{today_start.strftime('%Y-%m-%d %H:%M:%S')}' AND {date_col} < '{today_end.strftime('%Y-%m-%d %H:%M:%S')}'\n"
+
+                    # Insert the filter
+                    modified_sql = sql[:insert_pos].rstrip() + " " + date_filter + sql[insert_pos:]
+
+                    cursor.execute(modified_sql)
+                    row = cursor.fetchone()
+                    if row and row[0] is not None:
+                        today_result = float(row[0])
+        except Exception as e:
+            # If today calculation fails, log the error and use 0
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Could not calculate today's result for '{obj.label}': {e}")
+            today_result = 0
 
         # Calculate progress
         progress_pct = 0
@@ -992,6 +1039,7 @@ def activity_report(request):
             'start': obj.start,
             'target': obj.objective_value,
             'result': result if result is not None else 0,
+            'today_result': round(today_result, 1),  # Today's contribution
             'progress_pct': round(progress_pct, 1),
             'achieved': result is not None and result >= obj.objective_value,
             'objective_value': obj.objective_value,
