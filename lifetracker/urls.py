@@ -21,12 +21,12 @@ from targets import views as targets_views
 from lifetracker import views as home_views
 
 urlpatterns = [
-    path("", home_views.home, name='home'),
     path("about/", home_views.about, name='about'),
     path("admin/", admin.site.urls),
     path("oauth/", include("oauth_integration.urls")),
     path("activity-report/", targets_views.activity_report, name='activity_report'),
     path("targets/", include("targets.urls")),
-    path("fasting/", include("fasting.urls")),
-    path("nutrition/", include("nutrition.urls")),
+    path("", include("fasting.urls")),
+    path("", include("nutrition.urls")),
+    path("", home_views.home, name='home'),  # Catch-all for homepage, must be last
 ]
