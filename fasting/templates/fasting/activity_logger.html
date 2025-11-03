@@ -1439,15 +1439,18 @@
                 // 1. Has an agenda (past date with data)
                 // 2. Is today or future (for creating new agendas)
                 const isToday = currentDate.getTime() === today.getTime();
+                const isFuture = currentDate > today;
 
                 if (availableDates.includes(dateStr)) {
                     // Has existing agenda
                     dayDiv.classList.add('clickable');
-                    // Check if it's also today
+                    // Check if it's today or future
                     if (isToday) {
                         dayDiv.classList.add('today');
+                    } else if (isFuture) {
+                        dayDiv.classList.add('future');
                     }
-                    dayDiv.onclick = () => selectDate(dateStr);
+                    dayDiv.onclick = () => selectDate(dateStr, isFuture);
                 } else if (currentDate >= today) {
                     // Today or future date (no agenda yet)
                     dayDiv.classList.add('clickable');
