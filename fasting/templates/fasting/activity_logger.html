@@ -1544,6 +1544,13 @@
             // Clear notes
             document.getElementById('notes-textarea').value = '';
             renderMarkdown('');
+
+            // Clear score section for Other Plans (target 4)
+            const scoreSection4 = document.getElementById('score_section_4');
+            if (scoreSection4) {
+                scoreSection4.style.display = 'none';
+                scoreSection4.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
+            }
         }
 
         function returnToToday() {
@@ -1955,6 +1962,14 @@
         });
 
         function loadAgendaIntoForm(agenda) {
+            // Clear all score button active states before loading new agenda
+            // This prevents buttons from showing as active from a previously viewed date
+            for (let i = 1; i <= 4; i++) {
+                const scoreSection = document.getElementById(`score_section_${i}`);
+                if (scoreSection) {
+                    scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
+                }
+            }
 
             // Update the date display
             const date = new Date(agenda.date + 'T00:00:00'); // Parse as local date
