@@ -1442,15 +1442,15 @@
                 const isFuture = currentDate > today;
 
                 if (availableDates.includes(dateStr)) {
-                    // Has existing agenda
+                    // Has existing agenda - always fetch it (never show empty form)
                     dayDiv.classList.add('clickable');
-                    // Check if it's today or future
+                    // Check if it's today or future (for styling only)
                     if (isToday) {
                         dayDiv.classList.add('today');
                     } else if (isFuture) {
                         dayDiv.classList.add('future');
                     }
-                    dayDiv.onclick = () => selectDate(dateStr, isFuture);
+                    dayDiv.onclick = () => selectDate(dateStr, false); // false = fetch agenda
                 } else if (currentDate >= today) {
                     // Today or future date (no agenda yet)
                     dayDiv.classList.add('clickable');
