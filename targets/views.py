@@ -1457,7 +1457,7 @@ def create_objective(request):
         # Validate required fields
         if not all([label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
             return JsonResponse({
-                'error': 'All fields are required'
+                'error': 'All required fields must be filled: Label, Month, Year, Target Value, SQL Definition, Category, Description, and Unit of Measurement'
             }, status=400)
 
         # Parse month and year
@@ -1622,11 +1622,11 @@ def update_objective(request):
 
         logger.info(f"Extracted historical_display: {repr(historical_display)}")
 
-        # Validate required fields (only the truly required ones)
-        if not all([objective_id, label, month, year, objective_value, objective_definition]):
+        # Validate required fields
+        if not all([objective_id, label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
             logger.error(f"Validation failed - missing required fields")
             return JsonResponse({
-                'error': 'Required fields missing: objective_id, label, month, year, objective_value, objective_definition'
+                'error': 'All required fields must be filled: Label, Month, Year, Target Value, SQL Definition, Category, Description, and Unit of Measurement'
             }, status=400)
 
         # Get the existing objective

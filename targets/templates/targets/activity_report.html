@@ -1909,6 +1909,31 @@
                 const isEdit = editObjectiveId.value !== '';
                 const url = isEdit ? '/targets/api/update-objective/' : '/targets/api/create-objective/';
 
+                // Validate required fields
+                const requiredFields = {
+                    'label': 'Label',
+                    'month': 'Month',
+                    'year': 'Year',
+                    'objective_value': 'Target Value',
+                    'objective_definition': 'SQL Definition',
+                    'category': 'Category',
+                    'description': 'Description',
+                    'unit_of_measurement': 'Unit of Measurement'
+                };
+
+                const missingFields = [];
+                for (const [field, label] of Object.entries(requiredFields)) {
+                    if (!data[field] || data[field].trim() === '') {
+                        missingFields.push(label);
+                    }
+                }
+
+                if (missingFields.length > 0) {
+                    createObjectiveError.textContent = 'Please fill in all required fields: ' + missingFields.join(', ');
+                    createObjectiveError.classList.remove('d-none');
+                    return; // Stop submission
+                }
+
                 // DEBUG: Log what we're sending
                 console.log('=== OBJECTIVE FORM SUBMISSION ===');
                 console.log('Mode:', isEdit ? 'UPDATE' : 'CREATE');
