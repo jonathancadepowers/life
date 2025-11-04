@@ -1205,10 +1205,11 @@ def get_objective_entries(request):
 
         # Patterns for different types of queries we can handle
         # Pattern 1: Simple SELECT COUNT/SUM/AVG with FROM table WHERE...
-        simple_pattern = r'SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND)\s*\([^)]+\)\s+FROM\s+(\w+)'
+        # More flexible pattern that handles various whitespace and argument patterns
+        simple_pattern = r'SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND|CAST)\s*\([^)]*\)\s+FROM\s+(\w+)'
 
         # Pattern 2: WITH ... SELECT COUNT/SUM/AVG (CTE pattern)
-        cte_pattern = r'WITH\s+\w+\s+AS\s*\([^)]+\)\s*SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND)\s*\([^)]+\)\s+FROM\s+(\w+)'
+        cte_pattern = r'WITH\s+\w+\s+AS\s*\(.+?\)\s*SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND|CAST)\s*\([^)]*\)\s+FROM\s+(\w+)'
 
         match = re.search(simple_pattern, sql, re.IGNORECASE | re.DOTALL)
         is_cte = False
@@ -1217,6 +1218,11 @@ def get_objective_entries(request):
             # Try CTE pattern
             match = re.search(cte_pattern, sql, re.IGNORECASE | re.DOTALL)
             is_cte = True
+
+        if not match:
+            # Try one more pattern: multiline with more whitespace flexibility
+            simple_pattern_multiline = r'SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND|CAST)\s*\([^)]*\)[\s\n]+FROM[\s\n]+(\w+)'
+            match = re.search(simple_pattern_multiline, sql, re.IGNORECASE | re.DOTALL)
 
         if not match:
             return JsonResponse({
