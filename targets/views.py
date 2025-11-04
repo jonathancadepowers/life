@@ -1203,150 +1203,111 @@ def get_objective_entries(request):
     try:
         sql = objective.objective_definition.strip()
 
-        # Patterns for different types of queries we can handle
-        # Pattern 1: Simple SELECT COUNT/SUM/AVG with FROM table WHERE...
-        # More flexible pattern that handles various whitespace and argument patterns
-        simple_pattern = r'SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND|CAST)\s*\([^)]*\)\s+FROM\s+(\w+)'
+        # New universal approach: Use a subquery to get IDs, then fetch details
+        # This works for ANY query structure - simple, complex, CTEs, etc.
 
-        # Pattern 2: WITH ... SELECT COUNT/SUM/AVG (CTE pattern)
-        cte_pattern = r'WITH\s+\w+\s+AS\s*\(.+?\)\s*SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND|CAST)\s*\([^)]*\)\s+FROM\s+(\w+)'
-
-        match = re.search(simple_pattern, sql, re.IGNORECASE | re.DOTALL)
-        is_cte = False
-
-        if not match:
-            # Try CTE pattern
-            match = re.search(cte_pattern, sql, re.IGNORECASE | re.DOTALL)
-            is_cte = True
-
-        if not match:
-            # Try one more pattern: multiline with more whitespace flexibility
-            simple_pattern_multiline = r'SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND|CAST)\s*\([^)]*\)[\s\n]+FROM[\s\n]+(\w+)'
-            match = re.search(simple_pattern_multiline, sql, re.IGNORECASE | re.DOTALL)
-
-        if not match:
+        # Wrap the original query in a subquery to get matching IDs
+        # First, find the main table being queried
+        from_match = re.search(r'\bFROM\s+(\w+)', sql, re.IGNORECASE)
+        if not from_match:
             return JsonResponse({
-                'error': 'This objective uses a query pattern that cannot be displayed in detail view.',
+                'error': 'Could not identify data source table.',
                 'objective_label': objective.label
             })
 
-        # For CTEs, we need to execute the whole CTE first, then get the results
-        if is_cte:
-            return JsonResponse({
-                'error': 'Complex query patterns (CTEs) are not supported for detail view yet.',
-                'objective_label': objective.label
-            })
+        table_name = from_match.group(1)
 
-        # For simple queries, try to extract the table and build a detail query
-        table_name = match.group(2)
+        # Get primary key column name (usually 'id')
+        pk_column = 'id'
 
-        # Extract WHERE clause if present
-        where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
-        where_clause = where_match.group(1).strip() if where_match else ""
-
-        # Quote SQL reserved keywords in WHERE clause
-        # These keywords need to be quoted when used as column names
-        reserved_keywords = ['start', 'end', 'date', 'user', 'order', 'group', 'limit']
-
-        def quote_reserved_keywords(clause):
-            """Quote SQL reserved keywords when they appear as column names."""
-            if not clause:
-                return clause
-
-            for keyword in reserved_keywords:
-                # Match the keyword when it appears as a column name (not inside quotes)
-                # Patterns: keyword at start of clause, after operators, after commas, in functions
-                patterns = [
-                    # After opening parenthesis: (keyword
-                    (r'\((' + keyword + r')\b', r'("\1"'),
-                    # After comma and space: , keyword
-                    (r',\s*(' + keyword + r')\b', r', "\1"'),
-                    # After operators: =, <, >, !=, etc. followed by keyword
-                    (r'([=<>!]+)\s*(' + keyword + r')\b', r'\1 "\2"'),
-                    # After AND/OR: AND keyword, OR keyword
-                    (r'\b(AND|OR)\s+(' + keyword + r')\b', r'\1 "\2"'),
-                    # At start of clause: keyword
-                    (r'^(' + keyword + r')\b', r'"\1"'),
-                ]
-
-                for pattern, replacement in patterns:
-                    clause = re.sub(pattern, replacement, clause, flags=re.IGNORECASE)
-
-            return clause
-
-        where_clause = quote_reserved_keywords(where_clause)
-
-        # Identify a date column to order by
-        # Common patterns in your queries
+        # Identify date/sort column for this table
         date_columns = {
-            'fasting_session': 'fast_end_date',
-            'nutrition_entry': 'consumption_date',
-            'weight_weighin': 'measurement_time',
-            'workouts_workout': 'start',
-            'targets_dailyagenda': 'date',
-            'time_logs_timelog': 'start',
+            'fasting_session': ('fast_end_date', 'fast_end_date'),
+            'nutrition_entry': ('consumption_date', 'consumption_date'),
+            'weight_weighin': ('measurement_time', 'measurement_time'),
+            'workouts_workout': ('start', '"start"'),  # Quoted for SQL
+            'targets_dailyagenda': ('date', '"date"'),  # Quoted for SQL
+            'time_logs_timelog': ('start', '"start"'),  # Quoted for SQL
         }
 
-        order_column = date_columns.get(table_name, 'created_at')
+        date_col_display, date_col_sql = date_columns.get(table_name, ('created_at', 'created_at'))
 
-        # Quote reserved SQL keywords if they appear as column names
-        if order_column in ['date', 'end', 'start']:
-            order_column = f'"{order_column}"'
+        # Build a subquery that gets IDs from the original query's WHERE clause
+        # Extract just the WHERE clause from the original query
+        where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
 
-        # Build the detail query
-        if where_clause:
-            detail_query = f"SELECT * FROM {table_name} WHERE {where_clause} ORDER BY {order_column} DESC LIMIT 10"
+        if where_match:
+            where_clause = where_match.group(1).strip()
+            # Get IDs of matching records
+            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {where_clause} ORDER BY {date_col_sql} DESC LIMIT 10"
         else:
-            detail_query = f"SELECT * FROM {table_name} ORDER BY {order_column} DESC LIMIT 10"
+            # No WHERE clause - just get recent records
+            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} ORDER BY {date_col_sql} DESC LIMIT 10"
 
-        # Remove any duplicate LIMIT clauses
-        detail_query = re.sub(r'\bLIMIT\s+\d+\s+LIMIT\s+\d+', 'LIMIT 10', detail_query, flags=re.IGNORECASE)
+        # Execute the ID query
+        with connection.cursor() as cursor:
+            cursor.execute(id_query)
+            id_rows = cursor.fetchall()
 
-        # Execute the query
+        if not id_rows:
+            return JsonResponse({
+                'success': True,
+                'objective_label': objective.label,
+                'description': objective.description or '',
+                'target': objective.objective_value,
+                'current': objective.result or 0,
+                'unit': objective.unit_of_measurement or '',
+                'entries': [],
+                'count': 0
+            })
+
+        # Get full details for these IDs
+        ids = [row[0] for row in id_rows]
+        ids_str = ','.join(str(id) for id in ids)
+
+        detail_query = f"SELECT * FROM {table_name} WHERE {pk_column} IN ({ids_str}) ORDER BY {date_col_sql} DESC"
+
         with connection.cursor() as cursor:
             cursor.execute(detail_query)
             columns = [col[0] for col in cursor.description]
             rows = cursor.fetchall()
 
-        # Format the entries for display
+        # Format entries for display
         entries = []
         for row in rows:
             row_dict = dict(zip(columns, row))
 
-            # Format the entry based on the table/data type
-            # Try to find a meaningful display string
-            entry_text = None
-
-            # Look for date/time fields
-            if 'fast_end_date' in row_dict:
-                date_val = row_dict['fast_end_date']
+            # Format based on table type
+            if table_name == 'fasting_session':
+                date_val = row_dict.get('fast_end_date', '')
                 duration = row_dict.get('duration_hours', 0)
-                entry_text = f"{date_val}: {duration:.1f} hour fast"
-            elif 'consumption_date' in row_dict:
-                date_val = row_dict['consumption_date']
+                entries.append(f"{date_val}: {duration:.1f} hour fast")
+            elif table_name == 'nutrition_entry':
+                date_val = row_dict.get('consumption_date', '')
                 food = row_dict.get('food_name', 'Food entry')
-                entry_text = f"{date_val}: {food}"
-            elif 'measurement_time' in row_dict:
-                date_val = row_dict['measurement_time']
+                entries.append(f"{date_val}: {food}")
+            elif table_name == 'weight_weighin':
+                date_val = row_dict.get('measurement_time', '')
                 weight = row_dict.get('weight_kg', 0)
-                entry_text = f"{date_val}: {weight:.1f} kg"
-            elif 'start' in row_dict and 'workouts_workout' in table_name:
-                date_val = row_dict['start']
+                entries.append(f"{date_val}: {weight:.1f} kg")
+            elif table_name == 'workouts_workout':
+                date_val = row_dict.get('start', '')
                 sport = row_dict.get('sport_id', 'Workout')
-                entry_text = f"{date_val}: {sport}"
-            elif 'start' in row_dict and 'time_logs' in table_name:
-                date_val = row_dict['start']
+                duration = row_dict.get('duration_minutes', 0)
+                entries.append(f"{date_val}: Sport {sport} ({duration} min)")
+            elif table_name == 'time_logs_timelog':
+                date_val = row_dict.get('start', '')
                 duration = row_dict.get('duration_minutes', 0) / 60
-                entry_text = f"{date_val}: {duration:.1f} hours logged"
-            elif 'date' in row_dict:
-                date_val = row_dict['date']
-                entry_text = f"{date_val}: Agenda entry"
+                project = row_dict.get('project_id', 'Unknown')
+                entries.append(f"{date_val}: Project {project} ({duration:.1f} hours)")
+            elif table_name == 'targets_dailyagenda':
+                date_val = row_dict.get('date', '')
+                entries.append(f"{date_val}: Agenda entry")
             else:
-                # Fallback: show the first few non-id columns
+                # Fallback
                 display_cols = [k for k in row_dict.keys() if 'id' not in k.lower()][:3]
                 entry_text = " | ".join([f"{k}: {row_dict[k]}" for k in display_cols])
-
-            entries.append(entry_text)
+                entries.append(entry_text)
 
         return JsonResponse({
             'success': True,
