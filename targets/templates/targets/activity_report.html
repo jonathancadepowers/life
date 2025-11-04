@@ -359,7 +359,7 @@
                                     <div class="activity-pill activity-pill-workouts"
                                          data-tooltip="{{ sport_name }} • {{ workout.start|date:'g:i A' }}-{{ workout.end|date:'g:i A' }}{% if workout.calories_burned %} • {{ workout.calories_burned|floatformat:0 }} cal{% endif %}{% if workout.average_heart_rate %} • {{ workout.average_heart_rate|floatformat:0 }} bpm avg{% endif %}">
                                         <i class="bi bi-lightning-charge-fill"></i>
-                                        <span>{% if "Running" in sport_name %}Ran{% elif "Cycling" in sport_name %}Cycled{% elif "Swimming" in sport_name %}Swam{% elif "Walking" in sport_name %}Walked{% elif "Functional Fitness" in sport_name %}Trained{% elif "Weightlifting" in sport_name or "Weight Training" in sport_name %}Lifted{% else %}Worked Out{% endif %} {{ workout.duration_minutes|floatformat:0 }} min</span>
+                                        <span>{% if "Running" in sport_name %}Ran{% elif "Cycling" in sport_name %}Cycled{% elif "Swimming" in sport_name %}Swam{% elif "Walking" in sport_name %}Walked{% elif "Functional Fitness" in sport_name %}Trained{% elif "Weightlifting" in sport_name or "Weight Training" in sport_name %}Lifted{% elif "Sauna" in sport_name %}Sauna{% else %}Worked Out{% endif %} {{ workout.duration_minutes|floatformat:0 }} min</span>
                                     </div>
                                     {% endwith %}
                                     {% endfor %}

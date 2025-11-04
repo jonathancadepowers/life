@@ -816,7 +816,8 @@ def activity_report(request):
 
     workouts_by_sport = {}
     for workout in workouts:
-        sport_id = workout.sport_id
+        # Normalize sport_id: -1 from Whoop should be treated as sauna (233)
+        sport_id = 233 if workout.sport_id == -1 else workout.sport_id
         sport_name = sport_names_dict.get(sport_id, f'Sport {sport_id}')
 
         if sport_name not in workouts_by_sport:

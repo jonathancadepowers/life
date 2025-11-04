@@ -140,10 +140,14 @@ class Command(BaseCommand):
         distance_miles = round(distance_meters * 0.000621371, 2) if distance_meters is not None else None
 
         # Prepare workout data for our model
+        # Normalize sport_id: Whoop sometimes returns -1 for sauna sessions (should be 233)
+        raw_sport_id = workout_data.get('sport_id', 0)
+        normalized_sport_id = 233 if raw_sport_id == -1 else raw_sport_id
+
         workout_defaults = {
             'start': start_time,
             'end': end_time,
-            'sport_id': workout_data.get('sport_id', 0),
+            'sport_id': normalized_sport_id,
             'average_heart_rate': score.get('average_heart_rate'),
             'max_heart_rate': score.get('max_heart_rate'),
             'calories_burned': calories,
