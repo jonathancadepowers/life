@@ -1246,6 +1246,8 @@ def get_objective_entries(request):
 
         return sql_text
 
+    from datetime import timedelta
+
     objective_id = request.GET.get('objective_id')
     user_timezone = request.GET.get('timezone', 'UTC')
 
@@ -1337,17 +1339,20 @@ def get_objective_entries(request):
         # Extract just the WHERE clause from the original query
         where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
 
+        # Add date range filter to match objective's month
+        date_range_filter = f"{date_col_sql} >= '{objective.start}' AND {date_col_sql} < '{objective.end + timedelta(days=1)}'"
+
         if where_match:
             where_clause = where_match.group(1).strip()
             # Quote reserved keywords in the WHERE clause
             where_clause = quote_reserved_keywords(where_clause)
             # Convert SQLite functions to PostgreSQL equivalents
             where_clause = convert_sqlite_to_postgres(where_clause)
-            # Get IDs of matching records
-            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {where_clause} ORDER BY {date_col_sql} DESC LIMIT 10"
+            # Get IDs of matching records within the objective's month
+            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE ({where_clause}) AND ({date_range_filter}) ORDER BY {date_col_sql} DESC LIMIT 50"
         else:
-            # No WHERE clause - just get recent records
-            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} ORDER BY {date_col_sql} DESC LIMIT 10"
+            # No WHERE clause - just get records from the objective's month
+            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {date_range_filter} ORDER BY {date_col_sql} DESC LIMIT 50"
 
         # Execute the ID query
         with connection.cursor() as cursor:
