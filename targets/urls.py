@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/create-objective/', views.create_objective, name='create_objective'),
     path('api/update-objective/', views.update_objective, name='update_objective'),
     path('api/delete-objective/', views.delete_objective, name='delete_objective'),
+    path('api/refresh-objective-cache/', views.refresh_objective_cache, name='refresh_objective_cache'),
 ]

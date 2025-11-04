@@ -483,9 +483,14 @@
                                 <div class="text-muted" style="font-size: 0.85rem;">
                                     <strong>{{ monthly_objectives.target_month }}</strong>
                                 </div>
-                                <a href="#" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#createObjectiveModal">
-                                    <i class="bi bi-plus-circle"></i> Create Objective
-                                </a>
+                                <div>
+                                    <button id="refreshCacheBtn" class="btn btn-sm btn-outline-secondary me-2" onclick="refreshObjectiveCache()">
+                                        <i class="bi bi-arrow-clockwise"></i> Refresh Cache
+                                    </button>
+                                    <a href="#" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#createObjectiveModal">
+                                        <i class="bi bi-plus-circle"></i> Create Objective
+                                    </a>
+                                </div>
                             </div>
 
                             <!-- Simple table with all objectives -->
@@ -1857,6 +1862,42 @@
             bsModal.show();
             }
         });
+
+        // Refresh objective cache
+        function refreshObjectiveCache() {
+            const btn = document.getElementById('refreshCacheBtn');
+            const originalHTML = btn.innerHTML;
+
+            // Disable button and show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise spinner-border spinner-border-sm"></i> Refreshing...';
+
+            fetch('/targets/api/refresh-objective-cache/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    alert(data.message);
+                    // Reload the page to show updated values
+                    location.reload();
+                } else {
+                    alert('Error refreshing cache: ' + (data.error || 'Unknown error'));
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            })
+            .catch(error => {
+                alert('Error refreshing cache: ' + error);
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            });
+        }
     </script>
 </body>
 </html>

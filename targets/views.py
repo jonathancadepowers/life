@@ -1517,3 +1517,51 @@ def delete_objective(request):
         return JsonResponse({
             'error': f'Error deleting objective: {str(e)}'
         }, status=500)
+
+
+@require_http_methods(["POST"])
+def refresh_objective_cache(request):
+    """Refresh cached results for all monthly objectives"""
+    from monthly_objectives.models import MonthlyObjective
+    import json
+
+    try:
+        objectives = MonthlyObjective.objects.all()
+        updated_count = 0
+        error_count = 0
+        errors = []
+
+        for obj in objectives:
+            try:
+                # Execute the SQL query
+                with connection.cursor() as cursor:
+                    cursor.execute(obj.objective_definition)
+                    row = cursor.fetchone()
+
+                    if row and row[0] is not None:
+                        result = float(row[0])
+                    else:
+                        result = 0.0
+
+                # Update the result field
+                obj.result = result
+                obj.save(update_fields=['result'])
+                updated_count += 1
+
+            except Exception as e:
+                error_count += 1
+                errors.append(f'{obj.label}: {str(e)}')
+
+        return JsonResponse({
+            'success': True,
+            'updated_count': updated_count,
+            'error_count': error_count,
+            'errors': errors if errors else None,
+            'message': f'Refreshed {updated_count} objective(s)' + (f', {error_count} error(s)' if error_count > 0 else '')
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
