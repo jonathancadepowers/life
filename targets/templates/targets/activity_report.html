@@ -531,10 +531,12 @@
                                                     title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
                                                 <td class="text-center align-middle" style="padding-right: 30px;">
                                                     {{ objective.result|floatformat:0 }}
+                                                    {% if not objective.objective_definition|upper|slice:":4" == "WITH" %}
                                                     <i class="bi bi-info-circle-fill ms-1 objective-detail-icon"
                                                        style="cursor: pointer; font-size: 0.75rem; opacity: 0.6; color: #0d6efd;"
                                                        data-objective-id="{{ objective.objective_id }}"
                                                        title="View details"></i>
+                                                    {% endif %}
                                                 </td>
                                                 <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.today_result|floatformat:0 }}</td>
                                                 <td class="align-middle">
@@ -591,10 +593,12 @@
                                                 title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
                                             <td class="text-center align-middle" style="padding-right: 30px;">
                                                 {{ objective.result|floatformat:0 }}
+                                                {% if not objective.objective_definition|upper|slice:":4" == "WITH" %}
                                                 <i class="bi bi-info-circle-fill ms-1 objective-detail-icon"
                                                    style="cursor: pointer; font-size: 0.75rem; opacity: 0.6; color: #0d6efd;"
                                                    data-objective-id="{{ objective.objective_id }}"
                                                    title="View details"></i>
+                                                {% endif %}
                                             </td>
                                             <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.today_result|floatformat:0 }}</td>
                                             <td class="align-middle">
@@ -1077,8 +1081,11 @@
                 document.getElementById('objectiveDetailContent').classList.add('d-none');
                 document.getElementById('objectiveDetailError').classList.add('d-none');
 
+                // Get user's timezone
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
                 // Fetch the objective entries via AJAX
-                fetch(`/targets/api/objective-entries/?objective_id=${objectiveId}`)
+                fetch(`/targets/api/objective-entries/?objective_id=${objectiveId}&timezone=${encodeURIComponent(userTimezone)}`)
                     .then(response => response.json())
                     .then(data => {
                         // Hide loading spinner

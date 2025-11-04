@@ -1246,9 +1246,43 @@ def get_objective_entries(request):
         return sql_text
 
     objective_id = request.GET.get('objective_id')
+    user_timezone = request.GET.get('timezone', 'UTC')
 
     if not objective_id:
         return JsonResponse({'error': 'objective_id is required'}, status=400)
+
+    # Helper function to format datetime with timezone
+    def format_datetime(dt_value, timezone_str):
+        """Convert datetime to user timezone and format nicely"""
+        from datetime import datetime
+        from django.utils import timezone as django_tz
+        import pytz
+
+        if not dt_value:
+            return ''
+
+        # Parse the datetime if it's a string
+        if isinstance(dt_value, str):
+            try:
+                dt = datetime.fromisoformat(str(dt_value).replace('Z', '+00:00'))
+            except:
+                return str(dt_value)
+        else:
+            dt = dt_value
+
+        # Make it timezone-aware if it isn't
+        if dt.tzinfo is None:
+            dt = django_tz.make_aware(dt, pytz.UTC)
+
+        # Convert to user's timezone
+        try:
+            user_tz = pytz.timezone(timezone_str)
+            dt_local = dt.astimezone(user_tz)
+            # Format: Nov 3, 2025 1:11 PM
+            return dt_local.strftime('%b %d, %Y %I:%M %p')
+        except:
+            # Fallback to simpler format if timezone conversion fails
+            return dt.strftime('%b %d, %Y %I:%M %p')
 
     try:
         # Fetch the objective
@@ -1346,29 +1380,29 @@ def get_objective_entries(request):
 
             # Format based on table type
             if table_name == 'fasting_session':
-                date_val = row_dict.get('fast_end_date', '')
+                date_val = format_datetime(row_dict.get('fast_end_date', ''), user_timezone)
                 duration = row_dict.get('duration_hours', 0)
                 entries.append(f"{date_val}: {duration:.1f} hour fast")
             elif table_name == 'nutrition_entry':
-                date_val = row_dict.get('consumption_date', '')
+                date_val = format_datetime(row_dict.get('consumption_date', ''), user_timezone)
                 food = row_dict.get('food_name', 'Food entry')
                 entries.append(f"{date_val}: {food}")
             elif table_name == 'weight_weighin':
-                date_val = row_dict.get('measurement_time', '')
+                date_val = format_datetime(row_dict.get('measurement_time', ''), user_timezone)
                 weight = row_dict.get('weight_kg', 0)
                 entries.append(f"{date_val}: {weight:.1f} kg")
             elif table_name == 'workouts_workout':
-                date_val = row_dict.get('start', '')
+                date_val = format_datetime(row_dict.get('start', ''), user_timezone)
                 sport = row_dict.get('sport_id', 'Workout')
                 duration = row_dict.get('duration_minutes', 0)
                 entries.append(f"{date_val}: Sport {sport} ({duration} min)")
             elif table_name == 'time_logs_timelog':
-                date_val = row_dict.get('start', '')
+                date_val = format_datetime(row_dict.get('start', ''), user_timezone)
                 duration = row_dict.get('duration_minutes', 0) / 60
                 project = row_dict.get('project_id', 'Unknown')
                 entries.append(f"{date_val}: Project {project} ({duration:.1f} hours)")
             elif table_name == 'targets_dailyagenda':
-                date_val = row_dict.get('date', '')
+                date_val = format_datetime(row_dict.get('date', ''), user_timezone)
                 entries.append(f"{date_val}: Agenda entry")
             else:
                 # Fallback
