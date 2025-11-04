@@ -529,10 +529,7 @@
                                                     data-bs-toggle="tooltip"
                                                     data-bs-placement="top"
                                                     title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
-                                                <td class="text-center align-middle objective-result-cell" style="padding-right: 30px;"
-                                                    {% if objective.last_entries %}
-                                                    data-last-entries="{{ objective.last_entries|join:'|||' }}"
-                                                    {% endif %}>{{ objective.result|floatformat:0 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.result|floatformat:0 }}</td>
                                                 <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.today_result|floatformat:0 }}</td>
                                                 <td class="align-middle">
                                                     <!-- Linear progress indicator with marker -->
@@ -994,23 +991,6 @@
                 });
             });
 
-            // Initialize tooltips for objective result cells with last entries
-            const resultCells = document.querySelectorAll('.objective-result-cell[data-last-entries]');
-            resultCells.forEach(function(cell) {
-                const entriesData = cell.getAttribute('data-last-entries');
-                if (entriesData) {
-                    const entries = entriesData.split('|||');
-                    const entriesList = entries.map(entry => `<li>${entry}</li>`).join('');
-                    const tooltipContent = `<div style="text-align: left;"><strong>Last 5 Entries:</strong><ul class="mb-0 ps-3">${entriesList}</ul></div>`;
-
-                    cell.style.cursor = 'help';
-                    new bootstrap.Tooltip(cell, {
-                        html: true,
-                        placement: 'right',
-                        title: tooltipContent
-                    });
-                }
-            });
 
             const startDateInput = document.getElementById('start_date');
             const endDateInput = document.getElementById('end_date');
