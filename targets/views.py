@@ -1211,6 +1211,40 @@ def get_objective_entries(request):
 
         return sql_text
 
+    def convert_sqlite_to_postgres(sql_text):
+        """
+        Convert SQLite-specific functions to PostgreSQL equivalents.
+        This is needed because development uses SQLite but production uses PostgreSQL.
+        """
+        # Detect if we're using PostgreSQL
+        from django.db import connection
+        is_postgres = connection.vendor == 'postgresql'
+
+        if not is_postgres:
+            return sql_text  # No conversion needed for SQLite
+
+        # Convert julianday() date arithmetic to PostgreSQL
+        # SQLite: (julianday(end) - julianday(start)) * 24 * 60 > 20
+        # PostgreSQL: EXTRACT(EPOCH FROM ("end" - "start")) / 60 > 20
+
+        # Pattern: (julianday(col1) - julianday(col2)) * multiplier
+        # Replace with: EXTRACT(EPOCH FROM (col1 - col2)) / (86400 / multiplier)
+
+        # First, handle the specific pattern: julianday difference converted to minutes
+        # (julianday(col1) - julianday(col2)) * 24 * 60 becomes EXTRACT(EPOCH FROM (col1 - col2)) / 60
+        pattern1 = r'\(julianday\(([^)]+)\)\s*-\s*julianday\(([^)]+)\)\)\s*\*\s*24\s*\*\s*60'
+        sql_text = re.sub(pattern1, r'EXTRACT(EPOCH FROM (\1 - \2)) / 60', sql_text, flags=re.IGNORECASE)
+
+        # Handle general julianday(col1) - julianday(col2) pattern (in days)
+        pattern2 = r'\(julianday\(([^)]+)\)\s*-\s*julianday\(([^)]+)\)\)'
+        sql_text = re.sub(pattern2, r'EXTRACT(EPOCH FROM (\1 - \2)) / 86400', sql_text, flags=re.IGNORECASE)
+
+        # Handle single julianday(col) - convert to epoch days
+        pattern3 = r'julianday\(([^)]+)\)'
+        sql_text = re.sub(pattern3, r'EXTRACT(EPOCH FROM \1) / 86400', sql_text, flags=re.IGNORECASE)
+
+        return sql_text
+
     objective_id = request.GET.get('objective_id')
 
     if not objective_id:
@@ -1262,6 +1296,8 @@ def get_objective_entries(request):
             where_clause = where_match.group(1).strip()
             # Quote reserved keywords in the WHERE clause
             where_clause = quote_reserved_keywords(where_clause)
+            # Convert SQLite functions to PostgreSQL equivalents
+            where_clause = convert_sqlite_to_postgres(where_clause)
             # Get IDs of matching records
             id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {where_clause} ORDER BY {date_col_sql} DESC LIMIT 10"
         else:
