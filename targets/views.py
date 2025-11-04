@@ -1279,11 +1279,11 @@ def get_objective_entries(request):
         try:
             user_tz = pytz.timezone(timezone_str)
             dt_local = dt.astimezone(user_tz)
-            # Format: Nov 3, 2025 1:11 PM
-            return dt_local.strftime('%b %d, %Y %I:%M %p')
+            # Format: Mon, 11/3/25 @ 9:15am
+            return dt_local.strftime('%a, %-m/%-d/%y @ %-I:%M%p').lower().replace('am', 'am').replace('pm', 'pm')
         except:
             # Fallback to simpler format if timezone conversion fails
-            return dt.strftime('%b %d, %Y %I:%M %p')
+            return dt.strftime('%a, %-m/%-d/%y @ %-I:%M%p').lower().replace('am', 'am').replace('pm', 'pm')
 
     try:
         # Fetch the objective
