@@ -1078,7 +1078,7 @@
                 document.getElementById('objectiveDetailError').classList.add('d-none');
 
                 // Fetch the objective entries via AJAX
-                fetch(`/activity-logger/api/objective-entries/?objective_id=${objectiveId}`)
+                fetch(`/targets/api/objective-entries/?objective_id=${objectiveId}`)
                     .then(response => response.json())
                     .then(data => {
                         // Hide loading spinner
