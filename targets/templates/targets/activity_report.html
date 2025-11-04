@@ -1909,6 +1909,13 @@
                 const isEdit = editObjectiveId.value !== '';
                 const url = isEdit ? '/targets/api/update-objective/' : '/targets/api/create-objective/';
 
+                // DEBUG: Log what we're sending
+                console.log('=== OBJECTIVE FORM SUBMISSION ===');
+                console.log('Mode:', isEdit ? 'UPDATE' : 'CREATE');
+                console.log('URL:', url);
+                console.log('Form Data:', data);
+                console.log('historical_display value:', data.historical_display);
+
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
@@ -1920,6 +1927,13 @@
                     });
 
                     const result = await response.json();
+
+                    // DEBUG: Log what we received
+                    console.log('Response status:', response.status);
+                    console.log('Response data:', result);
+                    if (result.objective) {
+                        console.log('Returned objective.historical_display:', result.objective.historical_display);
+                    }
 
                     if (response.ok) {
                         // Close the modal immediately

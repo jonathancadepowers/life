@@ -1601,6 +1601,13 @@ def update_objective(request):
         # Parse JSON data
         data = json.loads(request.body)
 
+        # DEBUG: Log received data
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"=== UPDATE OBJECTIVE REQUEST ===")
+        logger.info(f"Received data keys: {data.keys()}")
+        logger.info(f"historical_display in request: {data.get('historical_display')}")
+
         # Extract and validate fields
         objective_id = data.get('objective_id', '').strip()
         label = data.get('label', '').strip()
@@ -1613,10 +1620,13 @@ def update_objective(request):
         unit_of_measurement = data.get('unit_of_measurement', '').strip() or None
         historical_display = data.get('historical_display', '').strip() or None
 
-        # Validate required fields
-        if not all([objective_id, label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
+        logger.info(f"Extracted historical_display: {repr(historical_display)}")
+
+        # Validate required fields (only the truly required ones)
+        if not all([objective_id, label, month, year, objective_value, objective_definition]):
+            logger.error(f"Validation failed - missing required fields")
             return JsonResponse({
-                'error': 'All fields are required'
+                'error': 'Required fields missing: objective_id, label, month, year, objective_value, objective_definition'
             }, status=400)
 
         # Get the existing objective
