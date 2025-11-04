@@ -1899,6 +1899,11 @@
                     objectiveDefinitionInput.value = editBtn.dataset.definition || '';
                     historicalDisplayInput.value = editBtn.dataset.historicalDisplay || '';
 
+                    // Update available fields for historical_display when editing
+                    if (editBtn.dataset.definition) {
+                        updateAvailableFields(editBtn.dataset.definition);
+                    }
+
                     // Debug: Log form values after setting
                     console.log('Form values set:', {
                         editObjectiveId: editObjectiveId.value,
