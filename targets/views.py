@@ -1053,6 +1053,7 @@ def activity_report(request):
             'days_in_month': days_in_month,
             'remaining': round(remaining, 1),
             'unit': obj.unit_of_measurement,
+            'historical_display': obj.historical_display,
         })
 
     # Group objectives by category
