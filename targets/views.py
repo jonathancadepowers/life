@@ -1520,6 +1520,7 @@ def delete_objective(request):
 
 
 @require_http_methods(["POST"])
+@login_required
 def refresh_objective_cache(request):
     """Refresh cached results for all monthly objectives"""
     from monthly_objectives.models import MonthlyObjective
