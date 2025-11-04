@@ -1088,30 +1088,39 @@ def activity_report(request):
                             if keyword_pos > 0:
                                 end_pos = min(end_pos, keyword_pos)
                         modified_sql = modified_sql[:order_by_match.start()] + modified_sql[end_pos:]
+                        modified_sql_upper = modified_sql.upper()
+
+                    # Remove existing LIMIT clause
+                    limit_match = re.search(r'\bLIMIT\s+\d+', modified_sql_upper)
+                    if limit_match:
+                        modified_sql = modified_sql[:limit_match.start()] + modified_sql[limit_match.end():]
+                        modified_sql_upper = modified_sql.upper()
 
                     # Identify the date column used in the query
-                    date_columns = ['consumption_date', 'fast_end_date', 'measurement_time', 'start', 'created_at', 'date']
+                    # Note: Some columns need quoting because they're SQL reserved words
+                    date_columns = [
+                        ('fast_end_date', 'fast_end_date'),
+                        ('measurement_time', 'measurement_time'),
+                        ('start', 'start'),
+                        ('created_at', 'created_at'),
+                        ('date', '"date"'),  # Quote reserved word
+                        ('end', '"end"'),    # Quote reserved word
+                    ]
                     date_col = None
-                    for col in date_columns:
-                        if col in sql.lower():
-                            date_col = col
+                    date_col_quoted = None
+                    for col_search, col_quoted in date_columns:
+                        if col_search in sql.lower():
+                            date_col = col_search
+                            date_col_quoted = col_quoted
                             break
 
                     # Add ORDER BY and LIMIT 5 at the end
-                    if date_col:
-                        # Find where to insert ORDER BY (before LIMIT/OFFSET if they exist)
-                        insert_pos = len(modified_sql)
-                        sql_check = modified_sql.upper()
-                        for keyword in ['LIMIT', 'OFFSET']:
-                            pos = sql_check.find(keyword)
-                            if pos > 0 and pos < insert_pos:
-                                insert_pos = pos
-
-                        order_limit = f" ORDER BY {date_col} DESC LIMIT 5"
-                        modified_sql = modified_sql[:insert_pos].rstrip() + order_limit + modified_sql[insert_pos:]
+                    if date_col_quoted:
+                        order_limit = f" ORDER BY {date_col_quoted} DESC LIMIT 5"
+                        modified_sql = modified_sql.rstrip() + order_limit
                     else:
                         # If we can't find a date column, just add LIMIT 5
-                        modified_sql += " LIMIT 5"
+                        modified_sql = modified_sql.rstrip() + " LIMIT 5"
 
                     # Execute the modified query
                     cursor.execute(modified_sql)
