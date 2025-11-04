@@ -1556,6 +1556,7 @@ def create_objective(request):
             'category': objective.category,
             'description': objective.description,
             'unit': objective.unit_of_measurement,
+            'historical_display': objective.historical_display,
             'target': objective.objective_value,
             'result': objective.result,
             'progress_pct': round(progress_pct, 1),
@@ -1717,6 +1718,7 @@ def update_objective(request):
                 'category': category,
                 'description': description,
                 'unit': unit_of_measurement,
+                'historical_display': historical_display,
                 'target_per_week': round(target_per_week, 1)
             }
         })
