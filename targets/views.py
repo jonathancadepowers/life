@@ -1379,37 +1379,60 @@ def get_objective_entries(request):
         for row in rows:
             row_dict = dict(zip(columns, row))
 
-            # Format based on table type
-            if table_name == 'fasting_session':
-                date_val = format_datetime(row_dict.get('fast_end_date', ''), user_timezone)
-                duration = row_dict.get('duration_hours', 0)
-                entries.append(f"{date_val}: {duration:.1f} hour fast")
-            elif table_name == 'nutrition_entry':
-                date_val = format_datetime(row_dict.get('consumption_date', ''), user_timezone)
-                food = row_dict.get('food_name', 'Food entry')
-                entries.append(f"{date_val}: {food}")
-            elif table_name == 'weight_weighin':
-                date_val = format_datetime(row_dict.get('measurement_time', ''), user_timezone)
-                weight = row_dict.get('weight_kg', 0)
-                entries.append(f"{date_val}: {weight:.1f} kg")
-            elif table_name == 'workouts_workout':
-                date_val = format_datetime(row_dict.get('start', ''), user_timezone)
-                sport = row_dict.get('sport_id', 'Workout')
-                duration = row_dict.get('duration_minutes', 0)
-                entries.append(f"{date_val}: Sport {sport} ({duration} min)")
-            elif table_name == 'time_logs_timelog':
-                date_val = format_datetime(row_dict.get('start', ''), user_timezone)
-                duration = row_dict.get('duration_minutes', 0) / 60
-                project = row_dict.get('project_id', 'Unknown')
-                entries.append(f"{date_val}: Project {project} ({duration:.1f} hours)")
-            elif table_name == 'targets_dailyagenda':
-                date_val = format_datetime(row_dict.get('date', ''), user_timezone)
-                entries.append(f"{date_val}: Agenda entry")
+            # Check if custom historical_display format is provided
+            if objective.historical_display:
+                # Use custom format string with placeholders
+                entry_text = objective.historical_display
+
+                # Format datetime columns if referenced in the format string
+                date_columns_to_check = ['start', 'end', 'date', 'fast_end_date', 'consumption_date', 'measurement_time', 'created_at']
+                for date_col in date_columns_to_check:
+                    if f'{{{date_col}}}' in entry_text and date_col in row_dict:
+                        formatted_date = format_datetime(row_dict[date_col], user_timezone)
+                        row_dict[date_col] = formatted_date
+
+                # Replace placeholders with actual values from row
+                try:
+                    entry_text = entry_text.format(**row_dict)
+                    entries.append(entry_text)
+                except KeyError as e:
+                    # If a placeholder key is missing, show error and fall back to default
+                    entries.append(f"Format error: missing field {e}")
+                except Exception as e:
+                    # Other formatting errors
+                    entries.append(f"Format error: {str(e)}")
             else:
-                # Fallback
-                display_cols = [k for k in row_dict.keys() if 'id' not in k.lower()][:3]
-                entry_text = " | ".join([f"{k}: {row_dict[k]}" for k in display_cols])
-                entries.append(entry_text)
+                # Use default format based on table type
+                if table_name == 'fasting_session':
+                    date_val = format_datetime(row_dict.get('fast_end_date', ''), user_timezone)
+                    duration = row_dict.get('duration_hours', 0)
+                    entries.append(f"{date_val}: {duration:.1f} hour fast")
+                elif table_name == 'nutrition_entry':
+                    date_val = format_datetime(row_dict.get('consumption_date', ''), user_timezone)
+                    food = row_dict.get('food_name', 'Food entry')
+                    entries.append(f"{date_val}: {food}")
+                elif table_name == 'weight_weighin':
+                    date_val = format_datetime(row_dict.get('measurement_time', ''), user_timezone)
+                    weight = row_dict.get('weight_kg', 0)
+                    entries.append(f"{date_val}: {weight:.1f} kg")
+                elif table_name == 'workouts_workout':
+                    date_val = format_datetime(row_dict.get('start', ''), user_timezone)
+                    sport = row_dict.get('sport_id', 'Workout')
+                    duration = row_dict.get('duration_minutes', 0)
+                    entries.append(f"{date_val}: Sport {sport} ({duration} min)")
+                elif table_name == 'time_logs_timelog':
+                    date_val = format_datetime(row_dict.get('start', ''), user_timezone)
+                    duration = row_dict.get('duration_minutes', 0) / 60
+                    project = row_dict.get('project_id', 'Unknown')
+                    entries.append(f"{date_val}: Project {project} ({duration:.1f} hours)")
+                elif table_name == 'targets_dailyagenda':
+                    date_val = format_datetime(row_dict.get('date', ''), user_timezone)
+                    entries.append(f"{date_val}: Agenda entry")
+                else:
+                    # Fallback
+                    display_cols = [k for k in row_dict.keys() if 'id' not in k.lower()][:3]
+                    entry_text = " | ".join([f"{k}: {row_dict[k]}" for k in display_cols])
+                    entries.append(entry_text)
 
         return JsonResponse({
             'success': True,
