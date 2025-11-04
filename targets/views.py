@@ -1339,45 +1339,26 @@ def get_objective_entries(request):
         # Extract just the WHERE clause from the original query
         where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
 
-        # Add date range filter to match objective's month
-        # For datetime columns, cast to date for comparison. For date columns, compare directly.
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"Filtering entries for objective: {objective.label}")
-        logger.info(f"Objective date range: {objective.start} to {objective.end}")
-        logger.info(f"Table: {table_name}, Date column: {date_col_sql}")
-
-        if table_name == 'targets_dailyagenda':
-            # This table has a DATE column, so compare dates directly
-            date_range_filter = f"{date_col_sql} >= '{objective.start}' AND {date_col_sql} <= '{objective.end}'"
-        else:
-            # For datetime columns, cast to date for comparison
-            date_range_filter = f"{date_col_sql}::date >= '{objective.start}' AND {date_col_sql}::date <= '{objective.end}'"
-
-        logger.info(f"Date range filter: {date_range_filter}")
-
         if where_match:
             where_clause = where_match.group(1).strip()
             # Quote reserved keywords in the WHERE clause
             where_clause = quote_reserved_keywords(where_clause)
             # Convert SQLite functions to PostgreSQL equivalents
             where_clause = convert_sqlite_to_postgres(where_clause)
-            # Get IDs of matching records within the objective's month
-            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE ({where_clause}) AND ({date_range_filter}) ORDER BY {date_col_sql} DESC LIMIT 50"
+            # Use the original WHERE clause as-is (it already has the correct date filtering)
+            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {where_clause} ORDER BY {date_col_sql} DESC LIMIT 50"
         else:
-            # No WHERE clause - just get records from the objective's month
+            # No WHERE clause - filter by objective's month
+            if table_name == 'targets_dailyagenda':
+                date_range_filter = f"{date_col_sql} >= '{objective.start}' AND {date_col_sql} <= '{objective.end}'"
+            else:
+                date_range_filter = f"{date_col_sql}::date >= '{objective.start}' AND {date_col_sql}::date <= '{objective.end}'"
             id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {date_range_filter} ORDER BY {date_col_sql} DESC LIMIT 50"
-
-        logger.info(f"Executing query: {id_query}")
 
         # Execute the ID query
         with connection.cursor() as cursor:
             cursor.execute(id_query)
             id_rows = cursor.fetchall()
-
-        logger.info(f"Found {len(id_rows)} rows")
-        if id_rows:
-            logger.info(f"First row date: {id_rows[0][1] if len(id_rows[0]) > 1 else 'N/A'}")
 
         if not id_rows:
             return JsonResponse({
