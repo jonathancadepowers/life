@@ -1521,11 +1521,17 @@ def delete_objective(request):
 
 
 @require_http_methods(["POST"])
-@login_required
 def refresh_objective_cache(request):
     """Refresh cached results for all monthly objectives"""
     from monthly_objectives.models import MonthlyObjective
     import json
+
+    # Check authentication (return JSON error instead of redirect for AJAX)
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'success': False,
+            'error': 'Authentication required'
+        }, status=401)
 
     try:
         objectives = MonthlyObjective.objects.all()
