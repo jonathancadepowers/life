@@ -1340,7 +1340,13 @@ def get_objective_entries(request):
         where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
 
         # Add date range filter to match objective's month
-        date_range_filter = f"{date_col_sql} >= '{objective.start}' AND {date_col_sql} < '{objective.end + timedelta(days=1)}'"
+        # For datetime columns, cast to date for comparison. For date columns, compare directly.
+        if table_name == 'targets_dailyagenda':
+            # This table has a DATE column, so compare dates directly
+            date_range_filter = f"{date_col_sql} >= '{objective.start}' AND {date_col_sql} <= '{objective.end}'"
+        else:
+            # For datetime columns, cast to date for comparison
+            date_range_filter = f"{date_col_sql}::date >= '{objective.start}' AND {date_col_sql}::date <= '{objective.end}'"
 
         if where_match:
             where_clause = where_match.group(1).strip()
