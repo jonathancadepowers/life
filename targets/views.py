@@ -1036,6 +1036,107 @@ def activity_report(request):
         # Calculate remaining (0 if achieved or exceeded)
         remaining = max(0, obj.objective_value - (result if result is not None else 0))
 
+        # Fetch last 5 entries for tooltip
+        last_entries = []
+        try:
+            with connection.cursor() as cursor:
+                sql = obj.objective_definition.strip()
+
+                # Try to convert COUNT(*) query to a query that returns actual records
+                # Replace SELECT COUNT(*) with SELECT * to get full records
+                sql_upper = sql.upper()
+                if 'SELECT COUNT(*)' in sql_upper:
+                    # Replace COUNT(*) with * to get all columns
+                    modified_sql = sql.replace('SELECT COUNT(*)', 'SELECT *', 1)
+                    modified_sql = modified_sql.replace('SELECT count(*)', 'SELECT *', 1)
+
+                    # Identify the date column used in the query
+                    date_columns = ['consumption_date', 'fast_end_date', 'measurement_time', 'start', 'created_at', 'date']
+                    date_col = None
+                    for col in date_columns:
+                        if col in sql.lower():
+                            date_col = col
+                            break
+
+                    # Add ORDER BY and LIMIT 5 at the end
+                    if date_col:
+                        # Find where to insert ORDER BY (before LIMIT/OFFSET if they exist)
+                        insert_pos = len(modified_sql)
+                        sql_check = modified_sql.upper()
+                        for keyword in ['LIMIT', 'OFFSET']:
+                            pos = sql_check.find(keyword)
+                            if pos > 0 and pos < insert_pos:
+                                insert_pos = pos
+
+                        order_limit = f" ORDER BY {date_col} DESC LIMIT 5"
+                        modified_sql = modified_sql[:insert_pos].rstrip() + order_limit + modified_sql[insert_pos:]
+                    else:
+                        # If we can't find a date column, just add LIMIT 5
+                        modified_sql += " LIMIT 5"
+
+                    # Execute the modified query
+                    cursor.execute(modified_sql)
+                    rows = cursor.fetchall()
+
+                    # Get column names
+                    column_names = [desc[0] for desc in cursor.description] if cursor.description else []
+
+                    # Format entries for display
+                    for row in rows:
+                        # Create a dict of the row
+                        row_dict = dict(zip(column_names, row)) if column_names else {}
+
+                        # Try to find a descriptive field and a date field
+                        display_text = None
+                        date_text = None
+
+                        # Look for date field
+                        for col in date_columns:
+                            if col in row_dict and row_dict[col]:
+                                date_val = row_dict[col]
+                                if hasattr(date_val, 'strftime'):
+                                    date_text = date_val.strftime('%b %d')
+                                else:
+                                    date_text = str(date_val)[:10]  # Get date portion
+                                break
+
+                        # Look for descriptive fields
+                        desc_fields = ['name', 'description', 'label', 'sport_id', 'project_id', 'item_name']
+                        for field in desc_fields:
+                            if field in row_dict and row_dict[field]:
+                                if field == 'sport_id':
+                                    # For workouts, try to get sport name
+                                    sport_id = row_dict[field]
+                                    sport_name = sport_names_dict.get(sport_id, f'Sport {sport_id}')
+                                    display_text = sport_name
+                                else:
+                                    display_text = str(row_dict[field])
+                                break
+
+                        # If no descriptive field found, try to create a summary
+                        if not display_text:
+                            # Look for numeric values that might be interesting
+                            if 'duration' in row_dict:
+                                display_text = f"{row_dict['duration']} min"
+                            elif 'amount' in row_dict:
+                                display_text = f"{row_dict['amount']}"
+                            elif 'value' in row_dict:
+                                display_text = f"{row_dict['value']}"
+                            else:
+                                display_text = "Entry"
+
+                        # Combine date and description
+                        if date_text:
+                            last_entries.append(f"{date_text}: {display_text}")
+                        else:
+                            last_entries.append(display_text)
+        except Exception as e:
+            # If fetching last entries fails, just log and continue
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Could not fetch last entries for '{obj.label}': {e}")
+            last_entries = []
+
         objectives_data.append({
             'objective_id': obj.objective_id,
             'label': obj.label,
@@ -1053,6 +1154,7 @@ def activity_report(request):
             'days_in_month': days_in_month,
             'remaining': round(remaining, 1),
             'unit': obj.unit_of_measurement,
+            'last_entries': last_entries,  # Add last 5 entries for tooltip
         })
 
     # Group objectives by category

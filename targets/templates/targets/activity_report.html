@@ -529,7 +529,13 @@
                                                     data-bs-toggle="tooltip"
                                                     data-bs-placement="top"
                                                     title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
-                                                <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.result|floatformat:0 }}</td>
+                                                <td class="text-center align-middle" style="padding-right: 30px; cursor: help;"
+                                                    {% if objective.last_entries %}
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-html="true"
+                                                    data-bs-placement="right"
+                                                    title="<div style='text-align: left;'><strong>Last 5 Entries:</strong><ul class='mb-0 ps-3'>{% for entry in objective.last_entries %}<li>{{ entry }}</li>{% endfor %}</ul></div>"
+                                                    {% endif %}>{{ objective.result|floatformat:0 }}</td>
                                                 <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.today_result|floatformat:0 }}</td>
                                                 <td class="align-middle">
                                                     <!-- Linear progress indicator with marker -->
@@ -1343,8 +1349,34 @@
                     title: newTooltipTitle
                 });
 
-                // Update result
+                // Update result with tooltip
                 resultCell.textContent = Math.round(objective.result);
+
+                // Update tooltip for last entries
+                const existingResultTooltip = bootstrap.Tooltip.getInstance(resultCell);
+                if (existingResultTooltip) {
+                    existingResultTooltip.dispose();
+                }
+
+                if (objective.last_entries && objective.last_entries.length > 0) {
+                    const entriesList = objective.last_entries.map(entry => `<li>${entry}</li>`).join('');
+                    const tooltipContent = `<div style='text-align: left;'><strong>Last 5 Entries:</strong><ul class='mb-0 ps-3'>${entriesList}</ul></div>`;
+                    resultCell.setAttribute('data-bs-toggle', 'tooltip');
+                    resultCell.setAttribute('data-bs-html', 'true');
+                    resultCell.setAttribute('data-bs-placement', 'right');
+                    resultCell.setAttribute('title', tooltipContent);
+                    resultCell.style.cursor = 'help';
+                    new bootstrap.Tooltip(resultCell, {
+                        html: true,
+                        placement: 'right'
+                    });
+                } else {
+                    resultCell.removeAttribute('data-bs-toggle');
+                    resultCell.removeAttribute('data-bs-html');
+                    resultCell.removeAttribute('data-bs-placement');
+                    resultCell.removeAttribute('title');
+                    resultCell.style.cursor = '';
+                }
 
                 // Update progress bar
                 const progressContainer = progressCell.querySelector('div');
@@ -1450,8 +1482,15 @@
                     data-bs-placement="top"
                     title="Target/week = ${targetPerWeek.toFixed(1)}">${Math.round(objective.target)}${objective.unit ? ' ' + objective.unit : ''}</td>`;
 
-                // Current/Result cell
-                rowHTML += `<td class="text-center align-middle" style="padding-right: 30px;">${Math.round(objective.result)}</td>`;
+                // Current/Result cell with tooltip for last 5 entries
+                let currentCellHTML = '<td class="text-center align-middle" style="padding-right: 30px; cursor: help;"';
+                if (objective.last_entries && objective.last_entries.length > 0) {
+                    const entriesList = objective.last_entries.map(entry => `<li>${entry}</li>`).join('');
+                    const tooltipContent = `<div style='text-align: left;'><strong>Last 5 Entries:</strong><ul class='mb-0 ps-3'>${entriesList}</ul></div>`;
+                    currentCellHTML += ` data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right" title="${tooltipContent.replace(/"/g, '&quot;')}"`;
+                }
+                currentCellHTML += `>${Math.round(objective.result)}</td>`;
+                rowHTML += currentCellHTML;
 
                 // Progress bar cell
                 const progressWidth = objective.progress_pct > 100 ? 100 : objective.progress_pct;
