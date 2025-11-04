@@ -11,7 +11,7 @@ class MonthlyObjectiveAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Objective Details', {
-            'fields': ('objective_id', 'label', 'category', 'objective_value')
+            'fields': ('objective_id', 'label', 'category', 'description', 'unit_of_measurement', 'objective_value')
         }),
         ('Date Range', {
             'fields': ('start', 'end', 'timezone'),
@@ -19,6 +19,10 @@ class MonthlyObjectiveAdmin(admin.ModelAdmin):
         }),
         ('SQL Definition', {
             'fields': ('objective_definition',)
+        }),
+        ('Historical Display', {
+            'fields': ('historical_display',),
+            'description': 'SQL query or definition for displaying historical entries in the detail modal.'
         }),
         ('Result', {
             'fields': ('result',),
