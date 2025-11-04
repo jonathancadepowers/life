@@ -1255,15 +1255,18 @@ def get_objective_entries(request):
     # Helper function to format datetime with timezone
     def format_datetime(dt_value, timezone_str):
         """Convert datetime to user timezone and format nicely"""
-        from datetime import datetime
+        from datetime import datetime, date
         from django.utils import timezone as django_tz
         import pytz
 
         if not dt_value:
             return ''
 
+        # Handle date objects (convert to datetime at midnight)
+        if isinstance(dt_value, date) and not isinstance(dt_value, datetime):
+            dt = datetime.combine(dt_value, datetime.min.time())
         # Parse the datetime if it's a string
-        if isinstance(dt_value, str):
+        elif isinstance(dt_value, str):
             try:
                 dt = datetime.fromisoformat(str(dt_value).replace('Z', '+00:00'))
             except:
@@ -1272,7 +1275,7 @@ def get_objective_entries(request):
             dt = dt_value
 
         # Make it timezone-aware if it isn't
-        if dt.tzinfo is None:
+        if not hasattr(dt, 'tzinfo') or dt.tzinfo is None:
             dt = django_tz.make_aware(dt, pytz.UTC)
 
         # Convert to user's timezone
