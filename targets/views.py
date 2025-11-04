@@ -1063,6 +1063,32 @@ def activity_report(request):
                         # If no FROM found, skip this objective
                         raise Exception("No FROM clause found in query")
 
+                    # Remove GROUP BY, ORDER BY clauses as they're incompatible with SELECT *
+                    modified_sql_upper = modified_sql.upper()
+
+                    # Find and remove GROUP BY clause
+                    group_by_match = re.search(r'\bGROUP\s+BY\b', modified_sql_upper)
+                    if group_by_match:
+                        # Find the next major clause or end of string
+                        end_pos = len(modified_sql)
+                        for keyword in ['ORDER BY', 'HAVING', 'LIMIT', 'OFFSET']:
+                            keyword_pos = modified_sql_upper.find(keyword, group_by_match.start())
+                            if keyword_pos > 0:
+                                end_pos = min(end_pos, keyword_pos)
+                        modified_sql = modified_sql[:group_by_match.start()] + modified_sql[end_pos:]
+                        modified_sql_upper = modified_sql.upper()
+
+                    # Remove existing ORDER BY clause
+                    order_by_match = re.search(r'\bORDER\s+BY\b', modified_sql_upper)
+                    if order_by_match:
+                        # Find the next major clause or end of string
+                        end_pos = len(modified_sql)
+                        for keyword in ['LIMIT', 'OFFSET']:
+                            keyword_pos = modified_sql_upper.find(keyword, order_by_match.start())
+                            if keyword_pos > 0:
+                                end_pos = min(end_pos, keyword_pos)
+                        modified_sql = modified_sql[:order_by_match.start()] + modified_sql[end_pos:]
+
                     # Identify the date column used in the query
                     date_columns = ['consumption_date', 'fast_end_date', 'measurement_time', 'start', 'created_at', 'date']
                     date_col = None
