@@ -1384,29 +1384,6 @@ def get_objective_entries(request):
                 # Use custom format string with placeholders
                 entry_text = objective.historical_display
 
-                # Calculate duration if start and end columns exist
-                if 'start' in row_dict and 'end' in row_dict and row_dict['start'] and row_dict['end']:
-                    from datetime import datetime
-                    try:
-                        # Parse start and end times
-                        if isinstance(row_dict['start'], str):
-                            start_dt = datetime.fromisoformat(str(row_dict['start']).replace('Z', '+00:00'))
-                        else:
-                            start_dt = row_dict['start']
-
-                        if isinstance(row_dict['end'], str):
-                            end_dt = datetime.fromisoformat(str(row_dict['end']).replace('Z', '+00:00'))
-                        else:
-                            end_dt = row_dict['end']
-
-                        # Calculate duration in minutes
-                        duration_seconds = (end_dt - start_dt).total_seconds()
-                        row_dict['duration'] = int(duration_seconds / 60)
-                        row_dict['duration_minutes'] = row_dict['duration']  # Alias
-                        row_dict['duration_hours'] = round(duration_seconds / 3600, 1)
-                    except:
-                        pass
-
                 # Format datetime columns if referenced in the format string
                 date_columns_to_check = ['start', 'end', 'date', 'fast_end_date', 'consumption_date', 'measurement_time', 'created_at']
                 for date_col in date_columns_to_check:
