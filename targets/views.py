@@ -1238,6 +1238,38 @@ def get_objective_entries(request):
         where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
         where_clause = where_match.group(1).strip() if where_match else ""
 
+        # Quote SQL reserved keywords in WHERE clause
+        # These keywords need to be quoted when used as column names
+        reserved_keywords = ['start', 'end', 'date', 'user', 'order', 'group', 'limit']
+
+        def quote_reserved_keywords(clause):
+            """Quote SQL reserved keywords when they appear as column names."""
+            if not clause:
+                return clause
+
+            for keyword in reserved_keywords:
+                # Match the keyword when it appears as a column name (not inside quotes)
+                # Patterns: keyword at start of clause, after operators, after commas, in functions
+                patterns = [
+                    # After opening parenthesis: (keyword
+                    (r'\((' + keyword + r')\b', r'("\1"'),
+                    # After comma and space: , keyword
+                    (r',\s*(' + keyword + r')\b', r', "\1"'),
+                    # After operators: =, <, >, !=, etc. followed by keyword
+                    (r'([=<>!]+)\s*(' + keyword + r')\b', r'\1 "\2"'),
+                    # After AND/OR: AND keyword, OR keyword
+                    (r'\b(AND|OR)\s+(' + keyword + r')\b', r'\1 "\2"'),
+                    # At start of clause: keyword
+                    (r'^(' + keyword + r')\b', r'"\1"'),
+                ]
+
+                for pattern, replacement in patterns:
+                    clause = re.sub(pattern, replacement, clause, flags=re.IGNORECASE)
+
+            return clause
+
+        where_clause = quote_reserved_keywords(where_clause)
+
         # Identify a date column to order by
         # Common patterns in your queries
         date_columns = {
