@@ -1042,13 +1042,26 @@ def activity_report(request):
             with connection.cursor() as cursor:
                 sql = obj.objective_definition.strip()
 
-                # Try to convert COUNT(*) query to a query that returns actual records
-                # Replace SELECT COUNT(*) with SELECT * to get full records
+                # Try to convert aggregate query to a query that returns actual records
+                # Look for SELECT with any aggregate function (COUNT, SUM, AVG, MAX, MIN)
+                import re
                 sql_upper = sql.upper()
-                if 'SELECT COUNT(*)' in sql_upper:
-                    # Replace COUNT(*) with * to get all columns
-                    modified_sql = sql.replace('SELECT COUNT(*)', 'SELECT *', 1)
-                    modified_sql = modified_sql.replace('SELECT count(*)', 'SELECT *', 1)
+
+                # Pattern to match SELECT [aggregate function] FROM
+                # This handles COUNT(*), COUNT(DISTINCT ...), SUM(...), AVG(...), etc.
+                aggregate_pattern = r'SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND)\s*\('
+                has_aggregate = re.search(aggregate_pattern, sql_upper)
+
+                if has_aggregate:
+                    # Replace the aggregate function with SELECT * to get all records
+                    # Find the end of the SELECT clause (before FROM)
+                    from_match = re.search(r'\bFROM\b', sql_upper)
+                    if from_match:
+                        # Replace everything between SELECT and FROM with just *
+                        modified_sql = 'SELECT * ' + sql[from_match.start():]
+                    else:
+                        # If no FROM found, skip this objective
+                        raise Exception("No FROM clause found in query")
 
                     # Identify the date column used in the query
                     date_columns = ['consumption_date', 'fast_end_date', 'measurement_time', 'start', 'created_at', 'date']
