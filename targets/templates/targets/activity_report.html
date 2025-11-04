@@ -1620,8 +1620,25 @@
                     title: newTooltipTitle
                 });
 
-                // Update result with tooltip
-                resultCell.textContent = Math.round(objective.result);
+                // Update result cell - clear and rebuild to preserve info icon
+                resultCell.innerHTML = '';
+                resultCell.appendChild(document.createTextNode(Math.round(objective.result)));
+
+                // Add info icon if objective definition is not a CTE query
+                if (!objective.objective_definition.trim().toUpperCase().startsWith('WITH')) {
+                    resultCell.appendChild(document.createTextNode(' '));
+                    const detailIcon = document.createElement('i');
+                    detailIcon.className = 'bi bi-info-circle-fill ms-1 objective-detail-icon';
+                    detailIcon.style.cssText = 'cursor: pointer; font-size: 0.75rem; opacity: 0.6; color: #0d6efd;';
+                    detailIcon.setAttribute('data-objective-id', objectiveId);
+                    detailIcon.setAttribute('title', 'View details');
+                    resultCell.appendChild(detailIcon);
+
+                    // Attach click handler for the new icon
+                    detailIcon.addEventListener('click', function() {
+                        showObjectiveDetail(objectiveId);
+                    });
+                }
 
                 // Update tooltip for last entries
                 const existingResultTooltip = bootstrap.Tooltip.getInstance(resultCell);
