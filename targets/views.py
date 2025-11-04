@@ -1180,6 +1180,156 @@ def activity_report(request):
     return render(request, 'targets/activity_report.html', context)
 
 
+def get_objective_entries(request):
+    """
+    API endpoint to fetch the last entries contributing to a monthly objective.
+    Returns JSON with either entries or an error message.
+    """
+    import json
+    import re
+    from monthly_objectives.models import MonthlyObjective
+
+    objective_id = request.GET.get('objective_id')
+
+    if not objective_id:
+        return JsonResponse({'error': 'objective_id is required'}, status=400)
+
+    try:
+        # Fetch the objective
+        objective = MonthlyObjective.objects.get(objective_id=objective_id)
+    except MonthlyObjective.DoesNotExist:
+        return JsonResponse({'error': 'Objective not found'}, status=404)
+
+    try:
+        sql = objective.objective_definition.strip()
+
+        # Patterns for different types of queries we can handle
+        # Pattern 1: Simple SELECT COUNT/SUM/AVG with FROM table WHERE...
+        simple_pattern = r'SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND)\s*\([^)]+\)\s+FROM\s+(\w+)'
+
+        # Pattern 2: WITH ... SELECT COUNT/SUM/AVG (CTE pattern)
+        cte_pattern = r'WITH\s+\w+\s+AS\s*\([^)]+\)\s*SELECT\s+(COUNT|SUM|AVG|MAX|MIN|ROUND)\s*\([^)]+\)\s+FROM\s+(\w+)'
+
+        match = re.search(simple_pattern, sql, re.IGNORECASE | re.DOTALL)
+        is_cte = False
+
+        if not match:
+            # Try CTE pattern
+            match = re.search(cte_pattern, sql, re.IGNORECASE | re.DOTALL)
+            is_cte = True
+
+        if not match:
+            return JsonResponse({
+                'error': 'This objective uses a query pattern that cannot be displayed in detail view.',
+                'objective_label': objective.label
+            })
+
+        # For CTEs, we need to execute the whole CTE first, then get the results
+        if is_cte:
+            return JsonResponse({
+                'error': 'Complex query patterns (CTEs) are not supported for detail view yet.',
+                'objective_label': objective.label
+            })
+
+        # For simple queries, try to extract the table and build a detail query
+        table_name = match.group(2)
+
+        # Extract WHERE clause if present
+        where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
+        where_clause = where_match.group(1).strip() if where_match else ""
+
+        # Identify a date column to order by
+        # Common patterns in your queries
+        date_columns = {
+            'fasting_session': 'fast_end_date',
+            'nutrition_entry': 'consumption_date',
+            'weight_weighin': 'measurement_time',
+            'workouts_workout': 'start',
+            'targets_dailyagenda': 'date',
+            'time_logs_timelog': 'start',
+        }
+
+        order_column = date_columns.get(table_name, 'created_at')
+
+        # Quote reserved SQL keywords if they appear as column names
+        if order_column in ['date', 'end', 'start']:
+            order_column = f'"{order_column}"'
+
+        # Build the detail query
+        if where_clause:
+            detail_query = f"SELECT * FROM {table_name} WHERE {where_clause} ORDER BY {order_column} DESC LIMIT 10"
+        else:
+            detail_query = f"SELECT * FROM {table_name} ORDER BY {order_column} DESC LIMIT 10"
+
+        # Remove any duplicate LIMIT clauses
+        detail_query = re.sub(r'\bLIMIT\s+\d+\s+LIMIT\s+\d+', 'LIMIT 10', detail_query, flags=re.IGNORECASE)
+
+        # Execute the query
+        with connection.cursor() as cursor:
+            cursor.execute(detail_query)
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+
+        # Format the entries for display
+        entries = []
+        for row in rows:
+            row_dict = dict(zip(columns, row))
+
+            # Format the entry based on the table/data type
+            # Try to find a meaningful display string
+            entry_text = None
+
+            # Look for date/time fields
+            if 'fast_end_date' in row_dict:
+                date_val = row_dict['fast_end_date']
+                duration = row_dict.get('duration_hours', 0)
+                entry_text = f"{date_val}: {duration:.1f} hour fast"
+            elif 'consumption_date' in row_dict:
+                date_val = row_dict['consumption_date']
+                food = row_dict.get('food_name', 'Food entry')
+                entry_text = f"{date_val}: {food}"
+            elif 'measurement_time' in row_dict:
+                date_val = row_dict['measurement_time']
+                weight = row_dict.get('weight_kg', 0)
+                entry_text = f"{date_val}: {weight:.1f} kg"
+            elif 'start' in row_dict and 'workouts_workout' in table_name:
+                date_val = row_dict['start']
+                sport = row_dict.get('sport_id', 'Workout')
+                entry_text = f"{date_val}: {sport}"
+            elif 'start' in row_dict and 'time_logs' in table_name:
+                date_val = row_dict['start']
+                duration = row_dict.get('duration_minutes', 0) / 60
+                entry_text = f"{date_val}: {duration:.1f} hours logged"
+            elif 'date' in row_dict:
+                date_val = row_dict['date']
+                entry_text = f"{date_val}: Agenda entry"
+            else:
+                # Fallback: show the first few non-id columns
+                display_cols = [k for k in row_dict.keys() if 'id' not in k.lower()][:3]
+                entry_text = " | ".join([f"{k}: {row_dict[k]}" for k in display_cols])
+
+            entries.append(entry_text)
+
+        return JsonResponse({
+            'success': True,
+            'objective_label': objective.label,
+            'description': objective.description or '',
+            'target': objective.objective_value,
+            'current': objective.result or 0,
+            'unit': objective.unit_of_measurement or '',
+            'entries': entries,
+            'count': len(entries)
+        })
+
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'error': f'Error fetching entries: {str(e)}',
+            'objective_label': objective.label,
+            'traceback': traceback.format_exc()
+        }, status=500)
+
+
 @require_http_methods(["POST"])
 def create_objective(request):
     """API endpoint to create a new monthly objective."""
