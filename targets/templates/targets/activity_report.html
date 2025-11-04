@@ -529,12 +529,9 @@
                                                     data-bs-toggle="tooltip"
                                                     data-bs-placement="top"
                                                     title="Target/week = {{ objective.target_per_week|floatformat:1 }}">{{ objective.target|floatformat:0 }}{% if objective.unit %} {{ objective.unit }}{% endif %}</td>
-                                                <td class="text-center align-middle" style="padding-right: 30px; cursor: help;"
+                                                <td class="text-center align-middle objective-result-cell" style="padding-right: 30px;"
                                                     {% if objective.last_entries %}
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-html="true"
-                                                    data-bs-placement="right"
-                                                    title="<div style='text-align: left;'><strong>Last 5 Entries:</strong><ul class='mb-0 ps-3'>{% for entry in objective.last_entries %}<li>{{ entry }}</li>{% endfor %}</ul></div>"
+                                                    data-last-entries="{{ objective.last_entries|join:'|||' }}"
                                                     {% endif %}>{{ objective.result|floatformat:0 }}</td>
                                                 <td class="text-center align-middle" style="padding-right: 30px;">{{ objective.today_result|floatformat:0 }}</td>
                                                 <td class="align-middle">
@@ -990,7 +987,29 @@
             // Initialize Bootstrap tooltips
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
+                // Check if this tooltip should use HTML content
+                const useHtml = tooltipTriggerEl.getAttribute('data-bs-html') === 'true';
+                return new bootstrap.Tooltip(tooltipTriggerEl, {
+                    html: useHtml
+                });
+            });
+
+            // Initialize tooltips for objective result cells with last entries
+            const resultCells = document.querySelectorAll('.objective-result-cell[data-last-entries]');
+            resultCells.forEach(function(cell) {
+                const entriesData = cell.getAttribute('data-last-entries');
+                if (entriesData) {
+                    const entries = entriesData.split('|||');
+                    const entriesList = entries.map(entry => `<li>${entry}</li>`).join('');
+                    const tooltipContent = `<div style="text-align: left;"><strong>Last 5 Entries:</strong><ul class="mb-0 ps-3">${entriesList}</ul></div>`;
+
+                    cell.style.cursor = 'help';
+                    new bootstrap.Tooltip(cell, {
+                        html: true,
+                        placement: 'right',
+                        title: tooltipContent
+                    });
+                }
             });
 
             const startDateInput = document.getElementById('start_date');
@@ -1358,23 +1377,28 @@
                     existingResultTooltip.dispose();
                 }
 
+                // Add/update data-last-entries attribute and class
+                if (!resultCell.classList.contains('objective-result-cell')) {
+                    resultCell.classList.add('objective-result-cell');
+                }
+
                 if (objective.last_entries && objective.last_entries.length > 0) {
-                    const entriesList = objective.last_entries.map(entry => `<li>${entry}</li>`).join('');
-                    const tooltipContent = `<div style='text-align: left;'><strong>Last 5 Entries:</strong><ul class='mb-0 ps-3'>${entriesList}</ul></div>`;
-                    resultCell.setAttribute('data-bs-toggle', 'tooltip');
-                    resultCell.setAttribute('data-bs-html', 'true');
-                    resultCell.setAttribute('data-bs-placement', 'right');
-                    resultCell.setAttribute('title', tooltipContent);
+                    const entriesData = objective.last_entries.join('|||');
+                    resultCell.setAttribute('data-last-entries', entriesData);
+
+                    // Build tooltip content
+                    const entries = objective.last_entries;
+                    const entriesList = entries.map(entry => `<li>${entry}</li>`).join('');
+                    const tooltipContent = `<div style="text-align: left;"><strong>Last 5 Entries:</strong><ul class="mb-0 ps-3">${entriesList}</ul></div>`;
+
                     resultCell.style.cursor = 'help';
                     new bootstrap.Tooltip(resultCell, {
                         html: true,
-                        placement: 'right'
+                        placement: 'right',
+                        title: tooltipContent
                     });
                 } else {
-                    resultCell.removeAttribute('data-bs-toggle');
-                    resultCell.removeAttribute('data-bs-html');
-                    resultCell.removeAttribute('data-bs-placement');
-                    resultCell.removeAttribute('title');
+                    resultCell.removeAttribute('data-last-entries');
                     resultCell.style.cursor = '';
                 }
 
@@ -1482,12 +1506,11 @@
                     data-bs-placement="top"
                     title="Target/week = ${targetPerWeek.toFixed(1)}">${Math.round(objective.target)}${objective.unit ? ' ' + objective.unit : ''}</td>`;
 
-                // Current/Result cell with tooltip for last 5 entries
-                let currentCellHTML = '<td class="text-center align-middle" style="padding-right: 30px; cursor: help;"';
+                // Current/Result cell with data for tooltip
+                let currentCellHTML = '<td class="text-center align-middle objective-result-cell" style="padding-right: 30px;"';
                 if (objective.last_entries && objective.last_entries.length > 0) {
-                    const entriesList = objective.last_entries.map(entry => `<li>${entry}</li>`).join('');
-                    const tooltipContent = `<div style='text-align: left;'><strong>Last 5 Entries:</strong><ul class='mb-0 ps-3'>${entriesList}</ul></div>`;
-                    currentCellHTML += ` data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="right" title="${tooltipContent.replace(/"/g, '&quot;')}"`;
+                    const entriesData = objective.last_entries.join('|||');
+                    currentCellHTML += ` data-last-entries="${entriesData}"`;
                 }
                 currentCellHTML += `>${Math.round(objective.result)}</td>`;
                 rowHTML += currentCellHTML;
@@ -1565,7 +1588,28 @@
 
                 // Initialize tooltips on the new row
                 const tooltips = newRow.querySelectorAll('[data-bs-toggle="tooltip"]');
-                tooltips.forEach(el => new bootstrap.Tooltip(el));
+                tooltips.forEach(el => {
+                    const useHtml = el.getAttribute('data-bs-html') === 'true';
+                    new bootstrap.Tooltip(el, { html: useHtml });
+                });
+
+                // Initialize tooltip for result cell if it has last entries
+                const resultCell = newRow.querySelector('.objective-result-cell[data-last-entries]');
+                if (resultCell) {
+                    const entriesData = resultCell.getAttribute('data-last-entries');
+                    if (entriesData) {
+                        const entries = entriesData.split('|||');
+                        const entriesList = entries.map(entry => `<li>${entry}</li>`).join('');
+                        const tooltipContent = `<div style="text-align: left;"><strong>Last 5 Entries:</strong><ul class="mb-0 ps-3">${entriesList}</ul></div>`;
+
+                        resultCell.style.cursor = 'help';
+                        new bootstrap.Tooltip(resultCell, {
+                            html: true,
+                            placement: 'right',
+                            title: tooltipContent
+                        });
+                    }
+                }
 
                 console.log('New row inserted successfully');
             }
