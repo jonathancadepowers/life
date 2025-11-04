@@ -1264,11 +1264,13 @@ def get_objective_entries(request):
         if not dt_value:
             return ''
 
-        # Handle date objects (convert to datetime at midnight)
+        # Handle date objects - format as date only without timezone conversion
         if isinstance(dt_value, date) and not isinstance(dt_value, datetime):
-            dt = datetime.combine(dt_value, datetime.min.time())
+            # Date fields don't have time or timezone, just format the date
+            return dt_value.strftime('%a, %-m/%-d/%y')
+
         # Parse the datetime if it's a string
-        elif isinstance(dt_value, str):
+        if isinstance(dt_value, str):
             try:
                 dt = datetime.fromisoformat(str(dt_value).replace('Z', '+00:00'))
             except:
