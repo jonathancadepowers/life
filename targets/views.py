@@ -1673,6 +1673,7 @@ def update_objective(request):
         end_date = datetime(year, month, last_day).date()
 
         # Update the objective
+        logger.info(f"BEFORE UPDATE - objective.historical_display: {repr(objective.historical_display)}")
         objective.label = label
         objective.start = start_date
         objective.end = end_date
@@ -1683,7 +1684,13 @@ def update_objective(request):
         objective.description = description
         objective.unit_of_measurement = unit_of_measurement
         objective.historical_display = historical_display
+        logger.info(f"AFTER ASSIGNMENT - objective.historical_display: {repr(objective.historical_display)}")
         objective.save()
+        logger.info(f"AFTER SAVE - objective.historical_display: {repr(objective.historical_display)}")
+
+        # Refresh from database to verify it was saved
+        objective.refresh_from_db()
+        logger.info(f"AFTER REFRESH - objective.historical_display: {repr(objective.historical_display)}")
 
         # Re-calculate the result by running the SQL query
         from django.db import connection
