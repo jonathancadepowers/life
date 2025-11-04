@@ -1452,6 +1452,7 @@ def create_objective(request):
         category = data.get('category', '').strip() or None
         description = data.get('description', '').strip() or None
         unit_of_measurement = data.get('unit_of_measurement', '').strip() or None
+        historical_display = data.get('historical_display', '').strip() or None
 
         # Validate required fields
         if not all([label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
@@ -1523,6 +1524,7 @@ def create_objective(request):
             category=category,
             description=description,
             unit_of_measurement=unit_of_measurement,
+            historical_display=historical_display,
             result=None  # Will be calculated later
         )
 
@@ -1608,6 +1610,7 @@ def update_objective(request):
         category = data.get('category', '').strip() or None
         description = data.get('description', '').strip() or None
         unit_of_measurement = data.get('unit_of_measurement', '').strip() or None
+        historical_display = data.get('historical_display', '').strip() or None
 
         # Validate required fields
         if not all([objective_id, label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
@@ -1668,6 +1671,7 @@ def update_objective(request):
         objective.category = category
         objective.description = description
         objective.unit_of_measurement = unit_of_measurement
+        objective.historical_display = historical_display
         objective.save()
 
         # Re-calculate the result by running the SQL query

@@ -557,6 +557,7 @@
                                                        data-category="{{ objective.category|default:'' }}"
                                                        data-description="{{ objective.description|default:'' }}"
                                                        data-unit="{{ objective.unit|default:'' }}"
+                                                       data-historical-display="{{ objective.historical_display|default:'' }}"
                                                        title="Edit objective">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
@@ -951,6 +952,12 @@
                                           rows="4" required placeholder="SELECT COUNT(*) FROM workouts_workout WHERE sport_id = 0 AND DATE(start) >= '2025-12-01' AND DATE(start) <= '2025-12-31'"></textarea>
                                 <div id="sqlValidationFeedback" class="form-text"></div>
                             </div>
+                            <div class="col-12">
+                                <label for="historicalDisplay" class="form-label">Historical Display Format</label>
+                                <input type="text" class="form-control" id="historicalDisplay" name="historical_display"
+                                       placeholder='e.g., {duration} minute {sport} on {date} at {time}'>
+                                <div class="form-text">Optional: Template for displaying entries in detail modal. Use {field_name} for placeholders.</div>
+                            </div>
                         </div>
                         <div id="createObjectiveError" class="alert alert-danger mt-3 d-none"></div>
                         <div id="createObjectiveSuccess" class="alert alert-success mt-3 d-none"></div>
@@ -1312,6 +1319,7 @@
             const objectiveDescriptionInput = document.getElementById('objectiveDescription');
             const objectiveUnitInput = document.getElementById('objectiveUnit');
             const objectiveDefinitionInput = document.getElementById('objectiveDefinition');
+            const historicalDisplayInput = document.getElementById('historicalDisplay');
             const submitBtnText = document.getElementById('submitBtnText');
             const submitBtnIcon = document.getElementById('submitBtnIcon');
             const flashMessageContainer = document.getElementById('flashMessageContainer');
@@ -1764,6 +1772,7 @@
                     objectiveDescriptionInput.value = editBtn.dataset.description || '';
                     objectiveUnitInput.value = editBtn.dataset.unit || '';
                     objectiveDefinitionInput.value = editBtn.dataset.definition || '';
+                    historicalDisplayInput.value = editBtn.dataset.historicalDisplay || '';
 
                     // Debug: Log form values after setting
                     console.log('Form values set:', {
