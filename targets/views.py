@@ -1454,6 +1454,50 @@ def get_objective_entries(request):
         }, status=500)
 
 
+def get_objective_available_fields(request):
+    """
+    API endpoint to get available database fields for historical_display formatting.
+    Takes an SQL definition and returns the table's column names.
+    """
+    import json
+    import re
+    from django.db import connection
+
+    sql_definition = request.GET.get('sql_definition', '').strip()
+
+    if not sql_definition:
+        return JsonResponse({'error': 'sql_definition parameter is required'}, status=400)
+
+    try:
+        # Extract table name from SQL definition
+        from_match = re.search(r'\bFROM\s+(\w+)', sql_definition, re.IGNORECASE)
+        if not from_match:
+            return JsonResponse({
+                'error': 'Could not identify table from SQL definition',
+                'fields': []
+            })
+
+        table_name = from_match.group(1)
+
+        # Query the database to get column names for this table
+        with connection.cursor() as cursor:
+            # Get column names by querying information_schema or using a LIMIT 0 query
+            cursor.execute(f"SELECT * FROM {table_name} LIMIT 0")
+            columns = [col[0] for col in cursor.description]
+
+        return JsonResponse({
+            'success': True,
+            'table_name': table_name,
+            'fields': columns
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Error fetching fields: {str(e)}',
+            'fields': []
+        }, status=500)
+
+
 @require_http_methods(["POST"])
 def create_objective(request):
     """API endpoint to create a new monthly objective."""
