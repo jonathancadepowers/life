@@ -1479,6 +1479,18 @@
                     return;
                 }
 
+                // Check for malformed brackets (mixed [ and { or } and ])
+                const malformedBrackets = /[\[{][^[\]{}]*[\]}]/.test(value) && !/\{[^{}]*\}/.test(value.replace(/\[[^\]]*\]/g, ''));
+                const hasMixedBrackets = /\[[^[\]]*\}|\{[^{}]*\]/.test(value);
+
+                if (hasMixedBrackets) {
+                    errorDiv.textContent = '✗ Malformed placeholder brackets. Use {field_name}, not [field_name} or {field_name]';
+                    errorDiv.style.display = 'block';
+                    historicalDisplayInput.classList.add('is-invalid');
+                    historicalDisplayIsValid = false;
+                    return;
+                }
+
                 // Extract placeholders from format string
                 const placeholderRegex = /{(\w+)}/g;
                 const placeholders = [];
