@@ -1355,10 +1355,19 @@ def get_objective_entries(request):
                 date_range_filter = f"{date_col_sql}::date >= '{objective.start}' AND {date_col_sql}::date <= '{objective.end}'"
             id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {date_range_filter} ORDER BY {date_col_sql} DESC LIMIT 50"
 
+        # DEBUG: Print the actual query
+        print(f"OBJECTIVE ENTRIES DEBUG for {objective.label}:")
+        print(f"  Table: {table_name}")
+        print(f"  Query: {id_query}")
+
         # Execute the ID query
         with connection.cursor() as cursor:
             cursor.execute(id_query)
             id_rows = cursor.fetchall()
+
+        print(f"  Returned {len(id_rows)} rows")
+        if id_rows:
+            print(f"  First 3 rows: {id_rows[:3]}")
 
         if not id_rows:
             return JsonResponse({
