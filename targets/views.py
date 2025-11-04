@@ -1262,6 +1262,13 @@ def get_objective_entries(request):
         # New universal approach: Use a subquery to get IDs, then fetch details
         # This works for ANY query structure - simple, complex, CTEs, etc.
 
+        # Check if this is a CTE query (starts with WITH)
+        if re.match(r'\s*WITH\s+', sql, re.IGNORECASE):
+            return JsonResponse({
+                'error': 'This objective uses a complex query (CTE) that cannot be displayed in detail view.',
+                'objective_label': objective.label
+            })
+
         # Wrap the original query in a subquery to get matching IDs
         # First, find the main table being queried
         from_match = re.search(r'\bFROM\s+(\w+)', sql, re.IGNORECASE)
