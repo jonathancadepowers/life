@@ -51,6 +51,11 @@ class MonthlyObjective(models.Model):
     objective_definition = models.TextField(
         help_text="SQL query that defines how to measure this objective"
     )
+    historical_display = models.TextField(
+        null=True,
+        blank=True,
+        help_text="SQL query or definition for displaying historical entries in the detail modal"
+    )
     category = models.CharField(
         max_length=50,
         null=True,
