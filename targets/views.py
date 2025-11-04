@@ -1189,6 +1189,28 @@ def get_objective_entries(request):
     import re
     from monthly_objectives.models import MonthlyObjective
 
+    def quote_reserved_keywords(sql_text):
+        """
+        Quote SQL reserved keywords (start, end, date) in WHERE clauses.
+        Only quotes when used as column names, not in string literals or functions.
+        """
+        # Reserved keywords that need quoting in PostgreSQL
+        keywords = ['start', 'end', 'date']
+
+        for keyword in keywords:
+            # Pattern matches keyword as a column name (not in strings or already quoted)
+            # Look for keyword that is:
+            # - preceded by whitespace, comma, or opening paren
+            # - followed by whitespace, comparison operator, comma, closing paren, or arithmetic operator
+            # - not already quoted with double quotes
+            # - not inside single quotes (string literal)
+
+            # Replace unquoted instances
+            pattern = r'(?<!["\w])(' + keyword + r')(?!["\w])'
+            sql_text = re.sub(pattern, r'"\1"', sql_text, flags=re.IGNORECASE)
+
+        return sql_text
+
     objective_id = request.GET.get('objective_id')
 
     if not objective_id:
@@ -1238,6 +1260,8 @@ def get_objective_entries(request):
 
         if where_match:
             where_clause = where_match.group(1).strip()
+            # Quote reserved keywords in the WHERE clause
+            where_clause = quote_reserved_keywords(where_clause)
             # Get IDs of matching records
             id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {where_clause} ORDER BY {date_col_sql} DESC LIMIT 10"
         else:
