@@ -1004,10 +1004,16 @@ def activity_report(request):
                         if pos > 0 and pos < insert_pos:
                             insert_pos = pos
 
-                    # Build the date filter using timezone-aware datetime range for today
-                    # This correctly handles timezones by filtering the actual timestamp range
-                    # instead of extracting dates (which would use UTC timezone)
-                    date_filter = f"\nAND {date_col} >= '{today_start.isoformat()}' AND {date_col} < '{today_end.isoformat()}'\n"
+                    # Build the date filter - use different format for DATE vs DATETIME columns
+                    # DATE columns (just 'date') should be compared with simple date strings
+                    # DATETIME columns should use timezone-aware datetime ranges
+                    if date_col == 'date':
+                        # For DATE columns, use simple date comparison
+                        date_filter = f"\nAND {date_col} = '{today.isoformat()}'\n"
+                    else:
+                        # For DATETIME/TIMESTAMP columns, use timezone-aware datetime range
+                        # This correctly handles timezones by filtering the actual timestamp range
+                        date_filter = f"\nAND {date_col} >= '{today_start.isoformat()}' AND {date_col} < '{today_end.isoformat()}'\n"
 
                     # Insert the filter
                     modified_sql = sql[:insert_pos].rstrip() + " " + date_filter + sql[insert_pos:]
