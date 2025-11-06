@@ -17,7 +17,7 @@ def log_nutrition(request):
         - fat: decimal
         - carbs: decimal
         - protein: decimal
-        - consumption_date: ISO 8601 datetime string
+        - date: string (YYYY-MM-DD format) - the date for the nutrition entry
 
     Returns JSON:
         - success: boolean
@@ -30,10 +30,10 @@ def log_nutrition(request):
         fat = request.POST.get('fat')
         carbs = request.POST.get('carbs')
         protein = request.POST.get('protein')
-        consumption_date_str = request.POST.get('consumption_date')
+        date_str = request.POST.get('date')
 
         # Validate required fields
-        if not all([calories, fat, carbs, protein, consumption_date_str]):
+        if not all([calories, fat, carbs, protein, date_str]):
             return JsonResponse({
                 'success': False,
                 'message': 'All fields are required'
@@ -58,24 +58,29 @@ def log_nutrition(request):
                 'message': 'Nutrition values cannot be negative'
             }, status=400)
 
-        # Parse consumption date
+        # Parse the date string
         try:
-            # Try parsing ISO format with timezone
-            consumption_date = datetime.fromisoformat(consumption_date_str.replace('Z', '+00:00'))
-            # Make aware if naive, using user's timezone
-            if timezone.is_naive(consumption_date):
-                # Get user's timezone from cookie
-                user_tz_str = request.COOKIES.get('user_timezone', 'UTC')
-                try:
-                    user_tz = pytz.timezone(user_tz_str)
-                except pytz.exceptions.UnknownTimeZoneError:
-                    user_tz = pytz.UTC
-                consumption_date = user_tz.localize(consumption_date)
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
             return JsonResponse({
                 'success': False,
-                'message': 'Invalid date format'
+                'message': 'Invalid date format. Use YYYY-MM-DD'
             }, status=400)
+
+        # Get user's timezone from cookie (set by browser), default to America/Chicago (CST)
+        user_tz_str = request.COOKIES.get('user_timezone', 'America/Chicago')
+        try:
+            user_tz = pytz.timezone(user_tz_str)
+        except pytz.exceptions.UnknownTimeZoneError:
+            user_tz = pytz.timezone('America/Chicago')
+
+        # Consumption date is at 12:00 PM (noon) on the selected date in user's timezone
+        # Create a naive datetime at noon on the selected date
+        from datetime import time
+        consumption_date_naive = datetime.combine(selected_date, time(12, 0))
+
+        # Localize to user's timezone (this handles DST correctly)
+        consumption_date = user_tz.localize(consumption_date_naive)
 
         # Generate a unique source_id for manual entries
         source_id = str(uuid.uuid4())
@@ -93,7 +98,7 @@ def log_nutrition(request):
 
         return JsonResponse({
             'success': True,
-            'message': 'Nutrition entry logged successfully!',
+            'message': f'Nutrition entry logged successfully for {selected_date.strftime("%B %d, %Y")}!',
             'entry_id': entry.id,
             'calories': float(entry.calories),
             'fat': float(entry.fat),

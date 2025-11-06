@@ -456,11 +456,6 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="consumptionDate" class="form-label">Date & Time</label>
-                            <input type="datetime-local" class="form-control" id="consumptionDate" required>
-                        </div>
-
                         <button type="submit" class="btn btn-primary w-100">Log Nutrition</button>
                     </form>
                 </div>
@@ -474,7 +469,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Agenda Calendar</h5>
+                    <h5 class="modal-title">Day Selector</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -785,24 +780,11 @@
             bsModal.show();
         }
 
-        // Set default datetime to current local time on page load
+        // Set user timezone cookie on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Detect and set user timezone in cookie for server-side use
             const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             document.cookie = `user_timezone=${userTimezone}; path=/; max-age=31536000`; // 1 year
-
-            const dateInput = document.getElementById('consumptionDate');
-
-            // Get current local datetime in the format required by datetime-local input
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-
-            const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-            dateInput.value = localDateTime;
         });
 
         // Handle nutrition form submission
@@ -818,13 +800,9 @@
             const protein = document.getElementById('protein').value;
             const carbs = document.getElementById('carbs').value;
             const fat = document.getElementById('fat').value;
-            const consumptionDateLocal = document.getElementById('consumptionDate').value;
 
-            // Convert local datetime to UTC ISO string
-            // datetime-local gives us "2025-10-25T14:30" in user's local time
-            // We need to convert this to UTC before sending to server
-            const localDate = new Date(consumptionDateLocal);
-            const consumptionDateUTC = localDate.toISOString();
+            // Get the selected date from the calendar (or today if none selected)
+            const selectedDate = currentSelectedDate || new Date().toISOString().split('T')[0];
 
             // Disable submit button and show loading state
             submitButton.disabled = true;
@@ -837,7 +815,7 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': csrftoken
                 },
-                body: `calories=${calories}&protein=${protein}&carbs=${carbs}&fat=${fat}&consumption_date=${consumptionDateUTC}`
+                body: `calories=${calories}&protein=${protein}&carbs=${carbs}&fat=${fat}&date=${selectedDate}`
             })
             .then(response => response.json())
             .then(data => {
@@ -845,14 +823,6 @@
                     showFlashMessage(data.message, true);
                     // Reset form
                     document.getElementById('nutritionForm').reset();
-                    // Reset datetime to current time
-                    const now = new Date();
-                    const year = now.getFullYear();
-                    const month = String(now.getMonth() + 1).padStart(2, '0');
-                    const day = String(now.getDate()).padStart(2, '0');
-                    const hours = String(now.getHours()).padStart(2, '0');
-                    const minutes = String(now.getMinutes()).padStart(2, '0');
-                    document.getElementById('consumptionDate').value = `${year}-${month}-${day}T${hours}:${minutes}`;
                 } else {
                     showFlashMessage(data.message || 'Error logging nutrition', false);
                 }
