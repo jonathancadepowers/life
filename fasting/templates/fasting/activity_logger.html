@@ -787,6 +787,10 @@
 
         // Set default datetime to current local time on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Detect and set user timezone in cookie for server-side use
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            document.cookie = `user_timezone=${userTimezone}; path=/; max-age=31536000`; // 1 year
+
             const dateInput = document.getElementById('consumptionDate');
 
             // Get current local datetime in the format required by datetime-local input
