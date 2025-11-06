@@ -197,9 +197,9 @@
                 {% endif %}
 
                 <!-- Today's Agenda Section -->
-                <div style="position: relative; margin-bottom: 2rem;">
+                <div style="position: relative;">
                     <!-- Date label and calendar icon above the section -->
-                    <div class="mb-3 p-3 bg-light rounded" style="position: relative;">
+                    <div class="p-3 bg-light rounded" style="position: relative; margin-bottom: 0;">
                         <h4 class="mb-0" id="today-date"></h4>
                         <button id="return-to-today-btn" class="btn btn-sm btn-primary" onclick="returnToToday()" style="position: absolute; top: 50%; right: 15px; transform: translateY(-50%); display: none;">
                             Return to Today
@@ -212,7 +212,7 @@
                     </button>
                 </div>
 
-                <div class="activity-section">
+                <div class="activity-section" style="margin-top: 0;">
                     <h2 class="section-title">Agenda</h2>
 
                     <!-- Day Score Box (shown for past days only) -->
