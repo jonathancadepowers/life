@@ -38,7 +38,7 @@ def log_fast(request):
 
     Expects POST data:
         - hours: integer (12, 16, or 18)
-        - day: string ('today' or 'yesterday')
+        - date: string (YYYY-MM-DD format) - the date for the fast
 
     Returns JSON:
         - success: boolean
@@ -46,14 +46,20 @@ def log_fast(request):
         - fast_id: integer (if successful)
     """
     try:
-        # Get the fast duration and day from POST data
+        # Get the fast duration and date from POST data
         hours = request.POST.get('hours')
-        day = request.POST.get('day', 'today')
+        date_str = request.POST.get('date')
 
         if not hours:
             return JsonResponse({
                 'success': False,
                 'message': 'Fast duration is required'
+            }, status=400)
+
+        if not date_str:
+            return JsonResponse({
+                'success': False,
+                'message': 'Date is required'
             }, status=400)
 
         try:
@@ -70,32 +76,28 @@ def log_fast(request):
                 'message': 'Fast duration must be 12, 16, or 18 hours'
             }, status=400)
 
-        if day not in ['today', 'yesterday']:
+        # Parse the date string
+        try:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
             return JsonResponse({
                 'success': False,
-                'message': 'Day must be "today" or "yesterday"'
+                'message': 'Invalid date format. Use YYYY-MM-DD'
             }, status=400)
 
-        # Get user's timezone from cookie (set by browser), default to UTC
-        user_tz_str = request.COOKIES.get('user_timezone', 'UTC')
+        # Get user's timezone from cookie (set by browser), default to America/Chicago (CST)
+        user_tz_str = request.COOKIES.get('user_timezone', 'America/Chicago')
         try:
             user_tz = pytz.timezone(user_tz_str)
         except pytz.exceptions.UnknownTimeZoneError:
-            user_tz = pytz.UTC
+            user_tz = pytz.timezone('America/Chicago')
 
-        # Get current time in user's timezone
-        now_utc = timezone.now()
-        now_user = now_utc.astimezone(user_tz)
+        # Fast ends at 12:00 PM (noon) on the selected date in user's timezone
+        # Create a naive datetime at noon on the selected date
+        fast_end_date_naive = datetime.combine(selected_date, time(12, 0))
 
-        # Calculate fast_end_date based on day
-        if day == 'today':
-            # Fast ends now (in user's timezone)
-            fast_end_date = now_utc
-        else:  # yesterday
-            # Fast ends at noon yesterday (12:00 PM in user's timezone)
-            yesterday_user = now_user - timedelta(days=1)
-            fast_end_date_naive = datetime.combine(yesterday_user.date(), time(12, 0))
-            fast_end_date = user_tz.localize(fast_end_date_naive)
+        # Localize to user's timezone (this handles DST correctly)
+        fast_end_date = user_tz.localize(fast_end_date_naive)
 
         # Generate a unique source_id for manual entries
         source_id = str(uuid.uuid4())
@@ -104,13 +106,12 @@ def log_fast(request):
             source='Manual',
             source_id=source_id,
             duration=hours,
-            fast_end_date=fast_end_date,
+            fast_end_date=fast_end_date,  # This is now timezone-aware and will be stored as UTC in DB
         )
 
-        day_label = 'Today' if day == 'today' else 'Yesterday'
         return JsonResponse({
             'success': True,
-            'message': f'{day_label}: {hours}-hour fast logged successfully!',
+            'message': f'{hours}-hour fast logged successfully for {selected_date.strftime("%B %d, %Y")}!',
             'fast_id': fast.id,
             'duration': float(fast.duration),
             'fast_end_date': fast_end_date.strftime('%Y-%m-%d %H:%M')
