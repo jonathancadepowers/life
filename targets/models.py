@@ -112,11 +112,6 @@ class DailyAgenda(models.Model):
         null=True,
         help_text="Other plans or notes for the day (supports Markdown)"
     )
-    other_plans_score = models.FloatField(
-        null=True,
-        blank=True,
-        help_text="Score for other plans (0, 0.5, or 1)"
-    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)

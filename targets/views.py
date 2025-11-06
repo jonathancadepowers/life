@@ -207,12 +207,8 @@ def save_agenda(request):
         other_plans = request.POST.get('other_plans', '')
         agenda.other_plans = other_plans
 
-        # If other_plans is being cleared, also clear its score
-        if not other_plans:
-            agenda.other_plans_score = None
-
         # Calculate and save overall day score
-        # Count how many targets/plans are set
+        # Count how many targets are set (only targets 1-3, not other_plans)
         targets_set = 0
         total_score = 0
 
@@ -228,14 +224,7 @@ def save_agenda(request):
                 if target_score is not None:
                     total_score += target_score
 
-        # Check other_plans
-        if agenda.other_plans:
-            targets_set += 1
-            # Add score if it exists (0, 0.5, or 1)
-            if agenda.other_plans_score is not None:
-                total_score += agenda.other_plans_score
-
-        # Calculate day score if any targets/plans are set
+        # Calculate day score if any targets are set (excluding other_plans)
         if targets_set > 0:
             agenda.day_score = total_score / targets_set
         else:
@@ -548,7 +537,6 @@ def get_agenda_for_date(request):
                 'target_1_score': agenda.target_1_score,
                 'target_2_score': agenda.target_2_score,
                 'target_3_score': agenda.target_3_score,
-                'other_plans_score': agenda.other_plans_score,
                 'day_score': agenda.day_score,
                 'other_plans': agenda.other_plans,
                 'targets': []
@@ -648,14 +636,17 @@ def save_target_score(request):
                 'error': 'No agenda found for this date'
             }, status=404)
 
-        # Set the score for the specified target (or other_plans if target_num is 4)
-        if target_num == 4:
-            agenda.other_plans_score = score
-        else:
-            setattr(agenda, f'target_{target_num}_score', score)
+        # Set the score for the specified target (only targets 1-3)
+        if target_num < 1 or target_num > 3:
+            return JsonResponse({
+                'success': False,
+                'error': f'Invalid target number: {target_num}. Only targets 1-3 can be scored.'
+            }, status=400)
+
+        setattr(agenda, f'target_{target_num}_score', score)
 
         # Calculate and save overall day score
-        # Count how many targets/plans are set
+        # Count how many targets are set (only targets 1-3, not other_plans)
         targets_set = 0
         total_score = 0
 
@@ -671,14 +662,7 @@ def save_target_score(request):
                 if target_score is not None:
                     total_score += target_score
 
-        # Check other_plans
-        if agenda.other_plans:
-            targets_set += 1
-            # Add score if it exists (0, 0.5, or 1)
-            if agenda.other_plans_score is not None:
-                total_score += agenda.other_plans_score
-
-        # Calculate day score if any targets/plans are set
+        # Calculate day score if any targets are set (excluding other_plans)
         if targets_set > 0:
             agenda.day_score = total_score / targets_set
         else:
