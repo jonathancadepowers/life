@@ -197,20 +197,23 @@
                 {% endif %}
 
                 <!-- Today's Agenda Section -->
-                <div class="activity-section" style="position: relative;">
-                    <div style="position: relative;">
-                        <h2 class="section-title">Today's Agenda</h2>
-                        <button class="btn btn-link" onclick="showCalendarModal()" style="position: absolute; top: 0; right: 0; font-size: 1.5rem; color: #333; padding: 0;" title="View past agendas">
-                            <i class="bi bi-calendar3"></i>
-                        </button>
-                    </div>
-
-                    <div class="mb-4 p-3 bg-light rounded" style="position: relative;">
+                <div style="position: relative; margin-bottom: 2rem;">
+                    <!-- Date label and calendar icon above the section -->
+                    <div class="mb-3 p-3 bg-light rounded" style="position: relative;">
                         <h4 class="mb-0" id="today-date"></h4>
                         <button id="return-to-today-btn" class="btn btn-sm btn-primary" onclick="returnToToday()" style="position: absolute; top: 50%; right: 15px; transform: translateY(-50%); display: none;">
                             Return to Today
                         </button>
                     </div>
+
+                    <!-- Calendar icon positioned above top-right corner -->
+                    <button class="btn btn-link" onclick="showCalendarModal()" style="position: absolute; top: -8px; right: -8px; font-size: 1.5rem; color: #333; padding: 0; z-index: 10;" title="View past agendas">
+                        <i class="bi bi-calendar3"></i>
+                    </button>
+                </div>
+
+                <div class="activity-section">
+                    <h2 class="section-title">Agenda</h2>
 
                     <!-- Day Score Box (shown for past days only) -->
                     <div id="day-score-box" class="mb-4 p-3 rounded" style="background-color: #e8f4f8; border: 1px solid #bee5eb; display: none;">
