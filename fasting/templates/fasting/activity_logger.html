@@ -387,31 +387,7 @@
 
                             <!-- Edit Mode -->
                             <div id="notes-edit-mode" style="display: none;">
-                                <!-- Quick Insert Emojis -->
-                                <div class="mb-2">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertTodoSection()" title="Add To Dos section">
-                                        ✅ To Dos
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitsSection()" title="Add Habits section">
-                                        🏆 Habits
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Run 1 Mile')" title="Add Run 1 Mile task">
-                                        🏃‍♂️ Run
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Fast 16 Hours')" title="Add Fast 16 Hours task">
-                                        🚫 Fast
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Strength Training Session')" title="Add Strength Training Session task">
-                                        🏋️ Lift
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Eat Clean')" title="Add Eat Clean task">
-                                        🥑 Eat Clean
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertHabitTask('Sauna Session')" title="Add Sauna Session task">
-                                        ♨️ Sauna
-                                    </button>
-                                </div>
-                                <textarea id="notes-textarea" name="other_plans" class="form-control" rows="6" placeholder="Enter your other plans here (Markdown supported)...">{% if agenda and agenda.other_plans %}{{ agenda.other_plans }}{% endif %}</textarea>
+                                <textarea id="notes-textarea" name="other_plans" class="form-control" rows="6">{% if agenda and agenda.other_plans %}{{ agenda.other_plans }}{% endif %}</textarea>
                             </div>
 
                             <!-- View Mode -->
