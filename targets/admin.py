@@ -23,7 +23,7 @@ class DailyAgendaAdmin(admin.ModelAdmin):
             'fields': ('project_3', 'goal_3', 'target_3', 'target_3_score')
         }),
         ('Other Plans', {
-            'fields': ('other_plans', 'other_plans_score')
+            'fields': ('other_plans',)
         }),
         ('Overall Score', {
             'fields': ('day_score',)
