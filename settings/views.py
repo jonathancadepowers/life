@@ -23,7 +23,7 @@ def life_tracker_settings(request):
                 from datetime import datetime
                 import pytz
                 user_tz = pytz.timezone('America/Los_Angeles')
-                test_date = datetime(2025, 1, 1)
+                test_date = datetime(2024, 1, 1)  # Use a past date more likely to have data
                 day_start = user_tz.localize(datetime.combine(test_date, datetime.min.time()))
                 day_end = user_tz.localize(datetime.combine(test_date, datetime.max.time()))
 
@@ -33,9 +33,14 @@ def life_tracker_settings(request):
                     cursor.execute(test_query, [day_start, day_end])
                     result = cursor.fetchone()
 
-                    # Verify it returns a numeric result
-                    if result is None or not isinstance(result[0], (int, float, type(None))):
-                        raise ValueError("Query must return a count (numeric value)")
+                    # Verify it returns a result (can be 0, NULL is okay too)
+                    if result is None:
+                        raise ValueError("Query returned no results. Must return at least one row with a numeric value.")
+
+                    # Check if first column is numeric or NULL
+                    value = result[0]
+                    if value is not None and not isinstance(value, (int, float)):
+                        raise ValueError(f"Query must return a numeric value, got {type(value).__name__}: {value}")
 
                 column.save()
                 messages.success(request, f'Successfully updated {column.display_name} settings.')
