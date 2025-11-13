@@ -1220,12 +1220,20 @@ def life_tracker(request):
             fast_end_date__lte=day_end
         ).exists()
 
+        # Check if there's strength training (sport_id=48) on this day
+        has_strength = Workout.objects.filter(
+            sport_id=48,
+            start__gte=day_start,
+            start__lte=day_end
+        ).exists()
+
         days.append({
             'name': day_names[i],
             'date': current_date,
             'date_str': current_date.strftime('%b %-d'),  # e.g., "Nov 1"
             'has_run': has_run,
             'has_fast': has_fast,
+            'has_strength': has_strength,
         })
         current_date += timedelta(days=1)
 
