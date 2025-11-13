@@ -500,11 +500,12 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertTrue(result['success'])
         self.assertEqual(result['agenda']['day_score'], 0.5)
 
-    def test_day_score_with_other_plans(self):
-        """Test day_score calculation includes other_plans when present"""
-        # Add other_plans and a second target
+    def test_day_score_with_multiple_targets(self):
+        """Test day_score calculation with multiple targets (only targets 1-3)"""
+        # Add other_plans and targets 2 and 3
         self.agenda.other_plans = '# My other plans\n- Task 1\n- Task 2'
         self.agenda.target_2 = 'Test Target 2'
+        self.agenda.target_3 = 'Test Target 3'
         self.agenda.save()
 
         # Score target 1 with 1.0
@@ -521,10 +522,10 @@ class DailyAgendaViewsTestCase(TestCase):
             'score': '0.5'
         })
 
-        # Score other_plans (target_num=4) with 0.5
+        # Score target 3 with 0.5
         response = self.client.post(reverse('save_target_score'), data={
             'date': self.today.isoformat(),
-            'target_num': '4',
+            'target_num': '3',
             'score': '0.5'
         })
         result = json.loads(response.content)
@@ -534,7 +535,6 @@ class DailyAgendaViewsTestCase(TestCase):
 
         agenda = DailyAgenda.objects.get(date=self.today)
         self.assertAlmostEqual(agenda.day_score, 0.6666666666666666, places=5)
-        self.assertEqual(agenda.other_plans_score, 0.5)
 
     def test_get_available_agenda_dates(self):
         """Test getting available agenda dates"""
@@ -2580,6 +2580,16 @@ class TodaysActivityTestCase(TestCase):
                 timezone=pytz.UTC
             )
 
+            # Create a workout for "today" (Oct 31 CST) so the date label renders
+            oct_31_cst = cst.localize(datetime(2025, 10, 31, 20, 0, 0))  # 8 PM CST
+            self.Workout.objects.create(
+                source='Whoop',
+                source_id='test-workout',
+                sport_id=0,
+                start=oct_31_cst,
+                end=oct_31_cst + timedelta(hours=1),
+            )
+
             response = self.client.get(reverse('activity_report'))
 
             # Should show October 31 (CST date), not November 1 (UTC date)
@@ -2601,6 +2611,16 @@ class TodaysActivityTestCase(TestCase):
             cst = pytz.timezone('America/Chicago')
             # Set to October 30, 2025 in CST
             mock_now.return_value = cst.localize(datetime(2025, 10, 30, 12, 0, 0))
+
+            # Create a workout for today so the date label renders
+            today_in_cst = cst.localize(datetime(2025, 10, 30, 12, 0, 0))
+            self.Workout.objects.create(
+                source='Whoop',
+                source_id='test-workout',
+                sport_id=0,
+                start=today_in_cst,
+                end=today_in_cst + timedelta(hours=1),
+            )
 
             self.client.cookies['user_timezone'] = 'America/Chicago'
             response = self.client.get(reverse('activity_report'))
@@ -2658,6 +2678,16 @@ class TodaysActivityTestCase(TestCase):
             mock_now.return_value = timezone.make_aware(
                 datetime(2025, 11, 1, 2, 0, 0),
                 timezone=pytz.UTC
+            )
+
+            # Create a workout for Nov 1 UTC so the date label renders
+            nov_1_utc = timezone.make_aware(datetime(2025, 11, 1, 2, 0, 0), timezone=pytz.UTC)
+            self.Workout.objects.create(
+                source='Whoop',
+                source_id='test-workout',
+                sport_id=0,
+                start=nov_1_utc,
+                end=nov_1_utc + timedelta(hours=1),
             )
 
             response = self.client.get(reverse('activity_report'))

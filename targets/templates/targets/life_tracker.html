@@ -1,4 +1,5 @@
 {% load humanize %}
+{% load tracker_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -96,7 +97,12 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1><i class="bi bi-clipboard-check"></i>Life Tracker</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0"><i class="bi bi-clipboard-check"></i>Life Tracker</h1>
+            <a href="{% url 'life_tracker_settings' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+        </div>
 
         <!-- Date Selector (Week Picker) -->
         <div class="date-selector">
@@ -123,12 +129,9 @@
                 <thead>
                     <tr>
                         <th style="text-align: left; width: 20%;">Day</th>
-                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Run at least 1 mile every day to maintain cardiovascular fitness and endurance.">Run</th>
-                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Complete a daily fast to support metabolic health and discipline.">Fast</th>
-                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Perform strength training exercises at least three days per week to build muscle and maintain strength.">Strength Training</th>
-                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Eat clean, whole foods throughout the day to fuel your body and support overall health.">Eat Clean</th>
-                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Dedicate 2 hours each day to focused writing to develop your craft and create meaningful content.">Write</th>
-                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Track your weight daily to monitor progress and stay accountable to your health goals.">Weigh In</th>
+                        {% for column in columns %}
+                        <th style="width: {% widthratio 80 columns.count 1 %}%;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ column.tooltip_text }}">{{ column.display_name }}</th>
+                        {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
@@ -138,23 +141,13 @@
                             {{ day.name }}
                             <span class="date-label">({{ day.date_str }})</span>
                         </td>
+                        {% for column in columns %}
                         <td class="checkbox-cell">
-                            {% if day.has_run %}<i class="bi bi-check-square-fill"></i>{% endif %}
+                            {% with key="has_"|add:column.column_name %}
+                                {% if day|get_item:key %}<i class="bi bi-check-square-fill"></i>{% endif %}
+                            {% endwith %}
                         </td>
-                        <td class="checkbox-cell">
-                            {% if day.has_fast %}<i class="bi bi-check-square-fill"></i>{% endif %}
-                        </td>
-                        <td class="checkbox-cell">
-                            {% if day.has_strength %}<i class="bi bi-check-square-fill"></i>{% endif %}
-                        </td>
-                        <td class="checkbox-cell">
-                            {% if day.has_eat_clean %}<i class="bi bi-check-square-fill"></i>{% endif %}
-                        </td>
-                        <td class="checkbox-cell">
-                        </td>
-                        <td class="checkbox-cell">
-                            {% if day.has_weigh_in %}<i class="bi bi-check-square-fill"></i>{% endif %}
-                        </td>
+                        {% endfor %}
                     </tr>
                     {% endfor %}
                 </tbody>

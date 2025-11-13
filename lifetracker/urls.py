@@ -19,6 +19,7 @@ from django.contrib import admin
 from django.urls import path, include
 from targets import views as targets_views
 from lifetracker import views as home_views
+from settings import views as settings_views
 
 urlpatterns = [
     path("about/", home_views.about, name='about'),
@@ -26,6 +27,7 @@ urlpatterns = [
     path("oauth/", include("oauth_integration.urls")),
     path("activity-report/", targets_views.activity_report, name='activity_report'),
     path("life-tracker/", targets_views.life_tracker, name='life_tracker'),
+    path("life-tracker/settings/", settings_views.life_tracker_settings, name='life_tracker_settings'),
     path("targets/", include("targets.urls")),
     path("", include("fasting.urls")),
     path("", include("nutrition.urls")),

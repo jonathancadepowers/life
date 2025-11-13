@@ -1174,11 +1174,8 @@ def activity_report(request):
 def life_tracker(request):
     """View for the weekly life tracker page."""
     from datetime import timedelta
-    from workouts.models import Workout
-    from fasting.models import FastingSession
-    from nutrition.models import NutritionEntry
-    from weight.models import WeighIn
-    from django.db.models import Sum
+    from settings.models import LifeTrackerColumn
+    from django.db import connection
     import pytz
 
     # Get date from query params or default to current week
@@ -1200,6 +1197,9 @@ def life_tracker(request):
         start_date = today - timedelta(days=today.weekday())  # Monday
         end_date = start_date + timedelta(days=6)  # Sunday
 
+    # Get enabled columns from settings
+    columns = LifeTrackerColumn.objects.filter(enabled=True).order_by('order')
+
     # Generate list of days for the week
     days = []
     current_date = start_date
@@ -1210,65 +1210,37 @@ def life_tracker(request):
         day_start = user_tz.localize(datetime.combine(current_date, datetime.min.time()))
         day_end = user_tz.localize(datetime.combine(current_date, datetime.max.time()))
 
-        # Check if there's a run (sport_id=0) on this day
-        has_run = Workout.objects.filter(
-            sport_id=0,
-            start__gte=day_start,
-            start__lte=day_end
-        ).exists()
-
-        # Check if there's a completed fast on this day (fast ended on this day)
-        has_fast = FastingSession.objects.filter(
-            fast_end_date__gte=day_start,
-            fast_end_date__lte=day_end
-        ).exists()
-
-        # Check if there's strength training (sport_id=48) on this day
-        has_strength = Workout.objects.filter(
-            sport_id=48,
-            start__gte=day_start,
-            start__lte=day_end
-        ).exists()
-
-        # Check if eating was clean on this day (total calories <= 1500 AND total carbs <= 100)
-        # Aggregate all nutrition entries for this day
-        nutrition_totals = NutritionEntry.objects.filter(
-            consumption_date__gte=day_start,
-            consumption_date__lte=day_end
-        ).aggregate(
-            total_calories=Sum('calories'),
-            total_carbs=Sum('carbs')
-        )
-
-        has_eat_clean = False
-        if nutrition_totals['total_calories'] is not None and nutrition_totals['total_carbs'] is not None:
-            has_eat_clean = (
-                nutrition_totals['total_calories'] <= 1500 and
-                nutrition_totals['total_carbs'] <= 100
-            )
-
-        # Check if there's at least one weigh-in on this day
-        has_weigh_in = WeighIn.objects.filter(
-            measurement_time__gte=day_start,
-            measurement_time__lte=day_end
-        ).exists()
-
-        days.append({
+        day_data = {
             'name': day_names[i],
             'date': current_date,
             'date_str': current_date.strftime('%b %-d'),  # e.g., "Nov 1"
-            'has_run': has_run,
-            'has_fast': has_fast,
-            'has_strength': has_strength,
-            'has_eat_clean': has_eat_clean,
-            'has_weigh_in': has_weigh_in,
-        })
+        }
+
+        # Execute SQL query for each column to determine checkbox state
+        for column in columns:
+            try:
+                with connection.cursor() as cursor:
+                    # Replace named parameters with positional ones
+                    query = column.sql_query.replace(':day_start', '%s').replace(':day_end', '%s')
+                    cursor.execute(query, [day_start, day_end])
+                    result = cursor.fetchone()
+
+                    # Checkbox appears if count > 0
+                    count = result[0] if result and result[0] is not None else 0
+                    day_data[f'has_{column.column_name}'] = count > 0
+            except Exception as e:
+                # If query fails, don't show checkbox
+                day_data[f'has_{column.column_name}'] = False
+                print(f"Error executing query for {column.column_name}: {e}")
+
+        days.append(day_data)
         current_date += timedelta(days=1)
 
     context = {
         'start_date': start_date,
         'end_date': end_date,
         'days': days,
+        'columns': columns,  # Pass columns to template for dynamic headers
     }
 
     return render(request, 'targets/life_tracker.html', context)

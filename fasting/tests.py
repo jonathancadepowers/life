@@ -17,10 +17,10 @@ class FastingAPITestCase(TestCase):
         self.client = Client()
 
     def test_log_fast_today_12_hours(self):
-        """Test logging a 12-hour fast for today"""
+        """Test logging a 12-hour fast"""
         data = {
             'hours': '12',
-            'day': 'today'
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -40,10 +40,10 @@ class FastingAPITestCase(TestCase):
         self.assertEqual(fast.source, 'Manual')
 
     def test_log_fast_today_16_hours(self):
-        """Test logging a 16-hour fast for today"""
+        """Test logging a 16-hour fast"""
         data = {
             'hours': '16',
-            'day': 'today'
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -57,10 +57,10 @@ class FastingAPITestCase(TestCase):
         self.assertEqual(result['duration'], 16.0)
 
     def test_log_fast_today_18_hours(self):
-        """Test logging an 18-hour fast for today"""
+        """Test logging an 18-hour fast"""
         data = {
             'hours': '18',
-            'day': 'today'
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -73,11 +73,13 @@ class FastingAPITestCase(TestCase):
         self.assertTrue(result['success'])
         self.assertEqual(result['duration'], 18.0)
 
-    def test_log_fast_yesterday(self):
-        """Test logging a fast for yesterday"""
+    def test_log_fast_past_date(self):
+        """Test logging a fast for a past date"""
+        import pytz
+
         data = {
             'hours': '16',
-            'day': 'yesterday'
+            'date': '2025-10-27'
         }
 
         response = self.client.post(
@@ -88,21 +90,22 @@ class FastingAPITestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
         self.assertTrue(result['success'])
-        self.assertIn('Yesterday', result['message'])
 
-        # Verify the end date is yesterday at noon (in local timezone)
+        # Verify the end date is at noon in America/Chicago timezone
+        # (the default when no timezone cookie is set)
         fast = FastingSession.objects.get(id=result['fast_id'])
-        yesterday = timezone.now() - timedelta(days=1)
-        self.assertEqual(fast.fast_end_date.date(), yesterday.date())
-        # Convert to local timezone before checking hour
-        local_time = timezone.localtime(fast.fast_end_date)
-        self.assertEqual(local_time.hour, 12)
+        self.assertEqual(fast.fast_end_date.date(), datetime(2025, 10, 27).date())
+
+        # Convert to America/Chicago timezone (the default used in views)
+        chicago_tz = pytz.timezone('America/Chicago')
+        chicago_time = fast.fast_end_date.astimezone(chicago_tz)
+        self.assertEqual(chicago_time.hour, 12)
 
     def test_log_fast_invalid_hours(self):
         """Test logging a fast with invalid duration"""
         data = {
             'hours': '20',  # Invalid duration
-            'day': 'today'
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -118,7 +121,7 @@ class FastingAPITestCase(TestCase):
     def test_log_fast_missing_hours(self):
         """Test logging a fast without duration"""
         data = {
-            'day': 'today'
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -131,11 +134,11 @@ class FastingAPITestCase(TestCase):
         self.assertFalse(result['success'])
         self.assertIn('required', result['message'])
 
-    def test_log_fast_invalid_day(self):
-        """Test logging a fast with invalid day"""
+    def test_log_fast_invalid_date_format(self):
+        """Test logging a fast with invalid date format"""
         data = {
             'hours': '12',
-            'day': 'tomorrow'  # Invalid day
+            'date': 'invalid-date'  # Invalid date format
         }
 
         response = self.client.post(
@@ -146,13 +149,13 @@ class FastingAPITestCase(TestCase):
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
         self.assertFalse(result['success'])
-        self.assertIn('must be "today" or "yesterday"', result['message'])
+        self.assertIn('date format', result['message'])
 
     def test_log_fast_non_numeric_hours(self):
         """Test logging a fast with non-numeric hours"""
         data = {
             'hours': 'abc',
-            'day': 'today'
+            'date': '2025-10-28'
         }
 
         response = self.client.post(

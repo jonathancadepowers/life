@@ -16,13 +16,12 @@ class NutritionAPITestCase(TestCase):
 
     def test_log_nutrition_success(self):
         """Test logging a nutrition entry successfully"""
-        now = timezone.now()
         data = {
             'calories': '500',
             'fat': '20',
             'carbs': '50',
             'protein': '30',
-            'consumption_date': now.isoformat()
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -49,13 +48,12 @@ class NutritionAPITestCase(TestCase):
 
     def test_log_nutrition_with_decimal_values(self):
         """Test logging nutrition with decimal values"""
-        now = timezone.now()
         data = {
             'calories': '523.5',
             'fat': '22.8',
             'carbs': '45.2',
             'protein': '35.1',
-            'consumption_date': now.isoformat()
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -71,13 +69,12 @@ class NutritionAPITestCase(TestCase):
 
     def test_log_nutrition_missing_field(self):
         """Test logging nutrition with missing required field"""
-        now = timezone.now()
         data = {
             'calories': '500',
             'fat': '20',
             # Missing carbs
             'protein': '30',
-            'consumption_date': now.isoformat()
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -92,13 +89,12 @@ class NutritionAPITestCase(TestCase):
 
     def test_log_nutrition_non_numeric_value(self):
         """Test logging nutrition with non-numeric value"""
-        now = timezone.now()
         data = {
             'calories': 'abc',  # Invalid
             'fat': '20',
             'carbs': '50',
             'protein': '30',
-            'consumption_date': now.isoformat()
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -113,13 +109,12 @@ class NutritionAPITestCase(TestCase):
 
     def test_log_nutrition_negative_value(self):
         """Test logging nutrition with negative value"""
-        now = timezone.now()
         data = {
             'calories': '-100',  # Negative
             'fat': '20',
             'carbs': '50',
             'protein': '30',
-            'consumption_date': now.isoformat()
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -139,7 +134,7 @@ class NutritionAPITestCase(TestCase):
             'fat': '20',
             'carbs': '50',
             'protein': '30',
-            'consumption_date': 'invalid-date'
+            'date': 'invalid-date'
         }
 
         response = self.client.post(
@@ -153,13 +148,13 @@ class NutritionAPITestCase(TestCase):
         self.assertIn('date format', result['message'])
 
     def test_log_nutrition_with_utc_date(self):
-        """Test logging nutrition with UTC timestamp"""
+        """Test logging nutrition with date string"""
         data = {
             'calories': '600',
             'fat': '25',
             'carbs': '60',
             'protein': '40',
-            'consumption_date': '2025-10-28T12:00:00Z'
+            'date': '2025-10-28'
         }
 
         response = self.client.post(
@@ -173,13 +168,12 @@ class NutritionAPITestCase(TestCase):
 
     def test_log_nutrition_with_zero_values(self):
         """Test logging nutrition with zero values (valid edge case)"""
-        now = timezone.now()
         data = {
             'calories': '0',
             'fat': '0',
             'carbs': '0',
             'protein': '0',
-            'consumption_date': now.isoformat()
+            'date': '2025-10-28'
         }
 
         response = self.client.post(

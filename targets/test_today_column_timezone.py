@@ -36,16 +36,17 @@ class TodayColumnTimezoneTestCase(TestCase):
 
         # Create a fasting session that ended at 8pm CST on Nov 2
         fast = FastingSession.objects.create(
-            fast_start_date=utc_time - timedelta(hours=16),
+            source='Manual',
+            source_id='test-fast-1',
             fast_end_date=utc_time,
             duration=16.0
         )
 
-        # Create request with CST timezone offset (360 minutes = UTC-6)
+        # Create request with CST timezone
         request = self.factory.get('/activity-report/')
         request.user = self.user
-        # Simulate browser sending timezone offset
-        request.COOKIES['timezone_offset'] = '360'  # CST is UTC-6 = 360 minutes
+        # Simulate browser sending timezone
+        request.COOKIES['user_timezone'] = 'America/Chicago'  # CST timezone
 
         # Mock the current time to be Nov 2, 2025 at 10pm CST
         # (still Nov 2 in CST, but Nov 3 in UTC)
@@ -83,10 +84,10 @@ class TodayColumnTimezoneTestCase(TestCase):
         """
         from targets.views import get_user_today
 
-        # Create request with PST timezone offset (480 minutes = UTC-8)
+        # Create request with PST timezone
         request = self.factory.get('/activity-report/')
         request.user = self.user
-        request.COOKIES['timezone_offset'] = '480'  # PST is UTC-8
+        request.COOKIES['user_timezone'] = 'America/Los_Angeles'  # PST timezone
 
         # Mock current time to Nov 2, 2025 10pm PST
         pst = pytz.timezone('America/Los_Angeles')
@@ -105,10 +106,11 @@ class TodayColumnTimezoneTestCase(TestCase):
         self.assertEqual(today_start.hour, 0)
         self.assertEqual(today_start.minute, 0)
 
-        # Verify the datetime range spans exactly 24 hours
+        # Verify the datetime range spans approximately 24 hours
+        # (can be 23, 24, or 25 hours due to DST transitions)
         delta = today_end - today_start
-        self.assertGreater(delta.total_seconds(), 86399)  # At least 23:59:59
-        self.assertLess(delta.total_seconds(), 86401)  # Less than 24:00:01
+        self.assertGreater(delta.total_seconds(), 82799)  # At least 23 hours
+        self.assertLess(delta.total_seconds(), 90001)  # Less than 25 hours + 1 second
 
 
 class MonthlyObjectivesTodayColumnTestCase(TestCase):
@@ -129,6 +131,7 @@ class MonthlyObjectivesTodayColumnTestCase(TestCase):
             label='Test Fast Regularly',
             description='Test objective',
             start=datetime(2025, 11, 1).date(),
+            end=datetime(2025, 11, 30).date(),
             objective_value=21,
             objective_definition="""
                 SELECT COUNT(*)
@@ -152,7 +155,8 @@ class MonthlyObjectivesTodayColumnTestCase(TestCase):
         fast_end_cst = cst.localize(datetime(2025, 11, 2, 23, 0, 0))
 
         FastingSession.objects.create(
-            fast_start_date=fast_end_cst - timedelta(hours=16),
+            source='Manual',
+            source_id='test-fast-1',
             fast_end_date=fast_end_cst,
             duration=16.0
         )
@@ -160,7 +164,7 @@ class MonthlyObjectivesTodayColumnTestCase(TestCase):
         # Make request from CST timezone
         request = self.factory.get('/activity-report/')
         request.user = self.user
-        request.COOKIES['timezone_offset'] = '360'  # CST
+        request.COOKIES['user_timezone'] = 'America/Chicago'  # CST
 
         from targets.views import activity_report
         from unittest.mock import patch

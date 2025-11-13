@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from targets.models import DailyAgenda
 from projects.models import Project
 from goals.models import Goal
+from unittest import skip
 import time
 
 
@@ -62,26 +63,25 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         self.date_with_score = date.today() - timedelta(days=2)
         self.date_without_score = date.today() - timedelta(days=1)
 
-        # Create agenda WITH score on Other Plans
+        # Create agenda WITH score
         self.agenda_with_score = DailyAgenda.objects.create(
             date=self.date_with_score,
             project_1=self.project,
             target_1='Complete first target',
             target_1_score=1.0,
-            other_plans='# 🏆 Habits\n- [x] Exercise\n- [x] Eat clean',
-            other_plans_score=1.0  # Score is set
+            other_plans='# 🏆 Habits\n- [x] Exercise\n- [x] Eat clean'
         )
 
-        # Create agenda WITHOUT score on Other Plans
+        # Create agenda WITHOUT score
         self.agenda_without_score = DailyAgenda.objects.create(
             date=self.date_without_score,
             project_1=self.project,
             target_1='Complete second target',
             target_1_score=0.5,
-            other_plans='# 🏆 Habits\n- [ ] Exercise\n- [ ] Eat clean',
-            other_plans_score=None  # No score set
+            other_plans='# 🏆 Habits\n- [ ] Exercise\n- [ ] Eat clean'
         )
 
+    @skip("Other Plans scoring was removed - test no longer applicable")
     def test_score_button_state_clears_when_navigating_between_dates(self):
         """
         Test that score buttons clear their active state when navigating to a date without scores.
@@ -188,6 +188,7 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
             self.assertNotIn('active', button.get_attribute('class'),
                            "No score buttons should be active when database has no score")
 
+    @skip("Other Plans scoring was removed - test no longer applicable")
     def test_score_button_state_loads_correctly_for_date_with_score(self):
         """
         Test that score buttons correctly show as active when loading a date that HAS a score.

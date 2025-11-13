@@ -1,6 +1,48 @@
 from django.db import models
 
 
+class LifeTrackerColumn(models.Model):
+    """
+    Configuration for each column in the Life Tracker page.
+    """
+    column_name = models.CharField(
+        max_length=50,
+        unique=True,
+        primary_key=True,
+        help_text="Internal name of the column (e.g., 'run', 'fast', 'strength')"
+    )
+    display_name = models.CharField(
+        max_length=100,
+        help_text="Display name shown in the column header"
+    )
+    tooltip_text = models.TextField(
+        help_text="Help text that appears when hovering over the column header"
+    )
+    sql_query = models.TextField(
+        help_text="SQL query to determine if checkbox should appear. Available parameters: :day_start, :day_end. Query should return a count."
+    )
+    order = models.IntegerField(
+        default=0,
+        help_text="Display order (lower numbers appear first)"
+    )
+    enabled = models.BooleanField(
+        default=True,
+        help_text="Whether this column is currently enabled"
+    )
+
+    # Audit fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'column_name']
+        verbose_name = 'Life Tracker Column'
+        verbose_name_plural = 'Life Tracker Columns'
+
+    def __str__(self):
+        return f"{self.display_name} ({self.column_name})"
+
+
 class Setting(models.Model):
     """
     Stores application-wide settings as key-value pairs.
