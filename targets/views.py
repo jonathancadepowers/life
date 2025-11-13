@@ -1176,6 +1176,8 @@ def life_tracker(request):
     from datetime import timedelta
     from workouts.models import Workout
     from fasting.models import FastingSession
+    from nutrition.models import NutritionEntry
+    from django.db.models import Sum
     import pytz
 
     # Get date from query params or default to current week
@@ -1227,6 +1229,23 @@ def life_tracker(request):
             start__lte=day_end
         ).exists()
 
+        # Check if eating was clean on this day (total calories <= 1500 AND total carbs <= 100)
+        # Aggregate all nutrition entries for this day
+        nutrition_totals = NutritionEntry.objects.filter(
+            consumption_date__gte=day_start,
+            consumption_date__lte=day_end
+        ).aggregate(
+            total_calories=Sum('calories'),
+            total_carbs=Sum('carbs')
+        )
+
+        has_eat_clean = False
+        if nutrition_totals['total_calories'] is not None and nutrition_totals['total_carbs'] is not None:
+            has_eat_clean = (
+                nutrition_totals['total_calories'] <= 1500 and
+                nutrition_totals['total_carbs'] <= 100
+            )
+
         days.append({
             'name': day_names[i],
             'date': current_date,
@@ -1234,6 +1253,7 @@ def life_tracker(request):
             'has_run': has_run,
             'has_fast': has_fast,
             'has_strength': has_strength,
+            'has_eat_clean': has_eat_clean,
         })
         current_date += timedelta(days=1)
 
