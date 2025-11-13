@@ -1171,6 +1171,73 @@ def activity_report(request):
     return render(request, 'targets/activity_report.html', context)
 
 
+def life_tracker(request):
+    """View for the weekly life tracker page."""
+    from datetime import timedelta
+    from workouts.models import Workout
+    from fasting.models import FastingSession
+    import pytz
+
+    # Get date from query params or default to current week
+    start_date_str = request.GET.get('start_date')
+
+    # Get user's timezone
+    user_tz = get_user_timezone(request)
+
+    if start_date_str:
+        # User selected a specific date - find the Monday of that week
+        selected_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        # Calculate the Monday of the week containing the selected date
+        days_since_monday = selected_date.weekday()
+        start_date = selected_date - timedelta(days=days_since_monday)
+        end_date = start_date + timedelta(days=6)  # Sunday
+    else:
+        # Default to current week (Monday-Sunday) using user's timezone
+        today = get_user_today(request)[0]
+        start_date = today - timedelta(days=today.weekday())  # Monday
+        end_date = start_date + timedelta(days=6)  # Sunday
+
+    # Generate list of days for the week
+    days = []
+    current_date = start_date
+    day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+    for i in range(7):
+        # Create timezone-aware start and end of day for querying
+        day_start = user_tz.localize(datetime.combine(current_date, datetime.min.time()))
+        day_end = user_tz.localize(datetime.combine(current_date, datetime.max.time()))
+
+        # Check if there's a run (sport_id=0) on this day
+        has_run = Workout.objects.filter(
+            sport_id=0,
+            start__gte=day_start,
+            start__lte=day_end
+        ).exists()
+
+        # Check if there's a completed fast on this day (fast ended on this day)
+        has_fast = FastingSession.objects.filter(
+            fast_end_date__gte=day_start,
+            fast_end_date__lte=day_end
+        ).exists()
+
+        days.append({
+            'name': day_names[i],
+            'date': current_date,
+            'date_str': current_date.strftime('%b %-d'),  # e.g., "Nov 1"
+            'has_run': has_run,
+            'has_fast': has_fast,
+        })
+        current_date += timedelta(days=1)
+
+    context = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'days': days,
+    }
+
+    return render(request, 'targets/life_tracker.html', context)
+
+
 def get_objective_entries(request):
     """
     API endpoint to fetch the last entries contributing to a monthly objective.

@@ -1,0 +1,183 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 3rem;
+        }
+        h1 {
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 2rem;
+        }
+        h1 i {
+            color: #0d6efd;
+            margin-right: 0.5rem;
+        }
+        .date-selector {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .tracker-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .tracker-table table {
+            margin-bottom: 0;
+        }
+        .tracker-table th {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: 600;
+            padding: 1rem;
+            border: none;
+            text-align: center;
+        }
+        .tracker-table td {
+            padding: 1rem;
+            vertical-align: middle;
+            text-align: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .tracker-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .tracker-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .tracker-table td.day-cell {
+            font-weight: 600;
+            color: #495057;
+            text-align: left !important;
+        }
+        .date-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+        }
+        .checkbox-cell input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .week-label {
+            color: #6c757d;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        /* Tooltip styling for column headers */
+        .tracker-table th {
+            position: relative;
+            cursor: help;
+        }
+        .tracker-table th[data-bs-toggle="tooltip"] {
+            cursor: help;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1><i class="bi bi-clipboard-check"></i>Life Tracker</h1>
+
+        <!-- Date Selector (Week Picker) -->
+        <div class="date-selector">
+            <form method="GET" action="{% url 'life_tracker' %}" id="dateForm">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-6 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-calendar-week"></i> Load Week
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="currentWeekBtn">
+                            <i class="bi bi-calendar-check"></i> Current Week
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Life Tracker Table -->
+        <div class="tracker-table">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; width: 20%;">Day</th>
+                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Run at least 1 mile every day to maintain cardiovascular fitness and endurance.">Run</th>
+                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Complete a daily fast to support metabolic health and discipline.">Fast</th>
+                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Perform strength training exercises at least three days per week to build muscle and maintain strength.">Strength Training</th>
+                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Eat clean, whole foods throughout the day to fuel your body and support overall health.">Eat Clean</th>
+                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Dedicate 2 hours each day to focused writing to develop your craft and create meaningful content.">Write</th>
+                        <th style="width: 11.4%;" data-bs-toggle="tooltip" data-bs-placement="top" title="Track your weight daily to monitor progress and stay accountable to your health goals.">Weigh In</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in days %}
+                    <tr>
+                        <td class="day-cell">
+                            {{ day.name }}
+                            <span class="date-label">({{ day.date_str }})</span>
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="run" {% if day.has_run %}checked{% endif %}>
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="fast" {% if day.has_fast %}checked{% endif %}>
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="strength">
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="eat_clean">
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="write">
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="weigh_in">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize Bootstrap tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+        // Current week button
+        document.getElementById('currentWeekBtn').addEventListener('click', function() {
+            window.location.href = '{% url "life_tracker" %}';
+        });
+
+        // Checkbox change handler (for future implementation)
+        document.querySelectorAll('.form-check-input').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const day = this.dataset.day;
+                const activity = this.dataset.activity;
+                const checked = this.checked;
+
+                console.log(`${activity} on ${day}: ${checked}`);
+                // TODO: Save to database via API call
+            });
+        });
+    </script>
+</body>
+</html>

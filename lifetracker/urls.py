@@ -25,6 +25,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("oauth/", include("oauth_integration.urls")),
     path("activity-report/", targets_views.activity_report, name='activity_report'),
+    path("life-tracker/", targets_views.life_tracker, name='life_tracker'),
     path("targets/", include("targets.urls")),
     path("", include("fasting.urls")),
     path("", include("nutrition.urls")),
