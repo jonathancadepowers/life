@@ -67,10 +67,9 @@
             font-size: 0.9rem;
             margin-left: 0.5rem;
         }
-        .checkbox-cell input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: not-allowed;
+        .checkbox-cell i {
+            font-size: 1.5rem;
+            color: #0d6efd;
         }
         .week-label {
             color: #6c757d;
@@ -132,22 +131,22 @@
                             <span class="date-label">({{ day.date_str }})</span>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="run" {% if day.has_run %}checked{% endif %} disabled>
+                            <i class="bi bi-check-square-fill" style="{% if not day.has_run %}opacity: 0.2;{% endif %}"></i>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="fast" {% if day.has_fast %}checked{% endif %} disabled>
+                            <i class="bi bi-check-square-fill" style="{% if not day.has_fast %}opacity: 0.2;{% endif %}"></i>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="strength" {% if day.has_strength %}checked{% endif %} disabled>
+                            <i class="bi bi-check-square-fill" style="{% if not day.has_strength %}opacity: 0.2;{% endif %}"></i>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="eat_clean" disabled>
+                            <i class="bi bi-check-square-fill" style="opacity: 0.2;"></i>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="write" disabled>
+                            <i class="bi bi-check-square-fill" style="opacity: 0.2;"></i>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="weigh_in" disabled>
+                            <i class="bi bi-check-square-fill" style="opacity: 0.2;"></i>
                         </td>
                     </tr>
                     {% endfor %}
@@ -165,18 +164,6 @@
         // Current week button
         document.getElementById('currentWeekBtn').addEventListener('click', function() {
             window.location.href = '{% url "life_tracker" %}';
-        });
-
-        // Checkbox change handler (for future implementation)
-        document.querySelectorAll('.form-check-input').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const day = this.dataset.day;
-                const activity = this.dataset.activity;
-                const checked = this.checked;
-
-                console.log(`${activity} on ${day}: ${checked}`);
-                // TODO: Save to database via API call
-            });
         });
     </script>
 </body>
