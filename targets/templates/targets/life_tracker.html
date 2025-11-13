@@ -70,7 +70,7 @@
         .checkbox-cell input[type="checkbox"] {
             width: 20px;
             height: 20px;
-            cursor: pointer;
+            cursor: not-allowed;
         }
         .week-label {
             color: #6c757d;
@@ -132,22 +132,22 @@
                             <span class="date-label">({{ day.date_str }})</span>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="run" {% if day.has_run %}checked{% endif %}>
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="run" {% if day.has_run %}checked{% endif %} disabled>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="fast" {% if day.has_fast %}checked{% endif %}>
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="fast" {% if day.has_fast %}checked{% endif %} disabled>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="strength" {% if day.has_strength %}checked{% endif %}>
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="strength" {% if day.has_strength %}checked{% endif %} disabled>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="eat_clean">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="eat_clean" disabled>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="write">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="write" disabled>
                         </td>
                         <td class="checkbox-cell">
-                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="weigh_in">
+                            <input type="checkbox" class="form-check-input" data-day="{{ day.date }}" data-activity="weigh_in" disabled>
                         </td>
                     </tr>
                     {% endfor %}
