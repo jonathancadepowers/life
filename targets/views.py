@@ -1177,6 +1177,7 @@ def life_tracker(request):
     from workouts.models import Workout
     from fasting.models import FastingSession
     from nutrition.models import NutritionEntry
+    from weight.models import WeighIn
     from django.db.models import Sum
     import pytz
 
@@ -1246,6 +1247,12 @@ def life_tracker(request):
                 nutrition_totals['total_carbs'] <= 100
             )
 
+        # Check if there's at least one weigh-in on this day
+        has_weigh_in = WeighIn.objects.filter(
+            measurement_time__gte=day_start,
+            measurement_time__lte=day_end
+        ).exists()
+
         days.append({
             'name': day_names[i],
             'date': current_date,
@@ -1254,6 +1261,7 @@ def life_tracker(request):
             'has_fast': has_fast,
             'has_strength': has_strength,
             'has_eat_clean': has_eat_clean,
+            'has_weigh_in': has_weigh_in,
         })
         current_date += timedelta(days=1)
 
