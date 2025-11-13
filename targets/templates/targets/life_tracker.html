@@ -131,22 +131,19 @@
                             <span class="date-label">({{ day.date_str }})</span>
                         </td>
                         <td class="checkbox-cell">
-                            <i class="bi bi-check-square-fill" style="{% if not day.has_run %}opacity: 0.2;{% endif %}"></i>
+                            {% if day.has_run %}<i class="bi bi-check-square-fill"></i>{% endif %}
                         </td>
                         <td class="checkbox-cell">
-                            <i class="bi bi-check-square-fill" style="{% if not day.has_fast %}opacity: 0.2;{% endif %}"></i>
+                            {% if day.has_fast %}<i class="bi bi-check-square-fill"></i>{% endif %}
                         </td>
                         <td class="checkbox-cell">
-                            <i class="bi bi-check-square-fill" style="{% if not day.has_strength %}opacity: 0.2;{% endif %}"></i>
+                            {% if day.has_strength %}<i class="bi bi-check-square-fill"></i>{% endif %}
                         </td>
                         <td class="checkbox-cell">
-                            <i class="bi bi-check-square-fill" style="opacity: 0.2;"></i>
                         </td>
                         <td class="checkbox-cell">
-                            <i class="bi bi-check-square-fill" style="opacity: 0.2;"></i>
                         </td>
                         <td class="checkbox-cell">
-                            <i class="bi bi-check-square-fill" style="opacity: 0.2;"></i>
                         </td>
                     </tr>
                     {% endfor %}
