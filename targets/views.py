@@ -1255,19 +1255,30 @@ def life_tracker(request):
         days.append(day_data)
         current_date += timedelta(days=1)
 
-    # Generate list of available weeks - only current week
-    # Note: current_week_start already calculated above
+    # Generate list of available weeks from launch week to current week
+    # Launch week: 2025-Nov-10 (Week 46)
+    from datetime import datetime as dt
+    launch_week_start = dt(2025, 11, 10).date()  # Monday, Nov 10, 2025
 
     available_weeks = []
-    # Only show current week
-    week_num = current_week_start.isocalendar()[1]
-    week_label = f"{current_week_start.strftime('%Y-%b-%d')} (Week {week_num})"
 
-    available_weeks.append({
-        'start_date': current_week_start.strftime('%Y-%m-%d'),
-        'label': week_label,
-        'selected': True
-    })
+    # Calculate number of weeks between launch and current week
+    weeks_diff = (current_week_start - launch_week_start).days // 7
+
+    # Generate weeks from launch week to current week
+    for i in range(weeks_diff + 1):
+        week_start = launch_week_start + timedelta(weeks=i)
+        week_num = week_start.isocalendar()[1]
+        week_label = f"{week_start.strftime('%Y-%b-%d')} (Week {week_num})"
+
+        available_weeks.append({
+            'start_date': week_start.strftime('%Y-%m-%d'),
+            'label': week_label,
+            'selected': week_start == start_date
+        })
+
+    # Reverse the list so current week appears first
+    available_weeks.reverse()
 
     context = {
         'start_date': start_date,
