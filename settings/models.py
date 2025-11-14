@@ -21,6 +21,11 @@ class LifeTrackerColumn(models.Model):
     sql_query = models.TextField(
         help_text="SQL query to determine if checkbox should appear. Available parameters: :day_start, :day_end. Query should return a count."
     )
+    details_display = models.TextField(
+        blank=True,
+        default='',
+        help_text="Text configuration for details shown when hovering over checkmarks"
+    )
     order = models.IntegerField(
         default=0,
         help_text="Display order (lower numbers appear first)"

@@ -132,6 +132,11 @@
                             <label for="sql_{{ column.column_name }}" class="form-label">SQL Query</label>
                             <textarea class="form-control" id="sql_{{ column.column_name }}" name="sql_query_{{ column.column_name }}" rows="4" required>{{ column.sql_query }}</textarea>
                         </div>
+
+                        <div class="mb-3">
+                            <label for="details_display_{{ column.column_name }}" class="form-label">Details Display</label>
+                            <textarea class="form-control" id="details_display_{{ column.column_name }}" name="details_display_{{ column.column_name }}" rows="3">{{ column.details_display }}</textarea>
+                        </div>
                     </div>
                 {% endfor %}
             </form>

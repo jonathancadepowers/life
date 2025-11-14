@@ -19,6 +19,7 @@ def life_tracker_settings(request):
             display_name = request.POST.get(f'display_name_{column.column_name}')
             tooltip_text = request.POST.get(f'tooltip_text_{column.column_name}')
             sql_query = request.POST.get(f'sql_query_{column.column_name}')
+            details_display = request.POST.get(f'details_display_{column.column_name}', '')
             order = request.POST.get(f'order_{column.column_name}')
             enabled = request.POST.get(f'enabled_{column.column_name}') == 'on'
 
@@ -26,6 +27,7 @@ def life_tracker_settings(request):
                 column.display_name = display_name
                 column.tooltip_text = tooltip_text
                 column.sql_query = sql_query
+                column.details_display = details_display
                 column.order = int(order)
                 column.enabled = enabled
 
