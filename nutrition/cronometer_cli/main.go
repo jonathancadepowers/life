@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"flag"
@@ -63,15 +64,19 @@ func main() {
 		}
 	}
 
-	// Login to Cronometer
-	client, err := gocronometer.Login(*username, *password)
+	// Create context
+	ctx := context.Background()
+
+	// Create client and login to Cronometer
+	client := gocronometer.NewClient(nil)
+	err = client.Login(ctx, *username, *password)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging in to Cronometer: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Export daily nutrition data
-	csvData, err := client.ExportDailyNutrition(start, end)
+	csvData, err := client.ExportDailyNutrition(ctx, start, end)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error exporting nutrition data: %v\n", err)
 		os.Exit(1)
