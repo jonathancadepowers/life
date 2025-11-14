@@ -122,7 +122,6 @@
         <div class="date-selector mb-4">
             <div class="row">
                 <div class="col-md-6">
-                    <label for="weekSelector" class="form-label"><i class="bi bi-calendar-week"></i> Select Week</label>
                     <select class="form-select" id="weekSelector" onchange="changeWeek(this.value)">
                         {% for week in available_weeks %}
                             <option value="{{ week.start_date }}" {% if week.selected %}selected{% endif %}>
