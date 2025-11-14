@@ -1184,17 +1184,25 @@ def life_tracker(request):
     # Get user's timezone
     user_tz = get_user_timezone(request)
 
+    # Get today in user's timezone for validation
+    today = get_user_today(request)[0]
+    current_week_start = today - timedelta(days=today.weekday())
+
     if start_date_str:
         # User selected a specific date - find the Monday of that week
         selected_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         # Calculate the Monday of the week containing the selected date
         days_since_monday = selected_date.weekday()
         start_date = selected_date - timedelta(days=days_since_monday)
+
+        # Don't allow future weeks - cap at current week
+        if start_date > current_week_start:
+            start_date = current_week_start
+
         end_date = start_date + timedelta(days=6)  # Sunday
     else:
         # Default to current week (Monday-Sunday) using user's timezone
-        today = get_user_today(request)[0]
-        start_date = today - timedelta(days=today.weekday())  # Monday
+        start_date = current_week_start
         end_date = start_date + timedelta(days=6)  # Sunday
 
     # Get enabled columns from settings
@@ -1248,8 +1256,7 @@ def life_tracker(request):
         current_date += timedelta(days=1)
 
     # Generate list of available weeks (past weeks only, up to current week)
-    today = get_user_today(request)[0]
-    current_week_start = today - timedelta(days=today.weekday())
+    # Note: current_week_start already calculated above
 
     # Generate weeks going back 52 weeks (1 year)
     available_weeks = []
