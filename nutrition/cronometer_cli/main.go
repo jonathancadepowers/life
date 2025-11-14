@@ -123,7 +123,7 @@ func parseDailyNutrition(csvData string) ([]DailyNutrition, error) {
 
 	// Find column indexes
 	header := records[0]
-	dateIdx := findColumn(header, "Day")
+	dateIdx := findColumn(header, "Date")  // Changed from "Day" to "Date"
 	caloriesIdx := findColumn(header, "Energy (kcal)")
 	fatIdx := findColumn(header, "Fat (g)")
 	carbsIdx := findColumn(header, "Carbs (g)")
