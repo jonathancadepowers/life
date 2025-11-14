@@ -429,6 +429,19 @@
             bsModal.show();
         }
 
+        // Helper function to check if a date is in the future
+        function isFutureDate(dateStr) {
+            const cellDate = new Date(dateStr + 'T00:00:00');
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+            // Get today's date in user's timezone
+            const now = new Date();
+            const todayStr = now.toLocaleDateString('en-CA', { timeZone: userTimezone }); // YYYY-MM-DD format
+            const today = new Date(todayStr + 'T00:00:00');
+
+            return cellDate > today;
+        }
+
         // Writing log functionality
         let currentWritingDate = null;
         const writingModal = new bootstrap.Modal(document.getElementById('writingModal'));
@@ -437,6 +450,13 @@
         document.querySelectorAll('.write-cell').forEach(cell => {
             const icon = cell.querySelector('.add-writing-icon');
             if (icon) {
+                const cellDate = cell.dataset.date;
+
+                // Don't show + icon for future dates
+                if (isFutureDate(cellDate)) {
+                    return;
+                }
+
                 cell.addEventListener('mouseenter', () => {
                     icon.style.visibility = 'visible';
                     icon.style.opacity = '1';
@@ -500,6 +520,13 @@
         document.querySelectorAll('.fast-cell').forEach(cell => {
             const icon = cell.querySelector('.add-fasting-icon');
             if (icon) {
+                const cellDate = cell.dataset.date;
+
+                // Don't show + icon for future dates
+                if (isFutureDate(cellDate)) {
+                    return;
+                }
+
                 cell.addEventListener('mouseenter', () => {
                     icon.style.visibility = 'visible';
                     icon.style.opacity = '1';
