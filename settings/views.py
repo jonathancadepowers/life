@@ -20,17 +20,27 @@ def life_tracker_settings(request):
             # Validate SQL query
             try:
                 # Test the query with sample parameters
-                from datetime import datetime
+                from datetime import datetime, date
                 import pytz
                 user_tz = pytz.timezone('America/Los_Angeles')
-                test_date = datetime(2024, 1, 1)  # Use a past date more likely to have data
+                test_date = date(2024, 1, 1)  # Use a past date more likely to have data
                 day_start = user_tz.localize(datetime.combine(test_date, datetime.min.time()))
                 day_end = user_tz.localize(datetime.combine(test_date, datetime.max.time()))
 
                 with connection.cursor() as cursor:
                     # Replace named parameters with positional ones for testing
-                    test_query = column.sql_query.replace(':day_start', '%s').replace(':day_end', '%s')
-                    cursor.execute(test_query, [day_start, day_end])
+                    test_query = column.sql_query
+                    params = []
+
+                    # Check which parameters are used in the query
+                    if ':current_date' in test_query:
+                        test_query = test_query.replace(':current_date', '%s')
+                        params.append(test_date)
+                    elif ':day_start' in test_query or ':day_end' in test_query:
+                        test_query = test_query.replace(':day_start', '%s').replace(':day_end', '%s')
+                        params.extend([day_start, day_end])
+
+                    cursor.execute(test_query, params)
                     result = cursor.fetchone()
 
                     # Verify it returns a result (can be 0, NULL is okay too)
@@ -55,6 +65,7 @@ def life_tracker_settings(request):
     context = {
         'columns': columns,
         'available_parameters': [
+            ':current_date - The current date (date object, use for comparing DATE fields)',
             ':day_start - Start of the day in user\'s timezone (timezone-aware datetime)',
             ':day_end - End of the day in user\'s timezone (timezone-aware datetime)',
         ],
