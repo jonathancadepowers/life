@@ -4,9 +4,7 @@ Django management command to sync all data sources.
 This master sync command orchestrates syncing data from all configured sources:
 - Whoop workouts
 - Withings weight measurements
-- Toggl time entries
-- Future: Food tracking
-- Future: Fasting tracking
+- Cronometer nutrition data
 
 Usage:
     python manage.py sync_all [--days=30]
@@ -19,7 +17,7 @@ from datetime import datetime
 
 
 class Command(BaseCommand):
-    help = 'Sync data from all configured sources (Whoop, food, weight, etc.)'
+    help = 'Sync data from all configured sources (Whoop, Withings, Cronometer)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -54,7 +52,6 @@ class Command(BaseCommand):
         # Sync Withings weight measurements
         if not whoop_only:
             results['withings'] = self._sync_withings(days)
-            results['toggl'] = self._sync_toggl(days)
             results['cronometer'] = self._sync_cronometer(days)
 
         # Summary
@@ -80,7 +77,7 @@ class Command(BaseCommand):
 
     def _sync_whoop(self, days):
         """Sync Whoop workout data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[1/4] Syncing Whoop workouts...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[1/3] Syncing Whoop workouts...'))
 
         try:
             from workouts.models import Workout
@@ -107,7 +104,7 @@ class Command(BaseCommand):
 
     def _sync_withings(self, days):
         """Sync Withings weight data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[2/4] Syncing Withings weight measurements...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[2/3] Syncing Withings weight measurements...'))
 
         try:
             from weight.models import WeighIn
@@ -161,7 +158,7 @@ class Command(BaseCommand):
 
     def _sync_cronometer(self, days):
         """Sync nutrition data from Cronometer."""
-        self.stdout.write(self.style.HTTP_INFO('\n[4/4] Syncing Cronometer nutrition data...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing Cronometer nutrition data...'))
 
         try:
             from nutrition.models import NutritionEntry
