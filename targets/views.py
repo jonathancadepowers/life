@@ -1222,8 +1222,18 @@ def life_tracker(request):
             try:
                 with connection.cursor() as cursor:
                     # Replace named parameters with positional ones
-                    query = column.sql_query.replace(':day_start', '%s').replace(':day_end', '%s')
-                    cursor.execute(query, [day_start, day_end])
+                    query = column.sql_query
+                    params = []
+
+                    # Check which parameters are used in the query
+                    if ':current_date' in query:
+                        query = query.replace(':current_date', '%s')
+                        params.append(current_date)
+                    elif ':day_start' in query or ':day_end' in query:
+                        query = query.replace(':day_start', '%s').replace(':day_end', '%s')
+                        params.extend([day_start, day_end])
+
+                    cursor.execute(query, params)
                     result = cursor.fetchone()
 
                     # Checkbox appears if count > 0
