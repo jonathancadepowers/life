@@ -1199,9 +1199,16 @@ def parse_details_template(template, data_dict):
     return result
 
 
-def get_column_data(column_name, day_start, day_end, current_date):
+def get_column_data(column_name, day_start, day_end, current_date, user_tz):
     """
     Fetch all data records for a specific column and day.
+
+    Args:
+        column_name: Name of the column
+        day_start: Start of day (timezone-aware)
+        day_end: End of day (timezone-aware)
+        current_date: Current date
+        user_tz: User's timezone for formatting timestamps
 
     Returns a list of dictionaries (one per record), or empty list if no data found.
     """
@@ -1221,9 +1228,13 @@ def get_column_data(column_name, day_start, day_end, current_date):
             ).exclude(sport_id=48)
 
             for workout in workouts:
+                # Convert to user's timezone
+                start_local = workout.start.astimezone(user_tz)
+                end_local = workout.end.astimezone(user_tz)
+
                 records.append({
-                    'start': workout.start.strftime('%I:%M %p'),
-                    'end': workout.end.strftime('%I:%M %p'),
+                    'start': start_local.strftime('%I:%M %p'),
+                    'end': end_local.strftime('%I:%M %p'),
                     'sport_id': workout.sport_id,
                     'average_heart_rate': workout.average_heart_rate,
                     'max_heart_rate': workout.max_heart_rate,
@@ -1239,9 +1250,13 @@ def get_column_data(column_name, day_start, day_end, current_date):
             )
 
             for workout in workouts:
+                # Convert to user's timezone
+                start_local = workout.start.astimezone(user_tz)
+                end_local = workout.end.astimezone(user_tz)
+
                 records.append({
-                    'start': workout.start.strftime('%I:%M %p'),
-                    'end': workout.end.strftime('%I:%M %p'),
+                    'start': start_local.strftime('%I:%M %p'),
+                    'end': end_local.strftime('%I:%M %p'),
                     'sport_id': workout.sport_id,
                     'average_heart_rate': workout.average_heart_rate,
                     'max_heart_rate': workout.max_heart_rate,
@@ -1256,9 +1271,12 @@ def get_column_data(column_name, day_start, day_end, current_date):
             )
 
             for fast in fasts:
+                # Convert to user's timezone
+                fast_end_local = fast.fast_end_date.astimezone(user_tz)
+
                 records.append({
                     'duration': fast.duration,
-                    'fast_end_date': fast.fast_end_date.strftime('%I:%M %p'),
+                    'fast_end_date': fast_end_local.strftime('%I:%M %p'),
                 })
 
         elif column_name == 'write':
@@ -1280,8 +1298,11 @@ def get_column_data(column_name, day_start, day_end, current_date):
             )
 
             for weigh_in in weigh_ins:
+                # Convert to user's timezone
+                measurement_local = weigh_in.measurement_time.astimezone(user_tz)
+
                 records.append({
-                    'measurement_time': weigh_in.measurement_time.strftime('%I:%M %p'),
+                    'measurement_time': measurement_local.strftime('%I:%M %p'),
                     'weight': weigh_in.weight,
                 })
 
@@ -1292,8 +1313,11 @@ def get_column_data(column_name, day_start, day_end, current_date):
             )
 
             for entry in entries:
+                # Convert to user's timezone
+                consumption_local = entry.consumption_date.astimezone(user_tz)
+
                 records.append({
-                    'consumption_date': entry.consumption_date.strftime('%b %-d'),
+                    'consumption_date': consumption_local.strftime('%b %-d'),
                     'calories': entry.calories,
                     'fat': entry.fat,
                     'carbs': entry.carbs,
@@ -1387,7 +1411,7 @@ def life_tracker(request):
 
                     # If there's data and a details template, fetch and parse it
                     if has_data and column.details_display:
-                        records = get_column_data(column.column_name, day_start, day_end, current_date)
+                        records = get_column_data(column.column_name, day_start, day_end, current_date, user_tz)
                         if records:
                             # Parse template for each record and join with ", "
                             parsed_details = [parse_details_template(column.details_display, record) for record in records]
