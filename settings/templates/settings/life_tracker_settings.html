@@ -134,8 +134,18 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="details_display_{{ column.column_name }}" class="form-label">Details Display</label>
-                            <textarea class="form-control" id="details_display_{{ column.column_name }}" name="details_display_{{ column.column_name }}" rows="3">{{ column.details_display }}</textarea>
+                            <label for="details_display_{{ column.column_name }}" class="form-label">
+                                Details Display
+                                {% if column.available_fields %}
+                                    <i class="bi bi-info-circle"
+                                       style="color: #0d6efd; cursor: help;"
+                                       data-bs-toggle="tooltip"
+                                       data-bs-placement="right"
+                                       data-bs-html="true"
+                                       title="<strong>Available Fields:</strong><br>{{ column.available_fields|join:', ' }}<br><br>Use {field_name} to insert dynamic values. Example: 'Distance: {distance_in_miles} miles'"></i>
+                                {% endif %}
+                            </label>
+                            <textarea class="form-control" id="details_display_{{ column.column_name }}" name="details_display_{{ column.column_name }}" rows="3" placeholder="Example: Duration: {duration} hours">{{ column.details_display }}</textarea>
                         </div>
                     </div>
                 {% endfor %}

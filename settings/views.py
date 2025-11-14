@@ -74,8 +74,24 @@ def life_tracker_settings(request):
     # Get all columns ordered
     columns = LifeTrackerColumn.objects.all()
 
+    # Define available fields for each column type
+    available_fields = {
+        'run': ['start', 'end', 'sport_id', 'average_heart_rate', 'max_heart_rate', 'calories_burned', 'distance_in_miles'],
+        'strength': ['start', 'end', 'sport_id', 'average_heart_rate', 'max_heart_rate', 'calories_burned'],
+        'fast': ['duration', 'fast_end_date'],
+        'write': ['log_date', 'duration'],
+        'weigh_in': ['measurement_time', 'weight'],
+        'eat_clean': ['consumption_date', 'calories', 'fat', 'carbs', 'protein'],
+    }
+
+    # Add available_fields to each column object
+    columns_with_fields = []
+    for column in columns:
+        column.available_fields = available_fields.get(column.column_name, [])
+        columns_with_fields.append(column)
+
     context = {
-        'columns': columns,
+        'columns': columns_with_fields,
         'available_parameters': [
             ':current_date - The current date (date object, use for comparing DATE fields)',
             ':day_start - Start of the day in user\'s timezone (timezone-aware datetime)',
