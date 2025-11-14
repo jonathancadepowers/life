@@ -1201,9 +1201,9 @@ def parse_details_template(template, data_dict):
 
 def get_column_data(column_name, day_start, day_end, current_date):
     """
-    Fetch the actual data record for a specific column and day.
+    Fetch all data records for a specific column and day.
 
-    Returns a dictionary of field names to values, or None if no data found.
+    Returns a list of dictionaries (one per record), or empty list if no data found.
     """
     from workouts.models import Workout
     from fasting.models import FastingSession
@@ -1212,14 +1212,16 @@ def get_column_data(column_name, day_start, day_end, current_date):
     from nutrition.models import NutritionEntry
 
     try:
+        records = []
+
         if column_name == 'run':
-            workout = Workout.objects.filter(
+            workouts = Workout.objects.filter(
                 start__gte=day_start,
                 start__lte=day_end
-            ).exclude(sport_id=48).first()
+            ).exclude(sport_id=48)
 
-            if workout:
-                return {
+            for workout in workouts:
+                records.append({
                     'start': workout.start.strftime('%I:%M %p'),
                     'end': workout.end.strftime('%I:%M %p'),
                     'sport_id': workout.sport_id,
@@ -1227,81 +1229,82 @@ def get_column_data(column_name, day_start, day_end, current_date):
                     'max_heart_rate': workout.max_heart_rate,
                     'calories_burned': workout.calories_burned,
                     'distance_in_miles': workout.distance_in_miles,
-                }
+                })
 
         elif column_name == 'strength':
-            workout = Workout.objects.filter(
+            workouts = Workout.objects.filter(
                 sport_id=48,
                 start__gte=day_start,
                 start__lte=day_end
-            ).first()
+            )
 
-            if workout:
-                return {
+            for workout in workouts:
+                records.append({
                     'start': workout.start.strftime('%I:%M %p'),
                     'end': workout.end.strftime('%I:%M %p'),
                     'sport_id': workout.sport_id,
                     'average_heart_rate': workout.average_heart_rate,
                     'max_heart_rate': workout.max_heart_rate,
                     'calories_burned': workout.calories_burned,
-                }
+                })
 
         elif column_name == 'fast':
-            fast = FastingSession.objects.filter(
+            fasts = FastingSession.objects.filter(
                 fast_end_date__gte=day_start,
                 fast_end_date__lte=day_end,
                 duration__gte=12
-            ).first()
+            )
 
-            if fast:
-                return {
+            for fast in fasts:
+                records.append({
                     'duration': fast.duration,
                     'fast_end_date': fast.fast_end_date.strftime('%I:%M %p'),
-                }
+                })
 
         elif column_name == 'write':
-            log = WritingLog.objects.filter(
+            logs = WritingLog.objects.filter(
                 log_date=current_date,
                 duration__gte=1.5
-            ).first()
+            )
 
-            if log:
-                return {
+            for log in logs:
+                records.append({
                     'log_date': log.log_date.strftime('%b %-d, %Y'),
                     'duration': log.duration,
-                }
+                })
 
         elif column_name == 'weigh_in':
-            weigh_in = WeighIn.objects.filter(
+            weigh_ins = WeighIn.objects.filter(
                 measurement_time__gte=day_start,
                 measurement_time__lte=day_end
-            ).first()
+            )
 
-            if weigh_in:
-                return {
+            for weigh_in in weigh_ins:
+                records.append({
                     'measurement_time': weigh_in.measurement_time.strftime('%I:%M %p'),
                     'weight': weigh_in.weight,
-                }
+                })
 
         elif column_name == 'eat_clean':
-            entry = NutritionEntry.objects.filter(
+            entries = NutritionEntry.objects.filter(
                 consumption_date__gte=day_start,
                 consumption_date__lte=day_end
-            ).first()
+            )
 
-            if entry:
-                return {
+            for entry in entries:
+                records.append({
                     'consumption_date': entry.consumption_date.strftime('%b %-d'),
                     'calories': entry.calories,
                     'fat': entry.fat,
                     'carbs': entry.carbs,
                     'protein': entry.protein,
-                }
+                })
+
+        return records
 
     except Exception as e:
         print(f"Error fetching data for {column_name}: {e}")
-
-    return None
+        return []
 
 
 def life_tracker(request):
@@ -1384,9 +1387,11 @@ def life_tracker(request):
 
                     # If there's data and a details template, fetch and parse it
                     if has_data and column.details_display:
-                        data_dict = get_column_data(column.column_name, day_start, day_end, current_date)
-                        if data_dict:
-                            day_data[f'details_{column.column_name}'] = parse_details_template(column.details_display, data_dict)
+                        records = get_column_data(column.column_name, day_start, day_end, current_date)
+                        if records:
+                            # Parse template for each record and join with ", "
+                            parsed_details = [parse_details_template(column.details_display, record) for record in records]
+                            day_data[f'details_{column.column_name}'] = ', '.join(parsed_details)
                         else:
                             day_data[f'details_{column.column_name}'] = ''
                     else:
