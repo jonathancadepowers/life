@@ -121,20 +121,17 @@
                             <div class="col-md-6 mb-3">
                                 <label for="order_{{ column.column_name }}" class="form-label">Display Order</label>
                                 <input type="number" class="form-control" id="order_{{ column.column_name }}" name="order" value="{{ column.order }}" required>
-                                <div class="help-text">Lower numbers appear first</div>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="tooltip_{{ column.column_name }}" class="form-label">Tooltip Text</label>
                             <textarea class="form-control" id="tooltip_{{ column.column_name }}" name="tooltip_text" rows="2" required>{{ column.tooltip_text }}</textarea>
-                            <div class="help-text">Help text shown when hovering over column header</div>
                         </div>
 
                         <div class="mb-3">
                             <label for="sql_{{ column.column_name }}" class="form-label">SQL Query</label>
                             <textarea class="form-control" id="sql_{{ column.column_name }}" name="sql_query" rows="4" required>{{ column.sql_query }}</textarea>
-                            <div class="help-text">Query must return a count (numeric value). Checkbox appears if count > 0.</div>
                         </div>
 
                         <div class="text-end">
