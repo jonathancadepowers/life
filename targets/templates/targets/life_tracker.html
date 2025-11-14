@@ -144,7 +144,24 @@
                     <tr>
                         <th style="text-align: left; width: 20%;">Day</th>
                         {% for column in columns %}
-                        <th style="width: {% widthratio 80 columns.count 1 %}%;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ column.tooltip_text }}">{{ column.display_name }}</th>
+                        <th style="width: {% widthratio 80 columns.count 1 %}%;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ column.tooltip_text }}">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                                {% if column.column_name == 'run' %}
+                                    <i class="bi bi-person-running" style="font-size: 1.5rem;"></i>
+                                {% elif column.column_name == 'fast' %}
+                                    <i class="bi bi-clock-history" style="font-size: 1.5rem;"></i>
+                                {% elif column.column_name == 'strength' %}
+                                    <i class="bi bi-lightning-fill" style="font-size: 1.5rem;"></i>
+                                {% elif column.column_name == 'eat_clean' %}
+                                    <i class="bi bi-egg-fried" style="font-size: 1.5rem;"></i>
+                                {% elif column.column_name == 'write' %}
+                                    <i class="bi bi-pencil-fill" style="font-size: 1.5rem;"></i>
+                                {% elif column.column_name == 'weigh_in' %}
+                                    <i class="bi bi-speedometer" style="font-size: 1.5rem;"></i>
+                                {% endif %}
+                                <span>{{ column.display_name }}</span>
+                            </div>
+                        </th>
                         {% endfor %}
                     </tr>
                 </thead>
