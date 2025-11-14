@@ -142,7 +142,12 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style="text-align: left; width: 20%;">Day</th>
+                        <th style="text-align: left; width: 20%;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="bi bi-brightness-high-fill" style="font-size: 1.5rem;"></i>
+                                <span>Day</span>
+                            </div>
+                        </th>
                         {% for column in columns %}
                         <th style="width: {% widthratio 80 columns.count 1 %}%;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ column.tooltip_text }}">
                             <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
