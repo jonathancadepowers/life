@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Heroku post-compile hook to build Go binaries
+
+echo "-----> Building Cronometer CLI..."
+
+# Install Go if not present
+if ! command -v go &> /dev/null; then
+    echo "       Installing Go..."
+    cd /tmp
+    wget -q https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
+    tar -xf go1.21.5.linux-amd64.tar.gz
+    export PATH=/tmp/go/bin:$PATH
+    export GOPATH=/tmp/gopath
+fi
+
+# Build the CLI
+cd $BUILD_DIR/nutrition/cronometer_cli
+echo "       Running: go mod download"
+go mod download
+echo "       Running: go build -o cronometer_export"
+go build -o cronometer_export
+
+if [ -f cronometer_export ]; then
+    echo "       ✓ Cronometer CLI built successfully"
+else
+    echo "       ✗ Failed to build Cronometer CLI"
+    exit 1
+fi
