@@ -1199,9 +1199,9 @@ def parse_details_template(template, data_dict):
     return result
 
 
-def get_column_data(column_name, day_start, day_end, current_date, user_tz):
+def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_query):
     """
-    Fetch all data records for a specific column and day.
+    Fetch all data records for a specific column and day using the configured SQL query.
 
     Args:
         column_name: Name of the column
@@ -1209,6 +1209,7 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz):
         day_end: End of day (timezone-aware)
         current_date: Current date
         user_tz: User's timezone for formatting timestamps
+        sql_query: The configured SQL query for this column
 
     Returns a list of dictionaries (one per record), or empty list if no data found.
     """
@@ -1217,18 +1218,33 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz):
     from writing.models import WritingLog
     from weight.models import WeighIn
     from nutrition.models import NutritionEntry
+    import re
 
     try:
         records = []
 
-        if column_name == 'run':
-            workouts = Workout.objects.filter(
-                sport_id=0,
+        # Parse table name from SQL query
+        table_match = re.search(r'FROM\s+(\w+)', sql_query, re.IGNORECASE)
+        if not table_match:
+            return []
+
+        table_name = table_match.group(1)
+
+        # Map table names to models and fetch data
+        if table_name == 'workouts_workout':
+            # Parse sport_id filter if present
+            sport_match = re.search(r'sport_id\s*=\s*(\d+)', sql_query, re.IGNORECASE)
+
+            query = Workout.objects.filter(
                 start__gte=day_start,
                 start__lte=day_end
             )
 
-            for workout in workouts:
+            if sport_match:
+                sport_id = int(sport_match.group(1))
+                query = query.filter(sport_id=sport_id)
+
+            for workout in query:
                 # Convert to user's timezone
                 start_local = workout.start.astimezone(user_tz)
                 end_local = workout.end.astimezone(user_tz)
@@ -1243,32 +1259,10 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz):
                     'distance_in_miles': workout.distance_in_miles,
                 })
 
-        elif column_name == 'strength':
-            workouts = Workout.objects.filter(
-                sport_id=48,
-                start__gte=day_start,
-                start__lte=day_end
-            )
-
-            for workout in workouts:
-                # Convert to user's timezone
-                start_local = workout.start.astimezone(user_tz)
-                end_local = workout.end.astimezone(user_tz)
-
-                records.append({
-                    'start': start_local.strftime('%I:%M %p'),
-                    'end': end_local.strftime('%I:%M %p'),
-                    'sport_id': workout.sport_id,
-                    'average_heart_rate': workout.average_heart_rate,
-                    'max_heart_rate': workout.max_heart_rate,
-                    'calories_burned': workout.calories_burned,
-                })
-
-        elif column_name == 'fast':
+        elif table_name == 'fasting_fastingsession':
             fasts = FastingSession.objects.filter(
                 fast_end_date__gte=day_start,
-                fast_end_date__lte=day_end,
-                duration__gte=12
+                fast_end_date__lte=day_end
             )
 
             for fast in fasts:
@@ -1280,10 +1274,9 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz):
                     'fast_end_date': fast_end_local.strftime('%I:%M %p'),
                 })
 
-        elif column_name == 'write':
+        elif table_name == 'writing_logs':
             logs = WritingLog.objects.filter(
-                log_date=current_date,
-                duration__gte=1.5
+                log_date=current_date
             )
 
             for log in logs:
@@ -1292,7 +1285,7 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz):
                     'duration': log.duration,
                 })
 
-        elif column_name == 'weigh_in':
+        elif table_name == 'weight_weighin':
             weigh_ins = WeighIn.objects.filter(
                 measurement_time__gte=day_start,
                 measurement_time__lte=day_end
@@ -1307,7 +1300,7 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz):
                     'weight': weigh_in.weight,
                 })
 
-        elif column_name == 'eat_clean':
+        elif table_name == 'nutrition_nutritionentry':
             entries = NutritionEntry.objects.filter(
                 consumption_date__gte=day_start,
                 consumption_date__lte=day_end
@@ -1412,7 +1405,7 @@ def life_tracker(request):
 
                     # If there's data and a details template, fetch and parse it
                     if has_data and column.details_display:
-                        records = get_column_data(column.column_name, day_start, day_end, current_date, user_tz)
+                        records = get_column_data(column.column_name, day_start, day_end, current_date, user_tz, column.sql_query)
                         if records:
                             # Parse template for each record and join with ", "
                             parsed_details = [parse_details_template(column.details_display, record) for record in records]
