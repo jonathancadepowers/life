@@ -82,6 +82,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Debug: print first few lines of CSV
+	lines := strings.Split(csvData, "\n")
+	fmt.Fprintf(os.Stderr, "DEBUG: CSV has %d lines\n", len(lines))
+	if len(lines) > 0 {
+		fmt.Fprintf(os.Stderr, "DEBUG: Header: %s\n", lines[0])
+	}
+	if len(lines) > 1 {
+		fmt.Fprintf(os.Stderr, "DEBUG: First row: %s\n", lines[1])
+	}
+
 	// Parse CSV data
 	dailyNutrition, err := parseDailyNutrition(csvData)
 	if err != nil {
