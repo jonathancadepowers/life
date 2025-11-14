@@ -163,7 +163,7 @@
                                 {% if day.has_writing %}
                                     <i class="bi bi-check-square-fill"></i>
                                 {% else %}
-                                    <i class="bi bi-plus-circle add-writing-icon" style="cursor: pointer; color: #6c757d; display: none;"></i>
+                                    <i class="bi bi-plus-circle add-writing-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
                                 {% endif %}
                             {% else %}
                                 {% with key="has_"|add:column.column_name %}
@@ -358,10 +358,12 @@
             const icon = cell.querySelector('.add-writing-icon');
             if (icon) {
                 cell.addEventListener('mouseenter', () => {
-                    icon.style.display = 'inline-block';
+                    icon.style.visibility = 'visible';
+                    icon.style.opacity = '1';
                 });
                 cell.addEventListener('mouseleave', () => {
-                    icon.style.display = 'none';
+                    icon.style.visibility = 'hidden';
+                    icon.style.opacity = '0';
                 });
 
                 // Click on + icon to show modal
