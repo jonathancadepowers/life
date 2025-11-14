@@ -55,8 +55,7 @@ class Command(BaseCommand):
         if not whoop_only:
             results['withings'] = self._sync_withings(days)
             results['toggl'] = self._sync_toggl(days)
-            # results['food'] = self._sync_food(days)
-            # results['fasting'] = self._sync_fasting(days)
+            results['cronometer'] = self._sync_cronometer(days)
 
         # Summary
         end_time = datetime.now()
@@ -81,7 +80,7 @@ class Command(BaseCommand):
 
     def _sync_whoop(self, days):
         """Sync Whoop workout data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[1/3] Syncing Whoop workouts...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[1/4] Syncing Whoop workouts...'))
 
         try:
             from workouts.models import Workout
@@ -108,7 +107,7 @@ class Command(BaseCommand):
 
     def _sync_withings(self, days):
         """Sync Withings weight data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[2/3] Syncing Withings weight measurements...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[2/4] Syncing Withings weight measurements...'))
 
         try:
             from weight.models import WeighIn
@@ -135,7 +134,7 @@ class Command(BaseCommand):
 
     def _sync_toggl(self, days):
         """Sync Toggl time entries."""
-        self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing Toggl time entries...'))
+        self.stdout.write(self.style.HTTP_INFO('\n[3/4] Syncing Toggl time entries...'))
 
         try:
             from time_logs.models import TimeLog
@@ -153,6 +152,44 @@ class Command(BaseCommand):
             return {
                 'success': True,
                 'message': f'Successfully synced Toggl data ({new_count} new time entries)'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Failed: {str(e)}'
+            }
+
+    def _sync_cronometer(self, days):
+        """Sync nutrition data from Cronometer."""
+        self.stdout.write(self.style.HTTP_INFO('\n[4/4] Syncing Cronometer nutrition data...'))
+
+        try:
+            from nutrition.models import NutritionEntry
+
+            # Count records before sync
+            before_count = NutritionEntry.objects.filter(source='Cronometer').count()
+
+            # Call the sync_cronometer command
+            call_command('sync_cronometer', days=days, verbosity=0)
+
+            # Count records after sync
+            after_count = NutritionEntry.objects.filter(source='Cronometer').count()
+            new_count = after_count - before_count
+
+            return {
+                'success': True,
+                'message': f'Successfully synced Cronometer data ({new_count} new/updated entries)'
+            }
+        except FileNotFoundError as e:
+            return {
+                'success': False,
+                'message': 'Cronometer CLI not built - see logs for build instructions'
+            }
+        except ValueError as e:
+            # Missing credentials
+            return {
+                'success': False,
+                'message': 'Missing Cronometer credentials (CRONOMETER_USERNAME/PASSWORD)'
             }
         except Exception as e:
             return {
