@@ -1175,7 +1175,6 @@ def life_tracker(request):
     """View for the weekly life tracker page."""
     from datetime import timedelta
     from settings.models import LifeTrackerColumn
-    from writing.models import WritingLog
     from django.db import connection
     import pytz
 
@@ -1217,10 +1216,6 @@ def life_tracker(request):
             'date_str': current_date.strftime('%b %-d'),  # e.g., "Nov 1"
             'date_iso': current_date.strftime('%Y-%m-%d'),  # For JavaScript use
         }
-
-        # Check if writing log exists for this date
-        has_writing_log = WritingLog.objects.filter(log_date=current_date).exists()
-        day_data['has_writing'] = has_writing_log
 
         # Execute SQL query for each column to determine checkbox state
         for column in columns:
