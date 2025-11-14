@@ -158,12 +158,18 @@
                             <span class="date-label">({{ day.date_str }})</span>
                         </td>
                         {% for column in columns %}
-                        <td class="checkbox-cell {% if column.column_name == 'write' %}write-cell{% endif %}" data-date="{{ day.date_iso }}" data-column="{{ column.column_name }}">
+                        <td class="checkbox-cell {% if column.column_name == 'write' %}write-cell{% endif %}{% if column.column_name == 'fast' %} fast-cell{% endif %}" data-date="{{ day.date_iso }}" data-column="{{ column.column_name }}">
                             {% if column.column_name == 'write' %}
                                 {% if day.has_write %}
                                     <i class="bi bi-check-square-fill"></i>
                                 {% else %}
                                     <i class="bi bi-plus-circle add-writing-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
+                                {% endif %}
+                            {% elif column.column_name == 'fast' %}
+                                {% if day.has_fast %}
+                                    <i class="bi bi-check-square-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-plus-circle add-fasting-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
                                 {% endif %}
                             {% else %}
                                 {% with key="has_"|add:column.column_name %}
@@ -192,6 +198,38 @@
                 </div>
                 <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-primary btn-lg" id="confirmWritingBtn">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fasting Log Modal -->
+    <div class="modal fade" id="fastingModal" tabindex="-1" aria-labelledby="fastingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fastingModalLabel">Log Fasting Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-center mb-3">How long did you fast?</p>
+                    <div class="row">
+                        <div class="col-4">
+                            <button class="btn btn-primary w-100 fast-btn" data-hours="12">
+                                <i class="bi bi-clock"></i><br>12 Hours
+                            </button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-success w-100 fast-btn" data-hours="16">
+                                <i class="bi bi-clock"></i><br>16 Hours
+                            </button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-info w-100 fast-btn" data-hours="18">
+                                <i class="bi bi-clock"></i><br>18 Hours
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -409,6 +447,90 @@
                 writingModal.hide();
                 showFlashMessage('Network error: Could not save writing log', false);
                 console.error('Error:', error);
+            });
+        });
+
+        // Fasting log functionality
+        let currentFastingDate = null;
+        const fastingModal = new bootstrap.Modal(document.getElementById('fastingModal'));
+
+        // Show + icon on hover for empty fast cells
+        document.querySelectorAll('.fast-cell').forEach(cell => {
+            const icon = cell.querySelector('.add-fasting-icon');
+            if (icon) {
+                cell.addEventListener('mouseenter', () => {
+                    icon.style.visibility = 'visible';
+                    icon.style.opacity = '1';
+                });
+                cell.addEventListener('mouseleave', () => {
+                    icon.style.visibility = 'hidden';
+                    icon.style.opacity = '0';
+                });
+
+                // Click on + icon to show modal
+                icon.addEventListener('click', () => {
+                    currentFastingDate = cell.dataset.date;
+                    fastingModal.show();
+                });
+            }
+        });
+
+        // Handle fast button clicks in modal
+        document.querySelectorAll('.fast-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (!currentFastingDate) return;
+
+                const hours = this.dataset.hours;
+                const csrftoken = getCSRFToken();
+
+                // Disable all buttons during submission
+                document.querySelectorAll('.fast-btn').forEach(b => {
+                    b.disabled = true;
+                    b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging...';
+                });
+
+                // Make AJAX request
+                fetch('{% url "fasting:log_fast" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: `hours=${hours}&date=${currentFastingDate}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        fastingModal.hide();
+                        showFlashMessage('Fasting session logged successfully!');
+                        // Refresh the page to show the checkmark
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        fastingModal.hide();
+                        showFlashMessage('Error: ' + (data.message || 'Unknown error'), false);
+                    }
+                })
+                .catch(error => {
+                    fastingModal.hide();
+                    showFlashMessage('Network error: Could not save fasting log', false);
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    // Re-enable buttons and restore text
+                    const buttonTexts = {
+                        '12': '<i class="bi bi-clock"></i><br>12 Hours',
+                        '16': '<i class="bi bi-clock"></i><br>16 Hours',
+                        '18': '<i class="bi bi-clock"></i><br>18 Hours'
+                    };
+
+                    document.querySelectorAll('.fast-btn').forEach((b) => {
+                        b.disabled = false;
+                        const hours = b.dataset.hours;
+                        b.innerHTML = buttonTexts[hours];
+                    });
+                });
             });
         });
     </script>
