@@ -539,6 +539,74 @@
                 });
             });
         });
+
+        // Streak detection - replace checkmarks with fire icons for 3+ consecutive days
+        function detectAndShowStreaks() {
+            // Get all table rows (7 days of the week)
+            const rows = document.querySelectorAll('tbody tr');
+            if (rows.length === 0) return;
+
+            // Get all columns
+            const firstRow = rows[0];
+            const cells = firstRow.querySelectorAll('.checkbox-cell');
+            const numColumns = cells.length;
+
+            // For each column, check for streaks
+            for (let colIndex = 0; colIndex < numColumns; colIndex++) {
+                const columnCells = [];
+
+                // Collect all cells in this column (one per day)
+                rows.forEach(row => {
+                    const cell = row.querySelectorAll('.checkbox-cell')[colIndex];
+                    if (cell) {
+                        columnCells.push(cell);
+                    }
+                });
+
+                // Detect streaks in this column
+                let currentStreak = [];
+                const streaks = [];
+
+                for (let dayIndex = 0; dayIndex < columnCells.length; dayIndex++) {
+                    const cell = columnCells[dayIndex];
+                    const hasCheckmark = cell.querySelector('.bi-check-square-fill') !== null;
+
+                    if (hasCheckmark) {
+                        currentStreak.push(dayIndex);
+                    } else {
+                        // Streak broken - save it if it's 3+ days
+                        if (currentStreak.length >= 3) {
+                            streaks.push([...currentStreak]);
+                        }
+                        currentStreak = [];
+                    }
+                }
+
+                // Don't forget the last streak if it goes to the end of the week
+                if (currentStreak.length >= 3) {
+                    streaks.push([...currentStreak]);
+                }
+
+                // Replace checkmarks with fire icons for all streaks
+                streaks.forEach(streak => {
+                    streak.forEach(dayIndex => {
+                        const cell = columnCells[dayIndex];
+                        const checkmark = cell.querySelector('.bi-check-square-fill');
+                        if (checkmark) {
+                            // Replace with fire icon
+                            checkmark.className = 'bi bi-fire';
+                            checkmark.style.color = '#ff6b6b';
+                            checkmark.style.fontSize = '1.5rem';
+                        }
+                    });
+                });
+            }
+        }
+
+        // Run streak detection after page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            detectAndShowStreaks();
+        });
     </script>
 </body>
 </html>
