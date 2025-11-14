@@ -18,6 +18,13 @@ class WritingLog(models.Model):
     log_date = models.DateField(
         help_text="Date of the writing session"
     )
+    duration = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        help_text="Duration of writing session in hours",
+        null=True,
+        blank=True
+    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)

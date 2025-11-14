@@ -32,7 +32,8 @@ def create_writing_log(request):
         writing_log = WritingLog.objects.create(
             source='Manual',
             source_id=source_id,
-            log_date=log_date
+            log_date=log_date,
+            duration=1.5
         )
 
         return JsonResponse({
