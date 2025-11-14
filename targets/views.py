@@ -1223,9 +1223,10 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz):
 
         if column_name == 'run':
             workouts = Workout.objects.filter(
+                sport_id=0,
                 start__gte=day_start,
                 start__lte=day_end
-            ).exclude(sport_id=48)
+            )
 
             for workout in workouts:
                 # Convert to user's timezone
