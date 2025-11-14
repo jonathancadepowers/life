@@ -120,7 +120,7 @@
 
         <!-- Week Selector Dropdown -->
         <div class="date-selector mb-4">
-            <div class="row">
+            <div class="row align-items-center">
                 <div class="col-md-6">
                     <select class="form-select" id="weekSelector" onchange="changeWeek(this.value)">
                         {% for week in available_weeks %}
@@ -129,6 +129,14 @@
                             </option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-outline-primary" onclick="goToThisWeek()">
+                        <i class="bi bi-calendar-check"></i> This Week
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" onclick="goToLastWeek()">
+                        <i class="bi bi-calendar-minus"></i> Last Week
+                    </button>
                 </div>
             </div>
         </div>
@@ -267,6 +275,20 @@
         function changeWeek(startDate) {
             window.location.href = '{% url "life_tracker" %}?start_date=' + startDate;
         }
+
+        function goToThisWeek() {
+            window.location.href = '{% url "life_tracker" %}';
+        }
+
+        function goToLastWeek() {
+            // Get the second option in the dropdown (first is current week, second is last week)
+            const selector = document.getElementById('weekSelector');
+            if (selector.options.length > 1) {
+                const lastWeekDate = selector.options[1].value;
+                window.location.href = '{% url "life_tracker" %}?start_date=' + lastWeekDate;
+            }
+        }
+
         function getCSRFToken() {
             return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         }
