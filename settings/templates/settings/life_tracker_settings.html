@@ -142,7 +142,7 @@
                                        data-bs-toggle="tooltip"
                                        data-bs-placement="right"
                                        data-bs-html="true"
-                                       title="<strong>Available Fields:</strong><br>{{ column.available_fields|join:', ' }}<br><br>Use {field_name} to insert dynamic values. Example: 'Distance: {distance_in_miles} miles'"></i>
+                                       title="<strong>Available Fields:</strong><br>{{ column.available_fields|join:', ' }}"></i>
                                 {% endif %}
                             </label>
                             <textarea class="form-control" id="details_display_{{ column.column_name }}" name="details_display_{{ column.column_name }}" rows="3" placeholder="Example: Duration: {duration} hours">{{ column.details_display }}</textarea>
