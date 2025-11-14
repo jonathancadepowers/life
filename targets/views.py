@@ -1171,6 +1171,139 @@ def activity_report(request):
     return render(request, 'targets/activity_report.html', context)
 
 
+def parse_details_template(template, data_dict):
+    """
+    Parse a details display template and replace {field_name} placeholders with actual values.
+
+    Args:
+        template: String template with {field_name} placeholders
+        data_dict: Dictionary of field names to values
+
+    Returns:
+        Parsed string with placeholders replaced
+    """
+    import re
+    if not template:
+        return ''
+
+    result = template
+    # Find all {field_name} placeholders
+    placeholders = re.findall(r'\{(\w+)\}', template)
+
+    for placeholder in placeholders:
+        value = data_dict.get(placeholder, '')
+        # Format the value appropriately
+        if value is not None:
+            result = result.replace(f'{{{placeholder}}}', str(value))
+
+    return result
+
+
+def get_column_data(column_name, day_start, day_end, current_date):
+    """
+    Fetch the actual data record for a specific column and day.
+
+    Returns a dictionary of field names to values, or None if no data found.
+    """
+    from workouts.models import Workout
+    from fasting.models import FastingSession
+    from writing.models import WritingLog
+    from weight.models import WeighIn
+    from nutrition.models import NutritionEntry
+
+    try:
+        if column_name == 'run':
+            workout = Workout.objects.filter(
+                start__gte=day_start,
+                start__lte=day_end
+            ).exclude(sport_id=48).first()
+
+            if workout:
+                return {
+                    'start': workout.start.strftime('%I:%M %p'),
+                    'end': workout.end.strftime('%I:%M %p'),
+                    'sport_id': workout.sport_id,
+                    'average_heart_rate': workout.average_heart_rate,
+                    'max_heart_rate': workout.max_heart_rate,
+                    'calories_burned': workout.calories_burned,
+                    'distance_in_miles': workout.distance_in_miles,
+                }
+
+        elif column_name == 'strength':
+            workout = Workout.objects.filter(
+                sport_id=48,
+                start__gte=day_start,
+                start__lte=day_end
+            ).first()
+
+            if workout:
+                return {
+                    'start': workout.start.strftime('%I:%M %p'),
+                    'end': workout.end.strftime('%I:%M %p'),
+                    'sport_id': workout.sport_id,
+                    'average_heart_rate': workout.average_heart_rate,
+                    'max_heart_rate': workout.max_heart_rate,
+                    'calories_burned': workout.calories_burned,
+                }
+
+        elif column_name == 'fast':
+            fast = FastingSession.objects.filter(
+                fast_end_date__gte=day_start,
+                fast_end_date__lte=day_end,
+                duration__gte=12
+            ).first()
+
+            if fast:
+                return {
+                    'duration': fast.duration,
+                    'fast_end_date': fast.fast_end_date.strftime('%I:%M %p'),
+                }
+
+        elif column_name == 'write':
+            log = WritingLog.objects.filter(
+                log_date=current_date,
+                duration__gte=1.5
+            ).first()
+
+            if log:
+                return {
+                    'log_date': log.log_date.strftime('%b %-d, %Y'),
+                    'duration': log.duration,
+                }
+
+        elif column_name == 'weigh_in':
+            weigh_in = WeighIn.objects.filter(
+                measurement_time__gte=day_start,
+                measurement_time__lte=day_end
+            ).first()
+
+            if weigh_in:
+                return {
+                    'measurement_time': weigh_in.measurement_time.strftime('%I:%M %p'),
+                    'weight': weigh_in.weight,
+                }
+
+        elif column_name == 'eat_clean':
+            entry = NutritionEntry.objects.filter(
+                consumption_date__gte=day_start,
+                consumption_date__lte=day_end
+            ).first()
+
+            if entry:
+                return {
+                    'consumption_date': entry.consumption_date.strftime('%b %-d'),
+                    'calories': entry.calories,
+                    'fat': entry.fat,
+                    'carbs': entry.carbs,
+                    'protein': entry.protein,
+                }
+
+    except Exception as e:
+        print(f"Error fetching data for {column_name}: {e}")
+
+    return None
+
+
 def life_tracker(request):
     """View for the weekly life tracker page."""
     from datetime import timedelta
@@ -1246,10 +1379,23 @@ def life_tracker(request):
 
                     # Checkbox appears if count > 0
                     count = result[0] if result and result[0] is not None else 0
-                    day_data[f'has_{column.column_name}'] = count > 0
+                    has_data = count > 0
+                    day_data[f'has_{column.column_name}'] = has_data
+
+                    # If there's data and a details template, fetch and parse it
+                    if has_data and column.details_display:
+                        data_dict = get_column_data(column.column_name, day_start, day_end, current_date)
+                        if data_dict:
+                            day_data[f'details_{column.column_name}'] = parse_details_template(column.details_display, data_dict)
+                        else:
+                            day_data[f'details_{column.column_name}'] = ''
+                    else:
+                        day_data[f'details_{column.column_name}'] = ''
+
             except Exception as e:
                 # If query fails, don't show checkbox
                 day_data[f'has_{column.column_name}'] = False
+                day_data[f'details_{column.column_name}'] = ''
                 print(f"Error executing query for {column.column_name}: {e}")
 
         days.append(day_data)
