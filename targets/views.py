@@ -1247,11 +1247,34 @@ def life_tracker(request):
         days.append(day_data)
         current_date += timedelta(days=1)
 
+    # Generate list of available weeks (past weeks only, up to current week)
+    today = get_user_today(request)[0]
+    current_week_start = today - timedelta(days=today.weekday())
+
+    # Generate weeks going back 52 weeks (1 year)
+    available_weeks = []
+    for i in range(52):
+        week_start = current_week_start - timedelta(weeks=i)
+        week_end = week_start + timedelta(days=6)
+
+        # Get ISO week number
+        week_num = week_start.isocalendar()[1]
+
+        # Format: "2025-Nov-10 (Week 46)"
+        week_label = f"{week_start.strftime('%Y-%b-%d')} (Week {week_num})"
+
+        available_weeks.append({
+            'start_date': week_start.strftime('%Y-%m-%d'),
+            'label': week_label,
+            'selected': week_start == start_date
+        })
+
     context = {
         'start_date': start_date,
         'end_date': end_date,
         'days': days,
-        'columns': columns,  # Pass columns to template for dynamic headers
+        'columns': columns,
+        'available_weeks': available_weeks,
     }
 
     return render(request, 'targets/life_tracker.html', context)

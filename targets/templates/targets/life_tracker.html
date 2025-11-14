@@ -118,23 +118,20 @@
     <div class="container mt-5">
         <h1 class="mb-4"><i class="bi bi-clipboard-check"></i>Life Tracker</h1>
 
-        <!-- Date Selector (Week Picker) -->
-        <div class="date-selector">
-            <form method="GET" action="{% url 'life_tracker' %}" id="dateForm">
-                <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
-                    </div>
-                    <div class="col-md-6 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-calendar-week"></i> Load Week
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" id="currentWeekBtn">
-                            <i class="bi bi-calendar-check"></i> Current Week
-                        </button>
-                    </div>
+        <!-- Week Selector Dropdown -->
+        <div class="date-selector mb-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <label for="weekSelector" class="form-label"><i class="bi bi-calendar-week"></i> Select Week</label>
+                    <select class="form-select" id="weekSelector" onchange="changeWeek(this.value)">
+                        {% for week in available_weeks %}
+                            <option value="{{ week.start_date }}" {% if week.selected %}selected{% endif %}>
+                                {{ week.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </form>
+            </div>
         </div>
 
         <!-- Life Tracker Table -->
@@ -267,12 +264,10 @@
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
-        // Current week button
-        document.getElementById('currentWeekBtn').addEventListener('click', function() {
-            window.location.href = '{% url "life_tracker" %}';
-        });
-
         // Helper functions
+        function changeWeek(startDate) {
+            window.location.href = '{% url "life_tracker" %}?start_date=' + startDate;
+        }
         function getCSRFToken() {
             return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         }
