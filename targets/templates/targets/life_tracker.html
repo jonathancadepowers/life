@@ -158,16 +158,42 @@
                             <span class="date-label">({{ day.date_str }})</span>
                         </td>
                         {% for column in columns %}
-                        <td class="checkbox-cell">
-                            {% with key="has_"|add:column.column_name %}
-                                {% if day|get_item:key %}<i class="bi bi-check-square-fill"></i>{% endif %}
-                            {% endwith %}
+                        <td class="checkbox-cell {% if column.column_name == 'write' %}write-cell{% endif %}" data-date="{{ day.date_iso }}" data-column="{{ column.column_name }}">
+                            {% if column.column_name == 'write' %}
+                                {% if day.has_writing %}
+                                    <i class="bi bi-check-square-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-plus-circle add-writing-icon" style="cursor: pointer; color: #6c757d; display: none;"></i>
+                                {% endif %}
+                            {% else %}
+                                {% with key="has_"|add:column.column_name %}
+                                    {% if day|get_item:key %}<i class="bi bi-check-square-fill"></i>{% endif %}
+                                {% endwith %}
+                            {% endif %}
                         </td>
                         {% endfor %}
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Writing Log Modal -->
+    <div class="modal fade" id="writingModal" tabindex="-1" aria-labelledby="writingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="writingModalLabel">Writing Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="fs-5">Did you write for 1.5+ hours on this day?</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-primary btn-lg" id="confirmWritingBtn">Yes</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -322,6 +348,67 @@
             const bsModal = new bootstrap.Modal(modal);
             bsModal.show();
         }
+
+        // Writing log functionality
+        let currentWritingDate = null;
+        const writingModal = new bootstrap.Modal(document.getElementById('writingModal'));
+
+        // Show + icon on hover for empty write cells
+        document.querySelectorAll('.write-cell').forEach(cell => {
+            const icon = cell.querySelector('.add-writing-icon');
+            if (icon) {
+                cell.addEventListener('mouseenter', () => {
+                    icon.style.display = 'inline-block';
+                });
+                cell.addEventListener('mouseleave', () => {
+                    icon.style.display = 'none';
+                });
+
+                // Click on + icon to show modal
+                icon.addEventListener('click', () => {
+                    currentWritingDate = cell.dataset.date;
+                    writingModal.show();
+                });
+            }
+        });
+
+        // Handle "Yes" button click in modal
+        document.getElementById('confirmWritingBtn').addEventListener('click', function() {
+            if (!currentWritingDate) return;
+
+            const csrftoken = getCSRFToken();
+
+            // Make AJAX request to create writing log
+            fetch('{% url "writing:create_log" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    log_date: currentWritingDate
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    writingModal.hide();
+                    showFlashMessage('Writing session logged successfully!');
+                    // Refresh the page to show the checkmark
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    writingModal.hide();
+                    showFlashMessage('Error: ' + (data.error || 'Unknown error'), false);
+                }
+            })
+            .catch(error => {
+                writingModal.hide();
+                showFlashMessage('Network error: Could not save writing log', false);
+                console.error('Error:', error);
+            });
+        });
     </script>
 </body>
 </html>

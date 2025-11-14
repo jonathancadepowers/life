@@ -29,6 +29,7 @@ urlpatterns = [
     path("life-tracker/", targets_views.life_tracker, name='life_tracker'),
     path("settings/", settings_views.life_tracker_settings, name='life_tracker_settings'),
     path("targets/", include("targets.urls")),
+    path("writing/", include("writing.urls")),
     path("", include("fasting.urls")),
     path("", include("nutrition.urls")),
     path("", home_views.home, name='home'),  # Catch-all for homepage, must be last
