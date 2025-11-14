@@ -160,7 +160,7 @@
                         {% for column in columns %}
                         <td class="checkbox-cell {% if column.column_name == 'write' %}write-cell{% endif %}" data-date="{{ day.date_iso }}" data-column="{{ column.column_name }}">
                             {% if column.column_name == 'write' %}
-                                {% if day.has_writing %}
+                                {% if day.has_write %}
                                     <i class="bi bi-check-square-fill"></i>
                                 {% else %}
                                     <i class="bi bi-plus-circle add-writing-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
