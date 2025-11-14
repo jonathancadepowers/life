@@ -7,55 +7,65 @@ from .models import LifeTrackerColumn
 def life_tracker_settings(request):
     """View for configuring Life Tracker column settings."""
     if request.method == 'POST':
-        # Handle form submission
-        column_name = request.POST.get('column_name')
-        if column_name:
-            column = get_object_or_404(LifeTrackerColumn, pk=column_name)
-            column.display_name = request.POST.get('display_name', column.display_name)
-            column.tooltip_text = request.POST.get('tooltip_text', column.tooltip_text)
-            column.sql_query = request.POST.get('sql_query', column.sql_query)
-            column.order = int(request.POST.get('order', column.order))
-            column.enabled = request.POST.get('enabled') == 'on'
+        # Handle form submission for all columns
+        from datetime import datetime, date
+        import pytz
 
-            # Validate SQL query
-            try:
-                # Test the query with sample parameters
-                from datetime import datetime, date
-                import pytz
-                user_tz = pytz.timezone('America/Los_Angeles')
-                test_date = date(2024, 1, 1)  # Use a past date more likely to have data
-                day_start = user_tz.localize(datetime.combine(test_date, datetime.min.time()))
-                day_end = user_tz.localize(datetime.combine(test_date, datetime.max.time()))
+        columns = LifeTrackerColumn.objects.all()
+        errors = []
 
-                with connection.cursor() as cursor:
-                    # Replace named parameters with positional ones for testing
-                    test_query = column.sql_query
-                    params = []
+        for column in columns:
+            # Get field values for this column
+            display_name = request.POST.get(f'display_name_{column.column_name}')
+            tooltip_text = request.POST.get(f'tooltip_text_{column.column_name}')
+            sql_query = request.POST.get(f'sql_query_{column.column_name}')
+            order = request.POST.get(f'order_{column.column_name}')
+            enabled = request.POST.get(f'enabled_{column.column_name}') == 'on'
 
-                    # Check which parameters are used in the query
-                    if ':current_date' in test_query:
-                        test_query = test_query.replace(':current_date', '%s')
-                        params.append(test_date)
-                    elif ':day_start' in test_query or ':day_end' in test_query:
-                        test_query = test_query.replace(':day_start', '%s').replace(':day_end', '%s')
-                        params.extend([day_start, day_end])
+            if display_name and tooltip_text and sql_query and order:
+                column.display_name = display_name
+                column.tooltip_text = tooltip_text
+                column.sql_query = sql_query
+                column.order = int(order)
+                column.enabled = enabled
 
-                    cursor.execute(test_query, params)
-                    result = cursor.fetchone()
+                # Validate SQL query
+                try:
+                    user_tz = pytz.timezone('America/Los_Angeles')
+                    test_date = date(2024, 1, 1)
+                    day_start = user_tz.localize(datetime.combine(test_date, datetime.min.time()))
+                    day_end = user_tz.localize(datetime.combine(test_date, datetime.max.time()))
 
-                    # Verify it returns a result (can be 0, NULL is okay too)
-                    if result is None:
-                        raise ValueError("Query returned no results. Must return at least one row with a numeric value.")
+                    with connection.cursor() as cursor:
+                        test_query = column.sql_query
+                        params = []
 
-                    # Check if first column is numeric or NULL
-                    value = result[0]
-                    if value is not None and not isinstance(value, (int, float)):
-                        raise ValueError(f"Query must return a numeric value, got {type(value).__name__}: {value}")
+                        if ':current_date' in test_query:
+                            test_query = test_query.replace(':current_date', '%s')
+                            params.append(test_date)
+                        elif ':day_start' in test_query or ':day_end' in test_query:
+                            test_query = test_query.replace(':day_start', '%s').replace(':day_end', '%s')
+                            params.extend([day_start, day_end])
 
-                column.save()
-                messages.success(request, f'Successfully updated {column.display_name} settings.')
-            except Exception as e:
-                messages.error(request, f'Invalid SQL query: {str(e)}')
+                        cursor.execute(test_query, params)
+                        result = cursor.fetchone()
+
+                        if result is None:
+                            raise ValueError("Query returned no results. Must return at least one row with a numeric value.")
+
+                        value = result[0]
+                        if value is not None and not isinstance(value, (int, float)):
+                            raise ValueError(f"Query must return a numeric value, got {type(value).__name__}: {value}")
+
+                    column.save()
+                except Exception as e:
+                    errors.append(f'{column.display_name}: {str(e)}')
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+        else:
+            messages.success(request, 'Successfully updated all column settings.')
 
         return redirect('life_tracker_settings')
 
