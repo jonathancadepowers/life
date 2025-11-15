@@ -1194,7 +1194,17 @@ def parse_details_template(template, data_dict):
         value = data_dict.get(placeholder, '')
         # Format the value appropriately
         if value is not None:
-            result = result.replace(f'{{{placeholder}}}', str(value))
+            # Format numbers with commas for thousands separator
+            if isinstance(value, (int, float)):
+                # Check if it's a whole number (even if stored as float)
+                if isinstance(value, float) and value.is_integer():
+                    formatted_value = f'{int(value):,}'
+                else:
+                    formatted_value = f'{value:,}'
+            else:
+                formatted_value = str(value)
+
+            result = result.replace(f'{{{placeholder}}}', formatted_value)
 
     return result
 
