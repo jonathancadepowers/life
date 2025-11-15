@@ -63,10 +63,37 @@
             height: 60px;
         }
         .details-cell {
+            position: relative;
             display: inline-block;
-            max-width: 100%;
-            overflow: hidden;
-            word-wrap: break-word;
+        }
+        .details-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 0.5rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .details-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+        }
+        .details-cell:hover .details-tooltip {
+            opacity: 1;
         }
         .tracker-table td:last-child {
             border-right: none;
@@ -209,10 +236,10 @@
                                 {% with has_key="has_"|add:column.column_name details_key="details_"|add:column.column_name %}
                                     {% if day|get_item:has_key %}
                                         <div class="details-cell">
-                                            <i class="bi bi-check-square-fill checkmark-icon"></i>
+                                            <i class="bi bi-check-square-fill"></i>
                                             {% with details_text=day|get_item:details_key %}
                                                 {% if details_text %}
-                                                    <span class="details-text" style="display: none; font-size: 0.8em;">{{ details_text }}</span>
+                                                    <div class="details-tooltip">{{ details_text }}</div>
                                                 {% endif %}
                                             {% endwith %}
                                         </div>
@@ -688,24 +715,6 @@
         // Run streak detection after page loads
         document.addEventListener('DOMContentLoaded', function() {
             detectAndShowStreaks();
-        });
-
-        // Handle details hover functionality
-        document.querySelectorAll('.details-cell').forEach(cell => {
-            const checkmark = cell.querySelector('.checkmark-icon');
-            const detailsText = cell.querySelector('.details-text');
-
-            if (checkmark && detailsText) {
-                cell.addEventListener('mouseenter', () => {
-                    checkmark.style.display = 'none';
-                    detailsText.style.display = 'inline';
-                });
-
-                cell.addEventListener('mouseleave', () => {
-                    checkmark.style.display = 'inline';
-                    detailsText.style.display = 'none';
-                });
-            }
         });
     </script>
 </body>
