@@ -222,13 +222,23 @@
                         <td class="checkbox-cell {% if column.column_name == 'write' %}write-cell{% endif %}{% if column.column_name == 'fast' %} fast-cell{% endif %}" data-date="{{ day.date_iso }}" data-column="{{ column.column_name }}">
                             {% if column.column_name == 'write' %}
                                 {% if day.has_write %}
-                                    <i class="bi bi-check-square-fill"></i>
+                                    <div class="details-cell">
+                                        <i class="bi bi-check-square-fill"></i>
+                                        {% if day.details_write %}
+                                            <div class="details-tooltip">{{ day.details_write }}</div>
+                                        {% endif %}
+                                    </div>
                                 {% else %}
                                     <i class="bi bi-plus-circle add-writing-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
                                 {% endif %}
                             {% elif column.column_name == 'fast' %}
                                 {% if day.has_fast %}
-                                    <i class="bi bi-check-square-fill"></i>
+                                    <div class="details-cell">
+                                        <i class="bi bi-check-square-fill"></i>
+                                        {% if day.details_fast %}
+                                            <div class="details-tooltip">{{ day.details_fast }}</div>
+                                        {% endif %}
+                                    </div>
                                 {% else %}
                                     <i class="bi bi-plus-circle add-fasting-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
                                 {% endif %}
