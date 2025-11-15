@@ -1183,6 +1183,8 @@ def parse_details_template(template, data_dict):
         Parsed string with placeholders replaced
     """
     import re
+    from decimal import Decimal
+
     if not template:
         return ''
 
@@ -1195,7 +1197,11 @@ def parse_details_template(template, data_dict):
         # Format the value appropriately
         if value is not None:
             # Format numbers with commas for thousands separator
-            if isinstance(value, (int, float)):
+            if isinstance(value, (int, float, Decimal)):
+                # Convert Decimal to float for processing
+                if isinstance(value, Decimal):
+                    value = float(value)
+
                 # Check if it's a whole number (even if stored as float)
                 if isinstance(value, float) and value.is_integer():
                     formatted_value = f'{int(value):,}'
