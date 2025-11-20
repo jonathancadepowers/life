@@ -722,8 +722,47 @@
             }
         }
 
-        // Run streak detection after page loads
+        // Jackpot detection - replace all checkmarks with jackpot icons when a day has all columns checked
+        function detectAndShowJackpots() {
+            // Get all table rows (7 days of the week)
+            const rows = document.querySelectorAll('tbody tr');
+            if (rows.length === 0) return;
+
+            // Get the number of columns
+            const firstRow = rows[0];
+            const numColumns = firstRow.querySelectorAll('.checkbox-cell').length;
+
+            // For each row (day), check if all columns have checkmarks
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('.checkbox-cell');
+                let checkmarkCount = 0;
+
+                // Count how many cells have checkmarks
+                cells.forEach(cell => {
+                    const hasCheckmark = cell.querySelector('.bi-check-square-fill') !== null;
+                    if (hasCheckmark) {
+                        checkmarkCount++;
+                    }
+                });
+
+                // If all columns have checkmarks, this is a jackpot day!
+                if (checkmarkCount === numColumns) {
+                    cells.forEach(cell => {
+                        const checkmark = cell.querySelector('.bi-check-square-fill');
+                        if (checkmark) {
+                            // Replace with jackpot icon (trophy or star-fill)
+                            checkmark.className = 'bi bi-trophy-fill';
+                            checkmark.style.color = '#ffd700'; // Gold color
+                            checkmark.style.fontSize = '1.5rem';
+                        }
+                    });
+                }
+            });
+        }
+
+        // Run jackpot detection first, then streak detection after page loads
         document.addEventListener('DOMContentLoaded', function() {
+            detectAndShowJackpots();
             detectAndShowStreaks();
         });
     </script>
