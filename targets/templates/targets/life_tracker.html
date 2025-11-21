@@ -753,6 +753,9 @@
 
                 // If all columns have checkmarks, this is a jackpot day!
                 if (checkmarkCount === numColumns) {
+                    // Add a light background shade to the entire row
+                    row.style.backgroundColor = 'rgba(0, 0, 0, 0.03)';
+
                     cells.forEach(cell => {
                         const checkmark = cell.querySelector('.bi-check-square-fill');
                         if (checkmark) {
