@@ -689,8 +689,10 @@
                 for (let dayIndex = 0; dayIndex < columnCells.length; dayIndex++) {
                     const cell = columnCells[dayIndex];
                     const hasCheckmark = cell.querySelector('.bi-check-square-fill') !== null;
+                    const hasHeart = cell.querySelector('.bi-heart-fill') !== null;
 
-                    if (hasCheckmark) {
+                    // Count both checkmarks and hearts for streak detection
+                    if (hasCheckmark || hasHeart) {
                         currentStreak.push(dayIndex);
                     } else {
                         // Streak broken - save it if it's 3+ days
