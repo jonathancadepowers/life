@@ -707,11 +707,15 @@
                 }
 
                 // Replace checkmarks with fire icons for all streaks
+                // BUT skip cells that have hearts (jackpot icons)
                 streaks.forEach(streak => {
                     streak.forEach(dayIndex => {
                         const cell = columnCells[dayIndex];
                         const checkmark = cell.querySelector('.bi-check-square-fill');
-                        if (checkmark) {
+                        const heart = cell.querySelector('.bi-heart-fill');
+
+                        // Only replace with fire if it's a checkmark AND not a heart
+                        if (checkmark && !heart) {
                             // Replace with fire icon
                             checkmark.className = 'bi bi-fire';
                             checkmark.style.color = '#ff6b6b';
