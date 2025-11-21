@@ -689,10 +689,10 @@
                 for (let dayIndex = 0; dayIndex < columnCells.length; dayIndex++) {
                     const cell = columnCells[dayIndex];
                     const hasCheckmark = cell.querySelector('.bi-check-square-fill') !== null;
-                    const hasHeart = cell.querySelector('.bi-heart-fill') !== null;
+                    const hasFire = cell.querySelector('.bi-fire') !== null;
 
-                    // Count both checkmarks and hearts for streak detection
-                    if (hasCheckmark || hasHeart) {
+                    // Count both checkmarks and fire icons for streak detection
+                    if (hasCheckmark || hasFire) {
                         currentStreak.push(dayIndex);
                     } else {
                         // Streak broken - save it if it's 3+ days
@@ -709,15 +709,15 @@
                 }
 
                 // Replace checkmarks with fire icons for all streaks
-                // BUT skip cells that have hearts (jackpot icons)
+                // BUT skip cells that already have fire (jackpot icons)
                 streaks.forEach(streak => {
                     streak.forEach(dayIndex => {
                         const cell = columnCells[dayIndex];
                         const checkmark = cell.querySelector('.bi-check-square-fill');
-                        const heart = cell.querySelector('.bi-heart-fill');
+                        const fire = cell.querySelector('.bi-fire');
 
-                        // Only replace with fire if it's a checkmark AND not a heart
-                        if (checkmark && !heart) {
+                        // Only replace with fire if it's a checkmark AND not already fire
+                        if (checkmark && !fire) {
                             // Replace with fire icon
                             checkmark.className = 'bi bi-fire';
                             checkmark.style.color = '#ff6b6b';
@@ -756,9 +756,9 @@
                     cells.forEach(cell => {
                         const checkmark = cell.querySelector('.bi-check-square-fill');
                         if (checkmark) {
-                            // Replace with jackpot icon (red heart)
-                            checkmark.className = 'bi bi-heart-fill';
-                            checkmark.style.color = '#dc3545'; // Red color
+                            // Replace with jackpot icon (fire)
+                            checkmark.className = 'bi bi-fire';
+                            checkmark.style.color = '#ff6b6b'; // Fire red/orange color
                             checkmark.style.fontSize = '1.5rem';
                         }
                     });
