@@ -104,15 +104,6 @@
         .tracker-table tbody tr:hover {
             background-color: #f8f9fa;
         }
-        .tracker-table tbody tr.jackpot-row {
-            background-color: rgba(255, 200, 100, 0.15) !important;
-        }
-        .tracker-table tbody tr.jackpot-row:hover {
-            background-color: rgba(255, 200, 100, 0.25) !important;
-        }
-        .tracker-table tbody tr.jackpot-row td {
-            background-color: transparent !important;
-        }
         .tracker-table td.day-cell {
             font-weight: 600;
             color: #495057;
@@ -698,10 +689,8 @@
                 for (let dayIndex = 0; dayIndex < columnCells.length; dayIndex++) {
                     const cell = columnCells[dayIndex];
                     const hasCheckmark = cell.querySelector('.bi-check-square-fill') !== null;
-                    const hasFire = cell.querySelector('.bi-fire') !== null;
 
-                    // Count both checkmarks and fire icons for streak detection
-                    if (hasCheckmark || hasFire) {
+                    if (hasCheckmark) {
                         currentStreak.push(dayIndex);
                     } else {
                         // Streak broken - save it if it's 3+ days
@@ -718,15 +707,12 @@
                 }
 
                 // Replace checkmarks with fire icons for all streaks
-                // BUT skip cells that already have fire (jackpot icons)
                 streaks.forEach(streak => {
                     streak.forEach(dayIndex => {
                         const cell = columnCells[dayIndex];
                         const checkmark = cell.querySelector('.bi-check-square-fill');
-                        const fire = cell.querySelector('.bi-fire');
 
-                        // Only replace with fire if it's a checkmark AND not already fire
-                        if (checkmark && !fire) {
+                        if (checkmark) {
                             // Replace with fire icon
                             checkmark.className = 'bi bi-fire';
                             checkmark.style.color = '#ff6b6b';
@@ -737,51 +723,8 @@
             }
         }
 
-        // Jackpot detection - replace all checkmarks with jackpot icons when a day has all columns checked
-        function detectAndShowJackpots() {
-            // Get all table rows (7 days of the week)
-            const rows = document.querySelectorAll('tbody tr');
-            if (rows.length === 0) return;
-
-            // Get the number of columns
-            const firstRow = rows[0];
-            const numColumns = firstRow.querySelectorAll('.checkbox-cell').length;
-
-            // For each row (day), check if all columns have checkmarks
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('.checkbox-cell');
-                let checkmarkCount = 0;
-
-                // Count how many cells have checkmarks
-                cells.forEach(cell => {
-                    const hasCheckmark = cell.querySelector('.bi-check-square-fill') !== null;
-                    if (hasCheckmark) {
-                        checkmarkCount++;
-                    }
-                });
-
-                // If all columns have checkmarks, this is a jackpot day!
-                if (checkmarkCount === numColumns) {
-                    // Add jackpot-row class to the entire row
-                    row.classList.add('jackpot-row');
-                    console.log('Added jackpot-row class to row:', row);
-
-                    cells.forEach(cell => {
-                        const checkmark = cell.querySelector('.bi-check-square-fill');
-                        if (checkmark) {
-                            // Replace with jackpot icon (fire)
-                            checkmark.className = 'bi bi-fire';
-                            checkmark.style.color = '#ff6b6b'; // Fire red/orange color
-                            checkmark.style.fontSize = '1.5rem';
-                        }
-                    });
-                }
-            });
-        }
-
-        // Run jackpot detection first, then streak detection after page loads
+        // Run streak detection after page loads
         document.addEventListener('DOMContentLoaded', function() {
-            detectAndShowJackpots();
             detectAndShowStreaks();
         });
     </script>
