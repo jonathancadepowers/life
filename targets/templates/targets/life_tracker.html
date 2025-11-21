@@ -104,6 +104,12 @@
         .tracker-table tbody tr:hover {
             background-color: #f8f9fa;
         }
+        .tracker-table tbody tr.jackpot-row {
+            background-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        .tracker-table tbody tr.jackpot-row:hover {
+            background-color: rgba(0, 0, 0, 0.12) !important;
+        }
         .tracker-table td.day-cell {
             font-weight: 600;
             color: #495057;
@@ -753,8 +759,8 @@
 
                 // If all columns have checkmarks, this is a jackpot day!
                 if (checkmarkCount === numColumns) {
-                    // Add a light background shade to the entire row
-                    row.style.setProperty('background-color', 'rgba(0, 0, 0, 0.05)', 'important');
+                    // Add jackpot-row class to the entire row
+                    row.classList.add('jackpot-row');
 
                     cells.forEach(cell => {
                         const checkmark = cell.querySelector('.bi-check-square-fill');
