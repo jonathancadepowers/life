@@ -1417,6 +1417,17 @@ def life_tracker(request):
                     # Checkbox appears if count > 0
                     count = result[0] if result and result[0] is not None else 0
                     has_data = count > 0
+
+                    # Special rule for Eat Clean column: only show after 6pm on that day
+                    if column.column_name == 'eat_clean' and has_data:
+                        # Get current time in user's timezone
+                        now_in_user_tz = datetime.now(user_tz)
+                        # Create 6pm datetime for the current_date
+                        six_pm = user_tz.localize(datetime.combine(current_date, datetime.min.time().replace(hour=18)))
+                        # Only show if current time is after 6pm on that day
+                        if now_in_user_tz < six_pm:
+                            has_data = False
+
                     day_data[f'has_{column.column_name}'] = has_data
 
                     # If there's data and a details template, fetch and parse it
