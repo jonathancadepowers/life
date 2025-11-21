@@ -761,6 +761,7 @@
                 if (checkmarkCount === numColumns) {
                     // Add jackpot-row class to the entire row
                     row.classList.add('jackpot-row');
+                    console.log('Added jackpot-row class to row:', row);
 
                     cells.forEach(cell => {
                         const checkmark = cell.querySelector('.bi-check-square-fill');
