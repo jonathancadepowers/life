@@ -37,6 +37,10 @@ class NutritionEntry(models.Model):
         decimal_places=2,
         help_text="Protein in grams"
     )
+    abandoned = models.BooleanField(
+        default=False,
+        help_text="True if user stopped tracking nutrition for this day"
+    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
