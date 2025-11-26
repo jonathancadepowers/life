@@ -341,11 +341,11 @@
 
         // Text is already visible on page load (no animation or clearing)
 
-        // Set body min-height to accommodate content div + 15px
+        // Set body min-height to accommodate content div + 30px
         requestAnimationFrame(() => {
             const contentDiv = document.querySelector('.content');
             const contentBottom = contentDiv.offsetTop + contentDiv.offsetHeight;
-            document.body.style.minHeight = (contentBottom + 15) + 'px';
+            document.body.style.minHeight = (contentBottom + 30) + 'px';
         });
 
         // Add spin animation to nav icons on hover (except active page)
