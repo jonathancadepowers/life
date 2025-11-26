@@ -13,3 +13,10 @@ def about(request):
     Renders the about page.
     """
     return render(request, 'home/about.html')
+
+
+def inspirations(request):
+    """
+    Renders the inspirations page.
+    """
+    return render(request, 'home/inspirations.html')

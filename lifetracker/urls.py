@@ -23,6 +23,7 @@ from settings import views as settings_views
 
 urlpatterns = [
     path("about/", home_views.about, name='about'),
+    path("inspirations/", home_views.inspirations, name='inspirations'),
     path("admin/", admin.site.urls),
     path("oauth/", include("oauth_integration.urls")),
     path("activity-report/", targets_views.activity_report, name='activity_report'),
