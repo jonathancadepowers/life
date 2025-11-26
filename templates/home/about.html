@@ -329,10 +329,6 @@
             const description = document.createElement('div');
             description.className = 'timeline-description';
             const fullText = placeholderTexts[(year - endYear) % placeholderTexts.length];
-            description.dataset.fullText = fullText;
-            description.dataset.revealed = 'false';
-
-            // Temporarily set text to measure height
             description.textContent = fullText;
 
             item.appendChild(yearCircle);
@@ -340,59 +336,7 @@
             timelineContainer.appendChild(item);
         }
 
-        // After all items are added, measure heights and widths and then clear text
-        requestAnimationFrame(() => {
-            const descriptions = document.querySelectorAll('.timeline-description');
-            descriptions.forEach(description => {
-                const measuredHeight = description.offsetHeight;
-                const measuredWidth = description.offsetWidth;
-                description.style.height = measuredHeight + 'px';
-                description.style.width = measuredWidth + 'px';
-                description.textContent = ''; // Now clear the text
-            });
-        });
-
-        // Add hover interactions after measuring
-        document.querySelectorAll('.timeline-item').forEach(item => {
-            const yearCircle = item.querySelector('.timeline-year');
-            const description = item.querySelector('.timeline-description');
-
-            // Add hover effect with random color AND reveal text
-            yearCircle.addEventListener('mouseenter', (e) => {
-                const randomColor = hoverColors[Math.floor(Math.random() * hoverColors.length)];
-                e.target.style.backgroundColor = randomColor;
-
-                // Reveal description with scramble effect if not already revealed
-                if (description.dataset.revealed === 'false') {
-                    description.dataset.revealed = 'true';
-                    const targetText = description.dataset.fullText;
-                    let iteration = 0;
-
-                    const scrambleInterval = setInterval(() => {
-                        description.textContent = targetText
-                            .split("")
-                            .map((letter, index) => {
-                                if (index < iteration) {
-                                    return targetText[index];
-                                }
-                                if (letter === " ") return " ";
-                                return letters[Math.floor(Math.random() * 26)];
-                            })
-                            .join("");
-
-                        if (iteration >= targetText.length) {
-                            clearInterval(scrambleInterval);
-                        }
-
-                        iteration += 1;
-                    }, 30);
-                }
-            });
-
-            yearCircle.addEventListener('mouseleave', (e) => {
-                e.target.style.backgroundColor = e.target.dataset.defaultBg;
-            });
-        });
+        // Text is already visible on page load (no animation or clearing)
 
         // Add spin animation to nav icons on hover (except active page)
         document.querySelectorAll('.nav-item a').forEach(link => {
