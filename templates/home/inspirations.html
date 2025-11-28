@@ -653,47 +653,50 @@
     </div>
 
     <script>
-        // Generate timeline from 2025 to 1981
+        // Generate timeline from 2025 to 1981 (only if timeline container exists)
         const timelineContainer = document.getElementById('timeline-container');
-        const startYear = 2025;
-        const endYear = 1981;
-        const hoverColors = ['#FCFA53', '#4587C5', '#F56426', '#4BC051', '#EEB221', '#EC2622', '#A3DAE7'];
 
-        const placeholderTexts = [
-            "A year of transformation and new beginnings, marked by personal growth and meaningful connections.",
-            "Embraced challenges and discovered new passions while building foundations for the future.",
-            "Navigated transitions with resilience, exploring creative endeavors and expanding horizons.",
-            "A period of reflection and learning, deepening understanding of self and the world.",
-            "Adapted to change and found strength in community during unprecedented times.",
-            "Faced global uncertainty while maintaining focus on personal values and relationships.",
-            "Pursued ambitious goals and celebrated milestones in both work and personal life.",
-            "Explored new opportunities and developed skills that would shape future endeavors.",
-            "Strengthened relationships and discovered new perspectives on life's journey.",
-            "Made significant strides in personal development and professional growth.",
-            "Experienced memorable moments that would influence years to come.",
-            "Cultivated resilience and adaptability in the face of change.",
-            "Found inspiration in unexpected places and unexpected people.",
-            "Balanced ambition with reflection, work with rest, dreams with reality.",
-            "Built lasting connections and learned valuable lessons from experience."
-        ];
+        if (timelineContainer) {
+            const startYear = 2025;
+            const endYear = 1981;
+            const hoverColors = ['#FCFA53', '#4587C5', '#F56426', '#4BC051', '#EEB221', '#EC2622', '#A3DAE7'];
 
-        for (let year = startYear; year >= endYear; year--) {
-            const item = document.createElement('div');
-            item.className = 'timeline-item';
+            const placeholderTexts = [
+                "A year of transformation and new beginnings, marked by personal growth and meaningful connections.",
+                "Embraced challenges and discovered new passions while building foundations for the future.",
+                "Navigated transitions with resilience, exploring creative endeavors and expanding horizons.",
+                "A period of reflection and learning, deepening understanding of self and the world.",
+                "Adapted to change and found strength in community during unprecedented times.",
+                "Faced global uncertainty while maintaining focus on personal values and relationships.",
+                "Pursued ambitious goals and celebrated milestones in both work and personal life.",
+                "Explored new opportunities and developed skills that would shape future endeavors.",
+                "Strengthened relationships and discovered new perspectives on life's journey.",
+                "Made significant strides in personal development and professional growth.",
+                "Experienced memorable moments that would influence years to come.",
+                "Cultivated resilience and adaptability in the face of change.",
+                "Found inspiration in unexpected places and unexpected people.",
+                "Balanced ambition with reflection, work with rest, dreams with reality.",
+                "Built lasting connections and learned valuable lessons from experience."
+            ];
 
-            const yearCircle = document.createElement('div');
-            yearCircle.className = 'timeline-year';
-            yearCircle.textContent = year;
-            yearCircle.dataset.defaultBg = '#ffffff';
+            for (let year = startYear; year >= endYear; year--) {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
 
-            const description = document.createElement('div');
-            description.className = 'timeline-description';
-            const fullText = placeholderTexts[(year - endYear) % placeholderTexts.length];
-            description.textContent = fullText;
+                const yearCircle = document.createElement('div');
+                yearCircle.className = 'timeline-year';
+                yearCircle.textContent = year;
+                yearCircle.dataset.defaultBg = '#ffffff';
 
-            item.appendChild(yearCircle);
-            item.appendChild(description);
-            timelineContainer.appendChild(item);
+                const description = document.createElement('div');
+                description.className = 'timeline-description';
+                const fullText = placeholderTexts[(year - endYear) % placeholderTexts.length];
+                description.textContent = fullText;
+
+                item.appendChild(yearCircle);
+                item.appendChild(description);
+                timelineContainer.appendChild(item);
+            }
         }
 
         // Text is already visible on page load (no animation or clearing)
