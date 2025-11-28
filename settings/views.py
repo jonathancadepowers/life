@@ -102,6 +102,7 @@ def life_tracker_settings(request):
             ':day_end - End of the day in user\'s timezone (timezone-aware datetime)',
         ],
         'inspirations': inspirations,
+        'type_choices': Inspiration.TYPE_CHOICES,
     }
 
     return render(request, 'settings/life_tracker_settings.html', context)
@@ -113,14 +114,12 @@ def add_inspiration(request):
         image = request.FILES.get('image')
         flip_text = request.POST.get('flip_text')
         type_value = request.POST.get('type')
-        order = request.POST.get('order', 0)
 
         if image and flip_text and type_value:
             Inspiration.objects.create(
                 image=image,
                 flip_text=flip_text,
-                type=type_value,
-                order=int(order) if order else 0
+                type=type_value
             )
             messages.success(request, 'Inspiration added successfully!')
         else:
@@ -137,14 +136,12 @@ def edit_inspiration(request, inspiration_id):
         image = request.FILES.get('image')
         flip_text = request.POST.get('flip_text')
         type_value = request.POST.get('type')
-        order = request.POST.get('order', 0)
 
         if flip_text and type_value:
             if image:
                 inspiration.image = image
             inspiration.flip_text = flip_text
             inspiration.type = type_value
-            inspiration.order = int(order) if order else 0
             inspiration.save()
             messages.success(request, 'Inspiration updated successfully!')
         else:

@@ -5,6 +5,15 @@ class Inspiration(models.Model):
     """
     Stores images and metadata for the inspirations page.
     """
+    TYPE_CHOICES = [
+        ('Film', 'Film'),
+        ('Book', 'Book'),
+        ('Album', 'Album'),
+        ('Podcast Series', 'Podcast Series'),
+        ('Article', 'Article'),
+        ('Other', 'Other'),
+    ]
+
     image = models.ImageField(
         upload_to='inspirations/',
         help_text="Upload an image (book cover, album art, movie poster, etc.)"
@@ -15,17 +24,14 @@ class Inspiration(models.Model):
     )
     type = models.CharField(
         max_length=50,
-        help_text="Type of inspiration (e.g., 'Book', 'Film', 'Album', 'TV Show')"
-    )
-    order = models.PositiveIntegerField(
-        default=0,
-        help_text="Display order (lower numbers appear first)"
+        choices=TYPE_CHOICES,
+        help_text="Type of inspiration"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['order', 'created_at']
+        ordering = ['created_at']
         verbose_name = "Inspiration"
         verbose_name_plural = "Inspirations"
 
