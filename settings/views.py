@@ -1,8 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import connection
+from django.core.files.base import ContentFile
 from .models import LifeTrackerColumn
 from inspirations_app.models import Inspiration
+from PIL import Image
+import io
 
 
 def life_tracker_settings(request):
@@ -117,8 +120,31 @@ def add_inspiration(request):
         type_value = request.POST.get('type')
 
         if image and title and type_value:
+            # Resize image to 256x362
+            img = Image.open(image)
+            img = img.resize((256, 362), Image.Resampling.LANCZOS)
+
+            # Convert to RGB if necessary (handles RGBA, P mode, etc.)
+            if img.mode in ('RGBA', 'P', 'LA'):
+                # Create white background for transparent images
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # Save to BytesIO
+            output = io.BytesIO()
+            img.save(output, format='JPEG', quality=85)
+            output.seek(0)
+
+            # Create ContentFile with resized image
+            resized_image = ContentFile(output.read(), name=image.name)
+
             Inspiration.objects.create(
-                image=image,
+                image=resized_image,
                 title=title,
                 flip_text=flip_text,
                 type=type_value
