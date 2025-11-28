@@ -224,6 +224,55 @@
             color: #000;
         }
 
+        /* Flip card styles */
+        .flip-card {
+            perspective: 1000px;
+            width: 65%;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .flip-card:hover .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front,
+        .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .flip-card-front img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .flip-card-back {
+            background-color: #ffffff;
+            border: 2px solid #000000;
+            transform: rotateY(180deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .flip-card-text {
+            font-size: 13.6px;
+            text-align: center;
+            color: #000000;
+        }
+
         @media (max-width: 640px) {
             body {
                 flex-direction: column;
@@ -295,41 +344,311 @@
         <p>Beyond <a href="https://www.goodreads.com/user/show/7323676-jonathan-powers" target="_blank">books</a>, my writing is also heavily influenced by <a href="https://open.spotify.com/user/jonathancadepowers?si=b8e8c8e8e8e8e8e8" target="_blank">music</a>, <a href="#" target="_blank">TV shows</a>, and—above all—<a href="https://letterboxd.com/jonpowers/" target="_blank">film</a>. Captured below are the titles that have had the biggest impact on my work.</p>
 
         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: 2rem;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Breathless" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Cinema Paradiso" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Call Me By Your Name" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Station Eleven" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Radiohead - Kid A" style="width: 65%; height: auto;">
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Breathless">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Cinema Paradiso">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Call Me By Your Name">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Station Eleven">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Radiohead - Kid A">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
 
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Tiny Furniture" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Small Axe" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Dark Side of the Moon" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Never Let Me Go" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Frances Ha" style="width: 65%; height: auto;">
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Tiny Furniture">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Small Axe">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Dark Side of the Moon">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Never Let Me Go">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Frances Ha">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
 
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="The Corrections" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Raging Bull" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Tell Me You Love Me" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Severance" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Freaks and Geeks" style="width: 65%; height: auto;">
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="The Corrections">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Raging Bull">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Tell Me You Love Me">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Severance">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Freaks and Geeks">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
 
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Prep" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Prep" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Eyes Wide Shut" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="I Heart Huckabees" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Kids" style="width: 65%; height: auto;">
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Prep">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Prep">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Eyes Wide Shut">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="I Heart Huckabees">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Kids">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
 
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Velvet Goldmine" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="A Clockwork Orange" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Rosemary's Baby" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Closer" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Fiona Apple" style="width: 65%; height: auto;">
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Velvet Goldmine">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="A Clockwork Orange">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Rosemary's Baby">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Closer">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Fiona Apple">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
 
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Atonement" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Oslo, August 31st" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Her" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Endless Love" style="width: 65%; height: auto;">
-            <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="People Who Eat Darkness" style="width: 65%; height: auto;">
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Atonement">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Oslo, August 31st">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Her">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="Endless Love">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <img src="https://m.media-amazon.com/images/I/71nXPGovoTL._SY522_.jpg" alt="People Who Eat Darkness">
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="flip-card-text">LOREM IPSUM</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
