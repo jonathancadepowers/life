@@ -59,6 +59,21 @@
             padding: 0.2rem 0.4rem;
             border-radius: 3px;
         }
+        h3 .btn-link {
+            color: #212529;
+            font-size: 1.75rem;
+            font-weight: 500;
+        }
+        h3 .btn-link:hover {
+            color: #0d6efd;
+        }
+        h3 .bi-chevron-down {
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+        h3 .btn-link[aria-expanded="true"] .bi-chevron-down {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body>
@@ -84,8 +99,14 @@
 
         <!-- Inspirations Section -->
         <div class="settings-section">
-            <h3><i class="bi bi-star-fill me-2"></i>Inspirations</h3>
+            <h3>
+                <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#inspirationsSection" aria-expanded="false">
+                    <i class="bi bi-star-fill me-2"></i>Inspirations
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+            </h3>
 
+            <div class="collapse" id="inspirationsSection">
             <!-- Add New Inspiration -->
             <div class="mb-4">
                 <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addInspirationForm">
@@ -196,11 +217,19 @@
                     </tbody>
                 </table>
             </div>
+            </div>
         </div>
 
         <!-- Life Tracker Section -->
         <div class="settings-section">
-            <h3>Life Tracker Column Configuration</h3>
+            <h3>
+                <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#lifeTrackerSection" aria-expanded="false">
+                    Life Tracker Column Configuration
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+            </h3>
+
+            <div class="collapse" id="lifeTrackerSection">
 
             <!-- Available Parameters -->
             <div class="param-list">
@@ -266,6 +295,7 @@
                     </div>
                 {% endfor %}
             </form>
+            </div>
         </div>
 
         <div class="text-center mt-4">
