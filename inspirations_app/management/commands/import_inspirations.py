@@ -49,11 +49,13 @@ class Command(BaseCommand):
                 type_raw, title_raw = parts
 
                 # Convert type to proper case
-                type_value = type_raw.capitalize()
-                if type_value == 'Tv show':
+                type_raw_lower = type_raw.lower()
+                if type_raw_lower in ['tvshow', 'tv_show', 'tv show']:
                     type_value = 'TV Show'
-                elif type_value == 'Podcast series':
+                elif type_raw_lower in ['podcastseries', 'podcast_series', 'podcast series']:
                     type_value = 'Podcast Series'
+                else:
+                    type_value = type_raw.capitalize()
 
                 # Validate type
                 valid_types = [choice[0] for choice in Inspiration.TYPE_CHOICES]
