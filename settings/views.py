@@ -135,14 +135,11 @@ def edit_inspiration(request, inspiration_id):
     inspiration = get_object_or_404(Inspiration, id=inspiration_id)
 
     if request.method == 'POST':
-        image = request.FILES.get('image')
         title = request.POST.get('title', '').strip()
         flip_text = request.POST.get('flip_text', '')
         type_value = request.POST.get('type')
 
         if title and type_value:
-            if image:
-                inspiration.image = image
             inspiration.title = title
             inspiration.flip_text = flip_text
             inspiration.type = type_value
