@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import connection
 from .models import LifeTrackerColumn
+from inspirations_app.models import Inspiration
 
 
 def life_tracker_settings(request):
@@ -90,6 +91,9 @@ def life_tracker_settings(request):
         column.available_fields = available_fields.get(column.column_name, [])
         columns_with_fields.append(column)
 
+    # Get all inspirations
+    inspirations = Inspiration.objects.all()
+
     context = {
         'columns': columns_with_fields,
         'available_parameters': [
@@ -97,6 +101,64 @@ def life_tracker_settings(request):
             ':day_start - Start of the day in user\'s timezone (timezone-aware datetime)',
             ':day_end - End of the day in user\'s timezone (timezone-aware datetime)',
         ],
+        'inspirations': inspirations,
     }
 
     return render(request, 'settings/life_tracker_settings.html', context)
+
+
+def add_inspiration(request):
+    """Add a new inspiration."""
+    if request.method == 'POST':
+        image = request.FILES.get('image')
+        flip_text = request.POST.get('flip_text')
+        type_value = request.POST.get('type')
+        order = request.POST.get('order', 0)
+
+        if image and flip_text and type_value:
+            Inspiration.objects.create(
+                image=image,
+                flip_text=flip_text,
+                type=type_value,
+                order=int(order) if order else 0
+            )
+            messages.success(request, 'Inspiration added successfully!')
+        else:
+            messages.error(request, 'Please fill in all required fields.')
+
+    return redirect('life_tracker_settings')
+
+
+def edit_inspiration(request, inspiration_id):
+    """Edit an existing inspiration."""
+    inspiration = get_object_or_404(Inspiration, id=inspiration_id)
+
+    if request.method == 'POST':
+        image = request.FILES.get('image')
+        flip_text = request.POST.get('flip_text')
+        type_value = request.POST.get('type')
+        order = request.POST.get('order', 0)
+
+        if flip_text and type_value:
+            if image:
+                inspiration.image = image
+            inspiration.flip_text = flip_text
+            inspiration.type = type_value
+            inspiration.order = int(order) if order else 0
+            inspiration.save()
+            messages.success(request, 'Inspiration updated successfully!')
+        else:
+            messages.error(request, 'Please fill in all required fields.')
+
+    return redirect('life_tracker_settings')
+
+
+def delete_inspiration(request, inspiration_id):
+    """Delete an inspiration."""
+    inspiration = get_object_or_404(Inspiration, id=inspiration_id)
+
+    if request.method == 'POST':
+        inspiration.delete()
+        messages.success(request, 'Inspiration deleted successfully!')
+
+    return redirect('life_tracker_settings')

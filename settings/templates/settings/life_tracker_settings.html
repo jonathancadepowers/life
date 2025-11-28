@@ -82,6 +82,122 @@
             </div>
         {% endif %}
 
+        <!-- Inspirations Section -->
+        <div class="settings-section">
+            <h3><i class="bi bi-star-fill me-2"></i>Inspirations</h3>
+            <p class="text-muted">Manage the images displayed on the /inspirations/ page.</p>
+
+            <!-- Add New Inspiration -->
+            <div class="mb-4">
+                <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addInspirationForm">
+                    <i class="bi bi-plus-circle"></i> Add New Inspiration
+                </button>
+            </div>
+
+            <div class="collapse mb-4" id="addInspirationForm">
+                <div class="card card-body">
+                    <h5>Add New Inspiration</h5>
+                    <form method="POST" action="{% url 'add_inspiration' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="new_image" class="form-label">Image *</label>
+                                <input type="file" class="form-control" id="new_image" name="image" accept="image/*" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="new_type" class="form-label">Type *</label>
+                                <input type="text" class="form-control" id="new_type" name="type" placeholder="Book, Film, Album..." required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="new_order" class="form-label">Order</label>
+                                <input type="number" class="form-control" id="new_order" name="order" value="0">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_flip_text" class="form-label">Flip Text *</label>
+                            <input type="text" class="form-control" id="new_flip_text" name="flip_text" placeholder="Text to display when flipped (1-2 sentences)" maxlength="200" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Add Inspiration
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Existing Inspirations -->
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Preview</th>
+                            <th>Type</th>
+                            <th>Flip Text</th>
+                            <th>Order</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inspiration in inspirations %}
+                        <tr>
+                            <td>
+                                <img src="{{ inspiration.image.url }}" alt="{{ inspiration.type }}" style="max-width: 60px; max-height: 90px;">
+                            </td>
+                            <td>{{ inspiration.type }}</td>
+                            <td>{{ inspiration.flip_text|truncatechars:60 }}</td>
+                            <td>{{ inspiration.order }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#editInspirationForm{{ inspiration.id }}">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </button>
+                                <form method="POST" action="{% url 'delete_inspiration' inspiration.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this inspiration?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr class="collapse" id="editInspirationForm{{ inspiration.id }}">
+                            <td colspan="5">
+                                <div class="card card-body">
+                                    <h6>Edit Inspiration</h6>
+                                    <form method="POST" action="{% url 'edit_inspiration' inspiration.id %}" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="edit_image_{{ inspiration.id }}" class="form-label">Image (leave blank to keep current)</label>
+                                                <input type="file" class="form-control" id="edit_image_{{ inspiration.id }}" name="image" accept="image/*">
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <label for="edit_type_{{ inspiration.id }}" class="form-label">Type *</label>
+                                                <input type="text" class="form-control" id="edit_type_{{ inspiration.id }}" name="type" value="{{ inspiration.type }}" required>
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <label for="edit_order_{{ inspiration.id }}" class="form-label">Order</label>
+                                                <input type="number" class="form-control" id="edit_order_{{ inspiration.id }}" name="order" value="{{ inspiration.order }}">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="edit_flip_text_{{ inspiration.id }}" class="form-label">Flip Text *</label>
+                                            <input type="text" class="form-control" id="edit_flip_text_{{ inspiration.id }}" name="flip_text" value="{{ inspiration.flip_text }}" maxlength="200" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-save"></i> Save Changes
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No inspirations yet. Add one above!</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Life Tracker Section -->
         <div class="settings-section">
             <h3>Life Tracker Column Configuration</h3>
