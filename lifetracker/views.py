@@ -17,10 +17,10 @@ def about(request):
 
 def inspirations(request):
     """
-    Renders the inspirations page.
+    Renders the inspirations page with random ordering.
     """
     from inspirations_app.models import Inspiration
 
-    inspirations = Inspiration.objects.all()
+    inspirations = Inspiration.objects.all().order_by('?')
 
     return render(request, 'home/inspirations.html', {'inspirations': inspirations})
