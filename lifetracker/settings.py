@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "monthly_objectives",
     "writing",
     "settings",
+    "inspirations_app",
 ]
 
 MIDDLEWARE = [
@@ -150,6 +151,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Enable WhiteNoise's GZip and caching support
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Media files (uploads)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
