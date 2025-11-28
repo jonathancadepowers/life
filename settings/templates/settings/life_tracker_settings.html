@@ -104,8 +104,8 @@
                                 <input type="file" class="form-control" id="new_image" name="image" accept="image/*" required>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label for="new_title" class="form-label">Title</label>
-                                <input type="text" class="form-control" id="new_title" name="title" placeholder="e.g., Station Eleven" maxlength="200">
+                                <label for="new_title" class="form-label">Title *</label>
+                                <input type="text" class="form-control" id="new_title" name="title" placeholder="e.g., Station Eleven" maxlength="200" required>
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label for="new_type" class="form-label">Type *</label>
@@ -173,8 +173,8 @@
                                                 <input type="file" class="form-control" id="edit_image_{{ inspiration.id }}" name="image" accept="image/*">
                                             </div>
                                             <div class="col-md-3 mb-3">
-                                                <label for="edit_title_{{ inspiration.id }}" class="form-label">Title</label>
-                                                <input type="text" class="form-control" id="edit_title_{{ inspiration.id }}" name="title" value="{{ inspiration.title }}" maxlength="200">
+                                                <label for="edit_title_{{ inspiration.id }}" class="form-label">Title *</label>
+                                                <input type="text" class="form-control" id="edit_title_{{ inspiration.id }}" name="title" value="{{ inspiration.title }}" maxlength="200" required>
                                             </div>
                                             <div class="col-md-3 mb-3">
                                                 <label for="edit_type_{{ inspiration.id }}" class="form-label">Type *</label>

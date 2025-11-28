@@ -112,11 +112,11 @@ def add_inspiration(request):
     """Add a new inspiration."""
     if request.method == 'POST':
         image = request.FILES.get('image')
-        title = request.POST.get('title', '')
+        title = request.POST.get('title', '').strip()
         flip_text = request.POST.get('flip_text', '')
         type_value = request.POST.get('type')
 
-        if image and type_value:
+        if image and title and type_value:
             Inspiration.objects.create(
                 image=image,
                 title=title,
@@ -125,7 +125,7 @@ def add_inspiration(request):
             )
             messages.success(request, 'Inspiration added successfully!')
         else:
-            messages.error(request, 'Please fill in all required fields (Image and Type).')
+            messages.error(request, 'Please fill in all required fields (Image, Title, and Type).')
 
     return redirect('life_tracker_settings')
 
@@ -136,11 +136,11 @@ def edit_inspiration(request, inspiration_id):
 
     if request.method == 'POST':
         image = request.FILES.get('image')
-        title = request.POST.get('title', '')
+        title = request.POST.get('title', '').strip()
         flip_text = request.POST.get('flip_text', '')
         type_value = request.POST.get('type')
 
-        if type_value:
+        if title and type_value:
             if image:
                 inspiration.image = image
             inspiration.title = title
@@ -149,7 +149,7 @@ def edit_inspiration(request, inspiration_id):
             inspiration.save()
             messages.success(request, 'Inspiration updated successfully!')
         else:
-            messages.error(request, 'Type is required.')
+            messages.error(request, 'Title and Type are required.')
 
     return redirect('life_tracker_settings')
 
