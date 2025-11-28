@@ -85,7 +85,6 @@
         <!-- Inspirations Section -->
         <div class="settings-section">
             <h3><i class="bi bi-star-fill me-2"></i>Inspirations</h3>
-            <p class="text-muted">Manage the images displayed on the /inspirations/ page.</p>
 
             <!-- Add New Inspiration -->
             <div class="mb-4">
@@ -100,11 +99,15 @@
                     <form method="POST" action="{% url 'add_inspiration' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="row">
-                            <div class="col-md-8 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="new_image" class="form-label">Image *</label>
                                 <input type="file" class="form-control" id="new_image" name="image" accept="image/*" required>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
+                                <label for="new_title" class="form-label">Title</label>
+                                <input type="text" class="form-control" id="new_title" name="title" placeholder="e.g., Station Eleven" maxlength="200">
+                            </div>
+                            <div class="col-md-3 mb-3">
                                 <label for="new_type" class="form-label">Type *</label>
                                 <select class="form-select" id="new_type" name="type" required>
                                     <option value="">Select type...</option>
@@ -115,8 +118,8 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="new_flip_text" class="form-label">Flip Text *</label>
-                            <input type="text" class="form-control" id="new_flip_text" name="flip_text" placeholder="Text to display when flipped (1-2 sentences)" maxlength="200" required>
+                            <label for="new_flip_text" class="form-label">Flip Text</label>
+                            <input type="text" class="form-control" id="new_flip_text" name="flip_text" placeholder="Text to display when flipped (1-2 sentences)" maxlength="200">
                         </div>
                         <button type="submit" class="btn btn-success">
                             <i class="bi bi-save"></i> Add Inspiration
@@ -131,6 +134,7 @@
                     <thead>
                         <tr>
                             <th>Preview</th>
+                            <th>Title</th>
                             <th>Type</th>
                             <th>Flip Text</th>
                             <th>Actions</th>
@@ -142,8 +146,9 @@
                             <td>
                                 <img src="{{ inspiration.image.url }}" alt="{{ inspiration.type }}" style="max-width: 60px; max-height: 90px;">
                             </td>
+                            <td>{{ inspiration.title|default:"—" }}</td>
                             <td>{{ inspiration.type }}</td>
-                            <td>{{ inspiration.flip_text|truncatechars:60 }}</td>
+                            <td>{{ inspiration.flip_text|truncatechars:60|default:"—" }}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#editInspirationForm{{ inspiration.id }}">
                                     <i class="bi bi-pencil"></i> Edit
@@ -157,17 +162,21 @@
                             </td>
                         </tr>
                         <tr class="collapse" id="editInspirationForm{{ inspiration.id }}">
-                            <td colspan="4">
+                            <td colspan="5">
                                 <div class="card card-body">
                                     <h6>Edit Inspiration</h6>
                                     <form method="POST" action="{% url 'edit_inspiration' inspiration.id %}" enctype="multipart/form-data">
                                         {% csrf_token %}
                                         <div class="row">
-                                            <div class="col-md-8 mb-3">
+                                            <div class="col-md-6 mb-3">
                                                 <label for="edit_image_{{ inspiration.id }}" class="form-label">Image (leave blank to keep current)</label>
                                                 <input type="file" class="form-control" id="edit_image_{{ inspiration.id }}" name="image" accept="image/*">
                                             </div>
-                                            <div class="col-md-4 mb-3">
+                                            <div class="col-md-3 mb-3">
+                                                <label for="edit_title_{{ inspiration.id }}" class="form-label">Title</label>
+                                                <input type="text" class="form-control" id="edit_title_{{ inspiration.id }}" name="title" value="{{ inspiration.title }}" maxlength="200">
+                                            </div>
+                                            <div class="col-md-3 mb-3">
                                                 <label for="edit_type_{{ inspiration.id }}" class="form-label">Type *</label>
                                                 <select class="form-select" id="edit_type_{{ inspiration.id }}" name="type" required>
                                                     {% for value, label in type_choices %}
@@ -177,8 +186,8 @@
                                             </div>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="edit_flip_text_{{ inspiration.id }}" class="form-label">Flip Text *</label>
-                                            <input type="text" class="form-control" id="edit_flip_text_{{ inspiration.id }}" name="flip_text" value="{{ inspiration.flip_text }}" maxlength="200" required>
+                                            <label for="edit_flip_text_{{ inspiration.id }}" class="form-label">Flip Text</label>
+                                            <input type="text" class="form-control" id="edit_flip_text_{{ inspiration.id }}" name="flip_text" value="{{ inspiration.flip_text }}" maxlength="200">
                                         </div>
                                         <button type="submit" class="btn btn-success">
                                             <i class="bi bi-save"></i> Save Changes
@@ -189,7 +198,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center text-muted">No inspirations yet. Add one above!</td>
+                            <td colspan="5" class="text-center text-muted">No inspirations yet. Add one above!</td>
                         </tr>
                         {% endfor %}
                     </tbody>

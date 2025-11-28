@@ -18,8 +18,14 @@ class Inspiration(models.Model):
         upload_to='inspirations/',
         help_text="Upload an image (book cover, album art, movie poster, etc.)"
     )
+    title = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Title of the work (e.g., book title, film name, album name)"
+    )
     flip_text = models.CharField(
         max_length=200,
+        blank=True,
         help_text="Text to display when image is flipped (1-2 sentences)"
     )
     type = models.CharField(
