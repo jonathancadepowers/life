@@ -133,7 +133,6 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Preview</th>
                             <th>Title</th>
                             <th>Type</th>
                             <th>Flip Text</th>
@@ -143,9 +142,6 @@
                     <tbody>
                         {% for inspiration in inspirations %}
                         <tr>
-                            <td>
-                                <img src="{{ inspiration.image.url }}" alt="{{ inspiration.type }}" style="max-width: 60px; max-height: 90px;">
-                            </td>
                             <td>{{ inspiration.title|default:"—" }}</td>
                             <td>{{ inspiration.type }}</td>
                             <td>{{ inspiration.flip_text|truncatechars:60|default:"—" }}</td>
@@ -162,7 +158,7 @@
                             </td>
                         </tr>
                         <tr class="collapse" id="editInspirationForm{{ inspiration.id }}">
-                            <td colspan="5">
+                            <td colspan="4">
                                 <div class="card card-body">
                                     <h6>Edit Inspiration</h6>
                                     <form method="POST" action="{% url 'edit_inspiration' inspiration.id %}" enctype="multipart/form-data">
