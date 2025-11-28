@@ -26,6 +26,7 @@ class Inspiration(models.Model):
         ('Film', 'Film'),
         ('Book', 'Book'),
         ('Album', 'Album'),
+        ('TV Show', 'TV Show'),
         ('Podcast Series', 'Podcast Series'),
         ('Article', 'Article'),
         ('Other', 'Other'),
