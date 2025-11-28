@@ -19,4 +19,8 @@ def inspirations(request):
     """
     Renders the inspirations page.
     """
-    return render(request, 'home/inspirations.html')
+    from inspirations_app.models import Inspiration
+
+    inspirations = Inspiration.objects.all()
+
+    return render(request, 'home/inspirations.html', {'inspirations': inspirations})
