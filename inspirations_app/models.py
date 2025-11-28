@@ -1,4 +1,21 @@
 from django.db import models
+from django.utils.text import slugify
+import os
+
+
+def inspiration_image_path(instance, filename):
+    """Generate upload path using title if available, otherwise use original filename."""
+    # Get file extension
+    ext = os.path.splitext(filename)[1]
+
+    # Use title if available, otherwise use original filename
+    if instance.title:
+        # Slugify the title and append extension
+        new_filename = f"{slugify(instance.title)}{ext}"
+    else:
+        new_filename = filename
+
+    return f'inspirations/{new_filename}'
 
 
 class Inspiration(models.Model):
@@ -15,7 +32,7 @@ class Inspiration(models.Model):
     ]
 
     image = models.ImageField(
-        upload_to='inspirations/',
+        upload_to=inspiration_image_path,
         help_text="Upload an image (book cover, album art, movie poster, etc.)"
     )
     title = models.CharField(
