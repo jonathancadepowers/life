@@ -61,6 +61,11 @@
             background-repeat: no-repeat;
         }
 
+        /* Month separator - adds spacing between month groups */
+        .month-separator {
+            border-top: 5px solid transparent !important;
+        }
+
         .content a {
             color: #000000;
             text-decoration: none;
@@ -252,7 +257,7 @@
             <tbody>
                 {% for month in "123456789ABC" %}
                     {% for habit in "RFSEWW" %}
-                        <tr>
+                        <tr{% if forloop.first and forloop.parentloop.counter > 1 %} class="month-separator"{% endif %}>
                             {% if forloop.first %}
                                 <td rowspan="6" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: middle; width: 75px; max-width: 75px; min-width: 75px;">
                                     {% if month == "1" %}Jan
