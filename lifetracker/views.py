@@ -24,3 +24,10 @@ def inspirations(request):
     inspirations = Inspiration.objects.all().order_by('?')
 
     return render(request, 'home/inspirations.html', {'inspirations': inspirations})
+
+
+def life_metrics(request):
+    """
+    Renders the life metrics page.
+    """
+    return render(request, 'home/life_metrics.html')
