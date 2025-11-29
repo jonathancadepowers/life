@@ -144,17 +144,15 @@ def add_inspiration(request):
             # Create ContentFile with resized image
             resized_image = ContentFile(output.read(), name=image.name)
 
-            # Get YouTube trailer URL for films
-            youtube_url = None
-            if type_value == 'Film':
-                youtube_url = get_youtube_trailer_url(title)
+            # Note: YouTube URL auto-search disabled due to package unreliability
+            # YouTube URLs can be manually added later if needed
 
             Inspiration.objects.create(
                 image=resized_image,
                 title=title,
                 flip_text=flip_text,
                 type=type_value,
-                youtube_url=youtube_url
+                youtube_url=None
             )
             messages.success(request, 'Inspiration added successfully!')
         else:
