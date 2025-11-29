@@ -279,10 +279,10 @@
         <table style="border-collapse: collapse; font-size: 0.65rem; margin-top: 2rem; table-layout: fixed; width: 795px;">
             <thead>
                 <tr>
-                    <th style="border: 1px solid #E6E6E6; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 75px; max-width: 75px; min-width: 75px;"></th>
-                    <th style="border: 1px solid #E6E6E6; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 100px; max-width: 100px; min-width: 100px;">Habit</th>
+                    <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 75px; max-width: 75px; min-width: 75px;"></th>
+                    <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 100px; max-width: 100px; min-width: 100px;">Habit</th>
                     {% for day in "1234567890123456789012345678901" %}
-                        <th style="border: 1px solid #E6E6E6; padding: 0.2rem; text-align: center; font-weight: bold; width: 20px; max-width: 20px; min-width: 20px; font-size: 0.6rem;">{{ forloop.counter }}</th>
+                        <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; width: 20px; max-width: 20px; min-width: 20px; font-size: 0.6rem;">{{ forloop.counter }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -291,7 +291,7 @@
                     {% for habit in "RFSEWW" %}
                         <tr>
                             {% if forloop.first %}
-                                <td rowspan="6" style="border: 1px solid #E6E6E6; padding: 0.4rem; text-align: left; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: middle; width: 75px; max-width: 75px; min-width: 75px;">
+                                <td rowspan="6" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: middle; width: 75px; max-width: 75px; min-width: 75px;">
                                     {% if month == "1" %}Jan
                                     {% elif month == "2" %}Feb
                                     {% elif month == "3" %}Mar
@@ -307,7 +307,7 @@
                                     {% endif %}
                                 </td>
                             {% endif %}
-                            <td style="border: 1px solid #E6E6E6; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
+                            <td style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
                                 {% if habit == "R" %}Runs
                                 {% elif habit == "F" %}Fasts
                                 {% elif habit == "S" %}Strength Training
@@ -317,7 +317,7 @@
                                 {% endif %}
                             </td>
                             {% for day in "1234567890123456789012345678901" %}
-                                <td class="pixel-cell" style="padding: 0; border: 1px solid #E6E6E6; text-align: center; width: 20px; max-width: 20px; min-width: 20px; height: 19px; background-color: #ffffff;" data-month="{{ forloop.parentloop.parentloop.counter }}" data-day="{{ forloop.counter }}" data-habit="{{ forloop.parentloop.counter }}">
+                                <td class="pixel-cell" style="padding: 0; border: 1px solid #404040; text-align: center; width: 20px; max-width: 20px; min-width: 20px; height: 19px; background-color: #ffffff;" data-month="{{ forloop.parentloop.parentloop.counter }}" data-day="{{ forloop.counter }}" data-habit="{{ forloop.parentloop.counter }}">
                                     <!-- Pixel cell - will be filled with data -->
                                 </td>
                             {% endfor %}
