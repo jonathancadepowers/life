@@ -230,62 +230,60 @@
         </div>
     </nav>
 
-    <div class="content" style="max-width: none; width: 100%; padding: 2rem;">
-        <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 2rem; text-transform: uppercase; letter-spacing: 0.1em;">Year in Pixels</h2>
+    <div class="content">
+        <p><strong>YEAR IN PIXELS</strong></p>
 
         <!-- Year in Pixels Table -->
-        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-x: auto; margin-bottom: 2rem;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
-                <thead>
-                    <tr>
-                        <th style="background-color: #0d6efd; color: white; font-weight: 600; padding: 0.5rem; border: 1px solid rgba(255,255,255,0.2); text-align: center; min-width: 80px;"></th>
-                        <th style="background-color: #0d6efd; color: white; font-weight: 600; padding: 0.5rem; border: 1px solid rgba(255,255,255,0.2); text-align: center; min-width: 60px;">Habit</th>
-                        {% for day in "12345678901234567890123456789012" %}
-                            <th style="background-color: #0d6efd; color: white; font-weight: 600; padding: 0.5rem; border: 1px solid rgba(255,255,255,0.2); text-align: center; min-width: 25px;">{{ forloop.counter }}</th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for month in "123456789ABC" %}
-                        {% for habit in "RFSEWW" %}
-                            <tr style="border-bottom: 1px solid #dee2e6;">
-                                {% if forloop.first %}
-                                    <td rowspan="6" style="background-color: #f8f9fa; font-weight: 600; padding: 0.5rem; border: 1px solid #dee2e6; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7rem;">
-                                        {% if month == "1" %}January
-                                        {% elif month == "2" %}February
-                                        {% elif month == "3" %}March
-                                        {% elif month == "4" %}April
-                                        {% elif month == "5" %}May
-                                        {% elif month == "6" %}June
-                                        {% elif month == "7" %}July
-                                        {% elif month == "8" %}August
-                                        {% elif month == "9" %}September
-                                        {% elif month == "A" %}October
-                                        {% elif month == "B" %}November
-                                        {% elif month == "C" %}December
-                                        {% endif %}
-                                    </td>
-                                {% endif %}
-                                <td style="background-color: #f8f9fa; font-weight: 600; padding: 0.5rem; border: 1px solid #dee2e6; text-align: left; font-size: 0.7rem;">
-                                    {% if habit == "R" %}Runs
-                                    {% elif habit == "F" %}Fasts
-                                    {% elif habit == "S" %}Strength Training
-                                    {% elif habit == "E" %}Eating Clean
-                                    {% elif habit == "W" and forloop.counter == 5 %}Weigh Ins
-                                    {% elif habit == "W" and forloop.counter == 6 %}Writing Sessions
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.65rem; margin-top: 2rem;">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #E6E6E6; padding: 0.4rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; min-width: 70px;"></th>
+                    <th style="border: 1px solid #E6E6E6; padding: 0.4rem; text-align: left; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; min-width: 100px;">Habit</th>
+                    {% for day in "12345678901234567890123456789012" %}
+                        <th style="border: 1px solid #E6E6E6; padding: 0.4rem; text-align: center; font-weight: bold; min-width: 20px; font-size: 0.6rem;">{{ forloop.counter }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for month in "123456789ABC" %}
+                    {% for habit in "RFSEWW" %}
+                        <tr>
+                            {% if forloop.first %}
+                                <td rowspan="6" style="border: 1px solid #E6E6E6; padding: 0.4rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: middle;">
+                                    {% if month == "1" %}Jan
+                                    {% elif month == "2" %}Feb
+                                    {% elif month == "3" %}Mar
+                                    {% elif month == "4" %}Apr
+                                    {% elif month == "5" %}May
+                                    {% elif month == "6" %}Jun
+                                    {% elif month == "7" %}Jul
+                                    {% elif month == "8" %}Aug
+                                    {% elif month == "9" %}Sep
+                                    {% elif month == "A" %}Oct
+                                    {% elif month == "B" %}Nov
+                                    {% elif month == "C" %}Dec
                                     {% endif %}
                                 </td>
-                                {% for day in "12345678901234567890123456789012" %}
-                                    <td style="padding: 0; border: 1px solid #dee2e6; text-align: center; width: 25px; height: 25px; background-color: #fff;">
-                                        <!-- Pixel cell - will be filled with color based on data -->
-                                    </td>
-                                {% endfor %}
-                            </tr>
-                        {% endfor %}
+                            {% endif %}
+                            <td style="border: 1px solid #E6E6E6; padding: 0.4rem; text-align: left; font-size: 0.65rem;">
+                                {% if habit == "R" %}Runs
+                                {% elif habit == "F" %}Fasts
+                                {% elif habit == "S" %}Strength Training
+                                {% elif habit == "E" %}Eating Clean
+                                {% elif habit == "W" and forloop.counter == 5 %}Weigh Ins
+                                {% elif habit == "W" and forloop.counter == 6 %}Writing Sessions
+                                {% endif %}
+                            </td>
+                            {% for day in "12345678901234567890123456789012" %}
+                                <td style="padding: 0; border: 1px solid #E6E6E6; text-align: center; width: 20px; height: 20px; background-color: #ffffff;">
+                                    <!-- Pixel cell - will be filled with color based on data -->
+                                </td>
+                            {% endfor %}
+                        </tr>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <script>
