@@ -37,7 +37,7 @@
             position: absolute;
             left: 230px;
             top: 2rem;
-            width: 900px;
+            width: 1050px;
             background: #ffffff !important;
             background-color: #ffffff !important;
             color: #000000;
@@ -252,7 +252,7 @@
         <p><strong>YEAR IN PIXELS</strong></p>
 
         <!-- Year in Pixels Table -->
-        <table style="border-collapse: collapse; font-size: 0.65rem; margin-top: 2rem; table-layout: fixed; width: 795px;">
+        <table style="border-collapse: collapse; font-size: 0.65rem; margin-top: 2rem; table-layout: fixed; width: 945px;">
             <thead>
                 <tr>
                     <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 75px; max-width: 75px; min-width: 75px;"></th>
@@ -260,6 +260,7 @@
                     {% for day in "1234567890123456789012345678901" %}
                         <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; width: 20px; max-width: 20px; min-width: 20px; font-size: 0.6rem;">{{ forloop.counter }}</th>
                     {% endfor %}
+                    <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 150px; max-width: 150px; min-width: 150px;">Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -297,6 +298,9 @@
                                     <!-- Pixel cell - will be filled with data -->
                                 </td>
                             {% endfor %}
+                            <td class="total-cell" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 150px; max-width: 150px; min-width: 150px;">
+                                <!-- Total will be calculated and inserted here -->
+                            </td>
                         </tr>
                     {% endfor %}
                 {% endfor %}
@@ -315,6 +319,30 @@
                     // Randomly choose between style1 and style2
                     const style = Math.random() > 0.5 ? 'filled-style1' : 'filled-style2';
                     cell.classList.add(style);
+                }
+            });
+
+            // Calculate and populate totals for each row
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const pixelCells = row.querySelectorAll('.pixel-cell');
+                const totalCell = row.querySelector('.total-cell');
+
+                if (totalCell && pixelCells.length > 0) {
+                    // Count filled cells
+                    let count = 0;
+                    pixelCells.forEach(cell => {
+                        if (cell.classList.contains('filled-style1') || cell.classList.contains('filled-style2')) {
+                            count++;
+                        }
+                    });
+
+                    // Get habit name from the row
+                    const habitCell = row.querySelector('td:nth-child(2)');
+                    const habitName = habitCell ? habitCell.textContent.trim().toLowerCase() : '';
+
+                    // Format total text
+                    totalCell.textContent = `${count} ${habitName}`;
                 }
             });
         });
