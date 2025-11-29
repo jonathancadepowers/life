@@ -66,6 +66,35 @@
             border-top-width: 2px !important;
         }
 
+        /* Colored month separators */
+        .month-separator-yellow td {
+            border-top: 2px solid #FCFA53 !important;
+        }
+
+        .month-separator-blue td {
+            border-top: 2px solid #4587C5 !important;
+        }
+
+        .month-separator-orange td {
+            border-top: 2px solid #F56426 !important;
+        }
+
+        .month-separator-green td {
+            border-top: 2px solid #4BC051 !important;
+        }
+
+        .month-separator-gold td {
+            border-top: 2px solid #EEB221 !important;
+        }
+
+        .month-separator-red td {
+            border-top: 2px solid #EC2622 !important;
+        }
+
+        .month-separator-lightblue td {
+            border-top: 2px solid #A3DAE7 !important;
+        }
+
         .content a {
             color: #000000;
             text-decoration: none;
@@ -299,13 +328,22 @@
     <script>
         // Generate fake data for demonstration
         document.addEventListener('DOMContentLoaded', function() {
-            const cells = document.querySelectorAll('.pixel-cell');
+            const colors = ['yellow', 'blue', 'orange', 'green', 'gold', 'red', 'lightblue'];
 
+            // Randomly fill pixel cells
+            const cells = document.querySelectorAll('.pixel-cell');
             cells.forEach(cell => {
                 // Randomly fill ~60% of cells
                 if (Math.random() > 0.4) {
                     cell.classList.add('filled');
                 }
+            });
+
+            // Randomly color month separator borders
+            const monthSeparators = document.querySelectorAll('.month-separator');
+            monthSeparators.forEach(separator => {
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                separator.classList.add('month-separator-' + randomColor);
             });
         });
 
