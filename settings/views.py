@@ -4,6 +4,7 @@ from django.db import connection
 from django.core.files.base import ContentFile
 from .models import LifeTrackerColumn
 from inspirations_app.models import Inspiration
+from inspirations_app.utils import get_youtube_trailer_url
 from PIL import Image
 import io
 
@@ -143,11 +144,17 @@ def add_inspiration(request):
             # Create ContentFile with resized image
             resized_image = ContentFile(output.read(), name=image.name)
 
+            # Get YouTube trailer URL for films
+            youtube_url = None
+            if type_value == 'Film':
+                youtube_url = get_youtube_trailer_url(title)
+
             Inspiration.objects.create(
                 image=resized_image,
                 title=title,
                 flip_text=flip_text,
-                type=type_value
+                type=type_value,
+                youtube_url=youtube_url
             )
             messages.success(request, 'Inspiration added successfully!')
         else:

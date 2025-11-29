@@ -352,7 +352,13 @@
             <div class="flip-card">
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
+                        {% if inspiration.type == 'Film' and inspiration.youtube_url %}
+                        <a href="{{ inspiration.youtube_url }}" target="_blank" style="display: block; width: 100%; height: 100%;">
+                            <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
+                        </a>
+                        {% else %}
                         <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
+                        {% endif %}
                     </div>
                     <div class="flip-card-back">
                         <div class="flip-card-text">{{ inspiration.flip_text }}</div>
@@ -360,10 +366,16 @@
                 </div>
             </div>
             {% else %}
-            <div class="flip-card" style="pointer-events: none;">
+            <div class="flip-card" {% if inspiration.type != 'Film' or not inspiration.youtube_url %}style="pointer-events: none;"{% endif %}>
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
+                        {% if inspiration.type == 'Film' and inspiration.youtube_url %}
+                        <a href="{{ inspiration.youtube_url }}" target="_blank" style="display: block; width: 100%; height: 100%;">
+                            <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
+                        </a>
+                        {% else %}
                         <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
+                        {% endif %}
                     </div>
                 </div>
             </div>
