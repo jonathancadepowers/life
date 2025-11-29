@@ -238,7 +238,8 @@
             transform-style: preserve-3d;
         }
 
-        .flip-card:hover .flip-card-inner {
+        /* Only flip cards that have flip text */
+        .flip-card.has-flip-text:hover .flip-card-inner {
             transform: rotateY(180deg);
         }
 
@@ -354,7 +355,7 @@
         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: 2rem;">
             {% for inspiration in inspirations %}
             {% if inspiration.flip_text %}
-            <div class="flip-card {% if inspiration.url %}clickable{% endif %}" {% if inspiration.url %}onclick="window.open('{{ inspiration.url }}', '_blank')"{% endif %}>
+            <div class="flip-card has-flip-text {% if inspiration.url %}clickable{% endif %}" {% if inspiration.url %}onclick="window.open('{{ inspiration.url }}', '_blank')"{% endif %}>
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
                         <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
