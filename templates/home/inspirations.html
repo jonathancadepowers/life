@@ -242,12 +242,8 @@
             transform: rotateY(180deg);
         }
 
-        /* Disable flip for clickable films */
-        .flip-card.no-flip:hover .flip-card-inner {
-            transform: none;
-        }
-
-        .flip-card.no-flip {
+        /* Clickable cards should still be clickable */
+        .flip-card.clickable {
             cursor: pointer;
         }
 
@@ -358,16 +354,10 @@
         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: 2rem;">
             {% for inspiration in inspirations %}
             {% if inspiration.flip_text %}
-            <div class="flip-card {% if inspiration.url %}no-flip{% endif %}">
+            <div class="flip-card {% if inspiration.url %}clickable{% endif %}" {% if inspiration.url %}onclick="window.open('{{ inspiration.url }}', '_blank')"{% endif %}>
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
-                        {% if inspiration.url %}
-                        <a href="{{ inspiration.url }}" target="_blank" style="display: block; width: 100%; height: 100%;">
-                            <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
-                        </a>
-                        {% else %}
                         <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
-                        {% endif %}
                     </div>
                     <div class="flip-card-back">
                         <div class="flip-card-text">{{ inspiration.flip_text }}</div>
@@ -375,16 +365,10 @@
                 </div>
             </div>
             {% else %}
-            <div class="flip-card {% if inspiration.url %}no-flip{% endif %}" {% if not inspiration.url %}style="pointer-events: none;"{% endif %}>
+            <div class="flip-card {% if inspiration.url %}clickable{% endif %}" {% if inspiration.url %}onclick="window.open('{{ inspiration.url }}', '_blank')"{% elif not inspiration.url %}style="pointer-events: none;"{% endif %}>
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
-                        {% if inspiration.url %}
-                        <a href="{{ inspiration.url }}" target="_blank" style="display: block; width: 100%; height: 100%;">
-                            <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
-                        </a>
-                        {% else %}
                         <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
-                        {% endif %}
                     </div>
                 </div>
             </div>
