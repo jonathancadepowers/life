@@ -242,6 +242,15 @@
             transform: rotateY(180deg);
         }
 
+        /* Disable flip for clickable films */
+        .flip-card.no-flip:hover .flip-card-inner {
+            transform: none;
+        }
+
+        .flip-card.no-flip {
+            cursor: pointer;
+        }
+
         .flip-card-front,
         .flip-card-back {
             position: absolute;
@@ -349,7 +358,7 @@
         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: 2rem;">
             {% for inspiration in inspirations %}
             {% if inspiration.flip_text %}
-            <div class="flip-card">
+            <div class="flip-card {% if inspiration.type == 'Film' and inspiration.youtube_url %}no-flip{% endif %}">
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
                         {% if inspiration.type == 'Film' and inspiration.youtube_url %}
@@ -366,7 +375,7 @@
                 </div>
             </div>
             {% else %}
-            <div class="flip-card" {% if inspiration.type != 'Film' or not inspiration.youtube_url %}style="pointer-events: none;"{% endif %}>
+            <div class="flip-card {% if inspiration.type == 'Film' and inspiration.youtube_url %}no-flip{% endif %}" {% if inspiration.type != 'Film' or not inspiration.youtube_url %}style="pointer-events: none;"{% endif %}>
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
                         {% if inspiration.type == 'Film' and inspiration.youtube_url %}
