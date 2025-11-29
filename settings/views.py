@@ -144,15 +144,15 @@ def add_inspiration(request):
             # Create ContentFile with resized image
             resized_image = ContentFile(output.read(), name=image.name)
 
-            # Note: YouTube URL auto-search disabled due to package unreliability
-            # YouTube URLs can be manually added later if needed
+            # Get URL from form
+            url = request.POST.get('url', '').strip() or None
 
             Inspiration.objects.create(
                 image=resized_image,
                 title=title,
                 flip_text=flip_text,
                 type=type_value,
-                youtube_url=None
+                url=url
             )
             messages.success(request, 'Inspiration added successfully!')
         else:
@@ -169,11 +169,13 @@ def edit_inspiration(request, inspiration_id):
         title = request.POST.get('title', '').strip()
         flip_text = request.POST.get('flip_text', '')
         type_value = request.POST.get('type')
+        url = request.POST.get('url', '').strip() or None
 
         if title and type_value:
             inspiration.title = title
             inspiration.flip_text = flip_text
             inspiration.type = type_value
+            inspiration.url = url
             inspiration.save()
             messages.success(request, 'Inspiration updated successfully!')
         else:

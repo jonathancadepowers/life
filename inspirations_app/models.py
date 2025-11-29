@@ -51,11 +51,11 @@ class Inspiration(models.Model):
         choices=TYPE_CHOICES,
         help_text="Type of inspiration"
     )
-    youtube_url = models.URLField(
+    url = models.URLField(
         max_length=200,
         blank=True,
         null=True,
-        help_text="YouTube trailer URL (auto-populated for films)"
+        help_text="URL link (e.g., trailer, Goodreads, Spotify, etc.)"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

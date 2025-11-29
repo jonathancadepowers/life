@@ -142,6 +142,11 @@
                             <label for="new_flip_text" class="form-label">Flip Text</label>
                             <input type="text" class="form-control" id="new_flip_text" name="flip_text" placeholder="Text to display when flipped (1-2 sentences)" maxlength="200">
                         </div>
+                        <div class="mb-3">
+                            <label for="new_url" class="form-label">URL</label>
+                            <input type="url" class="form-control" id="new_url" name="url" placeholder="e.g., https://www.youtube.com/watch?v=..." maxlength="200">
+                            <div class="form-text">Optional link (trailer, Goodreads, Spotify, etc.)</div>
+                        </div>
                         <button type="submit" class="btn btn-success">
                             <i class="bi bi-save"></i> Add Inspiration
                         </button>
@@ -201,6 +206,11 @@
                                         <div class="mb-3">
                                             <label for="edit_flip_text_{{ inspiration.id }}" class="form-label">Flip Text</label>
                                             <input type="text" class="form-control" id="edit_flip_text_{{ inspiration.id }}" name="flip_text" value="{{ inspiration.flip_text }}" maxlength="200">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="edit_url_{{ inspiration.id }}" class="form-label">URL</label>
+                                            <input type="url" class="form-control" id="edit_url_{{ inspiration.id }}" name="url" value="{{ inspiration.url }}" maxlength="200">
+                                            <div class="form-text">Optional link (trailer, Goodreads, Spotify, etc.)</div>
                                         </div>
                                         <button type="submit" class="btn btn-success">
                                             <i class="bi bi-save"></i> Save Changes
