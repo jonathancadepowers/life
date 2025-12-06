@@ -146,6 +146,19 @@
             line-height: 1.6;
         }
 
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .image-grid img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
         .vertical-name {
             position: fixed;
             right: 2rem;
@@ -225,6 +238,15 @@
 
     <div class="content">
         <p><strong>WRITING</strong></p>
+
+        <div class="image-grid">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992415/writing/writing/baking_tray.png" alt="Baking Tray">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992421/writing/writing/fire.png" alt="Fire">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992422/writing/writing/metronome.png" alt="Metronome">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992424/writing/writing/theater.png" alt="Theater">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992426/writing/writing/tower.png" alt="Tower">
+        </div>
     </div>
 
     <script>
