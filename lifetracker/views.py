@@ -31,3 +31,10 @@ def life_metrics(request):
     Renders the life metrics page.
     """
     return render(request, 'home/life_metrics.html')
+
+
+def writing(request):
+    """
+    Renders the writing page.
+    """
+    return render(request, 'home/writing.html')

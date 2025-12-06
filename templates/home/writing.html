@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Writing - Jonathan Powers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", "Inter Placeholder", sans-serif;
+            background: #fff;
+            background-image:
+                linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #000;
+            line-height: 1.4;
+            padding: 2rem;
+            padding-bottom: calc(2rem + 15px);
+            position: relative;
+        }
+
+        nav {
+            width: 400px;
+            padding-top: 2rem;
+        }
+
+        .content {
+            position: absolute;
+            left: 230px;
+            top: 2rem;
+            width: 900px;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #000000;
+            opacity: 1;
+            border: 1px solid #E6E6E6;
+            border-radius: 0;
+            box-shadow: none;
+            font-size: 13.6px;
+            padding: 2rem;
+        }
+
+        .content a {
+            color: #000000;
+            text-decoration: none;
+            border-bottom: 3px solid #FDC3BF;
+        }
+
+        .content a:hover {
+            border-bottom: 3px solid #E6E6E6;
+        }
+
+        .colored-square {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: -1;
+            animation: colorShift 12s ease-in-out infinite;
+        }
+
+        @keyframes colorShift {
+            0% { background-color: var(--start-color) !important; }
+            33% { background-color: var(--mid-color) !important; }
+            66% { background-color: var(--end-color) !important; }
+            100% { background-color: var(--start-color) !important; }
+        }
+
+        h1 {
+            font-size: 1rem;
+            font-weight: normal;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .bio {
+            margin-bottom: 3rem;
+            max-width: 28rem;
+        }
+
+        .nav-item {
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+        }
+
+        .nav-item a {
+            color: #000;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-item a.active {
+            border-bottom: 3px solid #FDC3BF;
+        }
+
+        .nav-text {
+            white-space: nowrap;
+        }
+
+        .nav-icon {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+            transition: transform 0.5s ease;
+        }
+
+        @keyframes spinIcon {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .nav-icon.spinning {
+            animation: spinIcon 0.5s ease;
+        }
+
+        .nav-item a:hover {
+            text-decoration: none;
+        }
+
+        .nav-desc {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .content p {
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .vertical-name {
+            position: fixed;
+            right: 2rem;
+            bottom: 2rem;
+            transform: rotate(90deg);
+            transform-origin: right bottom;
+            font-size: 0.75rem;
+            text-transform: lowercase;
+            letter-spacing: 0.2em;
+            color: #000;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                flex-direction: column;
+            }
+
+            nav {
+                width: 100%;
+            }
+
+            .content {
+                width: 100%;
+            }
+
+            .nav-item {
+                grid-template-columns: 1fr;
+                gap: 0.25rem;
+            }
+
+            .vertical-name {
+                right: 1rem;
+                font-size: 0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="vertical-name">jonathan cade powers</div>
+
+    <nav>
+        <div class="nav-item">
+            <a href="/about" data-description="Just a bit about me">
+                <svg class="nav-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 9C3 6.5 4.5 4.25 7.5 1.5C10.5 4.25 12 6.5 12 9C12 11.4853 9.98528 13.5 7.5 13.5C5.01472 13.5 3 11.4853 3 9ZM10.9524 8.30307C9.67347 7.82121 8.2879 8.46208 6.98956 9.06259C5.9327 9.55142 4.93365 10.0135 4.09695 9.82153C4.03357 9.55804 4 9.28294 4 9C4 7.11203 5.02686 5.27195 7.5 2.87357C9.66837 4.97639 10.725 6.65004 10.9524 8.30307Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                <span class="nav-text">About</span>
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="/life-metrics" data-description="Real-time data from my life">
+                <svg class="nav-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 13C3.22386 13 3 12.7761 3 12.5V2.5C3 2.22386 3.22386 2 3.5 2C3.77614 2 4 2.22386 4 2.5V12.5C4 12.7761 3.77614 13 3.5 13ZM7.5 13C7.22386 13 7 12.7761 7 12.5V5.5C7 5.22386 7.22386 5 7.5 5C7.77614 5 8 5.22386 8 5.5V12.5C8 12.7761 7.77614 13 7.5 13ZM11.5 13C11.2239 13 11 12.7761 11 12.5V8.5C11 8.22386 11.2239 8 11.5 8C11.7761 8 12 8.22386 12 8.5V12.5C12 12.7761 11.7761 13 11.5 13Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                <span class="nav-text">Life Metrics</span>
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="/writing" class="active" data-description="Can I bend your ear about the novel I'm currently writing?">
+                <svg class="nav-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.5 1C6.22386 1 6 1.22386 6 1.5C6 1.77614 6.22386 2 6.5 2C7.12671 2 7.45718 2.20028 7.65563 2.47812C7.8781 2.78957 8 3.28837 8 4V11C8 11.7116 7.8781 12.2104 7.65563 12.5219C7.45718 12.7997 7.12671 13 6.5 13C6.22386 13 6 13.2239 6 13.5C6 13.7761 6.22386 14 6.5 14C7.37329 14 8.04282 13.7003 8.46937 13.1031C8.47976 13.0886 8.48997 13.0739 8.5 13.0591C8.51003 13.0739 8.52024 13.0886 8.53063 13.1031C8.95718 13.7003 9.62671 14 10.5 14C10.7761 14 11 13.7761 11 13.5C11 13.2239 10.7761 13 10.5 13C9.87329 13 9.54282 12.7997 9.34437 12.5219C9.1219 12.2104 9 11.7116 9 11V4C9 3.28837 9.1219 2.78957 9.34437 2.47812C9.54282 2.20028 9.87329 2 10.5 2C10.7761 2 11 1.77614 11 1.5C11 1.22386 10.7761 1 10.5 1C9.62671 1 8.95718 1.29972 8.53063 1.89688C8.52024 1.91143 8.51003 1.92611 8.5 1.9409C8.48997 1.92611 8.47976 1.91143 8.46937 1.89688C8.04282 1.29972 7.37329 1 6.5 1ZM14 5H11V4H14C14.5523 4 15 4.44772 15 5V10C15 10.5523 14.5523 11 14 11H11V10H14V5ZM6 4V5H1L1 10H6V11H1C0.447715 11 0 10.5523 0 10V5C0 4.44772 0.447715 4 1 4H6Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                <span class="nav-text">Writing</span>
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="/inspirations" data-description="All the pop culture that I love the most">
+                <svg class="nav-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0.877075 7.49985C0.877075 3.84216 3.84222 0.877014 7.49991 0.877014C11.1576 0.877014 14.1227 3.84216 14.1227 7.49985C14.1227 11.1575 11.1576 14.1227 7.49991 14.1227C3.84222 14.1227 0.877075 11.1575 0.877075 7.49985ZM3.78135 3.21565C4.68298 2.43239 5.83429 1.92904 7.09998 1.84089V6.53429L3.78135 3.21565ZM3.21567 3.78134C2.43242 4.68298 1.92909 5.83428 1.84095 7.09997H6.5343L3.21567 3.78134ZM6.5343 7.89997H1.84097C1.92916 9.16562 2.43253 10.3169 3.21579 11.2185L6.5343 7.89997ZM3.78149 11.7842C4.6831 12.5673 5.83435 13.0707 7.09998 13.1588V8.46566L3.78149 11.7842ZM7.89998 8.46566V13.1588C9.16559 13.0706 10.3168 12.5673 11.2184 11.7841L7.89998 8.46566ZM11.7841 11.2184C12.5673 10.3168 13.0707 9.16558 13.1588 7.89997H8.46567L11.7841 11.2184ZM8.46567 7.09997H13.1589C13.0707 5.83432 12.5674 4.68305 11.7842 3.78143L8.46567 7.09997ZM11.2185 3.21573C10.3169 2.43246 9.16565 1.92909 7.89998 1.8409V6.53429L11.2185 3.21573Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                <span class="nav-text">Inspirations</span>
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="/contact" data-description="How to get in touch">
+                <svg class="nav-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.20308 1.04312C1.00481 0.954998 0.772341 1.0048 0.627577 1.16641C0.482813 1.32802 0.458794 1.56455 0.568117 1.75196L3.92115 7.50002L0.568117 13.2481C0.458794 13.4355 0.482813 13.672 0.627577 13.8336C0.772341 13.9952 1.00481 14.045 1.20308 13.9569L14.7031 7.95693C14.8836 7.87668 15 7.69762 15 7.50002C15 7.30243 14.8836 7.12337 14.7031 7.04312L1.20308 1.04312ZM4.84553 7.10002L2.21234 2.586L13.2689 7.50002L2.21234 12.414L4.84552 7.90002H9C9.22092 7.90002 9.4 7.72094 9.4 7.50002C9.4 7.27911 9.22092 7.10002 9 7.10002H4.84553Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                <span class="nav-text">Contact</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <p><strong>WRITING</strong></p>
+    </div>
+
+    <script>
+        // Add spin animation to nav icons on hover (except active page)
+        document.querySelectorAll('.nav-item a').forEach(link => {
+            if (!link.classList.contains('active')) {
+                link.addEventListener('mouseenter', function() {
+                    const icon = this.querySelector('.nav-icon');
+                    icon.classList.add('spinning');
+                    setTimeout(() => {
+                        icon.classList.remove('spinning');
+                    }, 500);
+                });
+            }
+        });
+
+        // Set body min-height to accommodate content div + 30px
+        requestAnimationFrame(() => {
+            const contentDiv = document.querySelector('.content');
+            const contentBottom = contentDiv.offsetTop + contentDiv.offsetHeight;
+            document.body.style.minHeight = (contentBottom + 30) + 'px';
+        });
+
+        // Colored grid squares
+        const colors = ['#FCFA53', '#4587C5', '#F56426', '#4BC051', '#EEB221', '#EC2622', '#A3DAE7'];
+        const gridSize = 20;
+        const numSquares = 50;
+        const navExclusionWidth = 500; // Avoid first 500px horizontally
+        const navExclusionHeight = 400; // Avoid first 400px vertically
+
+        // Create an array with evenly distributed colors
+        const colorPool = [];
+        const squaresPerColor = Math.floor(numSquares / colors.length);
+        const remainder = numSquares % colors.length;
+
+        colors.forEach((color, index) => {
+            const count = squaresPerColor + (index < remainder ? 1 : 0);
+            for (let j = 0; j < count; j++) {
+                colorPool.push(color);
+            }
+        });
+
+        // Shuffle the color pool
+        for (let i = colorPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [colorPool[i], colorPool[j]] = [colorPool[j], colorPool[i]];
+        }
+
+        for (let i = 0; i < numSquares; i++) {
+            const square = document.createElement('div');
+            square.className = 'colored-square';
+
+            let x, y;
+            // Keep generating random positions until we find one outside the nav area
+            do {
+                x = Math.floor(Math.random() * (window.innerWidth / gridSize)) * gridSize;
+                y = Math.floor(Math.random() * (window.innerHeight / gridSize)) * gridSize;
+            } while (x < navExclusionWidth && y < navExclusionHeight);
+
+            const color = colorPool[i];
+
+            square.style.left = x + 'px';
+            square.style.top = y + 'px';
+
+            // Set background color (no animation, solid color)
+            square.style.backgroundColor = color;
+
+            // Set custom properties for the animation
+            square.style.setProperty('--start-color', color);
+            square.style.setProperty('--mid-color', color);
+            square.style.setProperty('--end-color', color);
+
+            // Random animation delay so they don't all sync (0-10 seconds)
+            square.style.animationDelay = (Math.random() * 10) + 's';
+
+            document.body.appendChild(square);
+        }
+    </script>
+</body>
+</html>
