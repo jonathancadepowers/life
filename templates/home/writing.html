@@ -166,6 +166,35 @@
             filter: grayscale(0%);
         }
 
+        .excerpt-display {
+            height: 250px;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #E6E6E6;
+            background: #FAFAFA;
+            font-size: 13.6px;
+            line-height: 1.8;
+            color: #333;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .excerpt-text {
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        .excerpt-text.visible {
+            opacity: 1;
+        }
+
+        .excerpt-display:empty::before {
+            content: "Hover over an image to read an excerpt...";
+            color: #999;
+            font-style: italic;
+        }
+
         .vertical-name {
             position: fixed;
             right: 2rem;
@@ -246,13 +275,15 @@
     <div class="content">
         <p><strong>WRITING</strong></p>
 
+        <div class="excerpt-display" id="excerpt-display"></div>
+
         <div class="image-grid">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992415/writing/writing/baking_tray.png" alt="Baking Tray">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992421/writing/writing/fire.png" alt="Fire">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992422/writing/writing/metronome.png" alt="Metronome">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992424/writing/writing/theater.png" alt="Theater">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992426/writing/writing/tower.png" alt="Tower">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992415/writing/writing/baking_tray.png" alt="Baking Tray" data-excerpt="Excerpt for baking tray goes here...">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny" data-excerpt="Charlie looked for a seat, away from the poster, away from the eggs. She spotted one on the other side of the train and edged between backs and elbows, sinking into an open spot across from a young girl mashing buttons on a Game Boy. The girl was dressed as a white rabbit: a headband with felt ears, a cotton tail taped to the back, and a toy pocket watch dangling from a string around her neck.\n\nA woman reached over and gathered the girl's hair into a ponytail. The girl paused her game, and the woman's fingers moved with an easy rhythm, holding a pink elastic hair tie between her teeth. For a moment, the girl closed her eyes.">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992421/writing/writing/fire.png" alt="Fire" data-excerpt="Excerpt for fire goes here...">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992422/writing/writing/metronome.png" alt="Metronome" data-excerpt="Excerpt for metronome goes here...">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992424/writing/writing/theater.png" alt="Theater" data-excerpt="Excerpt for theater goes here...">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992426/writing/writing/tower.png" alt="Tower" data-excerpt="Excerpt for tower goes here...">
         </div>
     </div>
 
@@ -268,6 +299,50 @@
                     }, 500);
                 });
             }
+        });
+
+        // Handle excerpt display on image hover
+        const excerptDisplay = document.getElementById('excerpt-display');
+        const images = document.querySelectorAll('.image-grid img');
+        let currentExcerptElement = null;
+
+        images.forEach(img => {
+            img.addEventListener('mouseenter', function() {
+                const excerpt = this.getAttribute('data-excerpt');
+
+                // Clear previous excerpt
+                if (currentExcerptElement) {
+                    currentExcerptElement.classList.remove('visible');
+                }
+
+                // Create new excerpt element
+                const excerptText = document.createElement('div');
+                excerptText.className = 'excerpt-text';
+                excerptText.textContent = excerpt;
+
+                // Clear display and add new excerpt
+                excerptDisplay.innerHTML = '';
+                excerptDisplay.appendChild(excerptText);
+
+                // Trigger fade-in
+                setTimeout(() => {
+                    excerptText.classList.add('visible');
+                }, 10);
+
+                currentExcerptElement = excerptText;
+            });
+
+            img.addEventListener('mouseleave', function() {
+                if (currentExcerptElement) {
+                    currentExcerptElement.classList.remove('visible');
+                    setTimeout(() => {
+                        if (excerptDisplay.contains(currentExcerptElement)) {
+                            excerptDisplay.innerHTML = '';
+                        }
+                        currentExcerptElement = null;
+                    }, 600); // Match transition duration
+                }
+            });
         });
 
         // Set body min-height to accommodate content div + 30px
