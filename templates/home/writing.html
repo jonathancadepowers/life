@@ -241,12 +241,17 @@
 
         <div class="image-grid">
             <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992415/writing/writing/baking_tray.png" alt="Baking Tray">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny">
+            <img id="bunny-image" src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny">
             <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992421/writing/writing/fire.png" alt="Fire">
             <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992422/writing/writing/metronome.png" alt="Metronome">
             <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992424/writing/writing/theater.png" alt="Theater">
             <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992426/writing/writing/tower.png" alt="Tower">
         </div>
+
+        <!-- Audio element for bunny -->
+        <audio id="bunny-audio" preload="auto">
+            <source src="https://res.cloudinary.com/dswnu77yo/video/upload/v1764993059/writing/audio/writing/audio/bunny.mp3" type="audio/mpeg">
+        </audio>
     </div>
 
     <script>
@@ -262,6 +267,22 @@
                 });
             }
         });
+
+        // Audio playback on image hover
+        const bunnyImage = document.getElementById('bunny-image');
+        const bunnyAudio = document.getElementById('bunny-audio');
+
+        if (bunnyImage && bunnyAudio) {
+            bunnyImage.addEventListener('mouseenter', function() {
+                bunnyAudio.currentTime = 0; // Reset to beginning
+                bunnyAudio.play();
+            });
+
+            bunnyImage.addEventListener('mouseleave', function() {
+                bunnyAudio.pause();
+                bunnyAudio.currentTime = 0; // Reset to beginning
+            });
+        }
 
         // Set body min-height to accommodate content div + 30px
         requestAnimationFrame(() => {
