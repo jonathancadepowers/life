@@ -158,9 +158,14 @@
             height: auto;
             display: block;
             filter: grayscale(100%);
-            transition: filter 0.4s ease, transform 0.1s ease;
+            transition: all 1.5s ease, opacity 1.5s ease;
             cursor: pointer;
             position: relative;
+            opacity: 1;
+        }
+
+        .image-grid:hover img {
+            opacity: 0.2;
         }
 
         .image-grid img:hover {
@@ -168,6 +173,7 @@
             grid-column: span 2;
             grid-row: span 2;
             z-index: 10;
+            opacity: 1;
         }
 
         .vertical-name {
