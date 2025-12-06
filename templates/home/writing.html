@@ -159,6 +159,10 @@
             display: block;
         }
 
+        #bunny-image {
+            cursor: pointer;
+        }
+
         .vertical-name {
             position: fixed;
             right: 2rem;
@@ -275,7 +279,13 @@
         if (bunnyImage && bunnyAudio) {
             bunnyImage.addEventListener('mouseenter', function() {
                 bunnyAudio.currentTime = 0; // Reset to beginning
-                bunnyAudio.play();
+                const playPromise = bunnyAudio.play();
+
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log('Audio playback failed:', error);
+                    });
+                }
             });
 
             bunnyImage.addEventListener('mouseleave', function() {
