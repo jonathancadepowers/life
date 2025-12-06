@@ -279,13 +279,7 @@
         if (bunnyImage && bunnyAudio) {
             bunnyImage.addEventListener('mouseenter', function() {
                 bunnyAudio.currentTime = 0; // Reset to beginning
-                const playPromise = bunnyAudio.play();
-
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.log('Audio playback failed:', error);
-                    });
-                }
+                bunnyAudio.play().catch(() => {}); // Silently handle autoplay errors
             });
 
             bunnyImage.addEventListener('mouseleave', function() {
