@@ -304,6 +304,7 @@
         // Handle excerpt display on image hover
         const excerptDisplay = document.getElementById('excerpt-display');
         const images = document.querySelectorAll('.image-grid img');
+        const imageGrid = document.querySelector('.image-grid');
         let currentExcerptElement = null;
 
         images.forEach(img => {
@@ -331,18 +332,17 @@
 
                 currentExcerptElement = excerptText;
             });
+        });
 
-            img.addEventListener('mouseleave', function() {
-                if (currentExcerptElement) {
-                    currentExcerptElement.classList.remove('visible');
-                    setTimeout(() => {
-                        if (excerptDisplay.contains(currentExcerptElement)) {
-                            excerptDisplay.innerHTML = '';
-                        }
-                        currentExcerptElement = null;
-                    }, 600); // Match transition duration
-                }
-            });
+        // Clear excerpt when leaving the entire image grid
+        imageGrid.addEventListener('mouseleave', function() {
+            if (currentExcerptElement) {
+                currentExcerptElement.classList.remove('visible');
+                setTimeout(() => {
+                    excerptDisplay.innerHTML = '';
+                    currentExcerptElement = null;
+                }, 600);
+            }
         });
 
         // Set body min-height to accommodate content div + 30px
