@@ -5,6 +5,7 @@ from django.core.files.base import ContentFile
 from .models import LifeTrackerColumn
 from inspirations_app.models import Inspiration
 from inspirations_app.utils import get_youtube_trailer_url
+from writing.models import WritingPageImage
 from PIL import Image
 import io
 
@@ -98,6 +99,9 @@ def life_tracker_settings(request):
     # Get all inspirations
     inspirations = Inspiration.objects.all()
 
+    # Get all writing page images
+    writing_images = WritingPageImage.objects.all()
+
     context = {
         'columns': columns_with_fields,
         'available_parameters': [
@@ -107,6 +111,7 @@ def life_tracker_settings(request):
         ],
         'inspirations': inspirations,
         'type_choices': Inspiration.TYPE_CHOICES,
+        'writing_images': writing_images,
     }
 
     return render(request, 'settings/life_tracker_settings.html', context)
@@ -191,5 +196,68 @@ def delete_inspiration(request, inspiration_id):
     if request.method == 'POST':
         inspiration.delete()
         messages.success(request, 'Inspiration deleted successfully!')
+
+    return redirect('life_tracker_settings')
+
+
+def add_writing_image(request):
+    """Add a new writing page image."""
+    if request.method == 'POST':
+        image = request.FILES.get('image')
+        title = request.POST.get('title', '').strip()
+        excerpt = request.POST.get('excerpt', '').strip()
+        order = request.POST.get('order', 0)
+
+        if image and title and excerpt:
+            WritingPageImage.objects.create(
+                image=image,
+                title=title,
+                excerpt=excerpt,
+                order=int(order),
+                enabled=True
+            )
+            messages.success(request, 'Writing page image added successfully!')
+        else:
+            messages.error(request, 'Please fill in all required fields (Image, Title, and Excerpt).')
+
+    return redirect('life_tracker_settings')
+
+
+def edit_writing_image(request, image_id):
+    """Edit an existing writing page image."""
+    writing_image = get_object_or_404(WritingPageImage, id=image_id)
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        excerpt = request.POST.get('excerpt', '').strip()
+        order = request.POST.get('order', 0)
+        enabled = request.POST.get('enabled') == 'on'
+
+        if title and excerpt:
+            writing_image.title = title
+            writing_image.excerpt = excerpt
+            writing_image.order = int(order)
+            writing_image.enabled = enabled
+
+            # Handle new image upload
+            new_image = request.FILES.get('image')
+            if new_image:
+                writing_image.image = new_image
+
+            writing_image.save()
+            messages.success(request, 'Writing page image updated successfully!')
+        else:
+            messages.error(request, 'Title and Excerpt are required.')
+
+    return redirect('life_tracker_settings')
+
+
+def delete_writing_image(request, image_id):
+    """Delete a writing page image."""
+    writing_image = get_object_or_404(WritingPageImage, id=image_id)
+
+    if request.method == 'POST':
+        writing_image.delete()
+        messages.success(request, 'Writing page image deleted successfully!')
 
     return redirect('life_tracker_settings')
