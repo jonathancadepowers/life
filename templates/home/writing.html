@@ -222,7 +222,20 @@
             color: #333;
             padding-right: 1rem;
             align-self: flex-start;
+        }
+
+        .modal-text-container > div:first-child {
             white-space: pre-wrap;
+        }
+
+        .copyright-notice {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #E6E6E6;
+            color: #999;
+            font-style: italic;
+            font-size: 12px;
+            white-space: normal;
         }
 
         .modal-close {
@@ -374,7 +387,20 @@
 
                 modalImage.src = imageSrc;
                 modalImage.alt = imageAlt;
-                modalText.textContent = excerpt;
+
+                // Clear previous content
+                modalText.innerHTML = '';
+
+                // Add excerpt text
+                const excerptDiv = document.createElement('div');
+                excerptDiv.textContent = excerpt;
+                modalText.appendChild(excerptDiv);
+
+                // Add copyright notice
+                const copyrightDiv = document.createElement('div');
+                copyrightDiv.className = 'copyright-notice';
+                copyrightDiv.innerHTML = 'This is an excerpt from my upcoming novel, <strong>Shapes that Make Sounds</strong>. All rights reserved. Please do not redistribute.';
+                modalText.appendChild(copyrightDiv);
 
                 modal.style.display = 'flex';
                 setTimeout(() => {
