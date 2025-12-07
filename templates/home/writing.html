@@ -202,10 +202,46 @@
             justify-content: center;
         }
 
+        .modal-image-container {
+            position: relative;
+        }
+
         .modal-image-container img {
             max-height: 63vh;
             width: auto;
             display: block;
+        }
+
+        .modal-image-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                110deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.1) 45%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0.1) 55%,
+                transparent 70%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 8s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            50% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
         }
 
         .modal-text-container {
