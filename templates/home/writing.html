@@ -166,6 +166,79 @@
             filter: grayscale(0%);
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            position: relative;
+            margin: auto;
+            width: 90%;
+            max-width: 1200px;
+            height: 80vh;
+            display: flex;
+            gap: 2rem;
+            background: #ffffff;
+            border: 1px solid #E6E6E6;
+            padding: 2rem;
+        }
+
+        .modal-image-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .modal-text-container {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 13.6px;
+            line-height: 1.8;
+            color: #333;
+            padding-right: 1rem;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #000;
+        }
+
         .vertical-name {
             position: fixed;
             right: 2rem;
@@ -247,12 +320,25 @@
         <p><strong>WRITING</strong></p>
 
         <div class="image-grid">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992415/writing/writing/baking_tray.png" alt="Baking Tray">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992421/writing/writing/fire.png" alt="Fire">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992422/writing/writing/metronome.png" alt="Metronome">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992424/writing/writing/theater.png" alt="Theater">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992426/writing/writing/tower.png" alt="Tower">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992415/writing/writing/baking_tray.png" alt="Baking Tray" data-excerpt="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny" data-excerpt="Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992421/writing/writing/fire.png" alt="Fire" data-excerpt="Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo. Quisque sit amet est et sapien ullamcorper pharetra.">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992422/writing/writing/metronome.png" alt="Metronome" data-excerpt="Vestibulum erat wisi, condimentum sed, commodo vitae, ornare sit amet, wisi. Aenean fermentum, elit eget tincidunt condimentum, eros ipsum rutrum orci, sagittis tempus lacus.">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992424/writing/writing/theater.png" alt="Theater" data-excerpt="Etiam vel neque nec dui dignissim bibendum. Vivamus id enim. Phasellus neque orci, porta a, aliquet quis, semper a, massa. Phasellus purus.">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992426/writing/writing/tower.png" alt="Tower" data-excerpt="Pellentesque dapibus hendrerit tortor. Praesent egestas tristique nibh. Sed a libero. Cras varius. Donec vitae orci sed dolor rutrum auctor.">
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <div class="modal-image-container">
+                <img id="modalImage" src="" alt="">
+            </div>
+            <div class="modal-text-container">
+                <p id="modalText"></p>
+            </div>
         </div>
     </div>
 
@@ -267,6 +353,59 @@
                         icon.classList.remove('spinning');
                     }, 500);
                 });
+            }
+        });
+
+        // Modal functionality
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalText = document.getElementById('modalText');
+        const closeModal = document.getElementById('closeModal');
+        const gridImages = document.querySelectorAll('.image-grid img');
+
+        // Open modal when clicking an image
+        gridImages.forEach(img => {
+            img.addEventListener('click', function() {
+                const imageSrc = this.getAttribute('src');
+                const imageAlt = this.getAttribute('alt');
+                const excerpt = this.getAttribute('data-excerpt');
+
+                modalImage.src = imageSrc;
+                modalImage.alt = imageAlt;
+                modalText.textContent = excerpt;
+
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('active');
+                }, 10);
+            });
+        });
+
+        // Close modal when clicking X button
+        closeModal.addEventListener('click', function() {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        });
+
+        // Close modal when clicking outside the modal content
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                modal.classList.remove('active');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
             }
         });
 
