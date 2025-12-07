@@ -28,6 +28,7 @@ urlpatterns = [
     path("inspirations/", home_views.inspirations, name='inspirations'),
     path("life-metrics/", home_views.life_metrics, name='life_metrics'),
     path("writing/", home_views.writing, name='writing'),
+    path("contact/", home_views.contact, name='contact'),
     path("admin/", admin.site.urls),
     path("oauth/", include("oauth_integration.urls")),
     path("activity-report/", targets_views.activity_report, name='activity_report'),

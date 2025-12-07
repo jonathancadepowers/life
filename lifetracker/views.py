@@ -42,3 +42,10 @@ def writing(request):
     images = WritingPageImage.objects.filter(enabled=True).order_by('created_at')
 
     return render(request, 'home/writing.html', {'images': images})
+
+
+def contact(request):
+    """
+    Renders the contact page.
+    """
+    return render(request, 'home/contact.html')
