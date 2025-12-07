@@ -166,34 +166,6 @@
             filter: grayscale(0%);
         }
 
-        .excerpt-display {
-            height: 250px;
-            margin-top: 2rem;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            border: 1px solid #E6E6E6;
-            background: #FAFAFA;
-            font-size: 13.6px;
-            line-height: 1.8;
-            color: #333;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        .excerpt-text {
-            opacity: 0;
-            transition: opacity 0.6s ease;
-        }
-
-        .excerpt-text.visible {
-            opacity: 1;
-        }
-
-        .default-text {
-            opacity: 1;
-            transition: opacity 0.6s ease;
-        }
-
         .vertical-name {
             position: fixed;
             right: 2rem;
@@ -274,25 +246,13 @@
     <div class="content">
         <p><strong>WRITING</strong></p>
 
-        <div class="excerpt-display" id="excerpt-display">
-            <div class="default-text" id="default-text">
-                <p>Charlie didn't know her father owned a time machine—until it ripped her a century away from him.</p>
-
-                <p>In 1997, 20-year-old Charlie lives under the shadow of her brilliant but reclusive father, a legendary screenwriter whose dark visions haunt audiences. When he wakes her one night at 3 a.m. begging her to deliver a mysterious sealed package to a stranger, Charlie fears he's tipping into madness. Curiosity wins. She opens it, follows its clues, and discovers a peculiar machine hidden deep in the walls of their brownstone. One touch hurls her to 2099—and into The Carousel, a glittering prison of glass and gardens where her father's parents and sisters remain trapped. The facility's beauty hides a dangerous purpose and impossible family secrets, which her father escaped and has been secretly protecting Charlie from her entire life.</p>
-
-                <p>Now, Charlie's only escape home is through a fragile relay across time: her father turning invisible gears in the past, Charlie decoding his trail in the future. Separated by a century and bound by love, father and daughter race the clock to reunite—before The Carousel locks Charlie in forever.</p>
-
-                <p><em>SHAPES THAT MAKE SOUNDS</em> is an 80,000-word work of upmarket speculative fiction. It is written for readers who enjoyed the quiet, character-driven sci-fi of <em>SEA OF TRANQUILITY</em>. It will also appeal to fans of the puzzle-box storytelling in <em>THE CARTOGRAPHERS</em>.</p>
-            </div>
-        </div>
-
         <div class="image-grid">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992415/writing/writing/baking_tray.png" alt="Baking Tray" data-excerpt="Excerpt for baking tray goes here...">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny" data-excerpt="Charlie looked for a seat, away from the poster, away from the eggs. She spotted one on the other side of the train and edged between backs and elbows, sinking into an open spot across from a young girl mashing buttons on a Game Boy. The girl was dressed as a white rabbit: a headband with felt ears, a cotton tail taped to the back, and a toy pocket watch dangling from a string around her neck.\n\nA woman reached over and gathered the girl's hair into a ponytail. The girl paused her game, and the woman's fingers moved with an easy rhythm, holding a pink elastic hair tie between her teeth. For a moment, the girl closed her eyes.">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992421/writing/writing/fire.png" alt="Fire" data-excerpt="Excerpt for fire goes here...">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992422/writing/writing/metronome.png" alt="Metronome" data-excerpt="Excerpt for metronome goes here...">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992424/writing/writing/theater.png" alt="Theater" data-excerpt="Excerpt for theater goes here...">
-            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992426/writing/writing/tower.png" alt="Tower" data-excerpt="Excerpt for tower goes here...">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992415/writing/writing/baking_tray.png" alt="Baking Tray">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992417/writing/writing/bunny.png" alt="Bunny">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992421/writing/writing/fire.png" alt="Fire">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992422/writing/writing/metronome.png" alt="Metronome">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992424/writing/writing/theater.png" alt="Theater">
+            <img src="https://res.cloudinary.com/dswnu77yo/image/upload/v1764992426/writing/writing/tower.png" alt="Tower">
         </div>
     </div>
 
@@ -307,66 +267,6 @@
                         icon.classList.remove('spinning');
                     }, 500);
                 });
-            }
-        });
-
-        // Handle excerpt display on image hover
-        const excerptDisplay = document.getElementById('excerpt-display');
-        const defaultText = document.getElementById('default-text');
-        const images = document.querySelectorAll('.image-grid img');
-        const imageGrid = document.querySelector('.image-grid');
-        let currentExcerptElement = null;
-
-        images.forEach(img => {
-            img.addEventListener('mouseenter', function() {
-                const excerpt = this.getAttribute('data-excerpt');
-
-                // Hide default text
-                if (defaultText && defaultText.parentNode === excerptDisplay) {
-                    defaultText.style.opacity = '0';
-                    setTimeout(() => {
-                        if (defaultText.parentNode === excerptDisplay) {
-                            defaultText.remove();
-                        }
-                    }, 600);
-                }
-
-                // Clear previous excerpt
-                if (currentExcerptElement) {
-                    currentExcerptElement.classList.remove('visible');
-                }
-
-                // Create new excerpt element
-                const excerptText = document.createElement('div');
-                excerptText.className = 'excerpt-text';
-                excerptText.textContent = excerpt;
-
-                // Clear display and add new excerpt
-                excerptDisplay.innerHTML = '';
-                excerptDisplay.appendChild(excerptText);
-
-                // Trigger fade-in
-                setTimeout(() => {
-                    excerptText.classList.add('visible');
-                }, 10);
-
-                currentExcerptElement = excerptText;
-            });
-        });
-
-        // Restore default text when leaving the entire image grid
-        imageGrid.addEventListener('mouseleave', function() {
-            if (currentExcerptElement) {
-                currentExcerptElement.classList.remove('visible');
-                setTimeout(() => {
-                    excerptDisplay.innerHTML = '';
-                    excerptDisplay.appendChild(defaultText);
-                    defaultText.style.opacity = '0';
-                    setTimeout(() => {
-                        defaultText.style.opacity = '1';
-                    }, 10);
-                    currentExcerptElement = null;
-                }, 600);
             }
         });
 
