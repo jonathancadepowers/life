@@ -6,20 +6,12 @@ class WritingPageImage(models.Model):
     """
     Represents an image displayed on the /writing page with its associated excerpt.
     """
-    title = models.CharField(
-        max_length=100,
-        help_text="Title or name of the image (e.g., 'Bunny', 'Fire')"
-    )
     image = CloudinaryField(
         'image',
         help_text="Image file to display on the writing page"
     )
     excerpt = models.TextField(
         help_text="Novel excerpt that appears in the modal when clicking this image"
-    )
-    order = models.IntegerField(
-        default=0,
-        help_text="Display order on the page (lower numbers appear first)"
     )
     enabled = models.BooleanField(
         default=True,
@@ -31,12 +23,12 @@ class WritingPageImage(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['order', 'title']
+        ordering = ['created_at']
         verbose_name = 'Writing Page Image'
         verbose_name_plural = 'Writing Page Images'
 
     def __str__(self):
-        return f"{self.title} (Order: {self.order})"
+        return f"Writing Image {self.id}"
 
 
 class WritingLog(models.Model):

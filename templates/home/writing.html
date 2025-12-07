@@ -320,7 +320,7 @@
 
         <div class="image-grid">
             {% for image in images %}
-            <img src="{{ image.image.url }}" alt="{{ image.title }}" data-excerpt="{{ image.excerpt }}">
+            <img src="{{ image.image.url }}" alt="Writing Image {{ image.id }}" data-excerpt="{{ image.excerpt }}">
             {% endfor %}
         </div>
     </div>

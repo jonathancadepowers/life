@@ -39,6 +39,6 @@ def writing(request):
     """
     from writing.models import WritingPageImage
 
-    images = WritingPageImage.objects.filter(enabled=True).order_by('order')
+    images = WritingPageImage.objects.filter(enabled=True).order_by('created_at')
 
     return render(request, 'home/writing.html', {'images': images})

@@ -4,15 +4,15 @@ from .models import WritingLog, WritingPageImage
 
 @admin.register(WritingPageImage)
 class WritingPageImageAdmin(admin.ModelAdmin):
-    list_display = ('title', 'order', 'enabled', 'created_at')
+    list_display = ('id', 'enabled', 'created_at')
     list_filter = ('enabled',)
-    search_fields = ('title', 'excerpt')
-    ordering = ('order', 'title')
-    list_editable = ('order', 'enabled')
+    search_fields = ('excerpt',)
+    ordering = ('created_at',)
+    list_editable = ('enabled',)
 
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'image', 'order', 'enabled')
+            'fields': ('image', 'enabled')
         }),
         ('Excerpt', {
             'fields': ('excerpt',),

@@ -230,11 +230,11 @@
             </div>
         </div>
 
-        <!-- Writing Page Images Section -->
+        <!-- Writing Page Section -->
         <div class="settings-section">
             <h3>
                 <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#writingImagesSection" aria-expanded="false">
-                    Writing Page Images
+                    Writing Page
                     <i class="bi bi-chevron-down ms-2"></i>
                 </button>
             </h3>
@@ -252,19 +252,9 @@
                     <h5>Add New Writing Page Image</h5>
                     <form method="POST" action="{% url 'add_writing_image' %}" enctype="multipart/form-data">
                         {% csrf_token %}
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="new_writing_image" class="form-label">Image *</label>
-                                <input type="file" class="form-control" id="new_writing_image" name="image" accept="image/*" required>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="new_writing_title" class="form-label">Title *</label>
-                                <input type="text" class="form-control" id="new_writing_title" name="title" placeholder="e.g., Bunny" maxlength="100" required>
-                            </div>
-                            <div class="col-md-2 mb-3">
-                                <label for="new_writing_order" class="form-label">Order</label>
-                                <input type="number" class="form-control" id="new_writing_order" name="order" value="0" min="0">
-                            </div>
+                        <div class="mb-3">
+                            <label for="new_writing_image" class="form-label">Image *</label>
+                            <input type="file" class="form-control" id="new_writing_image" name="image" accept="image/*" required>
                         </div>
                         <div class="mb-3">
                             <label for="new_writing_excerpt" class="form-label">Novel Excerpt *</label>
@@ -282,8 +272,6 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Order</th>
                             <th>Enabled</th>
                             <th>Excerpt Preview</th>
                             <th>Actions</th>
@@ -292,8 +280,6 @@
                     <tbody>
                         {% for image in writing_images %}
                         <tr>
-                            <td>{{ image.title }}</td>
-                            <td>{{ image.order }}</td>
                             <td>
                                 {% if image.enabled %}
                                     <span class="badge bg-success">Yes</span>
@@ -315,21 +301,13 @@
                             </td>
                         </tr>
                         <tr class="collapse" id="editWritingImageForm{{ image.id }}">
-                            <td colspan="5">
+                            <td colspan="3">
                                 <div class="card card-body">
                                     <h6>Edit Writing Page Image</h6>
                                     <form method="POST" action="{% url 'edit_writing_image' image.id %}" enctype="multipart/form-data">
                                         {% csrf_token %}
                                         <div class="row">
-                                            <div class="col-md-4 mb-3">
-                                                <label for="edit_writing_title_{{ image.id }}" class="form-label">Title *</label>
-                                                <input type="text" class="form-control" id="edit_writing_title_{{ image.id }}" name="title" value="{{ image.title }}" maxlength="100" required>
-                                            </div>
-                                            <div class="col-md-2 mb-3">
-                                                <label for="edit_writing_order_{{ image.id }}" class="form-label">Order</label>
-                                                <input type="number" class="form-control" id="edit_writing_order_{{ image.id }}" name="order" value="{{ image.order }}" min="0">
-                                            </div>
-                                            <div class="col-md-4 mb-3">
+                                            <div class="col-md-10 mb-3">
                                                 <label for="edit_writing_image_{{ image.id }}" class="form-label">Replace Image</label>
                                                 <input type="file" class="form-control" id="edit_writing_image_{{ image.id }}" name="image" accept="image/*">
                                                 <div class="form-text">Leave blank to keep current image</div>
@@ -355,7 +333,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center text-muted">No writing page images yet. Add one above!</td>
+                            <td colspan="3" class="text-center text-muted">No writing page images yet. Add one above!</td>
                         </tr>
                         {% endfor %}
                     </tbody>

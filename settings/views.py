@@ -204,21 +204,17 @@ def add_writing_image(request):
     """Add a new writing page image."""
     if request.method == 'POST':
         image = request.FILES.get('image')
-        title = request.POST.get('title', '').strip()
         excerpt = request.POST.get('excerpt', '').strip()
-        order = request.POST.get('order', 0)
 
-        if image and title and excerpt:
+        if image and excerpt:
             WritingPageImage.objects.create(
                 image=image,
-                title=title,
                 excerpt=excerpt,
-                order=int(order),
                 enabled=True
             )
             messages.success(request, 'Writing page image added successfully!')
         else:
-            messages.error(request, 'Please fill in all required fields (Image, Title, and Excerpt).')
+            messages.error(request, 'Please fill in all required fields (Image and Excerpt).')
 
     return redirect('life_tracker_settings')
 
@@ -228,15 +224,11 @@ def edit_writing_image(request, image_id):
     writing_image = get_object_or_404(WritingPageImage, id=image_id)
 
     if request.method == 'POST':
-        title = request.POST.get('title', '').strip()
         excerpt = request.POST.get('excerpt', '').strip()
-        order = request.POST.get('order', 0)
         enabled = request.POST.get('enabled') == 'on'
 
-        if title and excerpt:
-            writing_image.title = title
+        if excerpt:
             writing_image.excerpt = excerpt
-            writing_image.order = int(order)
             writing_image.enabled = enabled
 
             # Handle new image upload
@@ -247,7 +239,7 @@ def edit_writing_image(request, image_id):
             writing_image.save()
             messages.success(request, 'Writing page image updated successfully!')
         else:
-            messages.error(request, 'Title and Excerpt are required.')
+            messages.error(request, 'Excerpt is required.')
 
     return redirect('life_tracker_settings')
 
