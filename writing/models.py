@@ -1,4 +1,42 @@
 from django.db import models
+from cloudinary.models import CloudinaryField
+
+
+class WritingPageImage(models.Model):
+    """
+    Represents an image displayed on the /writing page with its associated excerpt.
+    """
+    title = models.CharField(
+        max_length=100,
+        help_text="Title or name of the image (e.g., 'Bunny', 'Fire')"
+    )
+    image = CloudinaryField(
+        'image',
+        help_text="Image file to display on the writing page"
+    )
+    excerpt = models.TextField(
+        help_text="Novel excerpt that appears in the modal when clicking this image"
+    )
+    order = models.IntegerField(
+        default=0,
+        help_text="Display order on the page (lower numbers appear first)"
+    )
+    enabled = models.BooleanField(
+        default=True,
+        help_text="Whether this image is currently displayed on the page"
+    )
+
+    # Audit fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'title']
+        verbose_name = 'Writing Page Image'
+        verbose_name_plural = 'Writing Page Images'
+
+    def __str__(self):
+        return f"{self.title} (Order: {self.order})"
 
 
 class WritingLog(models.Model):

@@ -1,5 +1,30 @@
 from django.contrib import admin
-from .models import WritingLog
+from .models import WritingLog, WritingPageImage
+
+
+@admin.register(WritingPageImage)
+class WritingPageImageAdmin(admin.ModelAdmin):
+    list_display = ('title', 'order', 'enabled', 'created_at')
+    list_filter = ('enabled',)
+    search_fields = ('title', 'excerpt')
+    ordering = ('order', 'title')
+    list_editable = ('order', 'enabled')
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'image', 'order', 'enabled')
+        }),
+        ('Excerpt', {
+            'fields': ('excerpt',),
+            'description': 'Novel excerpt that appears when clicking this image'
+        }),
+        ('Audit', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    readonly_fields = ('created_at', 'updated_at')
 
 
 @admin.register(WritingLog)

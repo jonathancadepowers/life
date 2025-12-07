@@ -35,6 +35,10 @@ def life_metrics(request):
 
 def writing(request):
     """
-    Renders the writing page.
+    Renders the writing page with images from database.
     """
-    return render(request, 'home/writing.html')
+    from writing.models import WritingPageImage
+
+    images = WritingPageImage.objects.filter(enabled=True).order_by('order')
+
+    return render(request, 'home/writing.html', {'images': images})
