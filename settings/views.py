@@ -6,8 +6,39 @@ from .models import LifeTrackerColumn
 from inspirations_app.models import Inspiration
 from inspirations_app.utils import get_youtube_trailer_url
 from writing.models import WritingPageImage
-from PIL import Image
+from PIL import Image, ImageOps
 import io
+
+
+def resize_image_with_padding(img, target_width=256, target_height=362):
+    """
+    Resize image to fit within target dimensions while maintaining aspect ratio.
+    Adds white padding if needed to exactly match target dimensions.
+    """
+    # Convert to RGB first if necessary
+    if img.mode in ('RGBA', 'P', 'LA'):
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        if img.mode == 'P':
+            img = img.convert('RGBA')
+        background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+        img = background
+    elif img.mode != 'RGB':
+        img = img.convert('RGB')
+
+    # Use thumbnail to resize maintaining aspect ratio
+    img.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
+
+    # Create a new image with white background at exact target size
+    final_img = Image.new('RGB', (target_width, target_height), (255, 255, 255))
+
+    # Calculate position to center the resized image
+    x = (target_width - img.width) // 2
+    y = (target_height - img.height) // 2
+
+    # Paste the resized image onto the white background
+    final_img.paste(img, (x, y))
+
+    return final_img
 
 
 def life_tracker_settings(request):
@@ -143,19 +174,8 @@ def add_inspiration(request):
                     if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
                         filename += '.jpg'
 
-                # Resize image to 256x362
-                img = img.resize((256, 362), Image.Resampling.LANCZOS)
-
-                # Convert to RGB if necessary (handles RGBA, P mode, etc.)
-                if img.mode in ('RGBA', 'P', 'LA'):
-                    # Create white background for transparent images
-                    background = Image.new('RGB', img.size, (255, 255, 255))
-                    if img.mode == 'P':
-                        img = img.convert('RGBA')
-                    background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
-                    img = background
-                elif img.mode != 'RGB':
-                    img = img.convert('RGB')
+                # Resize image to 256x362 maintaining aspect ratio with padding
+                img = resize_image_with_padding(img, 256, 362)
 
                 # Save to BytesIO
                 output = io.BytesIO()
@@ -219,19 +239,8 @@ def edit_inspiration(request, inspiration_id):
                         if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
                             filename += '.jpg'
 
-                    # Resize image to 256x362
-                    img = img.resize((256, 362), Image.Resampling.LANCZOS)
-
-                    # Convert to RGB if necessary (handles RGBA, P mode, etc.)
-                    if img.mode in ('RGBA', 'P', 'LA'):
-                        # Create white background for transparent images
-                        background = Image.new('RGB', img.size, (255, 255, 255))
-                        if img.mode == 'P':
-                            img = img.convert('RGBA')
-                        background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
-                        img = background
-                    elif img.mode != 'RGB':
-                        img = img.convert('RGB')
+                    # Resize image to 256x362 maintaining aspect ratio with padding
+                    img = resize_image_with_padding(img, 256, 362)
 
                     # Save to BytesIO
                     output = io.BytesIO()
