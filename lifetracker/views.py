@@ -37,11 +37,15 @@ def writing(request):
     """
     Renders the writing page with images from database.
     """
-    from writing.models import WritingPageImage
+    from writing.models import WritingPageImage, BookCover
 
     images = WritingPageImage.objects.filter(enabled=True).order_by('created_at')
+    book_cover = BookCover.get_instance()
 
-    return render(request, 'home/writing.html', {'images': images})
+    return render(request, 'home/writing.html', {
+        'images': images,
+        'book_cover': book_cover
+    })
 
 
 def contact(request):

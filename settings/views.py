@@ -5,7 +5,7 @@ from django.core.files.base import ContentFile
 from .models import LifeTrackerColumn
 from inspirations_app.models import Inspiration
 from inspirations_app.utils import get_youtube_trailer_url
-from writing.models import WritingPageImage
+from writing.models import WritingPageImage, BookCover
 from PIL import Image, ImageOps
 import io
 
@@ -133,6 +133,9 @@ def life_tracker_settings(request):
     # Get all writing page images
     writing_images = WritingPageImage.objects.all()
 
+    # Get or create book cover instance
+    book_cover = BookCover.get_instance()
+
     context = {
         'columns': columns_with_fields,
         'available_parameters': [
@@ -143,6 +146,7 @@ def life_tracker_settings(request):
         'inspirations': inspirations,
         'type_choices': Inspiration.TYPE_CHOICES,
         'writing_images': writing_images,
+        'book_cover': book_cover,
     }
 
     return render(request, 'settings/life_tracker_settings.html', context)
@@ -334,5 +338,21 @@ def delete_writing_image(request, image_id):
     if request.method == 'POST':
         writing_image.delete()
         messages.success(request, 'Writing page image deleted successfully!')
+
+    return redirect('life_tracker_settings')
+
+
+def upload_book_cover(request):
+    """Upload or update the book cover image."""
+    if request.method == 'POST':
+        image = request.FILES.get('image')
+
+        if image:
+            book_cover = BookCover.get_instance()
+            book_cover.image = image
+            book_cover.save()
+            messages.success(request, 'Book cover uploaded successfully!')
+        else:
+            messages.error(request, 'Please select an image file.')
 
     return redirect('life_tracker_settings')

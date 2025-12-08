@@ -2,6 +2,33 @@ from django.db import models
 from cloudinary.models import CloudinaryField
 
 
+class BookCover(models.Model):
+    """
+    Singleton model to store the book cover image for the writing page.
+    """
+    image = CloudinaryField(
+        'image',
+        help_text="Book cover image displayed on the writing page"
+    )
+
+    # Audit fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Book Cover'
+        verbose_name_plural = 'Book Cover'
+
+    def __str__(self):
+        return "Book Cover"
+
+    @classmethod
+    def get_instance(cls):
+        """Get or create the singleton instance."""
+        instance, _ = cls.objects.get_or_create(pk=1)
+        return instance
+
+
 class WritingPageImage(models.Model):
     """
     Represents an image displayed on the /writing page with its associated excerpt.

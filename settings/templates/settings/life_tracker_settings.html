@@ -292,10 +292,32 @@
             </h3>
 
             <div class="collapse" id="writingImagesSection">
+            <!-- Book Cover Upload -->
+            <div class="card card-body mb-4">
+                <h5>Book Cover</h5>
+                {% if book_cover.image %}
+                <div class="mb-3">
+                    <img src="{{ book_cover.image.url }}" alt="Current book cover" style="max-width: 200px; height: auto;" class="img-thumbnail">
+                    <p class="text-muted mt-2 mb-0"><small>Current book cover</small></p>
+                </div>
+                {% endif %}
+                <form method="POST" action="{% url 'upload_book_cover' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="book_cover_image" class="form-label">{% if book_cover.image %}Replace{% else %}Upload{% endif %} Book Cover</label>
+                        <input type="file" class="form-control" id="book_cover_image" name="image" accept="image/*" required>
+                        <div class="form-text">Upload an image for the book cover (displayed on /writing page)</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> {% if book_cover.image %}Replace{% else %}Upload{% endif %} Cover
+                    </button>
+                </form>
+            </div>
+
             <!-- Add New Writing Image -->
             <div class="mb-4">
                 <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addWritingImageForm">
-                    <i class="bi bi-plus-circle"></i> Add New Image
+                    <i class="bi bi-plus-circle"></i> Add New Excerpt Image
                 </button>
             </div>
 
