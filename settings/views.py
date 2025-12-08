@@ -157,6 +157,11 @@ def add_inspiration(request):
         flip_text = request.POST.get('flip_text', '')
         type_value = request.POST.get('type')
 
+        # Check for duplicate title
+        if title and Inspiration.objects.filter(title__iexact=title).exists():
+            messages.error(request, f'An inspiration with the title "{title}" already exists. Please use a different title.')
+            return redirect('life_tracker_settings')
+
         # Check that we have either an uploaded image or image URL
         if (uploaded_image or image_url) and title and type_value:
             try:
@@ -215,6 +220,11 @@ def edit_inspiration(request, inspiration_id):
         url = request.POST.get('url', '').strip() or None
         uploaded_image = request.FILES.get('image')
         image_url = request.POST.get('image_url', '').strip()
+
+        # Check for duplicate title (excluding current inspiration)
+        if title and Inspiration.objects.filter(title__iexact=title).exclude(id=inspiration_id).exists():
+            messages.error(request, f'An inspiration with the title "{title}" already exists. Please use a different title.')
+            return redirect('life_tracker_settings')
 
         if title and type_value:
             inspiration.title = title
