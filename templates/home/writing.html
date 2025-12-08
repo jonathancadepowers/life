@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -336,21 +337,32 @@
     </nav>
 
     <div class="content">
-        <p><strong>SHAPES THAT MAKE SOUNDS</strong></p>
+        <div style="display: flex; gap: 2rem; margin-bottom: 3rem; align-items: flex-start;">
+            <div style="flex-shrink: 0;">
+                <img src="{% static 'images/shapes-cover.jpg' %}" alt="Shapes That Make Sounds Book Cover" style="width: 300px; height: auto; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            </div>
 
-        <p style="margin-top: 1.5rem; margin-bottom: 1rem;">I'm writing a novel. I've always wanted to do it—and now I am! As of December of 2025, I'm only about 20,000 words in.</p>
+            <div style="flex: 1;">
+                <p><strong>SHAPES THAT MAKE SOUNDS</strong></p>
 
-        <p style="margin-bottom: 1rem;">The following is a short (and hopefully interesting) elevator pitch:</p>
+                <p style="margin-top: 1.5rem; margin-bottom: 1rem;">I'm writing a novel. I've always wanted to do it—and now I am! As of December of 2025, I'm only about 20,000 words in.</p>
 
-        <div style="background-color: #f5f5f5; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
-            <p style="margin-bottom: 1rem;">Charlie didn't know her father owned a time machine—until it ripped her a century away from him.</p>
+                <p style="margin-bottom: 1rem;">The following is a short (and hopefully interesting) elevator pitch:</p>
 
-            <p style="margin-bottom: 1rem;">In 1997, 20-year-old Charlie lives under the shadow of her brilliant but reclusive father, a legendary screenwriter whose dark visions haunt audiences. When he wakes her one night at 3 a.m. begging her to deliver a mysterious sealed package to a stranger, Charlie fears he's tipping into madness. Curiosity wins. She opens it, follows its clues, and discovers a peculiar machine hidden deep in the walls of their brownstone. One touch hurls her to 2099—and into The Carousel, a glittering prison of glass and gardens where her father's parents and sisters remain trapped. The facility's beauty hides a dangerous purpose and impossible family secrets, which her father escaped and has been secretly protecting Charlie from her entire life.</p>
+                <div style="background-color: #f5f5f5; border-radius: 8px; padding: 1.5rem; margin-bottom: 0;">
+                    <p style="margin-bottom: 1rem;">Charlie didn't know her father owned a time machine—until it ripped her a century away from him.</p>
 
-            <p style="margin-bottom: 1rem;">Now, Charlie's only escape home is through a fragile relay across time: her father turning invisible gears in the past, Charlie decoding his trail in the future. Separated by a century and bound by love, father and daughter race the clock to reunite—before The Carousel locks Charlie in forever.</p>
+                    <p style="margin-bottom: 1rem;">In 1997, 20-year-old Charlie lives under the shadow of her brilliant but reclusive father, a legendary screenwriter whose dark visions haunt audiences. When he wakes her one night at 3 a.m. begging her to deliver a mysterious sealed package to a stranger, Charlie fears he's tipping into madness. Curiosity wins. She opens it, follows its clues, and discovers a peculiar machine hidden deep in the walls of their brownstone. One touch hurls her to 2099—and into The Carousel, a glittering prison of glass and gardens where her father's parents and sisters remain trapped. The facility's beauty hides a dangerous purpose and impossible family secrets, which her father escaped and has been secretly protecting Charlie from her entire life.</p>
 
-            <p style="margin-bottom: 0;">SHAPES THAT MAKE SOUNDS is an 80,000-word work of upmarket speculative fiction. It is written for readers who enjoyed the quiet, character-driven sci-fi of SEA OF TRANQUILITY. It will also appeal to fans of the puzzle-box storytelling in THE CARTOGRAPHERS.</p>
+                    <p style="margin-bottom: 1rem;">Now, Charlie's only escape home is through a fragile relay across time: her father turning invisible gears in the past, Charlie decoding his trail in the future. Separated by a century and bound by love, father and daughter race the clock to reunite—before The Carousel locks Charlie in forever.</p>
+
+                    <p style="margin-bottom: 0;">SHAPES THAT MAKE SOUNDS is an 80,000-word work of upmarket speculative fiction. It is written for readers who enjoyed the quiet, character-driven sci-fi of SEA OF TRANQUILITY. It will also appeal to fans of the puzzle-box storytelling in THE CARTOGRAPHERS.</p>
+                </div>
+            </div>
         </div>
+
+        <hr style="border: none; border-top: 1px solid #E6E6E6; margin: 2rem 0 1.5rem 0;">
+        <h2 style="font-size: 1rem; font-weight: normal; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem;">Excerpts</h2>
 
         <div class="image-grid">
             {% for image in images %}
