@@ -120,73 +120,30 @@ def life_tracker_settings(request):
 def add_inspiration(request):
     """Add a new inspiration."""
     if request.method == 'POST':
-        image = request.FILES.get('image')
+        uploaded_image = request.FILES.get('image')
+        image_url = request.POST.get('image_url', '').strip()
         title = request.POST.get('title', '').strip()
         flip_text = request.POST.get('flip_text', '')
         type_value = request.POST.get('type')
 
-        if image and title and type_value:
-            # Resize image to 256x362
-            img = Image.open(image)
-            img = img.resize((256, 362), Image.Resampling.LANCZOS)
+        # Check that we have either an uploaded image or image URL
+        if (uploaded_image or image_url) and title and type_value:
+            try:
+                # Process image from upload or URL
+                if uploaded_image:
+                    img = Image.open(uploaded_image)
+                    filename = uploaded_image.name
+                elif image_url:
+                    import requests
+                    response = requests.get(image_url, timeout=10)
+                    response.raise_for_status()
+                    img = Image.open(io.BytesIO(response.content))
+                    # Generate filename from URL
+                    filename = image_url.split('/')[-1].split('?')[0] or 'image.jpg'
+                    if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+                        filename += '.jpg'
 
-            # Convert to RGB if necessary (handles RGBA, P mode, etc.)
-            if img.mode in ('RGBA', 'P', 'LA'):
-                # Create white background for transparent images
-                background = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'P':
-                    img = img.convert('RGBA')
-                background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
-                img = background
-            elif img.mode != 'RGB':
-                img = img.convert('RGB')
-
-            # Save to BytesIO
-            output = io.BytesIO()
-            img.save(output, format='JPEG', quality=85)
-            output.seek(0)
-
-            # Create ContentFile with resized image
-            resized_image = ContentFile(output.read(), name=image.name)
-
-            # Get URL from form
-            url = request.POST.get('url', '').strip() or None
-
-            Inspiration.objects.create(
-                image=resized_image,
-                title=title,
-                flip_text=flip_text,
-                type=type_value,
-                url=url
-            )
-            messages.success(request, 'Inspiration added successfully!')
-        else:
-            messages.error(request, 'Please fill in all required fields (Image, Title, and Type).')
-
-    return redirect('life_tracker_settings')
-
-
-def edit_inspiration(request, inspiration_id):
-    """Edit an existing inspiration."""
-    inspiration = get_object_or_404(Inspiration, id=inspiration_id)
-
-    if request.method == 'POST':
-        title = request.POST.get('title', '').strip()
-        flip_text = request.POST.get('flip_text', '')
-        type_value = request.POST.get('type')
-        url = request.POST.get('url', '').strip() or None
-        new_image = request.FILES.get('image')
-
-        if title and type_value:
-            inspiration.title = title
-            inspiration.flip_text = flip_text
-            inspiration.type = type_value
-            inspiration.url = url
-
-            # Handle image upload if provided
-            if new_image:
                 # Resize image to 256x362
-                img = Image.open(new_image)
                 img = img.resize((256, 362), Image.Resampling.LANCZOS)
 
                 # Convert to RGB if necessary (handles RGBA, P mode, etc.)
@@ -206,8 +163,87 @@ def edit_inspiration(request, inspiration_id):
                 output.seek(0)
 
                 # Create ContentFile with resized image
-                resized_image = ContentFile(output.read(), name=new_image.name)
-                inspiration.image = resized_image
+                resized_image = ContentFile(output.read(), name=filename)
+
+                # Get URL from form
+                url = request.POST.get('url', '').strip() or None
+
+                Inspiration.objects.create(
+                    image=resized_image,
+                    title=title,
+                    flip_text=flip_text,
+                    type=type_value,
+                    url=url
+                )
+                messages.success(request, 'Inspiration added successfully!')
+            except Exception as e:
+                messages.error(request, f'Error processing image: {str(e)}')
+        else:
+            messages.error(request, 'Please fill in all required fields (Image or Image URL, Title, and Type).')
+
+    return redirect('life_tracker_settings')
+
+
+def edit_inspiration(request, inspiration_id):
+    """Edit an existing inspiration."""
+    inspiration = get_object_or_404(Inspiration, id=inspiration_id)
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        flip_text = request.POST.get('flip_text', '')
+        type_value = request.POST.get('type')
+        url = request.POST.get('url', '').strip() or None
+        uploaded_image = request.FILES.get('image')
+        image_url = request.POST.get('image_url', '').strip()
+
+        if title and type_value:
+            inspiration.title = title
+            inspiration.flip_text = flip_text
+            inspiration.type = type_value
+            inspiration.url = url
+
+            # Handle image upload or URL if provided
+            if uploaded_image or image_url:
+                try:
+                    # Process image from upload or URL
+                    if uploaded_image:
+                        img = Image.open(uploaded_image)
+                        filename = uploaded_image.name
+                    elif image_url:
+                        import requests
+                        response = requests.get(image_url, timeout=10)
+                        response.raise_for_status()
+                        img = Image.open(io.BytesIO(response.content))
+                        # Generate filename from URL
+                        filename = image_url.split('/')[-1].split('?')[0] or 'image.jpg'
+                        if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+                            filename += '.jpg'
+
+                    # Resize image to 256x362
+                    img = img.resize((256, 362), Image.Resampling.LANCZOS)
+
+                    # Convert to RGB if necessary (handles RGBA, P mode, etc.)
+                    if img.mode in ('RGBA', 'P', 'LA'):
+                        # Create white background for transparent images
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'P':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                        img = background
+                    elif img.mode != 'RGB':
+                        img = img.convert('RGB')
+
+                    # Save to BytesIO
+                    output = io.BytesIO()
+                    img.save(output, format='JPEG', quality=85)
+                    output.seek(0)
+
+                    # Create ContentFile with resized image
+                    resized_image = ContentFile(output.read(), name=filename)
+                    inspiration.image = resized_image
+                except Exception as e:
+                    messages.error(request, f'Error processing image: {str(e)}')
+                    return redirect('life_tracker_settings')
 
             inspiration.save()
             messages.success(request, 'Inspiration updated successfully!')

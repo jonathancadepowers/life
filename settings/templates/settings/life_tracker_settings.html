@@ -134,13 +134,23 @@
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="new_image" class="form-label">Image *</label>
-                                <input type="file" class="form-control" id="new_image" name="image" accept="image/*" required>
-                                <div class="form-text">
+                                <div class="form-text mb-2">
                                     <a href="#" id="pinterest-search-new" target="_blank" style="display:none;">
                                         <i class="bi bi-search"></i> Find on Pinterest
                                     </a>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="new_image" class="form-label">Upload Image</label>
+                                <input type="file" class="form-control" id="new_image" name="image" accept="image/*">
+                                <div class="form-text">Upload an image file from your computer</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="new_image_url" class="form-label">Or Image URL</label>
+                                <input type="url" class="form-control" id="new_image_url" name="image_url" placeholder="https://example.com/image.jpg">
+                                <div class="form-text">Provide a URL to an image online</div>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -218,18 +228,31 @@
                                                 </select>
                                             </div>
                                             <div class="col-md-4 mb-3">
-                                                <label for="edit_image_{{ inspiration.id }}" class="form-label">Replace Image</label>
-                                                <input type="file" class="form-control" id="edit_image_{{ inspiration.id }}" name="image" accept="image/*">
-                                                <div class="form-text">
-                                                    {% if inspiration.image %}
-                                                        Current: <a href="{{ inspiration.image.url }}" target="_blank">View Image</a>
-                                                    {% endif %}
-                                                    <br>Leave blank to keep current image
-                                                    <br>
+                                                {% if inspiration.image %}
+                                                    <label class="form-label">Current Image</label>
+                                                    <div>
+                                                        <a href="{{ inspiration.image.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                            <i class="bi bi-image"></i> View Current
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                                <div class="form-text mt-2">
                                                     <a href="#" id="pinterest-search-{{ inspiration.id }}" target="_blank" style="display:none;">
                                                         <i class="bi bi-search"></i> Find on Pinterest
                                                     </a>
                                                 </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="edit_image_{{ inspiration.id }}" class="form-label">Upload New Image</label>
+                                                <input type="file" class="form-control" id="edit_image_{{ inspiration.id }}" name="image" accept="image/*">
+                                                <div class="form-text">Upload an image file from your computer</div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="edit_image_url_{{ inspiration.id }}" class="form-label">Or Image URL</label>
+                                                <input type="url" class="form-control" id="edit_image_url_{{ inspiration.id }}" name="image_url" placeholder="https://example.com/image.jpg">
+                                                <div class="form-text">Provide a URL to an image online</div>
                                             </div>
                                         </div>
                                         <div class="mb-3">
