@@ -161,6 +161,7 @@
                         <tr>
                             <th>Title</th>
                             <th>Type</th>
+                            <th>Image</th>
                             <th>Flip Text</th>
                             <th>Actions</th>
                         </tr>
@@ -170,6 +171,15 @@
                         <tr>
                             <td>{{ inspiration.title|default:"—" }}</td>
                             <td>{{ inspiration.type }}</td>
+                            <td>
+                                {% if inspiration.image %}
+                                    <a href="{{ inspiration.image.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-image"></i> View
+                                    </a>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
                             <td>{{ inspiration.flip_text|truncatechars:60|default:"—" }}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#editInspirationForm{{ inspiration.id }}">
@@ -184,23 +194,33 @@
                             </td>
                         </tr>
                         <tr class="collapse" id="editInspirationForm{{ inspiration.id }}">
-                            <td colspan="4">
+                            <td colspan="5">
                                 <div class="card card-body">
                                     <h6>Edit Inspiration</h6>
-                                    <form method="POST" action="{% url 'edit_inspiration' inspiration.id %}">
+                                    <form method="POST" action="{% url 'edit_inspiration' inspiration.id %}" enctype="multipart/form-data">
                                         {% csrf_token %}
                                         <div class="row">
-                                            <div class="col-md-6 mb-3">
+                                            <div class="col-md-4 mb-3">
                                                 <label for="edit_title_{{ inspiration.id }}" class="form-label">Title *</label>
                                                 <input type="text" class="form-control" id="edit_title_{{ inspiration.id }}" name="title" value="{{ inspiration.title }}" maxlength="200" required>
                                             </div>
-                                            <div class="col-md-6 mb-3">
+                                            <div class="col-md-4 mb-3">
                                                 <label for="edit_type_{{ inspiration.id }}" class="form-label">Type *</label>
                                                 <select class="form-select" id="edit_type_{{ inspiration.id }}" name="type" required>
                                                     {% for value, label in type_choices %}
                                                         <option value="{{ value }}" {% if inspiration.type == value %}selected{% endif %}>{{ label }}</option>
                                                     {% endfor %}
                                                 </select>
+                                            </div>
+                                            <div class="col-md-4 mb-3">
+                                                <label for="edit_image_{{ inspiration.id }}" class="form-label">Replace Image</label>
+                                                <input type="file" class="form-control" id="edit_image_{{ inspiration.id }}" name="image" accept="image/*">
+                                                <div class="form-text">
+                                                    {% if inspiration.image %}
+                                                        Current: <a href="{{ inspiration.image.url }}" target="_blank">View Image</a>
+                                                    {% endif %}
+                                                    <br>Leave blank to keep current image
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="mb-3">
@@ -221,7 +241,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center text-muted">No inspirations yet. Add one above!</td>
+                            <td colspan="6" class="text-center text-muted">No inspirations yet. Add one above!</td>
                         </tr>
                         {% endfor %}
                     </tbody>

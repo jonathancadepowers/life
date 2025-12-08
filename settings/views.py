@@ -175,12 +175,18 @@ def edit_inspiration(request, inspiration_id):
         flip_text = request.POST.get('flip_text', '')
         type_value = request.POST.get('type')
         url = request.POST.get('url', '').strip() or None
+        new_image = request.FILES.get('image')
 
         if title and type_value:
             inspiration.title = title
             inspiration.flip_text = flip_text
             inspiration.type = type_value
             inspiration.url = url
+
+            # Handle image upload if provided
+            if new_image:
+                inspiration.image = new_image
+
             inspiration.save()
             messages.success(request, 'Inspiration updated successfully!')
         else:
