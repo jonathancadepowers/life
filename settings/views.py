@@ -185,7 +185,29 @@ def edit_inspiration(request, inspiration_id):
 
             # Handle image upload if provided
             if new_image:
-                inspiration.image = new_image
+                # Resize image to 256x362
+                img = Image.open(new_image)
+                img = img.resize((256, 362), Image.Resampling.LANCZOS)
+
+                # Convert to RGB if necessary (handles RGBA, P mode, etc.)
+                if img.mode in ('RGBA', 'P', 'LA'):
+                    # Create white background for transparent images
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                    img = background
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+
+                # Save to BytesIO
+                output = io.BytesIO()
+                img.save(output, format='JPEG', quality=85)
+                output.seek(0)
+
+                # Create ContentFile with resized image
+                resized_image = ContentFile(output.read(), name=new_image.name)
+                inspiration.image = resized_image
 
             inspiration.save()
             messages.success(request, 'Inspiration updated successfully!')
