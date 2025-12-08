@@ -120,15 +120,11 @@
                     <form method="POST" action="{% url 'add_inspiration' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="new_image" class="form-label">Image *</label>
-                                <input type="file" class="form-control" id="new_image" name="image" accept="image/*" required>
-                            </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="new_title" class="form-label">Title *</label>
                                 <input type="text" class="form-control" id="new_title" name="title" placeholder="e.g., Station Eleven" maxlength="200" required>
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="new_type" class="form-label">Type *</label>
                                 <select class="form-select" id="new_type" name="type" required>
                                     <option value="">Select type...</option>
@@ -136,6 +132,15 @@
                                         <option value="{{ value }}">{{ label }}</option>
                                     {% endfor %}
                                 </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="new_image" class="form-label">Image *</label>
+                                <input type="file" class="form-control" id="new_image" name="image" accept="image/*" required>
+                                <div class="form-text">
+                                    <a href="#" id="pinterest-search-new" target="_blank" style="display:none;">
+                                        <i class="bi bi-search"></i> Find on Pinterest
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -220,6 +225,10 @@
                                                         Current: <a href="{{ inspiration.image.url }}" target="_blank">View Image</a>
                                                     {% endif %}
                                                     <br>Leave blank to keep current image
+                                                    <br>
+                                                    <a href="#" id="pinterest-search-{{ inspiration.id }}" target="_blank" style="display:none;">
+                                                        <i class="bi bi-search"></i> Find on Pinterest
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
@@ -453,6 +462,58 @@
         document.addEventListener('DOMContentLoaded', function() {
             const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
             const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+            // Pinterest search link for new inspiration form
+            const newTitle = document.getElementById('new_title');
+            const newType = document.getElementById('new_type');
+            const pinterestLinkNew = document.getElementById('pinterest-search-new');
+
+            function updatePinterestLinkNew() {
+                const title = newTitle.value.trim();
+                const type = newType.value.trim();
+
+                if (title && type) {
+                    const searchQuery = encodeURIComponent(title + ' ' + type + ' poster');
+                    pinterestLinkNew.href = 'https://www.pinterest.com/search/pins/?q=' + searchQuery;
+                    pinterestLinkNew.style.display = 'inline';
+                } else {
+                    pinterestLinkNew.style.display = 'none';
+                }
+            }
+
+            if (newTitle && newType && pinterestLinkNew) {
+                newTitle.addEventListener('input', updatePinterestLinkNew);
+                newType.addEventListener('change', updatePinterestLinkNew);
+            }
+
+            // Pinterest search links for edit inspiration forms
+            {% for inspiration in inspirations %}
+            (function() {
+                const editTitle = document.getElementById('edit_title_{{ inspiration.id }}');
+                const editType = document.getElementById('edit_type_{{ inspiration.id }}');
+                const pinterestLink = document.getElementById('pinterest-search-{{ inspiration.id }}');
+
+                function updatePinterestLink() {
+                    const title = editTitle.value.trim();
+                    const type = editType.value.trim();
+
+                    if (title && type) {
+                        const searchQuery = encodeURIComponent(title + ' ' + type + ' poster');
+                        pinterestLink.href = 'https://www.pinterest.com/search/pins/?q=' + searchQuery;
+                        pinterestLink.style.display = 'inline';
+                    } else {
+                        pinterestLink.style.display = 'none';
+                    }
+                }
+
+                if (editTitle && editType && pinterestLink) {
+                    editTitle.addEventListener('input', updatePinterestLink);
+                    editType.addEventListener('change', updatePinterestLink);
+                    // Initialize on load
+                    updatePinterestLink();
+                }
+            })();
+            {% endfor %}
         });
     </script>
 </body>
