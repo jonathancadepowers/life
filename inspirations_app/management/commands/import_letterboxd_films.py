@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.core.files.base import ContentFile
 from inspirations_app.models import Inspiration
-import requests
+from PIL import Image
 from io import BytesIO
 
 
@@ -50,8 +50,11 @@ class Command(BaseCommand):
         )
         existing_films_lower = {title.lower() for title in existing_films}
 
-        # Use a simple placeholder image URL (a 1x1 gray pixel)
-        placeholder_url = "https://via.placeholder.com/256x362/cccccc/cccccc.png"
+        # Create a simple gray placeholder image (256x362)
+        placeholder_img = Image.new('RGB', (256, 362), color='#cccccc')
+        img_buffer = BytesIO()
+        placeholder_img.save(img_buffer, format='JPEG', quality=85)
+        img_buffer.seek(0)
 
         created_count = 0
         skipped_count = 0
@@ -63,19 +66,18 @@ class Command(BaseCommand):
                 skipped_count += 1
                 continue
 
-            # Download placeholder image
+            # Create the inspiration with placeholder image
             try:
-                response = requests.get(placeholder_url, timeout=10)
-                response.raise_for_status()
-                image_content = ContentFile(response.content, name=f'{film_title.replace(" ", "_").lower()}.png')
+                # Reset buffer position for each iteration
+                img_buffer.seek(0)
+                image_file = ContentFile(img_buffer.read(), name=f'{film_title.replace(" ", "_").lower()}.jpg')
 
-                # Create the inspiration
                 Inspiration.objects.create(
                     title=film_title,
                     type='Film',
-                    image=image_content
+                    image=image_file
                 )
-                self.stdout.write(self.style.SUCCESS(f'Created inspiration for "{film_title}"'))
+                self.stdout.write(self.style.SUCCESS(f'Created inspiration for "{film_title}" (placeholder image - update via settings)'))
                 created_count += 1
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'Error creating "{film_title}": {str(e)}'))
