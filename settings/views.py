@@ -274,7 +274,7 @@ def edit_inspiration(request, inspiration_id):
         else:
             messages.error(request, 'Title and Type are required.')
 
-    return redirect(reverse('life_tracker_settings') + '#inspirationsSection')
+    return redirect(reverse('life_tracker_settings') + f'#inspiration-{inspiration_id}')
 
 
 def delete_inspiration(request, inspiration_id):

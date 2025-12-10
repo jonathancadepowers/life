@@ -183,7 +183,7 @@
                     </thead>
                     <tbody>
                         {% for inspiration in inspirations %}
-                        <tr>
+                        <tr id="inspiration-{{ inspiration.id }}">
                             <td>{{ inspiration.title|default:"—" }}</td>
                             <td>{{ inspiration.type }}</td>
                             <td>
@@ -563,12 +563,41 @@
         // Auto-open section if hash is present in URL
         if (window.location.hash) {
             const hash = window.location.hash.substring(1); // Remove the # character
-            const targetElement = document.getElementById(hash);
-            if (targetElement && targetElement.classList.contains('collapse')) {
-                // Use Bootstrap's Collapse API to show the section
-                const bsCollapse = new bootstrap.Collapse(targetElement, {
-                    show: true
-                });
+
+            // Check if it's an inspiration-specific hash
+            if (hash.startsWith('inspiration-')) {
+                // First, open the inspirations section
+                const inspirationsSection = document.getElementById('inspirationsSection');
+                if (inspirationsSection) {
+                    const bsCollapse = new bootstrap.Collapse(inspirationsSection, {
+                        show: true
+                    });
+                }
+
+                // Then scroll to and collapse the specific inspiration's edit form
+                setTimeout(() => {
+                    const targetElement = document.getElementById(hash);
+                    if (targetElement) {
+                        // Scroll to the element
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // Collapse the edit form if it's open
+                        const inspirationId = hash.replace('inspiration-', '');
+                        const editForm = document.getElementById('editInspirationForm' + inspirationId);
+                        if (editForm && editForm.classList.contains('show')) {
+                            const editFormCollapse = bootstrap.Collapse.getInstance(editForm) || new bootstrap.Collapse(editForm, { toggle: false });
+                            editFormCollapse.hide();
+                        }
+                    }
+                }, 300); // Wait for the section to open
+            } else {
+                // Handle other section hashes
+                const targetElement = document.getElementById(hash);
+                if (targetElement && targetElement.classList.contains('collapse')) {
+                    const bsCollapse = new bootstrap.Collapse(targetElement, {
+                        show: true
+                    });
+                }
             }
         }
         });
