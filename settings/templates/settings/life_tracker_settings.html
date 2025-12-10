@@ -559,6 +559,18 @@
                 }
             })();
             {% endfor %}
+
+        // Auto-open section if hash is present in URL
+        if (window.location.hash) {
+            const hash = window.location.hash.substring(1); // Remove the # character
+            const targetElement = document.getElementById(hash);
+            if (targetElement && targetElement.classList.contains('collapse')) {
+                // Use Bootstrap's Collapse API to show the section
+                const bsCollapse = new bootstrap.Collapse(targetElement, {
+                    show: true
+                });
+            }
+        }
         });
     </script>
 </body>

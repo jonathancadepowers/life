@@ -210,7 +210,7 @@ def add_inspiration(request):
         else:
             messages.error(request, 'Please fill in all required fields (Image or Image URL, Title, and Type).')
 
-    return redirect('life_tracker_settings')
+    return redirect('life_tracker_settings' + '#inspirationsSection')
 
 
 def edit_inspiration(request, inspiration_id):
@@ -228,7 +228,7 @@ def edit_inspiration(request, inspiration_id):
         # Check for duplicate title (excluding current inspiration)
         if title and Inspiration.objects.filter(title__iexact=title).exclude(id=inspiration_id).exists():
             messages.error(request, f'An inspiration with the title "{title}" already exists. Please use a different title.')
-            return redirect('life_tracker_settings')
+            return redirect('life_tracker_settings' + '#inspirationsSection')
 
         if title and type_value:
             inspiration.title = title
@@ -266,14 +266,14 @@ def edit_inspiration(request, inspiration_id):
                     inspiration.image = resized_image
                 except Exception as e:
                     messages.error(request, f'Error processing image: {str(e)}')
-                    return redirect('life_tracker_settings')
+                    return redirect('life_tracker_settings' + '#inspirationsSection')
 
             inspiration.save()
             messages.success(request, 'Inspiration updated successfully!')
         else:
             messages.error(request, 'Title and Type are required.')
 
-    return redirect('life_tracker_settings')
+    return redirect('life_tracker_settings' + '#inspirationsSection')
 
 
 def delete_inspiration(request, inspiration_id):
@@ -284,7 +284,7 @@ def delete_inspiration(request, inspiration_id):
         inspiration.delete()
         messages.success(request, 'Inspiration deleted successfully!')
 
-    return redirect('life_tracker_settings')
+    return redirect('life_tracker_settings' + '#inspirationsSection')
 
 
 def add_writing_image(request):
