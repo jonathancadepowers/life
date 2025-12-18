@@ -568,13 +568,23 @@
                             <div class="form-text">Use {field_name} tokens to display data from your database table. Available fields depend on your table columns. Multiple records on the same day will be joined with commas.</div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label for="new_start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="new_start_date" name="start_date">
+                                <div class="form-text">Leave blank for today</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="new_end_date" class="form-label">End Date</label>
+                                <input type="text" class="form-control" id="new_end_date" name="end_date" value="ongoing" placeholder="ongoing or YYYY-MM-DD">
+                                <div class="form-text">"ongoing" or date</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label for="new_order" class="form-label">Display Order *</label>
                                 <input type="number" class="form-control" id="new_order" name="order" value="0" required>
                             </div>
                         </div>
                         <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> New habits will automatically be set to start today with an "ongoing" end date and will be enabled by default.
+                            <i class="bi bi-info-circle"></i> New habits will be enabled by default. If start date is blank, it will be set to today.
                         </div>
                     </div>
                     <div class="modal-footer">
