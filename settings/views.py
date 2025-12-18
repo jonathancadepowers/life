@@ -385,7 +385,7 @@ def upload_book_cover(request):
 
 def add_habit(request):
     """Add a new habit (Life Tracker Column)."""
-    from datetime import date
+    from datetime import datetime, date
 
     if request.method == 'POST':
         column_name = request.POST.get('column_name', '').strip().lower()
@@ -394,6 +394,8 @@ def add_habit(request):
         sql_query = request.POST.get('sql_query', '').strip()
         details_display = request.POST.get('details_display', '').strip()
         order = request.POST.get('order', '0')
+        start_date_str = request.POST.get('start_date', '').strip()
+        end_date = request.POST.get('end_date', 'ongoing').strip() or 'ongoing'
 
         # Check if column_name already exists
         if column_name and LifeTrackerColumn.objects.filter(column_name=column_name).exists():
@@ -402,6 +404,16 @@ def add_habit(request):
 
         if column_name and display_name and tooltip_text and sql_query:
             try:
+                # Parse start_date if provided, otherwise use today
+                if start_date_str:
+                    try:
+                        habit_start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        messages.error(request, 'Invalid start date format. Use YYYY-MM-DD.')
+                        return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+                else:
+                    habit_start_date = date.today()
+
                 LifeTrackerColumn.objects.create(
                     column_name=column_name,
                     display_name=display_name,
@@ -410,8 +422,8 @@ def add_habit(request):
                     details_display=details_display,
                     order=int(order),
                     enabled=True,
-                    start_date=date.today(),
-                    end_date='ongoing'
+                    start_date=habit_start_date,
+                    end_date=end_date
                 )
                 messages.success(request, f'Habit "{display_name}" added successfully!')
             except Exception as e:
