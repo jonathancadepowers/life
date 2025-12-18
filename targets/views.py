@@ -1375,8 +1375,22 @@ def life_tracker(request):
         start_date = current_week_start
         end_date = start_date + timedelta(days=6)  # Sunday
 
-    # Get enabled columns from settings
-    columns = LifeTrackerColumn.objects.filter(enabled=True).order_by('order')
+    # Get enabled columns from settings that are active during this week
+    # A column is active during the week if it's active on at least one day
+    all_columns = LifeTrackerColumn.objects.filter(enabled=True).order_by('order')
+    columns = []
+    for col in all_columns:
+        # Check if column is active on any day of the week
+        active_on_any_day = False
+        check_date = start_date
+        for _ in range(7):
+            if col.is_active_on(check_date):
+                active_on_any_day = True
+                break
+            check_date += timedelta(days=1)
+
+        if active_on_any_day:
+            columns.append(col)
 
     # Generate list of days for the week
     days = []

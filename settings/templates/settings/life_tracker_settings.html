@@ -437,6 +437,13 @@
                 </ul>
             </div>
 
+            <!-- Add New Habit Button -->
+            <div class="mb-4">
+                <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addHabitModal">
+                    <i class="bi bi-plus-circle"></i> Add Habit
+                </button>
+            </div>
+
             <form id="settingsForm" method="POST" action="{% url 'life_tracker_settings' %}">
                 {% csrf_token %}
 
@@ -444,7 +451,18 @@
                 {% for column in columns %}
                     <div class="column-card">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0">{{ column.display_name }}</h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <h5 class="mb-0">{{ column.display_name }}</h5>
+                                {% if column.start_date %}
+                                    {% if column.is_active_today %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">No Start Date</span>
+                                {% endif %}
+                            </div>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="enabled_{{ column.column_name }}" id="enabled_{{ column.column_name }}" {% if column.enabled %}checked{% endif %}>
                                 <label class="form-check-label" for="enabled_{{ column.column_name }}">
@@ -461,6 +479,19 @@
                             <div class="col-md-6 mb-3">
                                 <label for="order_{{ column.column_name }}" class="form-label">Display Order</label>
                                 <input type="number" class="form-control" id="order_{{ column.column_name }}" name="order_{{ column.column_name }}" value="{{ column.order }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_date_{{ column.column_name }}" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="start_date_{{ column.column_name }}" name="start_date_{{ column.column_name }}" value="{{ column.start_date|date:'Y-m-d' }}">
+                                <div class="form-text">Date when this habit becomes active</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="end_date_{{ column.column_name }}" class="form-label">End Date</label>
+                                <input type="text" class="form-control" id="end_date_{{ column.column_name }}" name="end_date_{{ column.column_name }}" value="{{ column.end_date }}" placeholder="ongoing or YYYY-MM-DD">
+                                <div class="form-text">Enter "ongoing" or a date (YYYY-MM-DD)</div>
                             </div>
                         </div>
 
@@ -498,6 +529,61 @@
             <button type="submit" form="settingsForm" class="btn btn-primary btn-lg">
                 <i class="bi bi-save"></i> Save Changes
             </button>
+        </div>
+    </div>
+
+    <!-- Add Habit Modal -->
+    <div class="modal fade" id="addHabitModal" tabindex="-1" aria-labelledby="addHabitModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addHabitModalLabel">Add New Habit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{% url 'add_habit' %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="new_column_name" class="form-label">Column Name *</label>
+                                <input type="text" class="form-control" id="new_column_name" name="column_name" placeholder="e.g., read" required>
+                                <div class="form-text">Internal name (lowercase, no spaces)</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="new_display_name" class="form-label">Display Name *</label>
+                                <input type="text" class="form-control" id="new_display_name" name="display_name" placeholder="e.g., Read" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_tooltip_text" class="form-label">Tooltip Text *</label>
+                            <textarea class="form-control" id="new_tooltip_text" name="tooltip_text" rows="2" placeholder="Help text that appears when hovering" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_sql_query" class="form-label">SQL Query *</label>
+                            <textarea class="form-control" id="new_sql_query" name="sql_query" rows="4" placeholder="Query to determine if checkbox should appear" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_details_display" class="form-label">Details Display</label>
+                            <textarea class="form-control" id="new_details_display" name="details_display" rows="3" placeholder="Example: Duration: {duration} hours"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="new_order" class="form-label">Display Order *</label>
+                                <input type="number" class="form-control" id="new_order" name="order" value="0" required>
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> New habits will automatically be set to start today with an "ongoing" end date and will be enabled by default.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Add Habit
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 

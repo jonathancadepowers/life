@@ -34,6 +34,16 @@ class LifeTrackerColumn(models.Model):
         default=True,
         help_text="Whether this column is currently enabled"
     )
+    start_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date when this habit becomes active"
+    )
+    end_date = models.CharField(
+        max_length=20,
+        default='ongoing',
+        help_text="Date when this habit ends (YYYY-MM-DD) or 'ongoing'"
+    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
@@ -46,6 +56,33 @@ class LifeTrackerColumn(models.Model):
 
     def __str__(self):
         return f"{self.display_name} ({self.column_name})"
+
+    def is_active_on(self, date):
+        """
+        Check if this habit is active on a given date.
+        Returns True if the date falls within the habit's active period.
+        """
+        from datetime import datetime
+
+        # If no start_date, assume it's not active
+        if not self.start_date:
+            return False
+
+        # Check if date is after start_date
+        if date < self.start_date:
+            return False
+
+        # If end_date is 'ongoing', it's active
+        if self.end_date == 'ongoing':
+            return True
+
+        # Otherwise, parse end_date and check if date is before it
+        try:
+            end_date_obj = datetime.strptime(self.end_date, '%Y-%m-%d').date()
+            return date <= end_date_obj
+        except (ValueError, AttributeError):
+            # If end_date is invalid, treat as ongoing
+            return True
 
 
 class Setting(models.Model):

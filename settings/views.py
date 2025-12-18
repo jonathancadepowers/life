@@ -60,6 +60,8 @@ def life_tracker_settings(request):
             details_display = request.POST.get(f'details_display_{column.column_name}', '')
             order = request.POST.get(f'order_{column.column_name}')
             enabled = request.POST.get(f'enabled_{column.column_name}') == 'on'
+            start_date_str = request.POST.get(f'start_date_{column.column_name}', '').strip()
+            end_date = request.POST.get(f'end_date_{column.column_name}', 'ongoing').strip() or 'ongoing'
 
             if display_name and tooltip_text and sql_query and order:
                 column.display_name = display_name
@@ -68,6 +70,19 @@ def life_tracker_settings(request):
                 column.details_display = details_display
                 column.order = int(order)
                 column.enabled = enabled
+
+                # Handle start_date
+                if start_date_str:
+                    try:
+                        column.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        errors.append(f'{column.display_name}: Invalid start date format')
+                        continue
+                else:
+                    column.start_date = None
+
+                # Handle end_date
+                column.end_date = end_date
 
                 # Validate SQL query
                 try:
@@ -101,6 +116,14 @@ def life_tracker_settings(request):
                 except Exception as e:
                     errors.append(f'{column.display_name}: {str(e)}')
 
+        # Validate that exactly 6 habits are active today
+        if not errors:
+            today = date.today()
+            active_count = sum(1 for col in columns if col.is_active_on(today))
+
+            if active_count != 6:
+                errors.append(f'You must have exactly 6 active habits as of today. Currently you have {active_count} active habit(s).')
+
         if errors:
             for error in errors:
                 messages.error(request, error)
@@ -122,10 +145,12 @@ def life_tracker_settings(request):
         'eat_clean': ['consumption_date', 'calories', 'fat', 'carbs', 'protein'],
     }
 
-    # Add available_fields to each column object
+    # Add available_fields and is_active_today to each column object
+    today = date.today()
     columns_with_fields = []
     for column in columns:
         column.available_fields = available_fields.get(column.column_name, [])
+        column.is_active_today = column.is_active_on(today)
         columns_with_fields.append(column)
 
     # Get all inspirations
@@ -357,3 +382,42 @@ def upload_book_cover(request):
             messages.error(request, 'Please select an image file.')
 
     return redirect('life_tracker_settings')
+
+
+def add_habit(request):
+    """Add a new habit (Life Tracker Column)."""
+    from datetime import date
+
+    if request.method == 'POST':
+        column_name = request.POST.get('column_name', '').strip().lower()
+        display_name = request.POST.get('display_name', '').strip()
+        tooltip_text = request.POST.get('tooltip_text', '').strip()
+        sql_query = request.POST.get('sql_query', '').strip()
+        details_display = request.POST.get('details_display', '').strip()
+        order = request.POST.get('order', '0')
+
+        # Check if column_name already exists
+        if column_name and LifeTrackerColumn.objects.filter(column_name=column_name).exists():
+            messages.error(request, f'A habit with column name "{column_name}" already exists.')
+            return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+
+        if column_name and display_name and tooltip_text and sql_query:
+            try:
+                LifeTrackerColumn.objects.create(
+                    column_name=column_name,
+                    display_name=display_name,
+                    tooltip_text=tooltip_text,
+                    sql_query=sql_query,
+                    details_display=details_display,
+                    order=int(order),
+                    enabled=True,
+                    start_date=date.today(),
+                    end_date='ongoing'
+                )
+                messages.success(request, f'Habit "{display_name}" added successfully!')
+            except Exception as e:
+                messages.error(request, f'Error adding habit: {str(e)}')
+        else:
+            messages.error(request, 'Please fill in all required fields.')
+
+    return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
