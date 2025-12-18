@@ -116,13 +116,12 @@ def life_tracker_settings(request):
                 except Exception as e:
                     errors.append(f'{column.display_name}: {str(e)}')
 
-        # Validate that exactly 6 habits are active today
+        # Validate that exactly 6 habits have end_date='ongoing' (currently active/ongoing habits)
         if not errors:
-            today = date.today()
-            active_count = sum(1 for col in columns if col.is_active_on(today))
+            ongoing_count = sum(1 for col in columns if col.enabled and col.end_date == 'ongoing')
 
-            if active_count != 6:
-                errors.append(f'You must have exactly 6 active habits as of today. Currently you have {active_count} active habit(s).')
+            if ongoing_count != 6:
+                errors.append(f'You must have exactly 6 habits with end_date="ongoing". Currently you have {ongoing_count} ongoing habit(s).')
 
         if errors:
             for error in errors:
