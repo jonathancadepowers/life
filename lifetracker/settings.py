@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "external_data",
     "workouts",
     "weight",
+    "waist_measurements",
     "fasting",
     "nutrition",
     "time_logs",
