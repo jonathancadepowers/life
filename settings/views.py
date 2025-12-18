@@ -44,11 +44,11 @@ def resize_image_with_padding(img, target_width=256, target_height=362):
 
 def life_tracker_settings(request):
     """View for configuring Life Tracker column settings."""
+    from datetime import datetime, date
+    import pytz
+
     if request.method == 'POST':
         # Handle form submission for all columns
-        from datetime import datetime, date
-        import pytz
-
         columns = LifeTrackerColumn.objects.all()
         errors = []
 
