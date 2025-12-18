@@ -4,10 +4,10 @@ from .models import Setting, LifeTrackerColumn
 
 @admin.register(LifeTrackerColumn)
 class LifeTrackerColumnAdmin(admin.ModelAdmin):
-    list_display = ['column_name', 'display_name', 'order', 'enabled', 'updated_at']
+    list_display = ['column_name', 'display_name', 'start_date', 'end_date', 'order', 'enabled', 'is_active_status']
     list_filter = ['enabled']
     search_fields = ['column_name', 'display_name', 'tooltip_text']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'is_active_status']
     list_editable = ['order', 'enabled']
     ordering = ['order', 'column_name']
 
@@ -15,8 +15,12 @@ class LifeTrackerColumnAdmin(admin.ModelAdmin):
         ('Column Information', {
             'fields': ('column_name', 'display_name', 'tooltip_text', 'order', 'enabled')
         }),
+        ('Active Period', {
+            'fields': ('start_date', 'end_date', 'is_active_status'),
+            'description': 'Define when this habit is active. End date can be a date (YYYY-MM-DD) or "ongoing".'
+        }),
         ('SQL Query', {
-            'fields': ('sql_query',),
+            'fields': ('sql_query', 'details_display'),
             'description': 'SQL query to determine if checkbox should appear. Available parameters: :day_start, :day_end'
         }),
         ('Audit Information', {
@@ -24,6 +28,14 @@ class LifeTrackerColumnAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def is_active_status(self, obj):
+        """Show if this habit is currently active"""
+        from datetime import date
+        if obj.is_active_on(date.today()):
+            return "✓ Active"
+        return "✗ Inactive"
+    is_active_status.short_description = 'Current Status'
 
 
 @admin.register(Setting)
