@@ -62,6 +62,7 @@ def life_tracker_settings(request):
             enabled = request.POST.get(f'enabled_{column.column_name}') == 'on'
             start_date_str = request.POST.get(f'start_date_{column.column_name}', '').strip()
             end_date = request.POST.get(f'end_date_{column.column_name}', 'ongoing').strip() or 'ongoing'
+            icon = request.POST.get(f'icon_{column.column_name}', 'bi-circle').strip() or 'bi-circle'
 
             if display_name and tooltip_text and sql_query and order:
                 column.display_name = display_name
@@ -83,6 +84,9 @@ def life_tracker_settings(request):
 
                 # Handle end_date
                 column.end_date = end_date
+
+                # Handle icon
+                column.icon = icon
 
                 # Validate SQL query
                 try:
@@ -396,6 +400,7 @@ def add_habit(request):
         order = request.POST.get('order', '0')
         start_date_str = request.POST.get('start_date', '').strip()
         end_date = request.POST.get('end_date', 'ongoing').strip() or 'ongoing'
+        icon = request.POST.get('icon', 'bi-circle').strip() or 'bi-circle'
 
         # Check if column_name already exists
         if column_name and LifeTrackerColumn.objects.filter(column_name=column_name).exists():
@@ -423,7 +428,8 @@ def add_habit(request):
                     order=int(order),
                     enabled=True,
                     start_date=habit_start_date,
-                    end_date=end_date
+                    end_date=end_date,
+                    icon=icon
                 )
                 messages.success(request, f'Habit "{display_name}" added successfully!')
             except Exception as e:

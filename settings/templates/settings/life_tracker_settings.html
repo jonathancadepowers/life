@@ -475,7 +475,6 @@
                             <div class="col-md-4 mb-3">
                                 <label for="id_{{ column.column_name }}" class="form-label">ID</label>
                                 <input type="text" class="form-control" id="id_{{ column.column_name }}" value="{{ column.id }}" readonly style="background-color: #e9ecef; cursor: not-allowed;">
-                                <div class="form-text">Database record ID (read-only)</div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="display_name_{{ column.column_name }}" class="form-label">Display Name</label>
@@ -498,6 +497,12 @@
                                 <input type="text" class="form-control" id="end_date_{{ column.column_name }}" name="end_date_{{ column.column_name }}" value="{{ column.end_date }}" placeholder="ongoing or YYYY-MM-DD">
                                 <div class="form-text">Enter "ongoing" or a date (YYYY-MM-DD)</div>
                             </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="icon_{{ column.column_name }}" class="form-label">Icon</label>
+                            <input type="text" class="form-control" id="icon_{{ column.column_name }}" name="icon_{{ column.column_name }}" value="{{ column.icon }}" placeholder="e.g., bi-activity, bi-clock-history" required>
+                            <div class="form-text">Bootstrap icon class name (see <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a>)</div>
                         </div>
 
                         <div class="mb-3">
@@ -558,6 +563,11 @@
                                 <label for="new_display_name" class="form-label">Display Name *</label>
                                 <input type="text" class="form-control" id="new_display_name" name="display_name" placeholder="e.g., Read" required>
                             </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_icon" class="form-label">Icon *</label>
+                            <input type="text" class="form-control" id="new_icon" name="icon" placeholder="e.g., bi-activity, bi-clock-history" value="bi-circle" required>
+                            <div class="form-text">Bootstrap icon class name (see <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a>)</div>
                         </div>
                         <div class="mb-3">
                             <label for="new_tooltip_text" class="form-label">Tooltip Text *</label>

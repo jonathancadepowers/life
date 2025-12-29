@@ -13,7 +13,7 @@ class LifeTrackerColumnAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Column Information', {
-            'fields': ('id', 'column_name', 'display_name', 'tooltip_text', 'order', 'enabled')
+            'fields': ('id', 'column_name', 'display_name', 'icon', 'tooltip_text', 'order', 'enabled')
         }),
         ('Active Period', {
             'fields': ('start_date', 'end_date', 'is_active_status'),

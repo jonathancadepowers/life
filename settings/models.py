@@ -43,6 +43,11 @@ class LifeTrackerColumn(models.Model):
         default='ongoing',
         help_text="Date when this habit ends (YYYY-MM-DD) or 'ongoing'"
     )
+    icon = models.CharField(
+        max_length=50,
+        default='bi-circle',
+        help_text="Bootstrap icon class (e.g., 'bi-activity', 'bi-clock-history')"
+    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
