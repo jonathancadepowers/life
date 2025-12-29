@@ -485,12 +485,12 @@
                             <div class="col-md-6 mb-3">
                                 <label for="start_date_{{ column.column_name }}" class="form-label">Start Date</label>
                                 <input type="date" class="form-control" id="start_date_{{ column.column_name }}" name="start_date_{{ column.column_name }}" value="{{ column.start_date|date:'Y-m-d' }}">
-                                <div class="form-text">Date when this habit becomes active</div>
+                                <div class="form-text">Must be a Monday</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="end_date_{{ column.column_name }}" class="form-label">End Date</label>
                                 <input type="text" class="form-control" id="end_date_{{ column.column_name }}" name="end_date_{{ column.column_name }}" value="{{ column.end_date }}" placeholder="ongoing or YYYY-MM-DD">
-                                <div class="form-text">Enter "ongoing" or a date (YYYY-MM-DD)</div>
+                                <div class="form-text">Must be a Sunday or "ongoing"</div>
                             </div>
                         </div>
 
@@ -606,12 +606,12 @@
                             <div class="col-md-6 mb-3">
                                 <label for="new_start_date" class="form-label">Start Date</label>
                                 <input type="date" class="form-control" id="new_start_date" name="start_date">
-                                <div class="form-text">Leave blank for today</div>
+                                <div class="form-text">Must be a Monday (leave blank for today)</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="new_end_date" class="form-label">End Date</label>
                                 <input type="text" class="form-control" id="new_end_date" name="end_date" value="ongoing" placeholder="ongoing or YYYY-MM-DD">
-                                <div class="form-text">"ongoing" or date</div>
+                                <div class="form-text">Must be a Sunday or "ongoing"</div>
                             </div>
                         </div>
                         <div class="alert alert-info">

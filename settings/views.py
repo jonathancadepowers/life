@@ -80,7 +80,12 @@ def life_tracker_settings(request):
                 # Handle start_date
                 if start_date_str:
                     try:
-                        column.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                        parsed_start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                        # Validate that start_date is a Monday (weekday() == 0)
+                        if parsed_start_date.weekday() != 0:
+                            errors.append(f'{column.display_name}: Start date must be a Monday')
+                            continue
+                        column.start_date = parsed_start_date
                     except ValueError:
                         errors.append(f'{column.display_name}: Invalid start date format')
                         continue
@@ -88,6 +93,16 @@ def life_tracker_settings(request):
                     column.start_date = None
 
                 # Handle end_date
+                if end_date != 'ongoing':
+                    # Validate that end_date is a Sunday (weekday() == 6) if it's a date
+                    try:
+                        parsed_end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                        if parsed_end_date.weekday() != 6:
+                            errors.append(f'{column.display_name}: End date must be a Sunday or "ongoing"')
+                            continue
+                    except ValueError:
+                        errors.append(f'{column.display_name}: Invalid end date format (use YYYY-MM-DD or "ongoing")')
+                        continue
                 column.end_date = end_date
 
                 # Handle icon
@@ -133,13 +148,6 @@ def life_tracker_settings(request):
                     column.save()
                 except Exception as e:
                     errors.append(f'{column.display_name}: {str(e)}')
-
-        # Validate that exactly 6 habits have end_date='ongoing' (currently active/ongoing habits)
-        if not errors:
-            ongoing_count = sum(1 for col in columns if col.end_date == 'ongoing')
-
-            if ongoing_count != 6:
-                errors.append(f'Warning: You should have exactly 6 habits with end_date="ongoing". Currently you have {ongoing_count} ongoing habit(s).')
 
         if errors:
             for error in errors:
@@ -427,11 +435,27 @@ def add_habit(request):
                 if start_date_str:
                     try:
                         habit_start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                        # Validate that start_date is a Monday (weekday() == 0)
+                        if habit_start_date.weekday() != 0:
+                            messages.error(request, 'Start date must be a Monday.')
+                            return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
                     except ValueError:
                         messages.error(request, 'Invalid start date format. Use YYYY-MM-DD.')
                         return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
                 else:
                     habit_start_date = date.today()
+
+                # Validate end_date if it's not "ongoing"
+                if end_date != 'ongoing':
+                    try:
+                        parsed_end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                        # Validate that end_date is a Sunday (weekday() == 6)
+                        if parsed_end_date.weekday() != 6:
+                            messages.error(request, 'End date must be a Sunday or "ongoing".')
+                            return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+                    except ValueError:
+                        messages.error(request, 'Invalid end date format. Use YYYY-MM-DD or "ongoing".')
+                        return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
 
                 # Handle parent
                 parent_habit = None
