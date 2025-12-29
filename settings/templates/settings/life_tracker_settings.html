@@ -506,6 +506,21 @@
                         </div>
 
                         <div class="mb-3">
+                            <label for="parent_{{ column.column_name }}" class="form-label">Parent Habit</label>
+                            <select class="form-select" id="parent_{{ column.column_name }}" name="parent_{{ column.column_name }}">
+                                <option value="">-- None --</option>
+                                {% for other_column in columns %}
+                                    {% if other_column.id != column.id %}
+                                        <option value="{{ other_column.id }}" {% if column.parent_id == other_column.id %}selected{% endif %}>
+                                            {{ other_column.column_name }} ({{ other_column.id }})
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Optional parent habit relationship</div>
+                        </div>
+
+                        <div class="mb-3">
                             <label for="tooltip_{{ column.column_name }}" class="form-label">Tooltip Text</label>
                             <textarea class="form-control" id="tooltip_{{ column.column_name }}" name="tooltip_text_{{ column.column_name }}" rows="2" required>{{ column.tooltip_text }}</textarea>
                         </div>
@@ -568,6 +583,16 @@
                             <label for="new_icon" class="form-label">Icon *</label>
                             <input type="text" class="form-control" id="new_icon" name="icon" placeholder="e.g., bi-activity, bi-clock-history" value="bi-circle" required>
                             <div class="form-text">Bootstrap icon class name (see <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a>)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_parent" class="form-label">Parent Habit</label>
+                            <select class="form-select" id="new_parent" name="parent">
+                                <option value="">-- None --</option>
+                                {% for column in columns %}
+                                    <option value="{{ column.id }}">{{ column.column_name }} ({{ column.id }})</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Optional parent habit relationship</div>
                         </div>
                         <div class="mb-3">
                             <label for="new_tooltip_text" class="form-label">Tooltip Text *</label>

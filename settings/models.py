@@ -48,6 +48,14 @@ class LifeTrackerColumn(models.Model):
         default='bi-circle',
         help_text="Bootstrap icon class (e.g., 'bi-activity', 'bi-clock-history')"
     )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        help_text="Parent habit (optional)"
+    )
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)

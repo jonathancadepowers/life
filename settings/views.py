@@ -63,6 +63,7 @@ def life_tracker_settings(request):
             start_date_str = request.POST.get(f'start_date_{column.column_name}', '').strip()
             end_date = request.POST.get(f'end_date_{column.column_name}', 'ongoing').strip() or 'ongoing'
             icon = request.POST.get(f'icon_{column.column_name}', 'bi-circle').strip() or 'bi-circle'
+            parent_id = request.POST.get(f'parent_{column.column_name}', '').strip()
 
             if display_name and tooltip_text and sql_query and order:
                 column.display_name = display_name
@@ -87,6 +88,15 @@ def life_tracker_settings(request):
 
                 # Handle icon
                 column.icon = icon
+
+                # Handle parent
+                if parent_id:
+                    try:
+                        column.parent_id = int(parent_id)
+                    except ValueError:
+                        column.parent = None
+                else:
+                    column.parent = None
 
                 # Validate SQL query
                 try:
@@ -401,6 +411,7 @@ def add_habit(request):
         start_date_str = request.POST.get('start_date', '').strip()
         end_date = request.POST.get('end_date', 'ongoing').strip() or 'ongoing'
         icon = request.POST.get('icon', 'bi-circle').strip() or 'bi-circle'
+        parent_id = request.POST.get('parent', '').strip()
 
         # Check if column_name already exists
         if column_name and LifeTrackerColumn.objects.filter(column_name=column_name).exists():
@@ -419,6 +430,14 @@ def add_habit(request):
                 else:
                     habit_start_date = date.today()
 
+                # Handle parent
+                parent_habit = None
+                if parent_id:
+                    try:
+                        parent_habit = LifeTrackerColumn.objects.get(id=int(parent_id))
+                    except (ValueError, LifeTrackerColumn.DoesNotExist):
+                        parent_habit = None
+
                 LifeTrackerColumn.objects.create(
                     column_name=column_name,
                     display_name=display_name,
@@ -429,7 +448,8 @@ def add_habit(request):
                     enabled=True,
                     start_date=habit_start_date,
                     end_date=end_date,
-                    icon=icon
+                    icon=icon,
+                    parent=parent_habit
                 )
                 messages.success(request, f'Habit "{display_name}" added successfully!')
             except Exception as e:
