@@ -4,7 +4,7 @@ from .models import Setting, LifeTrackerColumn
 
 @admin.register(LifeTrackerColumn)
 class LifeTrackerColumnAdmin(admin.ModelAdmin):
-    list_display = ['id', 'column_name', 'display_name', 'start_date', 'end_date', 'order', 'enabled', 'is_active_status']
+    list_display = ['id', 'column_name', 'display_name', 'icon', 'start_date', 'end_date', 'order', 'enabled', 'is_active_status']
     list_filter = ['enabled']
     search_fields = ['id', 'column_name', 'display_name', 'tooltip_text']
     readonly_fields = ['id', 'created_at', 'updated_at', 'is_active_status']
