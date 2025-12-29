@@ -4,16 +4,15 @@ from .models import Setting, LifeTrackerColumn
 
 @admin.register(LifeTrackerColumn)
 class LifeTrackerColumnAdmin(admin.ModelAdmin):
-    list_display = ['id', 'column_name', 'display_name', 'icon', 'parent', 'start_date', 'end_date', 'order', 'is_active_status']
+    list_display = ['id', 'column_name', 'display_name', 'icon', 'parent', 'start_date', 'end_date', 'is_active_status']
     list_filter = []
     search_fields = ['id', 'column_name', 'display_name', 'tooltip_text']
     readonly_fields = ['id', 'created_at', 'updated_at', 'is_active_status']
-    list_editable = ['order']
-    ordering = ['order', 'column_name']
+    ordering = ['id']
 
     fieldsets = (
         ('Column Information', {
-            'fields': ('id', 'column_name', 'display_name', 'icon', 'parent', 'tooltip_text', 'order')
+            'fields': ('id', 'column_name', 'display_name', 'icon', 'parent', 'tooltip_text')
         }),
         ('Active Period', {
             'fields': ('start_date', 'end_date', 'is_active_status'),

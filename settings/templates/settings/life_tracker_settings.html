@@ -471,12 +471,13 @@
                                 <input type="text" class="form-control" id="id_{{ column.column_name }}" value="{{ column.id }}" readonly style="background-color: #e9ecef; cursor: not-allowed;">
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="display_name_{{ column.column_name }}" class="form-label">Display Name</label>
-                                <input type="text" class="form-control" id="display_name_{{ column.column_name }}" name="display_name_{{ column.column_name }}" value="{{ column.display_name }}" required>
+                                <label for="column_name_{{ column.column_name }}" class="form-label">Column Name</label>
+                                <input type="text" class="form-control" id="column_name_{{ column.column_name }}" name="column_name_{{ column.column_name }}" value="{{ column.column_name }}" required>
+                                <div class="form-text">Unique identifier (lowercase, no spaces)</div>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="order_{{ column.column_name }}" class="form-label">Display Order</label>
-                                <input type="number" class="form-control" id="order_{{ column.column_name }}" name="order_{{ column.column_name }}" value="{{ column.order }}" required>
+                                <label for="display_name_{{ column.column_name }}" class="form-label">Display Name</label>
+                                <input type="text" class="form-control" id="display_name_{{ column.column_name }}" name="display_name_{{ column.column_name }}" value="{{ column.display_name }}" required>
                             </div>
                         </div>
 
@@ -602,19 +603,15 @@
                             <div class="form-text">Use {field_name} tokens to display data from your database table. Available fields depend on your table columns. Multiple records on the same day will be joined with commas.</div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="new_start_date" class="form-label">Start Date</label>
                                 <input type="date" class="form-control" id="new_start_date" name="start_date">
                                 <div class="form-text">Leave blank for today</div>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="new_end_date" class="form-label">End Date</label>
                                 <input type="text" class="form-control" id="new_end_date" name="end_date" value="ongoing" placeholder="ongoing or YYYY-MM-DD">
                                 <div class="form-text">"ongoing" or date</div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="new_order" class="form-label">Display Order *</label>
-                                <input type="number" class="form-control" id="new_order" name="order" value="0" required>
                             </div>
                         </div>
                         <div class="alert alert-info">

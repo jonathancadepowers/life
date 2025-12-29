@@ -25,10 +25,6 @@ class LifeTrackerColumn(models.Model):
         default='',
         help_text="Text configuration for details shown when hovering over checkmarks"
     )
-    order = models.IntegerField(
-        default=0,
-        help_text="Display order (lower numbers appear first)"
-    )
     start_date = models.DateField(
         null=True,
         blank=True,
@@ -58,7 +54,7 @@ class LifeTrackerColumn(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['order', 'column_name']
+        ordering = ['id']
         verbose_name = 'Life Tracker Column'
         verbose_name_plural = 'Life Tracker Columns'
 

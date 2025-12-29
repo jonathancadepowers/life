@@ -1377,7 +1377,7 @@ def life_tracker(request):
 
     # Get all columns from settings that are active during this week
     # A column is active during the week if it's active on at least one day
-    all_columns = LifeTrackerColumn.objects.all().order_by('order')
+    all_columns = LifeTrackerColumn.objects.all()
     columns = []
     for col in all_columns:
         # Check if column is active on any day of the week

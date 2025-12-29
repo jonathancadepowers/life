@@ -58,18 +58,24 @@ def life_tracker_settings(request):
             tooltip_text = request.POST.get(f'tooltip_text_{column.column_name}')
             sql_query = request.POST.get(f'sql_query_{column.column_name}')
             details_display = request.POST.get(f'details_display_{column.column_name}', '')
-            order = request.POST.get(f'order_{column.column_name}')
             start_date_str = request.POST.get(f'start_date_{column.column_name}', '').strip()
             end_date = request.POST.get(f'end_date_{column.column_name}', 'ongoing').strip() or 'ongoing'
             icon = request.POST.get(f'icon_{column.column_name}', 'bi-circle').strip() or 'bi-circle'
             parent_id = request.POST.get(f'parent_{column.column_name}', '').strip()
+            new_column_name = request.POST.get(f'column_name_{column.column_name}', '').strip().lower()
 
-            if display_name and tooltip_text and sql_query and order:
+            if display_name and tooltip_text and sql_query and new_column_name:
+                # Check if column_name is changing and if new name already exists
+                if new_column_name != column.column_name:
+                    if LifeTrackerColumn.objects.filter(column_name=new_column_name).exists():
+                        errors.append(f'{column.display_name}: Column name "{new_column_name}" already exists')
+                        continue
+                    column.column_name = new_column_name
+
                 column.display_name = display_name
                 column.tooltip_text = tooltip_text
                 column.sql_query = sql_query
                 column.details_display = details_display
-                column.order = int(order)
 
                 # Handle start_date
                 if start_date_str:
@@ -405,7 +411,6 @@ def add_habit(request):
         tooltip_text = request.POST.get('tooltip_text', '').strip()
         sql_query = request.POST.get('sql_query', '').strip()
         details_display = request.POST.get('details_display', '').strip()
-        order = request.POST.get('order', '0')
         start_date_str = request.POST.get('start_date', '').strip()
         end_date = request.POST.get('end_date', 'ongoing').strip() or 'ongoing'
         icon = request.POST.get('icon', 'bi-circle').strip() or 'bi-circle'
@@ -442,7 +447,6 @@ def add_habit(request):
                     tooltip_text=tooltip_text,
                     sql_query=sql_query,
                     details_display=details_display,
-                    order=int(order),
                     start_date=habit_start_date,
                     end_date=end_date,
                     icon=icon,
