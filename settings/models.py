@@ -8,7 +8,6 @@ class LifeTrackerColumn(models.Model):
     column_name = models.CharField(
         max_length=50,
         unique=True,
-        primary_key=True,
         help_text="Internal name of the column (e.g., 'run', 'fast', 'strength')"
     )
     display_name = models.CharField(
