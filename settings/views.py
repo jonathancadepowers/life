@@ -125,7 +125,7 @@ def life_tracker_settings(request):
             ongoing_count = sum(1 for col in columns if col.enabled and col.end_date == 'ongoing')
 
             if ongoing_count != 6:
-                errors.append(f'You must have exactly 6 habits with end_date="ongoing". Currently you have {ongoing_count} ongoing habit(s).')
+                errors.append(f'Warning: You should have exactly 6 habits with end_date="ongoing". Currently you have {ongoing_count} ongoing habit(s).')
 
         if errors:
             for error in errors:
