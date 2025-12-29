@@ -1490,11 +1490,24 @@ def life_tracker(request):
     # Reverse the list so current week appears first
     available_weeks.reverse()
 
+    # Serialize columns for JavaScript
+    import json
+    columns_json = json.dumps([{
+        'column_name': col.column_name,
+        'display_name': col.display_name,
+        'has_add_button': col.has_add_button,
+        'modal_type': col.modal_type,
+        'modal_title': col.modal_title,
+        'modal_body_text': col.modal_body_text,
+        'create_endpoint': col.create_endpoint,
+    } for col in columns])
+
     context = {
         'start_date': start_date,
         'end_date': end_date,
         'days': days,
         'columns': columns,
+        'columns_json': columns_json,
         'available_weeks': available_weeks,
     }
 

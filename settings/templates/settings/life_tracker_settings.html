@@ -539,6 +539,44 @@
                             </label>
                             <textarea class="form-control" id="details_display_{{ column.column_name }}" name="details_display_{{ column.column_name }}" rows="3" placeholder="Example: Duration: {duration} hours">{{ column.details_display }}</textarea>
                         </div>
+
+                        <!-- UI Configuration Section -->
+                        <hr class="my-4">
+                        <h6 class="mb-3">Add Button & Modal Configuration</h6>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="has_add_button_{{ column.column_name }}" name="has_add_button_{{ column.column_name }}" {% if column.has_add_button %}checked{% endif %}>
+                            <label class="form-check-label" for="has_add_button_{{ column.column_name }}">
+                                Show + button on hover for empty cells
+                            </label>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modal_type_{{ column.column_name }}" class="form-label">Modal Type</label>
+                            <select class="form-select" id="modal_type_{{ column.column_name }}" name="modal_type_{{ column.column_name }}">
+                                <option value="" {% if not column.modal_type %}selected{% endif %}>No modal</option>
+                                <option value="simple_confirm" {% if column.modal_type == 'simple_confirm' %}selected{% endif %}>Simple Yes/No confirmation</option>
+                                <option value="duration_select" {% if column.modal_type == 'duration_select' %}selected{% endif %}>Duration selection (like fasting)</option>
+                            </select>
+                            <div class="form-text">Type of modal shown when + button is clicked</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="modal_title_{{ column.column_name }}" class="form-label">Modal Title</label>
+                                <input type="text" class="form-control" id="modal_title_{{ column.column_name }}" name="modal_title_{{ column.column_name }}" value="{{ column.modal_title }}" placeholder="e.g., Writing Session">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="create_endpoint_{{ column.column_name }}" class="form-label">Create Endpoint</label>
+                                <input type="text" class="form-control" id="create_endpoint_{{ column.column_name }}" name="create_endpoint_{{ column.column_name }}" value="{{ column.create_endpoint }}" placeholder="e.g., fasting:log_fast">
+                                <div class="form-text">Django URL name for creating records</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modal_body_text_{{ column.column_name }}" class="form-label">Modal Body Text</label>
+                            <textarea class="form-control" id="modal_body_text_{{ column.column_name }}" name="modal_body_text_{{ column.column_name }}" rows="2" placeholder="e.g., Did you complete this activity?">{{ column.modal_body_text }}</textarea>
+                        </div>
                     </div>
                 {% endfor %}
             </form>
@@ -614,6 +652,43 @@
                                 <div class="form-text">Must be a Sunday or "ongoing"</div>
                             </div>
                         </div>
+
+                        <!-- UI Configuration Section -->
+                        <hr class="my-3">
+                        <h6 class="mb-3">Add Button & Modal Configuration (Optional)</h6>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="new_has_add_button" name="has_add_button">
+                            <label class="form-check-label" for="new_has_add_button">
+                                Show + button on hover for empty cells
+                            </label>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="new_modal_type" class="form-label">Modal Type</label>
+                            <select class="form-select" id="new_modal_type" name="modal_type">
+                                <option value="">No modal</option>
+                                <option value="simple_confirm">Simple Yes/No confirmation</option>
+                                <option value="duration_select">Duration selection (like fasting)</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="new_modal_title" class="form-label">Modal Title</label>
+                                <input type="text" class="form-control" id="new_modal_title" name="modal_title" placeholder="e.g., Writing Session">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="new_create_endpoint" class="form-label">Create Endpoint</label>
+                                <input type="text" class="form-control" id="new_create_endpoint" name="create_endpoint" placeholder="e.g., fasting:log_fast">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="new_modal_body_text" class="form-label">Modal Body Text</label>
+                            <textarea class="form-control" id="new_modal_body_text" name="modal_body_text" rows="2" placeholder="e.g., Did you complete this activity?"></textarea>
+                        </div>
+
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i> If start date is blank, it will be set to today.
                         </div>

@@ -49,6 +49,40 @@ class LifeTrackerColumn(models.Model):
         help_text="Parent habit (optional)"
     )
 
+    # UI Configuration - Add button and modal settings
+    has_add_button = models.BooleanField(
+        default=False,
+        help_text="Show + button on hover for empty cells"
+    )
+    modal_type = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        choices=[
+            ('', 'No modal'),
+            ('simple_confirm', 'Simple Yes/No confirmation'),
+            ('duration_select', 'Duration selection (like fasting)'),
+        ],
+        help_text="Type of modal to show when + button is clicked"
+    )
+    modal_title = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Title shown in the modal header"
+    )
+    modal_body_text = models.TextField(
+        blank=True,
+        default='',
+        help_text="Main text/question shown in modal body"
+    )
+    create_endpoint = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Django URL name for creating records (e.g., 'fasting:log_fast')"
+    )
+
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

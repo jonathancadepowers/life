@@ -117,6 +117,13 @@ def life_tracker_settings(request):
                 else:
                     column.parent = None
 
+                # Handle UI configuration fields
+                column.has_add_button = request.POST.get(f'has_add_button_{column.column_name}') == 'on'
+                column.modal_type = request.POST.get(f'modal_type_{column.column_name}', '').strip()
+                column.modal_title = request.POST.get(f'modal_title_{column.column_name}', '').strip()
+                column.modal_body_text = request.POST.get(f'modal_body_text_{column.column_name}', '').strip()
+                column.create_endpoint = request.POST.get(f'create_endpoint_{column.column_name}', '').strip()
+
                 # Validate SQL query
                 try:
                     user_tz = pytz.timezone('America/Los_Angeles')
@@ -424,6 +431,13 @@ def add_habit(request):
         icon = request.POST.get('icon', 'bi-circle').strip() or 'bi-circle'
         parent_id = request.POST.get('parent', '').strip()
 
+        # Get UI configuration fields
+        has_add_button = request.POST.get('has_add_button') == 'on'
+        modal_type = request.POST.get('modal_type', '').strip()
+        modal_title = request.POST.get('modal_title', '').strip()
+        modal_body_text = request.POST.get('modal_body_text', '').strip()
+        create_endpoint = request.POST.get('create_endpoint', '').strip()
+
         # Check if column_name already exists
         if column_name and LifeTrackerColumn.objects.filter(column_name=column_name).exists():
             messages.error(request, f'A habit with column name "{column_name}" already exists.')
@@ -474,7 +488,12 @@ def add_habit(request):
                     start_date=habit_start_date,
                     end_date=end_date,
                     icon=icon,
-                    parent=parent_habit
+                    parent=parent_habit,
+                    has_add_button=has_add_button,
+                    modal_type=modal_type,
+                    modal_title=modal_title,
+                    modal_body_text=modal_body_text,
+                    create_endpoint=create_endpoint
                 )
                 messages.success(request, f'Habit "{display_name}" added successfully!')
             except Exception as e:

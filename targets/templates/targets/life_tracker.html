@@ -207,43 +207,25 @@
                             <span class="date-label">({{ day.date_str }})</span>
                         </td>
                         {% for column in columns %}
-                        <td class="checkbox-cell {% if column.column_name == 'write' %}write-cell{% endif %}{% if column.column_name == 'fast' %} fast-cell{% endif %}" data-date="{{ day.date_iso }}" data-column="{{ column.column_name }}">
-                            {% if column.column_name == 'write' %}
-                                {% if day.has_write %}
+                        <td class="checkbox-cell{% if column.has_add_button %} add-btn-cell{% endif %}"
+                            data-date="{{ day.date_iso }}"
+                            data-column="{{ column.column_name }}"
+                            data-modal-type="{{ column.modal_type }}"
+                            data-endpoint="{{ column.create_endpoint }}">
+                            {% with has_key="has_"|add:column.column_name details_key="details_"|add:column.column_name %}
+                                {% if day|get_item:has_key %}
                                     <div class="details-cell">
                                         <i class="bi bi-check-square-fill"></i>
-                                        {% if day.details_write %}
-                                            <div class="details-tooltip">{{ day.details_write }}</div>
-                                        {% endif %}
+                                        {% with details_text=day|get_item:details_key %}
+                                            {% if details_text %}
+                                                <div class="details-tooltip">{{ details_text }}</div>
+                                            {% endif %}
+                                        {% endwith %}
                                     </div>
-                                {% else %}
-                                    <i class="bi bi-plus-circle add-writing-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
+                                {% elif column.has_add_button %}
+                                    <i class="bi bi-plus-circle add-btn-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
                                 {% endif %}
-                            {% elif column.column_name == 'fast' %}
-                                {% if day.has_fast %}
-                                    <div class="details-cell">
-                                        <i class="bi bi-check-square-fill"></i>
-                                        {% if day.details_fast %}
-                                            <div class="details-tooltip">{{ day.details_fast }}</div>
-                                        {% endif %}
-                                    </div>
-                                {% else %}
-                                    <i class="bi bi-plus-circle add-fasting-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
-                                {% endif %}
-                            {% else %}
-                                {% with has_key="has_"|add:column.column_name details_key="details_"|add:column.column_name %}
-                                    {% if day|get_item:has_key %}
-                                        <div class="details-cell">
-                                            <i class="bi bi-check-square-fill"></i>
-                                            {% with details_text=day|get_item:details_key %}
-                                                {% if details_text %}
-                                                    <div class="details-tooltip">{{ details_text }}</div>
-                                                {% endif %}
-                                            {% endwith %}
-                                        </div>
-                                    {% endif %}
-                                {% endwith %}
-                            {% endif %}
+                            {% endwith %}
                         </td>
                         {% endfor %}
                     </tr>
@@ -253,47 +235,47 @@
         </div>
     </div>
 
-    <!-- Writing Log Modal -->
-    <div class="modal fade" id="writingModal" tabindex="-1" aria-labelledby="writingModalLabel" aria-hidden="true">
+    <!-- Generic Simple Confirm Modal -->
+    <div class="modal fade" id="simpleConfirmModal" tabindex="-1" aria-labelledby="simpleConfirmModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="writingModalLabel">Writing Session</h5>
+                    <h5 class="modal-title" id="simpleConfirmModalLabel">Confirm</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center d-flex align-items-center justify-content-center" style="min-height: 100px;">
-                    <p class="fs-5 mb-0">Did you write for 1.5+ hours on this day?</p>
+                    <p class="fs-5 mb-0" id="simpleConfirmBodyText"></p>
                 </div>
                 <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-primary btn-lg" id="confirmWritingBtn">Yes</button>
+                    <button type="button" class="btn btn-primary btn-lg" id="confirmBtn">Yes</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Fasting Log Modal -->
-    <div class="modal fade" id="fastingModal" tabindex="-1" aria-labelledby="fastingModalLabel" aria-hidden="true">
+    <!-- Duration Select Modal (for fasting-type habits) -->
+    <div class="modal fade" id="durationSelectModal" tabindex="-1" aria-labelledby="durationSelectModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="fastingModalLabel">Log Fasting Session</h5>
+                    <h5 class="modal-title" id="durationSelectModalLabel">Select Duration</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-center mb-3">How long did you fast?</p>
+                    <p class="text-center mb-3" id="durationSelectBodyText"></p>
                     <div class="row">
                         <div class="col-4">
-                            <button class="btn btn-primary w-100 fast-btn" data-hours="12">
+                            <button class="btn btn-primary w-100 duration-btn" data-hours="12">
                                 <i class="bi bi-clock"></i><br>12 Hours
                             </button>
                         </div>
                         <div class="col-4">
-                            <button class="btn btn-success w-100 fast-btn" data-hours="16">
+                            <button class="btn btn-success w-100 duration-btn" data-hours="16">
                                 <i class="bi bi-clock"></i><br>16 Hours
                             </button>
                         </div>
                         <div class="col-4">
-                            <button class="btn btn-info w-100 fast-btn" data-hours="18">
+                            <button class="btn btn-info w-100 duration-btn" data-hours="18">
                                 <i class="bi bi-clock"></i><br>18 Hours
                             </button>
                         </div>
@@ -486,13 +468,20 @@
             return cellDate > today;
         }
 
-        // Writing log functionality
-        let currentWritingDate = null;
-        const writingModal = new bootstrap.Modal(document.getElementById('writingModal'));
+        // Dynamic Add Button Functionality
+        // Get modal configurations from database
+        const columns = {{ columns_json|safe }};
+        let currentModalDate = null;
+        let currentModalEndpoint = null;
+        let currentModalColumn = null;
 
-        // Show + icon on hover for empty write cells
-        document.querySelectorAll('.write-cell').forEach(cell => {
-            const icon = cell.querySelector('.add-writing-icon');
+        // Initialize modals
+        const simpleConfirmModal = new bootstrap.Modal(document.getElementById('simpleConfirmModal'));
+        const durationSelectModal = new bootstrap.Modal(document.getElementById('durationSelectModal'));
+
+        // Show + icon on hover for all add-btn cells
+        document.querySelectorAll('.add-btn-cell').forEach(cell => {
+            const icon = cell.querySelector('.add-btn-icon');
             if (icon) {
                 const cellDate = cell.dataset.date;
 
@@ -510,124 +499,108 @@
                     icon.style.opacity = '0';
                 });
 
-                // Click on + icon to show modal
+                // Click on + icon to show appropriate modal
                 icon.addEventListener('click', () => {
-                    currentWritingDate = cell.dataset.date;
-                    writingModal.show();
+                    currentModalDate = cell.dataset.date;
+                    currentModalEndpoint = cell.dataset.endpoint;
+                    currentModalColumn = cell.dataset.column;
+                    const modalType = cell.dataset.modalType;
+
+                    // Find column config from columns data
+                    const columnConfig = columns.find(c => c.column_name === currentModalColumn);
+                    if (!columnConfig) return;
+
+                    if (modalType === 'simple_confirm') {
+                        // Set modal content
+                        document.getElementById('simpleConfirmModalLabel').textContent = columnConfig.modal_title || 'Confirm';
+                        document.getElementById('simpleConfirmBodyText').textContent = columnConfig.modal_body_text || 'Confirm this action?';
+                        simpleConfirmModal.show();
+                    } else if (modalType === 'duration_select') {
+                        // Set modal content
+                        document.getElementById('durationSelectModalLabel').textContent = columnConfig.modal_title || 'Select Duration';
+                        document.getElementById('durationSelectBodyText').textContent = columnConfig.modal_body_text || 'Select duration:';
+                        durationSelectModal.show();
+                    }
                 });
             }
         });
 
-        // Handle "Yes" button click in modal
-        document.getElementById('confirmWritingBtn').addEventListener('click', function() {
-            if (!currentWritingDate) return;
+        // Handle simple confirm modal "Yes" button
+        document.getElementById('confirmBtn').addEventListener('click', function() {
+            if (!currentModalDate || !currentModalEndpoint) return;
 
             const csrftoken = getCSRFToken();
 
-            // Make AJAX request to create writing log
-            fetch('{% url "writing:create_log" %}', {
+            // Make AJAX request
+            fetch('/' + currentModalEndpoint.replace(':', '/'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrftoken
                 },
                 body: JSON.stringify({
-                    log_date: currentWritingDate
+                    log_date: currentModalDate
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    writingModal.hide();
-                    showFlashMessage('Writing session logged successfully!');
-                    // Refresh the page to show the checkmark
+                    simpleConfirmModal.hide();
+                    showFlashMessage('Successfully logged!');
                     setTimeout(() => {
                         window.location.reload();
                     }, 1000);
                 } else {
-                    writingModal.hide();
-                    showFlashMessage('Error: ' + (data.error || 'Unknown error'), false);
+                    simpleConfirmModal.hide();
+                    showFlashMessage('Error: ' + (data.error || data.message || 'Unknown error'), false);
                 }
             })
             .catch(error => {
-                writingModal.hide();
-                showFlashMessage('Network error: Could not save writing log', false);
+                simpleConfirmModal.hide();
+                showFlashMessage('Network error: Could not save', false);
                 console.error('Error:', error);
             });
         });
 
-        // Fasting log functionality
-        let currentFastingDate = null;
-        const fastingModal = new bootstrap.Modal(document.getElementById('fastingModal'));
-
-        // Show + icon on hover for empty fast cells
-        document.querySelectorAll('.fast-cell').forEach(cell => {
-            const icon = cell.querySelector('.add-fasting-icon');
-            if (icon) {
-                const cellDate = cell.dataset.date;
-
-                // Don't show + icon for future dates
-                if (isFutureDate(cellDate)) {
-                    return;
-                }
-
-                cell.addEventListener('mouseenter', () => {
-                    icon.style.visibility = 'visible';
-                    icon.style.opacity = '1';
-                });
-                cell.addEventListener('mouseleave', () => {
-                    icon.style.visibility = 'hidden';
-                    icon.style.opacity = '0';
-                });
-
-                // Click on + icon to show modal
-                icon.addEventListener('click', () => {
-                    currentFastingDate = cell.dataset.date;
-                    fastingModal.show();
-                });
-            }
-        });
-
-        // Handle fast button clicks in modal
-        document.querySelectorAll('.fast-btn').forEach(btn => {
+        // Handle duration select modal button clicks
+        document.querySelectorAll('.duration-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                if (!currentFastingDate) return;
+                if (!currentModalDate || !currentModalEndpoint) return;
 
                 const hours = this.dataset.hours;
                 const csrftoken = getCSRFToken();
 
                 // Disable all buttons during submission
-                document.querySelectorAll('.fast-btn').forEach(b => {
+                document.querySelectorAll('.duration-btn').forEach(b => {
                     b.disabled = true;
                     b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging...';
                 });
 
                 // Make AJAX request
-                fetch('{% url "fasting:log_fast" %}', {
+                fetch('/' + currentModalEndpoint.replace(':', '/'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRFToken': csrftoken
                     },
-                    body: `hours=${hours}&date=${currentFastingDate}`
+                    body: `hours=${hours}&date=${currentModalDate}`
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        fastingModal.hide();
-                        showFlashMessage('Fasting session logged successfully!');
-                        // Refresh the page to show the checkmark
+                        durationSelectModal.hide();
+                        showFlashMessage('Successfully logged!');
                         setTimeout(() => {
                             window.location.reload();
                         }, 1000);
                     } else {
-                        fastingModal.hide();
-                        showFlashMessage('Error: ' + (data.message || 'Unknown error'), false);
+                        durationSelectModal.hide();
+                        showFlashMessage('Error: ' + (data.message || data.error || 'Unknown error'), false);
                     }
                 })
                 .catch(error => {
-                    fastingModal.hide();
-                    showFlashMessage('Network error: Could not save fasting log', false);
+                    durationSelectModal.hide();
+                    showFlashMessage('Network error: Could not save', false);
                     console.error('Error:', error);
                 })
                 .finally(() => {
@@ -638,7 +611,7 @@
                         '18': '<i class="bi bi-clock"></i><br>18 Hours'
                     };
 
-                    document.querySelectorAll('.fast-btn').forEach((b) => {
+                    document.querySelectorAll('.duration-btn').forEach((b) => {
                         b.disabled = false;
                         const hours = b.dataset.hours;
                         b.innerHTML = buttonTexts[hours];

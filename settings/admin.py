@@ -22,6 +22,11 @@ class LifeTrackerColumnAdmin(admin.ModelAdmin):
             'fields': ('sql_query', 'details_display'),
             'description': 'SQL query to determine if checkbox should appear. Available parameters: :day_start, :day_end'
         }),
+        ('UI Configuration', {
+            'fields': ('has_add_button', 'modal_type', 'modal_title', 'modal_body_text', 'create_endpoint'),
+            'description': 'Configure the add button and modal that appears when hovering over empty cells.',
+            'classes': ('collapse',)
+        }),
         ('Audit Information', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
