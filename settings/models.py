@@ -29,10 +29,6 @@ class LifeTrackerColumn(models.Model):
         default=0,
         help_text="Display order (lower numbers appear first)"
     )
-    enabled = models.BooleanField(
-        default=True,
-        help_text="Whether this column is currently enabled"
-    )
     start_date = models.DateField(
         null=True,
         blank=True,

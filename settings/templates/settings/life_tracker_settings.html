@@ -463,12 +463,6 @@
                                     <span class="badge bg-warning text-dark">No Start Date</span>
                                 {% endif %}
                             </div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="enabled_{{ column.column_name }}" id="enabled_{{ column.column_name }}" {% if column.enabled %}checked{% endif %}>
-                                <label class="form-check-label" for="enabled_{{ column.column_name }}">
-                                    Enabled
-                                </label>
-                            </div>
                         </div>
 
                         <div class="row">
@@ -624,7 +618,7 @@
                             </div>
                         </div>
                         <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> New habits will be enabled by default. If start date is blank, it will be set to today.
+                            <i class="bi bi-info-circle"></i> If start date is blank, it will be set to today.
                         </div>
                     </div>
                     <div class="modal-footer">

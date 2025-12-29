@@ -59,7 +59,6 @@ def life_tracker_settings(request):
             sql_query = request.POST.get(f'sql_query_{column.column_name}')
             details_display = request.POST.get(f'details_display_{column.column_name}', '')
             order = request.POST.get(f'order_{column.column_name}')
-            enabled = request.POST.get(f'enabled_{column.column_name}') == 'on'
             start_date_str = request.POST.get(f'start_date_{column.column_name}', '').strip()
             end_date = request.POST.get(f'end_date_{column.column_name}', 'ongoing').strip() or 'ongoing'
             icon = request.POST.get(f'icon_{column.column_name}', 'bi-circle').strip() or 'bi-circle'
@@ -71,7 +70,6 @@ def life_tracker_settings(request):
                 column.sql_query = sql_query
                 column.details_display = details_display
                 column.order = int(order)
-                column.enabled = enabled
 
                 # Handle start_date
                 if start_date_str:
@@ -132,7 +130,7 @@ def life_tracker_settings(request):
 
         # Validate that exactly 6 habits have end_date='ongoing' (currently active/ongoing habits)
         if not errors:
-            ongoing_count = sum(1 for col in columns if col.enabled and col.end_date == 'ongoing')
+            ongoing_count = sum(1 for col in columns if col.end_date == 'ongoing')
 
             if ongoing_count != 6:
                 errors.append(f'Warning: You should have exactly 6 habits with end_date="ongoing". Currently you have {ongoing_count} ongoing habit(s).')
@@ -445,7 +443,6 @@ def add_habit(request):
                     sql_query=sql_query,
                     details_display=details_display,
                     order=int(order),
-                    enabled=True,
                     start_date=habit_start_date,
                     end_date=end_date,
                     icon=icon,
