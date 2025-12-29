@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "writing",
     "settings",
     "inspirations_app",
+    "youtube_avoidance",
 ]
 
 MIDDLEWARE = [
