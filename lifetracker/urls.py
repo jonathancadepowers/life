@@ -47,6 +47,7 @@ urlpatterns = [
     path("", include("fasting.urls")),
     path("", include("nutrition.urls")),
     path("", include("youtube_avoidance.urls")),
+    path("", include("waist_measurements.urls")),
     path("", home_views.home, name='home'),  # Catch-all for homepage, must be last
 ]
 
