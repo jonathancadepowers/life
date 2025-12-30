@@ -4,5 +4,5 @@ from . import views
 app_name = 'youtube_avoidance'
 
 urlpatterns = [
-    path('api/log-youtube/', views.log_youtube, name='log_youtube'),
+    path('youtube_avoidance/log_youtube', views.log_youtube, name='log_youtube'),
 ]

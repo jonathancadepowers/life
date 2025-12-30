@@ -3,6 +3,7 @@ from django.views.decorators.http import require_http_methods
 from datetime import datetime
 from .models import YouTubeAvoidanceLog
 import uuid
+import json
 
 
 @require_http_methods(["POST"])
@@ -10,8 +11,8 @@ def log_youtube(request):
     """
     AJAX endpoint to log a YouTube avoidance entry.
 
-    Expects POST data:
-        - date: string (YYYY-MM-DD format) - the date for the log entry
+    Expects JSON data:
+        - log_date: string (YYYY-MM-DD format) - the date for the log entry
 
     Returns JSON:
         - success: boolean
@@ -19,8 +20,9 @@ def log_youtube(request):
         - log_id: integer (if successful)
     """
     try:
-        # Get the date from POST data
-        date_str = request.POST.get('date')
+        # Parse JSON request body
+        data = json.loads(request.body)
+        date_str = data.get('log_date')
 
         if not date_str:
             return JsonResponse({
