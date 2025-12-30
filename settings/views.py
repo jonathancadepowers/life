@@ -141,16 +141,19 @@ def life_tracker_settings(request):
                         elif ':day_start' in test_query or ':day_end' in test_query:
                             test_query = test_query.replace(':day_start', '%s').replace(':day_end', '%s')
                             params.extend([day_start, day_end])
+                        elif ':day' in test_query:
+                            test_query = test_query.replace(':day', '%s')
+                            params.append(test_date)
 
                         cursor.execute(test_query, params)
                         result = cursor.fetchone()
 
                         if result is None:
-                            raise ValueError("Query returned no results. Must return at least one row with a numeric value.")
+                            raise ValueError("Query returned no results. Must return at least one row with a value.")
 
                         value = result[0]
-                        if value is not None and not isinstance(value, (int, float)):
-                            raise ValueError(f"Query must return a numeric value, got {type(value).__name__}: {value}")
+                        if value is not None and not isinstance(value, (int, float, str)):
+                            raise ValueError(f"Query must return a numeric or string value, got {type(value).__name__}: {value}")
 
                     column.save()
                 except Exception as e:
@@ -197,6 +200,7 @@ def life_tracker_settings(request):
     context = {
         'columns': columns_with_fields,
         'available_parameters': [
+            ':day - The current date (date object, use for comparing DATE fields)',
             ':current_date - The current date (date object, use for comparing DATE fields)',
             ':day_start - Start of the day in user\'s timezone (timezone-aware datetime)',
             ':day_end - End of the day in user\'s timezone (timezone-aware datetime)',
@@ -478,6 +482,44 @@ def add_habit(request):
                         parent_habit = LifeTrackerColumn.objects.get(id=int(parent_id))
                     except (ValueError, LifeTrackerColumn.DoesNotExist):
                         parent_habit = None
+
+                # Validate SQL query
+                try:
+                    from django.db import connection
+                    import pytz
+
+                    user_tz = pytz.timezone('America/Los_Angeles')
+                    test_date = date(2024, 1, 1)
+                    day_start = user_tz.localize(datetime.combine(test_date, datetime.min.time()))
+                    day_end = user_tz.localize(datetime.combine(test_date, datetime.max.time()))
+
+                    with connection.cursor() as cursor:
+                        test_query = sql_query
+                        params = []
+
+                        if ':current_date' in test_query:
+                            test_query = test_query.replace(':current_date', '%s')
+                            params.append(test_date)
+                        elif ':day_start' in test_query or ':day_end' in test_query:
+                            test_query = test_query.replace(':day_start', '%s').replace(':day_end', '%s')
+                            params.extend([day_start, day_end])
+                        elif ':day' in test_query:
+                            test_query = test_query.replace(':day', '%s')
+                            params.append(test_date)
+
+                        cursor.execute(test_query, params)
+                        result = cursor.fetchone()
+
+                        if result is None:
+                            raise ValueError("Query returned no results. Must return at least one row with a numeric value.")
+
+                        value = result[0]
+                        if value is not None and not isinstance(value, (int, float)) and not isinstance(value, str):
+                            raise ValueError(f"Query must return a numeric or string value, got {type(value).__name__}: {value}")
+
+                except Exception as e:
+                    messages.error(request, f'SQL Query Error: {str(e)}')
+                    return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
 
                 LifeTrackerColumn.objects.create(
                     column_name=column_name,
