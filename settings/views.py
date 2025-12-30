@@ -124,6 +124,15 @@ def life_tracker_settings(request):
                 column.modal_body_text = request.POST.get(f'modal_body_text_{column.column_name}', '').strip()
                 column.create_endpoint = request.POST.get(f'create_endpoint_{column.column_name}', '').strip()
 
+                # Validate create_endpoint if provided
+                if column.create_endpoint:
+                    try:
+                        from django.urls import reverse as url_reverse, NoReverseMatch
+                        url_reverse(column.create_endpoint)
+                    except NoReverseMatch:
+                        errors.append(f'{column.display_name}: Create endpoint "{column.create_endpoint}" is not a valid URL name. Make sure the URL pattern exists and follows the format "app_name:url_name" (e.g., "fasting:log_fast")')
+                        continue
+
                 # Validate SQL query
                 try:
                     user_tz = pytz.timezone('America/Los_Angeles')
@@ -482,6 +491,15 @@ def add_habit(request):
                         parent_habit = LifeTrackerColumn.objects.get(id=int(parent_id))
                     except (ValueError, LifeTrackerColumn.DoesNotExist):
                         parent_habit = None
+
+                # Validate create_endpoint if provided
+                if create_endpoint:
+                    try:
+                        from django.urls import reverse as url_reverse, NoReverseMatch
+                        url_reverse(create_endpoint)
+                    except NoReverseMatch:
+                        messages.error(request, f'Create endpoint "{create_endpoint}" is not a valid URL name. Make sure the URL pattern exists and follows the format "app_name:url_name" (e.g., "fasting:log_fast")')
+                        return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
 
                 # Validate SQL query
                 try:
