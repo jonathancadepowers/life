@@ -4,5 +4,5 @@ from . import views
 app_name = 'writing'
 
 urlpatterns = [
-    path('create/', views.create_writing_log, name='create_log'),
+    path('create_log', views.create_writing_log, name='create_log'),
 ]
