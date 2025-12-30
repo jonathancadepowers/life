@@ -1334,6 +1334,29 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_
                     'protein': entry.protein,
                 })
 
+        elif table_name == 'youtube_avoidance_logs':
+            from youtube_avoidance.models import YouTubeAvoidanceLog
+            logs = YouTubeAvoidanceLog.objects.filter(
+                log_date=current_date
+            )
+
+            for log in logs:
+                records.append({
+                    'log_date': log.log_date.strftime('%b %-d, %Y'),
+                })
+
+        elif table_name == 'waist_circumference_measurements':
+            from waist_measurements.models import WaistCircumferenceMeasurement
+            measurements = WaistCircumferenceMeasurement.objects.filter(
+                log_date=current_date
+            )
+
+            for measurement in measurements:
+                records.append({
+                    'log_date': measurement.log_date.strftime('%b %-d, %Y'),
+                    'measurement': measurement.measurement,
+                })
+
         return records
 
     except Exception as e:
