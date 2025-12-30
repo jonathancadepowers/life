@@ -1424,6 +1424,9 @@ def life_tracker(request):
                     elif ':day_start' in query or ':day_end' in query:
                         query = query.replace(':day_start', '%s').replace(':day_end', '%s')
                         params.extend([day_start, day_end])
+                    elif ':day' in query:
+                        query = query.replace(':day', '%s')
+                        params.append(current_date)
 
                     cursor.execute(query, params)
                     result = cursor.fetchone()
