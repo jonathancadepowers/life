@@ -148,7 +148,7 @@ def life_tracker_settings(request):
                         cursor.execute(test_query, params)
                         result = cursor.fetchone()
 
-                        if result is None:
+                        if result is None or len(result) == 0:
                             raise ValueError("Query returned no results. Must return at least one row with a value.")
 
                         value = result[0]
@@ -510,8 +510,8 @@ def add_habit(request):
                         cursor.execute(test_query, params)
                         result = cursor.fetchone()
 
-                        if result is None:
-                            raise ValueError("Query returned no results. Must return at least one row with a numeric value.")
+                        if result is None or len(result) == 0:
+                            raise ValueError("Query returned no results. Must return at least one row with a value.")
 
                         value = result[0]
                         if value is not None and not isinstance(value, (int, float)) and not isinstance(value, str):
