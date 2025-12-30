@@ -557,6 +557,7 @@
                                 <option value="" {% if not column.modal_type %}selected{% endif %}>No modal</option>
                                 <option value="simple_confirm" {% if column.modal_type == 'simple_confirm' %}selected{% endif %}>Simple Yes/No confirmation</option>
                                 <option value="duration_select" {% if column.modal_type == 'duration_select' %}selected{% endif %}>Duration selection (like fasting)</option>
+                                <option value="value_input" {% if column.modal_type == 'value_input' %}selected{% endif %}>Value input (for measurements, etc.)</option>
                             </select>
                             <div class="form-text">Type of modal shown when + button is clicked</div>
                         </div>
@@ -576,6 +577,12 @@
                         <div class="mb-3">
                             <label for="modal_body_text_{{ column.column_name }}" class="form-label">Modal Body Text</label>
                             <textarea class="form-control" id="modal_body_text_{{ column.column_name }}" name="modal_body_text_{{ column.column_name }}" rows="2" placeholder="e.g., Did you complete this activity?">{{ column.modal_body_text }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modal_input_label_{{ column.column_name }}" class="form-label">Modal Input Label</label>
+                            <input type="text" class="form-control" id="modal_input_label_{{ column.column_name }}" name="modal_input_label_{{ column.column_name }}" value="{{ column.modal_input_label }}" placeholder="e.g., Waist Circumference (inches)">
+                            <div class="form-text">Label for input field (used with value_input modal type)</div>
                         </div>
                     </div>
                 {% endfor %}
@@ -670,6 +677,7 @@
                                 <option value="">No modal</option>
                                 <option value="simple_confirm">Simple Yes/No confirmation</option>
                                 <option value="duration_select">Duration selection (like fasting)</option>
+                                <option value="value_input">Value input (for measurements, etc.)</option>
                             </select>
                         </div>
 
@@ -687,6 +695,12 @@
                         <div class="mb-3">
                             <label for="new_modal_body_text" class="form-label">Modal Body Text</label>
                             <textarea class="form-control" id="new_modal_body_text" name="modal_body_text" rows="2" placeholder="e.g., Did you complete this activity?"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="new_modal_input_label" class="form-label">Modal Input Label</label>
+                            <input type="text" class="form-control" id="new_modal_input_label" name="modal_input_label" placeholder="e.g., Waist Circumference (inches)">
+                            <div class="form-text">Label for input field (used with value_input modal type)</div>
                         </div>
 
                         <div class="alert alert-info">

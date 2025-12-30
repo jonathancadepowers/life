@@ -122,6 +122,7 @@ def life_tracker_settings(request):
                 column.modal_type = request.POST.get(f'modal_type_{column.column_name}', '').strip()
                 column.modal_title = request.POST.get(f'modal_title_{column.column_name}', '').strip()
                 column.modal_body_text = request.POST.get(f'modal_body_text_{column.column_name}', '').strip()
+                column.modal_input_label = request.POST.get(f'modal_input_label_{column.column_name}', '').strip()
                 column.create_endpoint = request.POST.get(f'create_endpoint_{column.column_name}', '').strip()
 
                 # Validate create_endpoint if provided
@@ -449,6 +450,7 @@ def add_habit(request):
         modal_type = request.POST.get('modal_type', '').strip()
         modal_title = request.POST.get('modal_title', '').strip()
         modal_body_text = request.POST.get('modal_body_text', '').strip()
+        modal_input_label = request.POST.get('modal_input_label', '').strip()
         create_endpoint = request.POST.get('create_endpoint', '').strip()
 
         # Check if column_name already exists
@@ -553,6 +555,7 @@ def add_habit(request):
                     modal_type=modal_type,
                     modal_title=modal_title,
                     modal_body_text=modal_body_text,
+                    modal_input_label=modal_input_label,
                     create_endpoint=create_endpoint
                 )
                 messages.success(request, f'Habit "{display_name}" added successfully!')

@@ -24,7 +24,8 @@ def log_measurement(request):
         # Parse JSON request body
         data = json.loads(request.body)
         date_str = data.get('log_date')
-        measurement = data.get('measurement')
+        # Accept either 'input_value' (generic) or 'measurement' (specific)
+        measurement = data.get('input_value') or data.get('measurement')
 
         if not date_str:
             return JsonResponse({
@@ -35,7 +36,7 @@ def log_measurement(request):
         if measurement is None:
             return JsonResponse({
                 'success': False,
-                'message': 'Measurement is required'
+                'message': 'Value is required'
             }, status=400)
 
         # Parse the date string

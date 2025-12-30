@@ -62,6 +62,7 @@ class LifeTrackerColumn(models.Model):
             ('', 'No modal'),
             ('simple_confirm', 'Simple Yes/No confirmation'),
             ('duration_select', 'Duration selection (like fasting)'),
+            ('value_input', 'Value input (for measurements, etc.)'),
         ],
         help_text="Type of modal to show when + button is clicked"
     )
@@ -75,6 +76,12 @@ class LifeTrackerColumn(models.Model):
         blank=True,
         default='',
         help_text="Main text/question shown in modal body"
+    )
+    modal_input_label = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Label for input field (used with value_input modal type)"
     )
     create_endpoint = models.CharField(
         max_length=100,

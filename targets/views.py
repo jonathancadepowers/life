@@ -1502,6 +1502,7 @@ def life_tracker(request):
         'modal_type': col.modal_type,
         'modal_title': col.modal_title,
         'modal_body_text': col.modal_body_text,
+        'modal_input_label': col.modal_input_label,
         'create_endpoint': col.create_endpoint,
     } for col in columns])
 
