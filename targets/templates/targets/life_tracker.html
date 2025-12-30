@@ -547,9 +547,17 @@
                 if (data.success) {
                     simpleConfirmModal.hide();
                     showFlashMessage('Successfully logged!');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+
+                    // Find the cell and update it to show checkmark
+                    const cell = document.querySelector(
+                        `.checkbox-cell[data-date="${currentModalDate}"][data-column="${currentModalColumn}"]`
+                    );
+                    if (cell) {
+                        // Add checkmark HTML
+                        cell.innerHTML = '<div class="details-cell"><i class="bi bi-check-square-fill"></i></div>';
+                        // Remove the add-btn-cell class to hide the + button
+                        cell.classList.remove('add-btn-cell');
+                    }
                 } else {
                     simpleConfirmModal.hide();
                     showFlashMessage('Error: ' + (data.error || data.message || 'Unknown error'), false);
@@ -590,9 +598,18 @@
                     if (data.success) {
                         durationSelectModal.hide();
                         showFlashMessage('Successfully logged!');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
+
+                        // Find the cell and update it to show checkmark
+                        const cell = document.querySelector(
+                            `.checkbox-cell[data-date="${currentModalDate}"][data-column="${currentModalColumn}"]`
+                        );
+                        if (cell) {
+                            // Add checkmark HTML with duration if provided
+                            const details = data.duration ? `<div class="details-tooltip">${data.duration} hours</div>` : '';
+                            cell.innerHTML = `<div class="details-cell"><i class="bi bi-check-square-fill"></i>${details}</div>`;
+                            // Remove the add-btn-cell class to hide the + button
+                            cell.classList.remove('add-btn-cell');
+                        }
                     } else {
                         durationSelectModal.hide();
                         showFlashMessage('Error: ' + (data.message || data.error || 'Unknown error'), false);
