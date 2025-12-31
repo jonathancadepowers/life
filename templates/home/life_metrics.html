@@ -75,7 +75,13 @@
             cursor: pointer;
         }
 
-        .details-tooltip {
+        .habit-cell {
+            position: relative;
+            cursor: help;
+        }
+
+        .details-tooltip,
+        .habit-tooltip {
             position: absolute;
             bottom: 100%;
             left: 50%;
@@ -94,7 +100,8 @@
             display: none;
         }
 
-        .details-tooltip::after {
+        .details-tooltip::after,
+        .habit-tooltip::after {
             content: '';
             position: absolute;
             top: 100%;
@@ -104,7 +111,8 @@
             border-top-color: rgba(0, 0, 0, 0.9);
         }
 
-        .pixel-cell:hover .details-tooltip {
+        .pixel-cell:hover .details-tooltip,
+        .habit-cell:hover .habit-tooltip {
             opacity: 1;
             display: block;
         }
@@ -324,6 +332,9 @@
                                 {% endif %}
                                 <td class="habit-cell" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
                                     {{ habit.display_name }}
+                                    {% if habit.tooltip_text %}
+                                        <div class="habit-tooltip">{{ habit.tooltip_text }}</div>
+                                    {% endif %}
                                 </td>
                                 {% for day_num in all_days %}
                                     {% if day_num <= month_data.days_in_month %}

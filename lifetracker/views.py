@@ -71,6 +71,7 @@ def life_metrics(request):
                 active_habits.append({
                     'column_name': column.column_name,
                     'display_name': column.display_name,
+                    'tooltip_text': column.tooltip_text,
                 })
 
                 # For each day in the month, check if data exists
