@@ -18,12 +18,54 @@ def about(request):
 def inspirations(request):
     """
     Renders the inspirations page with random ordering.
+    Ensures at least one card with flip_text appears in the second row (positions 5-10).
     """
     from inspirations_app.models import Inspiration
+    import random
 
-    inspirations = Inspiration.objects.all().order_by('?')
+    all_inspirations = list(Inspiration.objects.all())
+    random.shuffle(all_inspirations)
 
-    return render(request, 'home/inspirations.html', {'inspirations': inspirations})
+    # Ensure at least one card with flip_text is in the second row (indices 4-9)
+    # Find cards with flip_text
+    flip_text_cards = [card for card in all_inspirations if card.flip_text]
+
+    if flip_text_cards:
+        # Check if any flip_text card is already in positions 5-10 (indices 4-9)
+        second_row_has_flip = any(
+            all_inspirations[i].flip_text
+            for i in range(4, min(10, len(all_inspirations)))
+            if i < len(all_inspirations)
+        )
+
+        if not second_row_has_flip and len(all_inspirations) >= 10:
+            # Find a flip_text card not in the second row
+            flip_card_to_move = None
+            for i, card in enumerate(all_inspirations):
+                if card.flip_text and (i < 4 or i >= 10):
+                    flip_card_to_move = card
+                    original_index = i
+                    break
+
+            if flip_card_to_move:
+                # Swap it with a random position in the second row
+                target_index = random.randint(4, 9)
+                all_inspirations[original_index], all_inspirations[target_index] = \
+                    all_inspirations[target_index], all_inspirations[original_index]
+
+        # Mark one flip_text card in the second row for auto-flip
+        auto_flip_index = None
+        for i in range(4, min(10, len(all_inspirations))):
+            if i < len(all_inspirations) and all_inspirations[i].flip_text:
+                auto_flip_index = i
+                break
+    else:
+        auto_flip_index = None
+
+    return render(request, 'home/inspirations.html', {
+        'inspirations': all_inspirations,
+        'auto_flip_index': auto_flip_index
+    })
 
 
 def life_metrics(request):

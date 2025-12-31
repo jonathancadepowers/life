@@ -243,6 +243,11 @@
             transform: rotateY(180deg);
         }
 
+        /* Auto-flip for cards with flipped class */
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
         /* Clickable cards should still be clickable */
         .flip-card.clickable {
             cursor: pointer;
@@ -390,7 +395,7 @@
         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-top: 2rem;">
             {% for inspiration in inspirations %}
             {% if inspiration.flip_text %}
-            <div class="flip-card has-flip-text {% if inspiration.url %}clickable{% endif %}" data-type="{{ inspiration.type }}" {% if inspiration.url %}onclick="window.open('{{ inspiration.url }}', '_blank')"{% endif %}>
+            <div class="flip-card has-flip-text {% if inspiration.url %}clickable{% endif %}" data-type="{{ inspiration.type }}" {% if forloop.counter0 == auto_flip_index %}data-auto-flip="true"{% endif %} {% if inspiration.url %}onclick="window.open('{{ inspiration.url }}', '_blank')"{% endif %}>
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
                         <img src="{{ inspiration.image.url }}" alt="{{ inspiration.title }}">
@@ -450,6 +455,23 @@
                 // Close dropdown
                 filterDropdown.style.display = 'none';
             });
+        });
+
+        // Auto-flip functionality
+        window.addEventListener('load', function() {
+            const autoFlipCard = document.querySelector('[data-auto-flip="true"]');
+            if (autoFlipCard) {
+                // Wait 4 seconds after page load
+                setTimeout(function() {
+                    // Add flipped class to trigger the flip
+                    autoFlipCard.classList.add('flipped');
+
+                    // After 4 seconds, flip back
+                    setTimeout(function() {
+                        autoFlipCard.classList.remove('flipped');
+                    }, 4000);
+                }, 4000);
+            }
         });
 
         // Generate timeline from 2025 to 1981 (only if timeline container exists)
