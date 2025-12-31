@@ -322,7 +322,7 @@
                                         {{ month_data.month_name }}
                                     </td>
                                 {% endif %}
-                                <td style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
+                                <td class="habit-cell" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
                                     {{ habit.display_name }}
                                 </td>
                                 {% for day_num in all_days %}
@@ -398,7 +398,7 @@
                     });
 
                     // Get habit name from the row
-                    const habitCell = row.querySelector('td:nth-child(2)');
+                    const habitCell = row.querySelector('.habit-cell');
                     const habitName = habitCell ? habitCell.textContent.trim().toLowerCase() : '';
 
                     // Format total text
