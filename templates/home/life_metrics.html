@@ -299,15 +299,6 @@
                                 </td>
                             </tr>
                         {% endfor %}
-                    {% else %}
-                        <tr{% if not forloop.first %} class="month-separator"{% endif %}>
-                            <td style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: middle; width: 75px; max-width: 75px; min-width: 75px;">
-                                {{ month_data.month_name }}
-                            </td>
-                            <td colspan="32" style="border: 1px solid #404040; padding: 0.4rem; text-align: center; font-size: 0.65rem; font-style: italic; color: #666;">
-                                No Data Collected this Month
-                            </td>
-                        </tr>
                     {% endif %}
                 {% endfor %}
             </tbody>
