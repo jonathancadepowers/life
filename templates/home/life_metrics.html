@@ -285,10 +285,14 @@
                                 <td style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
                                     {{ habit.display_name }}
                                 </td>
-                                {% for day_num in month_data.day_range %}
-                                    <td class="pixel-cell" style="padding: 0; border: 1px solid #404040; text-align: center; width: 20px; max-width: 20px; min-width: 20px; height: 19px; background-color: #ffffff;" data-month="{{ month_data.month_num }}" data-day="{{ day_num }}" data-habit="{{ habit.column_name }}">
-                                        <!-- Pixel cell - will be filled with data -->
-                                    </td>
+                                {% for day_num in all_days %}
+                                    {% if day_num <= month_data.days_in_month %}
+                                        <td class="pixel-cell" style="padding: 0; border: 1px solid #404040; text-align: center; width: 20px; max-width: 20px; min-width: 20px; height: 19px; background-color: #ffffff;" data-month="{{ month_data.month_num }}" data-day="{{ day_num }}" data-habit="{{ habit.column_name }}">
+                                            <!-- Pixel cell - will be filled with data -->
+                                        </td>
+                                    {% else %}
+                                        <td style="padding: 0; border: 1px solid #404040; text-align: center; width: 20px; max-width: 20px; min-width: 20px; height: 19px; background-color: #f5f5f5;"></td>
+                                    {% endif %}
                                 {% endfor %}
                                 <td class="total-cell" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 150px; max-width: 150px; min-width: 150px;">
                                     <!-- Total will be calculated and inserted here -->

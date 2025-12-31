@@ -66,6 +66,7 @@ def life_metrics(request):
     context = {
         'year': year,
         'months_data': months_data,
+        'all_days': range(1, 32),  # Always show 31 columns
     }
 
     return render(request, 'home/life_metrics.html', context)
