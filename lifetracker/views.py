@@ -72,6 +72,7 @@ def life_metrics(request):
                     'column_name': column.column_name,
                     'display_name': column.display_name,
                     'tooltip_text': column.tooltip_text,
+                    'total_column_text': column.total_column_text or column.display_name.lower(),
                 })
 
                 # For each day in the month, check if data exists

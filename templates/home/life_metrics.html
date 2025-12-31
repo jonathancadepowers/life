@@ -330,7 +330,7 @@
                                         {{ month_data.month_name }}
                                     </td>
                                 {% endif %}
-                                <td class="habit-cell" data-habit-name="{{ habit.display_name|lower }}" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
+                                <td class="habit-cell" data-habit-name="{{ habit.total_column_text }}" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
                                     {{ habit.display_name }}
                                     {% if habit.tooltip_text %}
                                         <div class="habit-tooltip">{{ habit.tooltip_text }}</div>

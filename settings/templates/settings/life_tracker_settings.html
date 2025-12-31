@@ -540,6 +540,12 @@
                             <textarea class="form-control" id="details_display_{{ column.column_name }}" name="details_display_{{ column.column_name }}" rows="3" placeholder="Example: Duration: {duration} hours">{{ column.details_display }}</textarea>
                         </div>
 
+                        <div class="mb-3">
+                            <label for="total_column_text_{{ column.column_name }}" class="form-label">Total Column Text</label>
+                            <input type="text" class="form-control" id="total_column_text_{{ column.column_name }}" name="total_column_text_{{ column.column_name }}" value="{{ column.total_column_text }}" placeholder="e.g., 'days eating clean' (defaults to display name if blank)">
+                            <div class="form-text">Text shown in the Total column on Life Metrics page (e.g., "X days eating clean")</div>
+                        </div>
+
                         <!-- UI Configuration Section -->
                         <hr class="my-4">
                         <h6 class="mb-3">Add Button & Modal Configuration</h6>
@@ -646,6 +652,11 @@
                             <label for="new_details_display" class="form-label">Details Display</label>
                             <textarea class="form-control" id="new_details_display" name="details_display" rows="3" placeholder="Example: Duration: {duration} hours"></textarea>
                             <div class="form-text">Use {field_name} tokens to display data from your database table. Available fields depend on your table columns. Multiple records on the same day will be joined with commas.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_total_column_text" class="form-label">Total Column Text</label>
+                            <input type="text" class="form-control" id="new_total_column_text" name="total_column_text" placeholder="e.g., 'days eating clean' (defaults to display name if blank)">
+                            <div class="form-text">Text shown in the Total column on Life Metrics page (e.g., "X days eating clean")</div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">

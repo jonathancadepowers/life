@@ -25,6 +25,12 @@ class LifeTrackerColumn(models.Model):
         default='',
         help_text="Text configuration for details shown when hovering over checkmarks"
     )
+    total_column_text = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Text shown in Total column on Life Metrics page (e.g., 'days eating clean'). If blank, uses display_name."
+    )
     start_date = models.DateField(
         null=True,
         blank=True,
