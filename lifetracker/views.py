@@ -34,6 +34,7 @@ def life_metrics(request):
     from datetime import date, datetime, timedelta
     from calendar import monthrange
     from django.db import connection
+    from targets.views import get_column_data, parse_details_template
     import pytz
     import json
 
@@ -51,6 +52,10 @@ def life_metrics(request):
     # Format: {month_num: {habit_column_name: [day1, day2, ...]}}
     habit_data = {}
 
+    # Data structure to hold details text for each cell
+    # Format: {month_num: {habit_column_name: {day: "details text"}}}
+    habit_details = {}
+
     for month_num in range(1, 13):
         # Get the last day of the month
         last_day = monthrange(year, month_num)[1]
@@ -59,6 +64,7 @@ def life_metrics(request):
         # Get all habits that were active on the last day of this month
         active_habits = []
         habit_data[month_num] = {}
+        habit_details[month_num] = {}
 
         for column in LifeTrackerColumn.objects.all():
             if column.is_active_on(last_date):
@@ -69,6 +75,8 @@ def life_metrics(request):
 
                 # For each day in the month, check if data exists
                 days_with_data = []
+                habit_details[month_num][column.column_name] = {}
+
                 for day in range(1, last_day + 1):
                     current_date = date(year, month_num, day)
                     day_start = datetime.combine(current_date, datetime.min.time()).replace(tzinfo=user_tz)
@@ -99,6 +107,24 @@ def life_metrics(request):
                             # If count > 0, this day has data
                             if result and result[0] > 0:
                                 days_with_data.append(day)
+
+                                # Fetch details if details_display template exists
+                                if column.details_display:
+                                    records = get_column_data(
+                                        column.column_name,
+                                        day_start,
+                                        day_end,
+                                        current_date,
+                                        user_tz,
+                                        column.sql_query
+                                    )
+                                    if records:
+                                        # Parse template for each record and join with ", "
+                                        parsed_details = [
+                                            parse_details_template(column.details_display, record)
+                                            for record in records
+                                        ]
+                                        habit_details[month_num][column.column_name][day] = ', '.join(parsed_details)
                     except Exception as e:
                         print(f"Error executing query for {column.column_name} on {current_date}: {e}")
 
@@ -117,6 +143,7 @@ def life_metrics(request):
         'months_data': months_data,
         'all_days': range(1, 32),  # Always show 31 columns
         'habit_data_json': json.dumps(habit_data),
+        'habit_details_json': json.dumps(habit_details),
     }
 
     return render(request, 'home/life_metrics.html', context)

@@ -69,6 +69,46 @@
             background-repeat: no-repeat;
         }
 
+        /* Tooltip styles */
+        .pixel-cell {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .details-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 0.5rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: none;
+        }
+
+        .details-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+        }
+
+        .pixel-cell:hover .details-tooltip {
+            opacity: 1;
+            display: block;
+        }
+
         /* Month separator - thicker border on first row of each month */
         .month-separator td {
             border-top: 2px solid #404040 !important;
@@ -314,6 +354,7 @@
 
         // Load real habit data from backend
         const habitData = {{ habit_data_json|safe }};
+        const habitDetails = {{ habit_details_json|safe }};
 
         document.addEventListener('DOMContentLoaded', function() {
             const cells = document.querySelectorAll('.pixel-cell');
@@ -328,6 +369,16 @@
                     // Randomly choose between style1 and style2 for visual variety
                     const style = Math.random() > 0.5 ? 'filled-style1' : 'filled-style2';
                     cell.classList.add(style);
+
+                    // Add tooltip if details exist
+                    if (habitDetails[month] &&
+                        habitDetails[month][habit] &&
+                        habitDetails[month][habit][day]) {
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'details-tooltip';
+                        tooltip.textContent = habitDetails[month][habit][day];
+                        cell.appendChild(tooltip);
+                    }
                 }
             });
 
