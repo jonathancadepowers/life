@@ -312,15 +312,20 @@
             window.location.href = `/life-metrics/?year=${year}`;
         });
 
-        // TODO: Replace with real data fetch
-        // Generate fake data for demonstration
+        // Load real habit data from backend
+        const habitData = {{ habit_data_json|safe }};
+
         document.addEventListener('DOMContentLoaded', function() {
             const cells = document.querySelectorAll('.pixel-cell');
 
             cells.forEach(cell => {
-                // Randomly fill ~60% of cells
-                if (Math.random() > 0.4) {
-                    // Randomly choose between style1 and style2
+                const month = parseInt(cell.dataset.month);
+                const day = parseInt(cell.dataset.day);
+                const habit = cell.dataset.habit;
+
+                // Check if this month/habit/day combination has data
+                if (habitData[month] && habitData[month][habit] && habitData[month][habit].includes(day)) {
+                    // Randomly choose between style1 and style2 for visual variety
                     const style = Math.random() > 0.5 ? 'filled-style1' : 'filled-style2';
                     cell.classList.add(style);
                 }

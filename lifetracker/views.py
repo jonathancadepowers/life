@@ -31,15 +31,25 @@ def life_metrics(request):
     Renders the life metrics page with real habit data.
     """
     from settings.models import LifeTrackerColumn
-    from datetime import date
+    from datetime import date, datetime, timedelta
     from calendar import monthrange
+    from django.db import connection
+    import pytz
+    import json
 
     # Get year from request, default to 2025
     year = int(request.GET.get('year', 2025))
 
+    # Get user's timezone (default to America/Chicago)
+    user_tz = pytz.timezone('America/Chicago')
+
     # Build month data - determine which habits were active on the last day of each month
     months_data = []
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    # Data structure to hold which days have data for each habit
+    # Format: {month_num: {habit_column_name: [day1, day2, ...]}}
+    habit_data = {}
 
     for month_num in range(1, 13):
         # Get the last day of the month
@@ -48,12 +58,51 @@ def life_metrics(request):
 
         # Get all habits that were active on the last day of this month
         active_habits = []
+        habit_data[month_num] = {}
+
         for column in LifeTrackerColumn.objects.all():
             if column.is_active_on(last_date):
                 active_habits.append({
                     'column_name': column.column_name,
                     'display_name': column.display_name,
                 })
+
+                # For each day in the month, check if data exists
+                days_with_data = []
+                for day in range(1, last_day + 1):
+                    current_date = date(year, month_num, day)
+                    day_start = datetime.combine(current_date, datetime.min.time()).replace(tzinfo=user_tz)
+                    day_end = datetime.combine(current_date, datetime.max.time()).replace(tzinfo=user_tz)
+
+                    # Execute the SQL query to check if data exists
+                    query = column.sql_query
+                    params = []
+
+                    # Replace parameters in the query
+                    if ':day_start' in query:
+                        query = query.replace(':day_start', '%s')
+                        params.append(day_start)
+                    if ':day_end' in query:
+                        query = query.replace(':day_end', '%s')
+                        params.append(day_end)
+                    if ':current_date' in query:
+                        query = query.replace(':current_date', '%s')
+                        params.append(current_date)
+                    if ':day' in query:
+                        query = query.replace(':day', '%s')
+                        params.append(current_date)
+
+                    try:
+                        with connection.cursor() as cursor:
+                            cursor.execute(query, params)
+                            result = cursor.fetchone()
+                            # If count > 0, this day has data
+                            if result and result[0] > 0:
+                                days_with_data.append(day)
+                    except Exception as e:
+                        print(f"Error executing query for {column.column_name} on {current_date}: {e}")
+
+                habit_data[month_num][column.column_name] = days_with_data
 
         months_data.append({
             'month_num': month_num,
@@ -67,6 +116,7 @@ def life_metrics(request):
         'year': year,
         'months_data': months_data,
         'all_days': range(1, 32),  # Always show 31 columns
+        'habit_data_json': json.dumps(habit_data),
     }
 
     return render(request, 'home/life_metrics.html', context)
