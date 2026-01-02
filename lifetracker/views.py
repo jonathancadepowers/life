@@ -80,8 +80,8 @@ def life_metrics(request):
     import pytz
     import json
 
-    # Get year from request, default to 2025
-    year = int(request.GET.get('year', 2025))
+    # Get year from request, default to 2026
+    year = int(request.GET.get('year', 2026))
 
     # Get user's timezone (default to America/Chicago)
     user_tz = pytz.timezone('America/Chicago')
