@@ -131,6 +131,32 @@
         .tracker-table th[data-bs-toggle="tooltip"] {
             cursor: help;
         }
+        /* Abandoned cell styling */
+        .abandoned-cell {
+            position: relative;
+            opacity: 0.6;
+        }
+        .abandoned-cell::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                to bottom right,
+                transparent 0%,
+                transparent calc(50% - 1px),
+                rgba(220, 53, 69, 0.3) calc(50% - 1px),
+                rgba(220, 53, 69, 0.3) calc(50% + 1px),
+                transparent calc(50% + 1px),
+                transparent 100%
+            );
+            pointer-events: none;
+        }
+        .checkbox-cell {
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -207,7 +233,7 @@
                             <span class="date-label">({{ day.date_str }})</span>
                         </td>
                         {% for column in columns %}
-                        <td class="checkbox-cell{% if column.has_add_button %} add-btn-cell{% endif %}"
+                        <td class="checkbox-cell{% if column.has_add_button %} add-btn-cell{% endif %}{% if column.allow_abandon %} abandon-enabled{% endif %}"
                             data-date="{{ day.date_iso }}"
                             data-column="{{ column.column_name }}"
                             data-modal-type="{{ column.modal_type }}"
@@ -224,6 +250,9 @@
                                     </div>
                                 {% elif column.has_add_button %}
                                     <i class="bi bi-plus-circle add-btn-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
+                                {% endif %}
+                                {% if column.allow_abandon %}
+                                    <i class="bi bi-flag-fill abandon-icon" style="cursor: pointer; color: #dc3545; visibility: hidden; opacity: 0; transition: opacity 0.2s; position: absolute; top: 2px; right: 2px; font-size: 0.75rem;"></i>
                                 {% endif %}
                             {% endwith %}
                         </td>
@@ -302,6 +331,25 @@
                 </div>
                 <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-primary btn-lg" id="valueInputSubmitBtn">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Abandon Day Modal -->
+    <div class="modal fade" id="abandonModal" tabindex="-1" aria-labelledby="abandonModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="abandonModalLabel">Mark Day as Abandoned</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center d-flex align-items-center justify-content-center" style="min-height: 100px;">
+                    <p class="fs-5 mb-0" id="abandonModalText"></p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-lg" id="abandonConfirmBtn">Abandon</button>
                 </div>
             </div>
         </div>
@@ -729,6 +777,147 @@
                 // Re-enable button and restore text
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Submit';
+            });
+        });
+
+        // Abandon icon hover and click handling
+        const abandonModal = new bootstrap.Modal(document.getElementById('abandonModal'));
+        const columns = JSON.parse('{{ columns_json|escapejs }}');
+        let currentAbandonDate = null;
+        let currentAbandonColumn = null;
+
+        // Set up abandon icon visibility and click handlers
+        document.querySelectorAll('.abandon-enabled').forEach(cell => {
+            const abandonIcon = cell.querySelector('.abandon-icon');
+            if (abandonIcon) {
+                const cellDate = cell.dataset.date;
+                const columnName = cell.dataset.column;
+
+                // Find the column configuration
+                const columnConfig = columns.find(col => col.column_name === columnName);
+                if (!columnConfig || !columnConfig.allow_abandon) return;
+
+                // Check if this date is abandoned
+                const isAbandoned = columnConfig.abandoned_status && columnConfig.abandoned_status[cellDate];
+
+                // If abandoned, show the icon always and change its appearance
+                if (isAbandoned) {
+                    abandonIcon.style.visibility = 'visible';
+                    abandonIcon.style.opacity = '0.5';
+                    cell.classList.add('abandoned-cell');
+                }
+
+                // Show/hide icon on hover
+                cell.addEventListener('mouseenter', () => {
+                    abandonIcon.style.visibility = 'visible';
+                    abandonIcon.style.opacity = isAbandoned ? '0.5' : '1';
+                });
+                cell.addEventListener('mouseleave', () => {
+                    if (!isAbandoned) {
+                        abandonIcon.style.visibility = 'hidden';
+                        abandonIcon.style.opacity = '0';
+                    }
+                });
+
+                // Handle abandon icon click
+                abandonIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+
+                    currentAbandonDate = cellDate;
+                    currentAbandonColumn = columnName;
+
+                    // Get column display name
+                    const displayName = columnConfig.display_name;
+
+                    // Format date for display
+                    const date = new Date(cellDate);
+                    const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+                    // Update modal text based on whether it's already abandoned
+                    const modalText = document.getElementById('abandonModalText');
+                    const confirmBtn = document.getElementById('abandonConfirmBtn');
+
+                    if (isAbandoned) {
+                        modalText.textContent = `Un-abandon ${dateStr} for ${displayName}?`;
+                        confirmBtn.textContent = 'Un-abandon';
+                        confirmBtn.classList.remove('btn-danger');
+                        confirmBtn.classList.add('btn-primary');
+                    } else {
+                        modalText.textContent = `Mark ${dateStr} as abandoned for ${displayName}?`;
+                        confirmBtn.textContent = 'Abandon';
+                        confirmBtn.classList.remove('btn-primary');
+                        confirmBtn.classList.add('btn-danger');
+                    }
+
+                    abandonModal.show();
+                });
+            }
+        });
+
+        // Handle abandon confirmation
+        document.getElementById('abandonConfirmBtn').addEventListener('click', function() {
+            if (!currentAbandonDate || !currentAbandonColumn) return;
+
+            const csrftoken = getCSRFToken();
+
+            fetch(`/settings/habits/${currentAbandonColumn}/toggle-abandon/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    date: currentAbandonDate
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    abandonModal.hide();
+
+                    // Find the cell and update it
+                    const cell = document.querySelector(
+                        `.checkbox-cell[data-date="${currentAbandonDate}"][data-column="${currentAbandonColumn}"]`
+                    );
+                    if (cell) {
+                        const abandonIcon = cell.querySelector('.abandon-icon');
+
+                        if (data.is_abandoned) {
+                            // Mark as abandoned
+                            cell.classList.add('abandoned-cell');
+                            if (abandonIcon) {
+                                abandonIcon.style.visibility = 'visible';
+                                abandonIcon.style.opacity = '0.5';
+                            }
+                            showFlashMessage('Day marked as abandoned');
+                        } else {
+                            // Un-abandon
+                            cell.classList.remove('abandoned-cell');
+                            if (abandonIcon) {
+                                abandonIcon.style.visibility = 'hidden';
+                                abandonIcon.style.opacity = '0';
+                            }
+                            showFlashMessage('Day un-abandoned');
+                        }
+
+                        // Update the column configuration for this session
+                        const columnConfig = columns.find(col => col.column_name === currentAbandonColumn);
+                        if (columnConfig) {
+                            if (!columnConfig.abandoned_status) {
+                                columnConfig.abandoned_status = {};
+                            }
+                            columnConfig.abandoned_status[currentAbandonDate] = data.is_abandoned;
+                        }
+                    }
+                } else {
+                    abandonModal.hide();
+                    showFlashMessage('Error: ' + (data.error || 'Unknown error'), false);
+                }
+            })
+            .catch(error => {
+                abandonModal.hide();
+                showFlashMessage('Network error: Could not update', false);
+                console.error('Error:', error);
             });
         });
 
