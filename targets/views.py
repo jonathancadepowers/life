@@ -1527,6 +1527,8 @@ def life_tracker(request):
         'modal_body_text': col.modal_body_text,
         'modal_input_label': col.modal_input_label,
         'create_endpoint': col.create_endpoint,
+        'allow_abandon': col.allow_abandon,
+        'abandoned_status': col.abandoned_status or {},
     } for col in columns])
 
     context = {

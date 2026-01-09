@@ -3,6 +3,8 @@ from django.contrib import messages
 from django.db import connection
 from django.core.files.base import ContentFile
 from django.urls import reverse
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from .models import LifeTrackerColumn
 from inspirations_app.models import Inspiration
 from inspirations_app.utils import get_youtube_trailer_url
@@ -126,6 +128,9 @@ def life_tracker_settings(request):
                 column.modal_body_text = request.POST.get(f'modal_body_text_{column.column_name}', '').strip()
                 column.modal_input_label = request.POST.get(f'modal_input_label_{column.column_name}', '').strip()
                 column.create_endpoint = request.POST.get(f'create_endpoint_{column.column_name}', '').strip()
+
+                # Handle abandon functionality
+                column.allow_abandon = request.POST.get(f'allow_abandon_{column.column_name}') == 'on'
 
                 # Validate create_endpoint if provided
                 if column.create_endpoint:
@@ -455,6 +460,7 @@ def add_habit(request):
         modal_body_text = request.POST.get('modal_body_text', '').strip()
         modal_input_label = request.POST.get('modal_input_label', '').strip()
         create_endpoint = request.POST.get('create_endpoint', '').strip()
+        allow_abandon = request.POST.get('allow_abandon') == 'on'
 
         # Check if column_name already exists
         if column_name and LifeTrackerColumn.objects.filter(column_name=column_name).exists():
@@ -560,7 +566,8 @@ def add_habit(request):
                     modal_title=modal_title,
                     modal_body_text=modal_body_text,
                     modal_input_label=modal_input_label,
-                    create_endpoint=create_endpoint
+                    create_endpoint=create_endpoint,
+                    allow_abandon=allow_abandon
                 )
                 messages.success(request, f'Habit "{display_name}" added successfully!')
             except Exception as e:
@@ -569,3 +576,49 @@ def add_habit(request):
             messages.error(request, 'Please fill in all required fields.')
 
     return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+
+
+
+@require_POST
+def toggle_abandon_day(request, column_name):
+    """Toggle the abandoned status for a specific day for a given column."""
+    import json
+
+    column = get_object_or_404(LifeTrackerColumn, column_name=column_name)
+
+    # Get the date from the request
+    try:
+        data = json.loads(request.body)
+        date_str = data.get("date")  # Expected format: YYYY-MM-DD
+
+        if not date_str:
+            return JsonResponse({"success": False, "error": "Date is required"}, status=400)
+
+        # Get or initialize the abandoned_status dict
+        abandoned_status = column.abandoned_status or {}
+
+        # Toggle the abandoned status
+        if date_str in abandoned_status and abandoned_status[date_str]:
+            # Currently abandoned, so un-abandon it
+            abandoned_status[date_str] = False
+            is_abandoned = False
+        else:
+            # Not abandoned, so abandon it
+            abandoned_status[date_str] = True
+            is_abandoned = True
+
+        # Save the updated status
+        column.abandoned_status = abandoned_status
+        column.save()
+
+        return JsonResponse({
+            "success": True,
+            "is_abandoned": is_abandoned,
+            "date": date_str
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+

@@ -96,6 +96,17 @@ class LifeTrackerColumn(models.Model):
         help_text="Django URL name for creating records (e.g., 'fasting:log_fast')"
     )
 
+    # Abandon functionality
+    allow_abandon = models.BooleanField(
+        default=False,
+        help_text="Allow users to mark days as abandoned (shows abandon icon on hover)"
+    )
+    abandoned_status = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="JSON storing abandoned dates: {'2026-01-09': true, '2026-01-10': true}"
+    )
+
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

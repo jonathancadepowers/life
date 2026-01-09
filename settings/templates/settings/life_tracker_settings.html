@@ -557,6 +557,13 @@
                             </label>
                         </div>
 
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="allow_abandon_{{ column.column_name }}" name="allow_abandon_{{ column.column_name }}" {% if column.allow_abandon %}checked{% endif %}>
+                            <label class="form-check-label" for="allow_abandon_{{ column.column_name }}">
+                                Allow marking days as abandoned (shows abandon icon on hover)
+                            </label>
+                        </div>
+
                         <div class="mb-3">
                             <label for="modal_type_{{ column.column_name }}" class="form-label">Modal Type</label>
                             <select class="form-select" id="modal_type_{{ column.column_name }}" name="modal_type_{{ column.column_name }}">
@@ -679,6 +686,13 @@
                             <input type="checkbox" class="form-check-input" id="new_has_add_button" name="has_add_button">
                             <label class="form-check-label" for="new_has_add_button">
                                 Show + button on hover for empty cells
+                            </label>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="new_allow_abandon" name="allow_abandon">
+                            <label class="form-check-label" for="new_allow_abandon">
+                                Allow marking days as abandoned (shows abandon icon on hover)
                             </label>
                         </div>
 

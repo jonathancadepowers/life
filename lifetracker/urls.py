@@ -42,6 +42,7 @@ urlpatterns = [
     path("settings/writing-images/<int:image_id>/delete/", settings_views.delete_writing_image, name='delete_writing_image'),
     path("settings/book-cover/upload/", settings_views.upload_book_cover, name='upload_book_cover'),
     path("settings/habits/add/", settings_views.add_habit, name='add_habit'),
+    path("settings/habits/<str:column_name>/toggle-abandon/", settings_views.toggle_abandon_day, name='toggle_abandon_day'),
     path("targets/", include("targets.urls")),
     path("writing/", include("writing.urls")),
     path("", include("fasting.urls")),
