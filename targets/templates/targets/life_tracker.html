@@ -234,7 +234,7 @@
                                     <i class="bi bi-plus-circle add-btn-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
                                 {% endif %}
                                 {% if column.allow_abandon %}
-                                    <i class="bi bi-flag-fill abandon-icon" style="cursor: pointer; color: #dc3545; visibility: hidden; opacity: 0; transition: opacity 0.2s; position: absolute; top: 2px; right: 5.5px; font-size: 0.75rem; z-index: 10; pointer-events: auto;"></i>
+                                    <i class="bi bi-flag-fill abandon-icon" style="cursor: pointer; color: #dc3545; display: none; opacity: 0; transition: opacity 0.2s; position: absolute; top: 2px; right: 5.5px; font-size: 0.75rem; z-index: 10;"></i>
                                 {% endif %}
                             {% endwith %}
                         </td>
@@ -786,19 +786,19 @@
 
                 // If abandoned, show the icon always and change its appearance
                 if (isAbandoned) {
-                    abandonIcon.style.visibility = 'visible';
+                    abandonIcon.style.display = 'inline';
                     abandonIcon.style.opacity = '0.5';
                     cell.classList.add('abandoned-cell');
                 }
 
                 // Show/hide icon on hover
                 cell.addEventListener('mouseenter', () => {
-                    abandonIcon.style.visibility = 'visible';
+                    abandonIcon.style.display = 'inline';
                     abandonIcon.style.opacity = isAbandoned ? '0.5' : '1';
                 });
                 cell.addEventListener('mouseleave', () => {
                     if (!isAbandoned) {
-                        abandonIcon.style.visibility = 'hidden';
+                        abandonIcon.style.display = 'none';
                         abandonIcon.style.opacity = '0';
                     }
                 });
@@ -875,7 +875,7 @@
                             // Mark as abandoned
                             cell.classList.add('abandoned-cell');
                             if (abandonIcon) {
-                                abandonIcon.style.visibility = 'visible';
+                                abandonIcon.style.display = 'inline';
                                 abandonIcon.style.opacity = '0.5';
                             }
                             showFlashMessage('Day marked as abandoned');
@@ -883,7 +883,7 @@
                             // Un-abandon
                             cell.classList.remove('abandoned-cell');
                             if (abandonIcon) {
-                                abandonIcon.style.visibility = 'hidden';
+                                abandonIcon.style.display = 'none';
                                 abandonIcon.style.opacity = '0';
                             }
                             showFlashMessage('Day un-abandoned');
