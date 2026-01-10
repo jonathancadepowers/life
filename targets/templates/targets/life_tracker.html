@@ -139,6 +139,29 @@
         .checkbox-cell {
             position: relative;
         }
+        /* Abandoned tooltip styling */
+        .abandoned-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 0.5rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: none;
+        }
+        .abandoned-cell:hover .abandoned-tooltip {
+            opacity: 1;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -781,9 +804,15 @@
                 // Check if this date is abandoned
                 const isAbandoned = columnConfig.abandoned_status && columnConfig.abandoned_status[cellDate];
 
-                // If abandoned, mark the cell
+                // If abandoned, mark the cell and add tooltip
                 if (isAbandoned) {
                     cell.classList.add('abandoned-cell');
+
+                    // Add abandoned tooltip
+                    const abandonedTooltip = document.createElement('div');
+                    abandonedTooltip.className = 'abandoned-tooltip';
+                    abandonedTooltip.textContent = 'Day was abandoned';
+                    cell.appendChild(abandonedTooltip);
                 }
 
                 // Show/hide icon on hover (always, regardless of abandoned status)
@@ -866,18 +895,26 @@
                         if (data.is_abandoned) {
                             // Mark as abandoned
                             cell.classList.add('abandoned-cell');
-                            if (abandonIcon) {
-                                abandonIcon.style.display = 'inline';
-                                abandonIcon.style.opacity = '0.5';
+
+                            // Add abandoned tooltip if it doesn't exist
+                            if (!cell.querySelector('.abandoned-tooltip')) {
+                                const abandonedTooltip = document.createElement('div');
+                                abandonedTooltip.className = 'abandoned-tooltip';
+                                abandonedTooltip.textContent = 'Day was abandoned';
+                                cell.appendChild(abandonedTooltip);
                             }
+
                             showFlashMessage('Day marked as abandoned');
                         } else {
                             // Un-abandon
                             cell.classList.remove('abandoned-cell');
-                            if (abandonIcon) {
-                                abandonIcon.style.display = 'none';
-                                abandonIcon.style.opacity = '0';
+
+                            // Remove abandoned tooltip
+                            const abandonedTooltip = cell.querySelector('.abandoned-tooltip');
+                            if (abandonedTooltip) {
+                                abandonedTooltip.remove();
                             }
+
                             showFlashMessage('Day un-abandoned');
                         }
 
