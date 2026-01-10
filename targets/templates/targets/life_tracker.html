@@ -773,6 +773,9 @@
                         cell.innerHTML = '<div class="details-cell"><i class="bi bi-check-square-fill"></i></div>';
                         // Remove the add-btn-cell class to hide the + button
                         cell.classList.remove('add-btn-cell');
+
+                        // Re-run streak detection to potentially show fire emoji
+                        detectAndShowStreaks();
                     }
                 } else {
                     valueInputModal.hide();
