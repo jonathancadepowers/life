@@ -136,24 +136,6 @@
             position: relative;
             opacity: 0.6;
         }
-        .abandoned-cell::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(
-                to bottom right,
-                transparent 0%,
-                transparent calc(50% - 1px),
-                rgba(220, 53, 69, 0.3) calc(50% - 1px),
-                rgba(220, 53, 69, 0.3) calc(50% + 1px),
-                transparent calc(50% + 1px),
-                transparent 100%
-            );
-            pointer-events: none;
-        }
         .checkbox-cell {
             position: relative;
         }
@@ -252,7 +234,7 @@
                                     <i class="bi bi-plus-circle add-btn-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
                                 {% endif %}
                                 {% if column.allow_abandon %}
-                                    <i class="bi bi-flag-fill abandon-icon" style="cursor: pointer; color: #dc3545; visibility: hidden; opacity: 0; transition: opacity 0.2s; position: absolute; top: 2px; right: 2px; font-size: 0.75rem;"></i>
+                                    <i class="bi bi-flag-fill abandon-icon" style="cursor: pointer; color: #dc3545; visibility: hidden; opacity: 0; transition: opacity 0.2s; position: absolute; top: 2px; right: 5.5px; font-size: 0.75rem;"></i>
                                 {% endif %}
                             {% endwith %}
                         </td>
