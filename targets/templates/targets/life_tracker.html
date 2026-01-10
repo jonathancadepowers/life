@@ -447,6 +447,12 @@
                 if (data.success) {
                     // Show detailed output in a modal
                     showSyncOutputModal(data.output, data.has_errors, data.auth_errors);
+
+                    // Reload page when modal is closed to show new data
+                    const modal = document.getElementById('syncOutputModal');
+                    modal.addEventListener('hidden.bs.modal', function() {
+                        location.reload();
+                    }, { once: true });
                 } else {
                     showFlashMessage(data.message || 'Error running sync', false);
                     if (data.traceback) {
