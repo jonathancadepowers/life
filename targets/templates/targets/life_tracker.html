@@ -803,6 +803,7 @@
                 // Handle abandon icon click
                 abandonIcon.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    e.preventDefault();
 
                     currentAbandonDate = cellDate;
                     currentAbandonColumn = columnName;
@@ -818,7 +819,10 @@
                     const modalText = document.getElementById('abandonModalText');
                     const confirmBtn = document.getElementById('abandonConfirmBtn');
 
-                    if (isAbandoned) {
+                    // Check current abandoned status at click time
+                    const currentlyAbandoned = columnConfig.abandoned_status && columnConfig.abandoned_status[cellDate];
+
+                    if (currentlyAbandoned) {
                         modalText.textContent = `Un-abandon ${dateStr} for ${displayName}?`;
                         confirmBtn.textContent = 'Un-abandon';
                         confirmBtn.classList.remove('btn-danger');
