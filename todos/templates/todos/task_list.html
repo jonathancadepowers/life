@@ -1667,9 +1667,6 @@
         // Initialize counts on load
         updateKanbanCounts();
 
-        // Check if main task list should show empty state on load
-        checkEmptyState();
-
         // Make kanban cards clickable
         document.querySelectorAll('.kanban-card').forEach(card => {
             card.addEventListener('click', function(e) {
