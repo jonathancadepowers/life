@@ -25,7 +25,9 @@ def create_task(request):
         if not title:
             return JsonResponse({'success': False, 'error': 'Title is required'}, status=400)
 
-        task = Task.objects.create(title=title)
+        # Get Inbox state for new tasks
+        inbox_state = TaskState.objects.filter(name='Inbox').first()
+        task = Task.objects.create(title=title, state=inbox_state)
         return JsonResponse({
             'success': True,
             'task': {
@@ -36,8 +38,8 @@ def create_task(request):
                 'context_id': None,
                 'context_name': None,
                 'context_color': None,
-                'state_id': None,
-                'state_name': None,
+                'state_id': task.state_id,
+                'state_name': task.state.name if task.state else None,
             }
         })
     except json.JSONDecodeError:
@@ -228,6 +230,13 @@ def update_state(request, state_id):
         state = TaskState.objects.get(id=state_id)
         data = json.loads(request.body)
 
+        # Prevent modifying Inbox
+        if state.name == 'Inbox':
+            if 'name' in data and data['name'].strip() != 'Inbox':
+                return JsonResponse({'success': False, 'error': 'Cannot rename Inbox'}, status=400)
+            if 'is_terminal' in data and data['is_terminal']:
+                return JsonResponse({'success': False, 'error': 'Cannot make Inbox terminal'}, status=400)
+
         if 'name' in data:
             state.name = data['name'].strip()
         if 'is_terminal' in data:
@@ -264,6 +273,9 @@ def delete_state(request, state_id):
     """Delete a task state via AJAX."""
     try:
         state = TaskState.objects.get(id=state_id)
+        # Prevent deleting Inbox
+        if state.name == 'Inbox':
+            return JsonResponse({'success': False, 'error': 'Cannot delete the Inbox state'}, status=400)
         state.delete()
         return JsonResponse({'success': True})
     except TaskState.DoesNotExist:
@@ -277,8 +289,15 @@ def reorder_states(request):
         data = json.loads(request.body)
         order_list = data.get('order', [])  # List of state IDs in new order
 
+        # Reorder, but Inbox always stays at 0
         for index, state_id in enumerate(order_list):
-            TaskState.objects.filter(id=state_id, is_terminal=False).update(order=index)
+            state = TaskState.objects.filter(id=state_id, is_terminal=False).first()
+            if state and state.name != 'Inbox':
+                state.order = index + 1  # +1 because Inbox is at 0
+                state.save()
+
+        # Ensure Inbox stays at order 0
+        TaskState.objects.filter(name='Inbox').update(order=0)
 
         # Ensure terminal state stays at the end
         TaskState.objects.filter(is_terminal=True).update(order=9999)

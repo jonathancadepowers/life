@@ -771,33 +771,6 @@
                    placeholder="Add a new task..."
                    autocomplete="off">
         </div>
-
-        <ul class="task-list" id="task-list">
-            {% for task in tasks %}
-            {% if not task.state %}
-            <li class="task-item{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{{ task.context_id|default:'' }}" data-context-color="{{ task.context.color|default:'' }}" data-state-id="">
-                <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask({{ task.id }}, this);">
-                    <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
-                </div>
-                <div class="task-content">
-                    <div class="task-title">
-                        {{ task.title }}
-                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>{% endif %}
-                        {% if task.context %}<span class="task-context-badge" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
-                    </div>
-                    {% if task.details %}
-                    <div class="task-details-preview">{{ task.details|truncatechars:50 }}</div>
-                    {% endif %}
-                </div>
-            </li>
-            {% endif %}
-            {% empty %}
-            <li class="empty-state" id="empty-state">
-                <i class="bi bi-check2-circle"></i>
-                <p>No tasks yet. Add one above!</p>
-            </li>
-            {% endfor %}
-        </ul>
     </div>
 
     <!-- Kanban Board -->
@@ -876,20 +849,24 @@
                 </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
-                    <li class="state-item{% if state.is_terminal %} terminal-state{% endif %}" data-state-id="{{ state.id }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" data-order="{{ state.order }}" draggable="{% if state.is_terminal %}false{% else %}true{% endif %}">
+                    <li class="state-item{% if state.is_terminal %} terminal-state{% endif %}{% if state.name == 'Inbox' %} inbox-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" data-order="{{ state.order }}" draggable="{% if state.is_terminal or state.name == 'Inbox' %}false{% else %}true{% endif %}">
                         <div class="state-item-left">
-                            <i class="bi bi-grip-vertical state-drag-handle"></i>
+                            <i class="bi bi-grip-vertical state-drag-handle"{% if state.name == 'Inbox' %} style="visibility: hidden;"{% endif %}></i>
+                            {% if state.name != 'Inbox' %}
                             <div class="state-terminal-checkbox-wrapper">
                                 <input type="checkbox"
                                        class="state-terminal-checkbox"
                                        {% if state.is_terminal %}checked{% endif %}
                                        onchange="toggleTerminal({{ state.id }}, this)">
                             </div>
+                            {% endif %}
                             <span class="state-name">{{ state.name }}</span>
                         </div>
+                        {% if state.name != 'Inbox' %}
                         <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
                             <i class="bi bi-x-lg"></i>
                         </button>
+                        {% endif %}
                     </li>
                     {% empty %}
                     <li class="state-item" id="no-states" style="color: #6c757d; justify-content: center;">
@@ -986,7 +963,7 @@
 
                     const data = await response.json();
                     if (data.success) {
-                        addTaskToList(data.task);
+                        addTaskToKanban(data.task);
                     }
                 } catch (error) {
                     console.error('Error creating task:', error);
@@ -994,43 +971,16 @@
             }
         });
 
-        function addTaskToList(task) {
-            const emptyState = document.getElementById('empty-state');
-            if (emptyState) {
-                emptyState.remove();
+        function addTaskToKanban(task) {
+            // Find the Inbox column (or the column matching the task's state)
+            const stateId = task.state_id;
+            const columnBody = document.querySelector(`.kanban-column-body[data-state-id="${stateId}"]`);
+
+            if (columnBody) {
+                const card = createKanbanCard(task);
+                columnBody.insertBefore(card, columnBody.firstChild);
+                updateKanbanCounts();
             }
-
-            const li = document.createElement('li');
-            li.className = 'task-item' + (task.critical ? ' critical' : '');
-            li.dataset.taskId = task.id;
-            li.dataset.contextId = task.context_id || '';
-            li.dataset.contextColor = task.context_color || '';
-            li.innerHTML = `
-                <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask(${task.id}, this);">
-                    <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
-                </div>
-                <div class="task-content">
-                    <div class="task-title">
-                        ${escapeHtml(task.title)}
-                        ${task.critical ? '<i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>' : ''}
-                        ${task.context_name ? `<span class="task-context-badge" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : ''}
-                    </div>
-                    ${task.details ? `<div class="task-details-preview">${escapeHtml(task.details.substring(0, 50))}</div>` : ''}
-                </div>
-            `;
-            li.addEventListener('click', () => openPanel(task.id));
-
-            // Add hover listeners for checkbox
-            const checkbox = li.querySelector('.task-checkbox');
-            checkbox.addEventListener('mouseenter', function() {
-                this.querySelector('i').style.display = 'block';
-            });
-            checkbox.addEventListener('mouseleave', function() {
-                this.querySelector('i').style.display = 'none';
-            });
-
-            const taskList = document.getElementById('task-list');
-            taskList.insertBefore(li, taskList.firstChild);
         }
 
         function escapeHtml(text) {
@@ -1039,47 +989,6 @@
             return div.innerHTML;
         }
 
-        // Open slide panel
-        document.querySelectorAll('.task-item').forEach(item => {
-            item.addEventListener('click', function() {
-                openPanel(this.dataset.taskId);
-            });
-        });
-
-        async function openPanel(taskId) {
-            currentTaskId = taskId;
-            const taskItem = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-            const title = taskItem.querySelector('.task-title').childNodes[0].textContent.trim();
-            const detailsEl = taskItem.querySelector('.task-details-preview');
-            const contextId = taskItem.dataset.contextId || '';
-            const stateId = taskItem.dataset.stateId || '';
-
-            document.getElementById('panel-title').value = title;
-            document.getElementById('panel-context').value = contextId;
-            document.getElementById('panel-state').value = stateId;
-
-            // Fetch full task details
-            try {
-                const taskData = await getTaskData(taskId);
-                document.getElementById('panel-details').value = taskData.details || '';
-                document.getElementById('panel-critical').checked = taskData.critical;
-            } catch (e) {
-                document.getElementById('panel-details').value = detailsEl ? detailsEl.textContent : '';
-                document.getElementById('panel-critical').checked = taskItem.classList.contains('critical');
-            }
-
-            document.getElementById('panel-overlay').classList.add('active');
-            document.getElementById('slide-panel').classList.add('active');
-        }
-
-        async function getTaskData(taskId) {
-            // We'll just use what's in the DOM for now, but could fetch from server
-            const taskItem = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-            return {
-                details: taskItem.querySelector('.task-details-preview')?.textContent || '',
-                critical: taskItem.classList.contains('critical')
-            };
-        }
 
         function closePanel() {
             document.getElementById('panel-overlay').classList.remove('active');
@@ -1161,7 +1070,7 @@
             closePanel();
         });
 
-        async function deleteTask(taskId, checkboxEl) {
+        async function deleteTask(taskId) {
             try {
                 const response = await fetch(`/tasks/api/${taskId}/delete/`, {
                     method: 'DELETE',
@@ -1172,18 +1081,6 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    // Remove from main list
-                    const taskItem = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-                    if (taskItem) {
-                        taskItem.style.opacity = '0';
-                        taskItem.style.transform = 'translateX(20px)';
-                        taskItem.style.transition = 'all 0.3s';
-                        setTimeout(() => {
-                            taskItem.remove();
-                            checkEmptyState();
-                        }, 300);
-                    }
-
                     // Remove from kanban
                     const kanbanCard = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
                     if (kanbanCard) {
@@ -1200,16 +1097,6 @@
                 console.error('Error deleting task:', error);
             }
         }
-
-        // Show check icon on checkbox hover
-        document.querySelectorAll('.task-checkbox').forEach(cb => {
-            cb.addEventListener('mouseenter', function() {
-                this.querySelector('i').style.display = 'block';
-            });
-            cb.addEventListener('mouseleave', function() {
-                this.querySelector('i').style.display = 'none';
-            });
-        });
 
         // ========== Context Panel ==========
 
@@ -1906,17 +1793,9 @@
         });
 
         function handleTaskStateChange(task) {
-            const taskItem = document.querySelector(`.task-item[data-task-id="${task.id}"]`);
             const kanbanCard = document.querySelector(`.kanban-card[data-task-id="${task.id}"]`);
 
             if (task.state_id) {
-                // Task should be in kanban
-                if (taskItem) {
-                    // Remove from main list
-                    taskItem.remove();
-                    checkEmptyState();
-                }
-
                 const targetColumn = document.querySelector(`.kanban-column-body[data-state-id="${task.state_id}"]`);
                 if (targetColumn) {
                     if (kanbanCard) {
@@ -1931,16 +1810,6 @@
                         const card = createKanbanCard(task);
                         targetColumn.appendChild(card);
                     }
-                }
-            } else {
-                // Task should be in main list
-                if (kanbanCard) {
-                    kanbanCard.remove();
-                }
-                if (taskItem) {
-                    updateTaskInList(task);
-                } else {
-                    addTaskToList(task);
                 }
             }
             updateKanbanCounts();
@@ -1972,18 +1841,6 @@
                 meta.innerHTML = `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>`;
             } else {
                 meta.innerHTML = '';
-            }
-        }
-
-        function checkEmptyState() {
-            const taskList = document.getElementById('task-list');
-            if (!taskList.querySelector('.task-item')) {
-                taskList.innerHTML = `
-                    <li class="empty-state" id="empty-state">
-                        <i class="bi bi-check2-circle"></i>
-                        <p>No tasks yet. Add one above!</p>
-                    </li>
-                `;
             }
         }
 
