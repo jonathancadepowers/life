@@ -582,6 +582,41 @@
             background: #f8f9fa;
         }
 
+        .icon-picker-custom {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .icon-picker-custom input {
+            flex: 1;
+            padding: 0.4rem 0.6rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .icon-picker-custom input:focus {
+            border-color: #6B9080;
+        }
+
+        .icon-picker-custom button {
+            padding: 0.4rem 0.75rem;
+            background: #6B9080;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .icon-picker-custom button:hover {
+            background: #5a7a6c;
+        }
+
         .state-input-container {
             padding: 0.75rem 1.25rem;
         }
@@ -1504,15 +1539,22 @@
             picker.className = 'icon-picker-popup';
             picker.id = 'icon-picker-popup';
 
-            let gridHtml = '<div class="icon-picker-grid">';
+            // Custom icon input
+            let html = '<div class="icon-picker-custom">';
+            html += '<input type="text" id="custom-icon-input" placeholder="bi-icon-name" value="' + escapeHtml(currentIcon) + '">';
+            html += '<button onclick="applyCustomIcon()">Apply</button>';
+            html += '</div>';
+
+            // Icon grid
+            html += '<div class="icon-picker-grid">';
             stateIcons.forEach(icon => {
                 const isSelected = icon === currentIcon ? ' selected' : '';
-                gridHtml += `<button class="icon-picker-item${isSelected}" data-icon="${icon}" onclick="selectStateIcon('${icon}')"><i class="bi ${icon}"></i></button>`;
+                html += `<button class="icon-picker-item${isSelected}" data-icon="${icon}" onclick="selectStateIcon('${icon}')"><i class="bi ${icon}"></i></button>`;
             });
-            gridHtml += '</div>';
-            gridHtml += '<button class="icon-picker-clear" onclick="selectStateIcon(\'\')">Remove icon</button>';
+            html += '</div>';
+            html += '<button class="icon-picker-clear" onclick="selectStateIcon(\'\')">Remove icon</button>';
 
-            picker.innerHTML = gridHtml;
+            picker.innerHTML = html;
 
             // Position near the button
             const rect = btnElement.getBoundingClientRect();
@@ -1543,6 +1585,18 @@
             document.removeEventListener('click', handleIconPickerOutsideClick);
             currentIconPickerStateId = null;
             iconPickerElement = null;
+        }
+
+        function applyCustomIcon() {
+            const input = document.getElementById('custom-icon-input');
+            if (input) {
+                let icon = input.value.trim();
+                // Add bi- prefix if not present
+                if (icon && !icon.startsWith('bi-')) {
+                    icon = 'bi-' + icon;
+                }
+                selectStateIcon(icon);
+            }
         }
 
         async function selectStateIcon(icon) {
