@@ -286,6 +286,133 @@
             opacity: 0.5;
         }
 
+        /* Gear icon */
+        .settings-gear {
+            position: absolute;
+            top: 1.5rem;
+            left: 1.5rem;
+            color: #adb5bd;
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: color 0.2s;
+        }
+
+        .settings-gear:hover {
+            color: #6c757d;
+        }
+
+        /* Left slide-out panel for contexts */
+        .context-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            max-width: 320px;
+            height: 100%;
+            background: white;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .context-panel.active {
+            transform: translateX(0);
+        }
+
+        .context-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .context-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .context-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .context-name {
+            font-size: 1rem;
+        }
+
+        .context-delete {
+            background: none;
+            border: none;
+            color: #adb5bd;
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 1rem;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s;
+        }
+
+        .context-item:hover .context-delete {
+            opacity: 1;
+        }
+
+        .context-delete:hover {
+            color: #dc3545;
+        }
+
+        .context-input-container {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        #new-context-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        #new-context-input:focus {
+            border-color: #0d6efd;
+        }
+
+        /* Context dropdown in task panel */
+        .panel-context-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #panel-context {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: white;
+            outline: none;
+        }
+
+        #panel-context:focus {
+            border-color: #0d6efd;
+        }
+
+        /* Context badge on task item */
+        .task-context-badge {
+            font-size: 0.75rem;
+            color: #6c757d;
+            background: #e9ecef;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
         /* Mobile adjustments */
         @media (max-width: 576px) {
             .container {
@@ -306,6 +433,15 @@
                 max-width: 100%;
             }
 
+            .context-panel {
+                max-width: 100%;
+            }
+
+            .settings-gear {
+                top: 1rem;
+                left: 1rem;
+            }
+
             .task-title {
                 font-size: 1rem;
             }
@@ -313,6 +449,9 @@
     </style>
 </head>
 <body>
+    <!-- Settings gear icon -->
+    <i class="bi bi-gear settings-gear" id="settings-gear" title="Manage contexts"></i>
+
     <div class="container">
         <h1>Tasks</h1>
 
@@ -325,7 +464,7 @@
 
         <ul class="task-list" id="task-list">
             {% for task in tasks %}
-            <li class="task-item{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}">
+            <li class="task-item{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{{ task.context_id|default:'' }}">
                 <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask({{ task.id }}, this);">
                     <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
                 </div>
@@ -333,6 +472,7 @@
                     <div class="task-title">
                         {{ task.title }}
                         {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>{% endif %}
+                        {% if task.context %}<span class="task-context-badge">{{ task.context.name }}</span>{% endif %}
                     </div>
                     {% if task.details %}
                     <div class="task-details-preview">{{ task.details|truncatechars:50 }}</div>
@@ -348,7 +488,35 @@
         </ul>
     </div>
 
-    <!-- Slide-out Panel -->
+    <!-- Left slide-out Panel for Contexts -->
+    <div class="panel-overlay" id="context-panel-overlay"></div>
+    <div class="context-panel" id="context-panel">
+        <div class="panel-header">
+            <span style="font-weight: 500;">Contexts</span>
+            <button class="panel-close" id="context-panel-close">&times;</button>
+        </div>
+        <div class="context-input-container">
+            <input type="text" id="new-context-input" placeholder="Add new context..." autocomplete="off">
+        </div>
+        <div class="panel-body" style="padding: 0;">
+            <ul class="context-list" id="context-list">
+                {% for context in contexts %}
+                <li class="context-item" data-context-id="{{ context.id }}">
+                    <span class="context-name">{{ context.name }}</span>
+                    <button class="context-delete" onclick="deleteContext({{ context.id }}, this)" title="Delete context">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </li>
+                {% empty %}
+                <li class="context-item" id="no-contexts" style="color: #6c757d; justify-content: center;">
+                    No contexts yet
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Right slide-out Panel for Task Details -->
     <div class="panel-overlay" id="panel-overlay"></div>
     <div class="slide-panel" id="slide-panel">
         <div class="panel-header">
@@ -359,6 +527,13 @@
             <input type="text" class="panel-title-input" id="panel-title" placeholder="Task title">
             <div class="panel-details-label">Details</div>
             <textarea class="panel-details-input" id="panel-details" placeholder="Add details..."></textarea>
+            <div class="panel-context-label">Context</div>
+            <select id="panel-context">
+                <option value="">No context</option>
+                {% for context in contexts %}
+                <option value="{{ context.id }}">{{ context.name }}</option>
+                {% endfor %}
+            </select>
         </div>
         <div class="panel-footer">
             <div class="critical-toggle">
@@ -375,6 +550,13 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         let currentTaskId = null;
         let saveTimeout = null;
+
+        // Store contexts locally for immediate availability
+        let contextsList = [
+            {% for context in contexts %}
+            { id: {{ context.id }}, name: "{{ context.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
 
         // Add new task on Enter
         document.getElementById('new-task-input').addEventListener('keypress', async function(e) {
@@ -411,6 +593,7 @@
             const li = document.createElement('li');
             li.className = 'task-item' + (task.critical ? ' critical' : '');
             li.dataset.taskId = task.id;
+            li.dataset.contextId = task.context_id || '';
             li.innerHTML = `
                 <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask(${task.id}, this);">
                     <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
@@ -419,11 +602,21 @@
                     <div class="task-title">
                         ${escapeHtml(task.title)}
                         ${task.critical ? '<i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>' : ''}
+                        ${task.context_name ? `<span class="task-context-badge">${escapeHtml(task.context_name)}</span>` : ''}
                     </div>
                     ${task.details ? `<div class="task-details-preview">${escapeHtml(task.details.substring(0, 50))}</div>` : ''}
                 </div>
             `;
             li.addEventListener('click', () => openPanel(task.id));
+
+            // Add hover listeners for checkbox
+            const checkbox = li.querySelector('.task-checkbox');
+            checkbox.addEventListener('mouseenter', function() {
+                this.querySelector('i').style.display = 'block';
+            });
+            checkbox.addEventListener('mouseleave', function() {
+                this.querySelector('i').style.display = 'none';
+            });
 
             const taskList = document.getElementById('task-list');
             taskList.insertBefore(li, taskList.firstChild);
@@ -447,8 +640,10 @@
             const taskItem = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
             const title = taskItem.querySelector('.task-title').childNodes[0].textContent.trim();
             const detailsEl = taskItem.querySelector('.task-details-preview');
+            const contextId = taskItem.dataset.contextId || '';
 
             document.getElementById('panel-title').value = title;
+            document.getElementById('panel-context').value = contextId;
 
             // Fetch full task details
             try {
@@ -483,9 +678,9 @@
         document.getElementById('panel-overlay').addEventListener('click', closePanel);
 
         // Auto-save on changes
-        ['panel-title', 'panel-details', 'panel-critical'].forEach(id => {
+        ['panel-title', 'panel-details', 'panel-critical', 'panel-context'].forEach(id => {
             const el = document.getElementById(id);
-            const event = el.type === 'checkbox' ? 'change' : 'input';
+            const event = (el.type === 'checkbox') ? 'change' : (el.tagName === 'SELECT' ? 'change' : 'input');
             el.addEventListener(event, () => {
                 if (saveTimeout) clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(saveCurrentTask, 500);
@@ -498,6 +693,7 @@
             const title = document.getElementById('panel-title').value.trim();
             const details = document.getElementById('panel-details').value;
             const critical = document.getElementById('panel-critical').checked;
+            const contextId = document.getElementById('panel-context').value || null;
 
             try {
                 const response = await fetch(`/tasks/api/${currentTaskId}/update/`, {
@@ -506,7 +702,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ title, details, critical })
+                    body: JSON.stringify({ title, details, critical, context_id: contextId })
                 });
 
                 const data = await response.json();
@@ -523,10 +719,12 @@
             if (!taskItem) return;
 
             taskItem.className = 'task-item' + (task.critical ? ' critical' : '');
+            taskItem.dataset.contextId = task.context_id || '';
 
             const titleEl = taskItem.querySelector('.task-title');
             titleEl.innerHTML = escapeHtml(task.title) +
-                (task.critical ? ' <i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>' : '');
+                (task.critical ? ' <i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>' : '') +
+                (task.context_name ? ` <span class="task-context-badge">${escapeHtml(task.context_name)}</span>` : '');
 
             let detailsEl = taskItem.querySelector('.task-details-preview');
             if (task.details) {
@@ -593,6 +791,126 @@
                 this.querySelector('i').style.display = 'none';
             });
         });
+
+        // ========== Context Panel ==========
+
+        // Open context panel
+        document.getElementById('settings-gear').addEventListener('click', () => {
+            document.getElementById('context-panel-overlay').classList.add('active');
+            document.getElementById('context-panel').classList.add('active');
+        });
+
+        function closeContextPanel() {
+            document.getElementById('context-panel-overlay').classList.remove('active');
+            document.getElementById('context-panel').classList.remove('active');
+        }
+
+        document.getElementById('context-panel-close').addEventListener('click', closeContextPanel);
+        document.getElementById('context-panel-overlay').addEventListener('click', closeContextPanel);
+
+        // Add new context on Enter
+        document.getElementById('new-context-input').addEventListener('keypress', async function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                const name = this.value.trim();
+                this.value = '';
+
+                try {
+                    const response = await fetch('/tasks/api/contexts/create/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ name })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        addContextToList(data.context);
+                        addContextToDropdown(data.context);
+                        contextsList.push(data.context);
+                    } else {
+                        alert(data.error || 'Failed to create context');
+                    }
+                } catch (error) {
+                    console.error('Error creating context:', error);
+                }
+            }
+        });
+
+        function addContextToList(context) {
+            // Remove "no contexts" message if present
+            const noContexts = document.getElementById('no-contexts');
+            if (noContexts) {
+                noContexts.remove();
+            }
+
+            const li = document.createElement('li');
+            li.className = 'context-item';
+            li.dataset.contextId = context.id;
+            li.innerHTML = `
+                <span class="context-name">${escapeHtml(context.name)}</span>
+                <button class="context-delete" onclick="deleteContext(${context.id}, this)" title="Delete context">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            `;
+
+            document.getElementById('context-list').appendChild(li);
+        }
+
+        function addContextToDropdown(context) {
+            const select = document.getElementById('panel-context');
+            const option = document.createElement('option');
+            option.value = context.id;
+            option.textContent = context.name;
+            select.appendChild(option);
+        }
+
+        async function deleteContext(contextId, button) {
+            if (!confirm('Delete this context? Tasks with this context will become unassigned.')) return;
+
+            try {
+                const response = await fetch(`/tasks/api/contexts/${contextId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Remove from context list
+                    const contextItem = button.closest('.context-item');
+                    contextItem.remove();
+
+                    // Remove from dropdown
+                    const option = document.querySelector(`#panel-context option[value="${contextId}"]`);
+                    if (option) option.remove();
+
+                    // Update local list
+                    contextsList = contextsList.filter(c => c.id !== contextId);
+
+                    // Remove context badge from any tasks with this context
+                    document.querySelectorAll(`.task-item[data-context-id="${contextId}"]`).forEach(task => {
+                        task.dataset.contextId = '';
+                        const badge = task.querySelector('.task-context-badge');
+                        if (badge) badge.remove();
+                    });
+
+                    // Check if context list is now empty
+                    const contextList = document.getElementById('context-list');
+                    if (!contextList.querySelector('.context-item')) {
+                        contextList.innerHTML = `
+                            <li class="context-item" id="no-contexts" style="color: #6c757d; justify-content: center;">
+                                No contexts yet
+                            </li>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting context:', error);
+            }
+        }
     </script>
 </body>
 </html>
