@@ -5,6 +5,7 @@ class TaskContext(models.Model):
     """A context/category for tasks."""
 
     name = models.CharField(max_length=100, unique=True)
+    color = models.CharField(max_length=7, default='#6c757d')  # HEX color
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

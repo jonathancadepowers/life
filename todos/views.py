@@ -34,6 +34,7 @@ def create_task(request):
                 'critical': task.critical,
                 'context_id': None,
                 'context_name': None,
+                'context_color': None,
             }
         })
     except json.JSONDecodeError:
@@ -69,6 +70,7 @@ def update_task(request, task_id):
                 'critical': task.critical,
                 'context_id': task.context_id,
                 'context_name': task.context.name if task.context else None,
+                'context_color': task.context.color if task.context else None,
             }
         })
     except Task.DoesNotExist:
@@ -95,7 +97,7 @@ def list_contexts(request):
     contexts = TaskContext.objects.all()
     return JsonResponse({
         'success': True,
-        'contexts': [{'id': c.id, 'name': c.name} for c in contexts]
+        'contexts': [{'id': c.id, 'name': c.name, 'color': c.color} for c in contexts]
     })
 
 
@@ -105,11 +107,15 @@ def create_context(request):
     try:
         data = json.loads(request.body)
         name = data.get('name', '').strip()
+        color = data.get('color', '#6c757d')
 
         if not name:
             return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
 
-        context, created = TaskContext.objects.get_or_create(name=name)
+        context, created = TaskContext.objects.get_or_create(
+            name=name,
+            defaults={'color': color}
+        )
         if not created:
             return JsonResponse({'success': False, 'error': 'Context already exists'}, status=400)
 
@@ -118,8 +124,36 @@ def create_context(request):
             'context': {
                 'id': context.id,
                 'name': context.name,
+                'color': context.color,
             }
         })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_http_methods(["PATCH"])
+def update_context(request, context_id):
+    """Update a task context via AJAX."""
+    try:
+        context = TaskContext.objects.get(id=context_id)
+        data = json.loads(request.body)
+
+        if 'name' in data:
+            context.name = data['name'].strip()
+        if 'color' in data:
+            context.color = data['color']
+
+        context.save()
+        return JsonResponse({
+            'success': True,
+            'context': {
+                'id': context.id,
+                'name': context.name,
+                'color': context.color,
+            }
+        })
+    except TaskContext.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Context not found'}, status=404)
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 

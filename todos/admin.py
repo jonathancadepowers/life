@@ -4,7 +4,7 @@ from .models import Task, TaskContext
 
 @admin.register(TaskContext)
 class TaskContextAdmin(admin.ModelAdmin):
-    list_display = ['name', 'created_at']
+    list_display = ['name', 'color', 'created_at']
     search_fields = ['name']
 
 

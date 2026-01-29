@@ -406,11 +406,58 @@
         /* Context badge on task item */
         .task-context-badge {
             font-size: 0.75rem;
-            color: #6c757d;
-            background: #e9ecef;
+            color: white;
+            background: #6c757d;
             padding: 0.125rem 0.5rem;
             border-radius: 4px;
             margin-left: 0.5rem;
+        }
+
+        /* Color picker styles */
+        .color-palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .color-palette-label {
+            width: 100%;
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+
+        .color-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        .color-swatch.selected {
+            border-color: #212529;
+        }
+
+        /* Context color indicator */
+        .context-color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .context-item-left {
+            display: flex;
+            align-items: center;
         }
 
         /* Mobile adjustments */
@@ -464,7 +511,7 @@
 
         <ul class="task-list" id="task-list">
             {% for task in tasks %}
-            <li class="task-item{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{{ task.context_id|default:'' }}">
+            <li class="task-item{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{{ task.context_id|default:'' }}" data-context-color="{{ task.context.color|default:'' }}">
                 <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask({{ task.id }}, this);">
                     <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
                 </div>
@@ -472,7 +519,7 @@
                     <div class="task-title">
                         {{ task.title }}
                         {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>{% endif %}
-                        {% if task.context %}<span class="task-context-badge">{{ task.context.name }}</span>{% endif %}
+                        {% if task.context %}<span class="task-context-badge" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                     </div>
                     {% if task.details %}
                     <div class="task-details-preview">{{ task.details|truncatechars:50 }}</div>
@@ -498,11 +545,27 @@
         <div class="context-input-container">
             <input type="text" id="new-context-input" placeholder="Add new context..." autocomplete="off">
         </div>
+        <div class="color-palette" id="color-palette">
+            <span class="color-palette-label">Pick a color for new context:</span>
+            <div class="color-swatch selected" data-color="#6c757d" style="background: #6c757d;" title="Gray"></div>
+            <div class="color-swatch" data-color="#0d6efd" style="background: #0d6efd;" title="Blue"></div>
+            <div class="color-swatch" data-color="#6f42c1" style="background: #6f42c1;" title="Purple"></div>
+            <div class="color-swatch" data-color="#d63384" style="background: #d63384;" title="Pink"></div>
+            <div class="color-swatch" data-color="#dc3545" style="background: #dc3545;" title="Red"></div>
+            <div class="color-swatch" data-color="#fd7e14" style="background: #fd7e14;" title="Orange"></div>
+            <div class="color-swatch" data-color="#ffc107" style="background: #ffc107;" title="Yellow"></div>
+            <div class="color-swatch" data-color="#198754" style="background: #198754;" title="Green"></div>
+            <div class="color-swatch" data-color="#20c997" style="background: #20c997;" title="Teal"></div>
+            <div class="color-swatch" data-color="#0dcaf0" style="background: #0dcaf0;" title="Cyan"></div>
+        </div>
         <div class="panel-body" style="padding: 0;">
             <ul class="context-list" id="context-list">
                 {% for context in contexts %}
-                <li class="context-item" data-context-id="{{ context.id }}">
-                    <span class="context-name">{{ context.name }}</span>
+                <li class="context-item" data-context-id="{{ context.id }}" data-context-color="{{ context.color }}">
+                    <div class="context-item-left">
+                        <div class="context-color-dot" style="background: {{ context.color }};"></div>
+                        <span class="context-name">{{ context.name }}</span>
+                    </div>
                     <button class="context-delete" onclick="deleteContext({{ context.id }}, this)" title="Delete context">
                         <i class="bi bi-x-lg"></i>
                     </button>
@@ -554,9 +617,12 @@
         // Store contexts locally for immediate availability
         let contextsList = [
             {% for context in contexts %}
-            { id: {{ context.id }}, name: "{{ context.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+            { id: {{ context.id }}, name: "{{ context.name|escapejs }}", color: "{{ context.color }}" }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
+
+        // Currently selected color for new contexts
+        let selectedColor = '#6c757d';
 
         // Add new task on Enter
         document.getElementById('new-task-input').addEventListener('keypress', async function(e) {
@@ -594,6 +660,7 @@
             li.className = 'task-item' + (task.critical ? ' critical' : '');
             li.dataset.taskId = task.id;
             li.dataset.contextId = task.context_id || '';
+            li.dataset.contextColor = task.context_color || '';
             li.innerHTML = `
                 <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask(${task.id}, this);">
                     <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
@@ -602,7 +669,7 @@
                     <div class="task-title">
                         ${escapeHtml(task.title)}
                         ${task.critical ? '<i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>' : ''}
-                        ${task.context_name ? `<span class="task-context-badge">${escapeHtml(task.context_name)}</span>` : ''}
+                        ${task.context_name ? `<span class="task-context-badge" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : ''}
                     </div>
                     ${task.details ? `<div class="task-details-preview">${escapeHtml(task.details.substring(0, 50))}</div>` : ''}
                 </div>
@@ -720,11 +787,12 @@
 
             taskItem.className = 'task-item' + (task.critical ? ' critical' : '');
             taskItem.dataset.contextId = task.context_id || '';
+            taskItem.dataset.contextColor = task.context_color || '';
 
             const titleEl = taskItem.querySelector('.task-title');
             titleEl.innerHTML = escapeHtml(task.title) +
                 (task.critical ? ' <i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>' : '') +
-                (task.context_name ? ` <span class="task-context-badge">${escapeHtml(task.context_name)}</span>` : '');
+                (task.context_name ? ` <span class="task-context-badge" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : '');
 
             let detailsEl = taskItem.querySelector('.task-details-preview');
             if (task.details) {
@@ -808,6 +876,15 @@
         document.getElementById('context-panel-close').addEventListener('click', closeContextPanel);
         document.getElementById('context-panel-overlay').addEventListener('click', closeContextPanel);
 
+        // Color swatch selection
+        document.querySelectorAll('.color-swatch').forEach(swatch => {
+            swatch.addEventListener('click', function() {
+                document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedColor = this.dataset.color;
+            });
+        });
+
         // Add new context on Enter
         document.getElementById('new-context-input').addEventListener('keypress', async function(e) {
             if (e.key === 'Enter' && this.value.trim()) {
@@ -821,7 +898,7 @@
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken
                         },
-                        body: JSON.stringify({ name })
+                        body: JSON.stringify({ name, color: selectedColor })
                     });
 
                     const data = await response.json();
@@ -848,8 +925,12 @@
             const li = document.createElement('li');
             li.className = 'context-item';
             li.dataset.contextId = context.id;
+            li.dataset.contextColor = context.color;
             li.innerHTML = `
-                <span class="context-name">${escapeHtml(context.name)}</span>
+                <div class="context-item-left">
+                    <div class="context-color-dot" style="background: ${context.color};" onclick="event.stopPropagation(); openColorPicker(${context.id}, this)"></div>
+                    <span class="context-name">${escapeHtml(context.name)}</span>
+                </div>
                 <button class="context-delete" onclick="deleteContext(${context.id}, this)" title="Delete context">
                     <i class="bi bi-x-lg"></i>
                 </button>
@@ -893,6 +974,7 @@
                     // Remove context badge from any tasks with this context
                     document.querySelectorAll(`.task-item[data-context-id="${contextId}"]`).forEach(task => {
                         task.dataset.contextId = '';
+                        task.dataset.contextColor = '';
                         const badge = task.querySelector('.task-context-badge');
                         if (badge) badge.remove();
                     });
@@ -911,6 +993,131 @@
                 console.error('Error deleting context:', error);
             }
         }
+
+        // Color picker for existing contexts
+        let colorPickerContextId = null;
+        let colorPickerElement = null;
+
+        function openColorPicker(contextId, dotElement) {
+            // Create color picker dropdown
+            const existingPicker = document.getElementById('context-color-picker');
+            if (existingPicker) existingPicker.remove();
+
+            colorPickerContextId = contextId;
+            colorPickerElement = dotElement;
+
+            const picker = document.createElement('div');
+            picker.id = 'context-color-picker';
+            picker.style.cssText = `
+                position: absolute;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                padding: 0.5rem;
+                display: flex;
+                gap: 0.35rem;
+                flex-wrap: wrap;
+                width: 180px;
+                z-index: 1100;
+            `;
+
+            const colors = ['#6c757d', '#0d6efd', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'];
+            colors.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.style.cssText = `
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: ${color};
+                    cursor: pointer;
+                    transition: transform 0.15s;
+                `;
+                swatch.addEventListener('mouseenter', () => swatch.style.transform = 'scale(1.15)');
+                swatch.addEventListener('mouseleave', () => swatch.style.transform = 'scale(1)');
+                swatch.addEventListener('click', () => updateContextColor(contextId, color));
+                picker.appendChild(swatch);
+            });
+
+            // Position near the dot
+            const rect = dotElement.getBoundingClientRect();
+            picker.style.left = (rect.left + 20) + 'px';
+            picker.style.top = (rect.top - 5) + 'px';
+
+            document.body.appendChild(picker);
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', closeColorPicker);
+            }, 0);
+        }
+
+        function closeColorPicker(e) {
+            const picker = document.getElementById('context-color-picker');
+            if (picker && !picker.contains(e?.target)) {
+                picker.remove();
+                document.removeEventListener('click', closeColorPicker);
+                colorPickerContextId = null;
+                colorPickerElement = null;
+            }
+        }
+
+        async function updateContextColor(contextId, color) {
+            try {
+                const response = await fetch(`/tasks/api/contexts/${contextId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ color })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update the color dot
+                    if (colorPickerElement) {
+                        colorPickerElement.style.background = color;
+                    }
+
+                    // Update the context item data
+                    const contextItem = document.querySelector(`.context-item[data-context-id="${contextId}"]`);
+                    if (contextItem) {
+                        contextItem.dataset.contextColor = color;
+                    }
+
+                    // Update local list
+                    const ctx = contextsList.find(c => c.id === contextId);
+                    if (ctx) ctx.color = color;
+
+                    // Update all task badges with this context
+                    document.querySelectorAll(`.task-item[data-context-id="${contextId}"]`).forEach(task => {
+                        task.dataset.contextColor = color;
+                        const badge = task.querySelector('.task-context-badge');
+                        if (badge) badge.style.background = color;
+                    });
+
+                    // Close the picker
+                    const picker = document.getElementById('context-color-picker');
+                    if (picker) picker.remove();
+                    document.removeEventListener('click', closeColorPicker);
+                }
+            } catch (error) {
+                console.error('Error updating context color:', error);
+            }
+        }
+
+        // Make existing color dots clickable
+        document.querySelectorAll('.context-color-dot').forEach(dot => {
+            const contextItem = dot.closest('.context-item');
+            if (contextItem) {
+                const contextId = contextItem.dataset.contextId;
+                dot.style.cursor = 'pointer';
+                dot.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openColorPicker(parseInt(contextId), this);
+                });
+            }
+        });
     </script>
 </body>
 </html>
