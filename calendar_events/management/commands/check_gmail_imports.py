@@ -148,6 +148,20 @@ class Command(BaseCommand):
                     # Mark email as read
                     mail.store(email_id, '+FLAGS', '\\Seen')
 
+                    # Add label "Oxy Calendar Imports" (Gmail-specific)
+                    try:
+                        mail.store(email_id, '+X-GM-LABELS', '"Oxy Calendar Imports"')
+                        self.stdout.write('  Labeled: Oxy Calendar Imports')
+                    except Exception as label_err:
+                        self.stdout.write(self.style.WARNING(f'  Could not add label: {label_err}'))
+
+                    # Archive (remove from Inbox)
+                    try:
+                        mail.store(email_id, '-X-GM-LABELS', '\\\\Inbox')
+                        self.stdout.write('  Archived')
+                    except Exception as archive_err:
+                        self.stdout.write(self.style.WARNING(f'  Could not archive: {archive_err}'))
+
                 except Exception as e:
                     self.stderr.write(self.style.ERROR(f'  Import error: {e}'))
 
