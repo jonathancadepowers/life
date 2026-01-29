@@ -171,3 +171,8 @@ The project is configured for Heroku deployment:
 - WhiteNoise middleware: Serves static files
 - Database: PostgreSQL in production, SQLite in development
 - Environment variables set via Heroku config vars
+
+**IMPORTANT: After every change, ALWAYS push immediately to both GitHub and Heroku:**
+```bash
+git push origin main && git push heroku main
+```
