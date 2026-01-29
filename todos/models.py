@@ -51,12 +51,13 @@ class Task(models.Model):
         blank=True,
         related_name='tasks'
     )
+    order = models.IntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['order', '-created_at']
 
     def __str__(self):
         return self.title

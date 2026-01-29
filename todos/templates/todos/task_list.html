@@ -1919,6 +1919,15 @@
 
         // Kanban drag and drop
         let draggedKanbanCard = null;
+        let dropIndicator = null;
+
+        // Create drop indicator element
+        function createDropIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'kanban-drop-indicator';
+            indicator.style.cssText = 'height: 3px; background: #6B9080; border-radius: 2px; margin: 0.25rem 0;';
+            return indicator;
+        }
 
         function setupKanbanCardDrag(card) {
             card.addEventListener('dragstart', function(e) {
@@ -1926,15 +1935,39 @@
                 this.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', this.dataset.taskId);
+                // Delay to allow drag image to be captured
+                setTimeout(() => {
+                    this.style.opacity = '0.4';
+                }, 0);
             });
 
             card.addEventListener('dragend', function(e) {
                 this.classList.remove('dragging');
+                this.style.opacity = '1';
                 document.querySelectorAll('.kanban-column-body').forEach(body => {
                     body.classList.remove('drag-over');
                 });
+                // Remove any drop indicator
+                if (dropIndicator && dropIndicator.parentElement) {
+                    dropIndicator.remove();
+                }
+                dropIndicator = null;
                 draggedKanbanCard = null;
             });
+        }
+
+        // Get drop position within column
+        function getDropPosition(columnBody, y) {
+            const cards = [...columnBody.querySelectorAll('.kanban-card:not(.dragging)')];
+
+            for (const card of cards) {
+                const rect = card.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                if (y < midpoint) {
+                    return { element: card, position: 'before' };
+                }
+            }
+            return { element: null, position: 'end' };
         }
 
         // Setup drag events for existing kanban cards
@@ -1946,14 +1979,30 @@
         document.querySelectorAll('.kanban-column-body').forEach(body => {
             body.addEventListener('dragover', function(e) {
                 e.preventDefault();
-                if (draggedKanbanCard) {
-                    this.classList.add('drag-over');
+                if (!draggedKanbanCard) return;
+
+                this.classList.add('drag-over');
+
+                // Show drop indicator
+                const { element, position } = getDropPosition(this, e.clientY);
+
+                if (!dropIndicator) {
+                    dropIndicator = createDropIndicator();
+                }
+
+                if (position === 'end') {
+                    this.appendChild(dropIndicator);
+                } else if (element) {
+                    element.parentElement.insertBefore(dropIndicator, element);
                 }
             });
 
             body.addEventListener('dragleave', function(e) {
                 if (!this.contains(e.relatedTarget)) {
                     this.classList.remove('drag-over');
+                    if (dropIndicator && dropIndicator.parentElement === this) {
+                        dropIndicator.remove();
+                    }
                 }
             });
 
@@ -1966,35 +2015,67 @@
                 const newStateId = parseInt(this.dataset.stateId);
                 const taskId = parseInt(draggedKanbanCard.dataset.taskId);
                 const oldBody = draggedKanbanCard.parentElement;
+                const changedColumn = (oldBody !== this);
 
-                if (oldBody === this) return; // Dropped in same column
+                // Get drop position
+                const { element, position } = getDropPosition(this, e.clientY);
 
-                // Move card to new column
-                this.appendChild(draggedKanbanCard);
+                // Remove drop indicator
+                if (dropIndicator && dropIndicator.parentElement) {
+                    dropIndicator.remove();
+                }
+
+                // Move card to new position
+                if (position === 'end') {
+                    this.appendChild(draggedKanbanCard);
+                } else if (element) {
+                    element.parentElement.insertBefore(draggedKanbanCard, element);
+                }
+
                 updateKanbanCounts();
 
-                // Update state in database
+                // Get new order of all cards in this column
+                const cardIds = [...this.querySelectorAll('.kanban-card')].map(c => parseInt(c.dataset.taskId));
+
+                // Update state if changed columns
+                if (changedColumn) {
+                    try {
+                        const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ state_id: newStateId })
+                        });
+
+                        const data = await response.json();
+                        if (!data.success) {
+                            console.error('Failed to update task state');
+                            oldBody.appendChild(draggedKanbanCard);
+                            updateKanbanCounts();
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Error updating task state:', error);
+                        oldBody.appendChild(draggedKanbanCard);
+                        updateKanbanCounts();
+                        return;
+                    }
+                }
+
+                // Save new order
                 try {
-                    const response = await fetch(`/tasks/api/${taskId}/update/`, {
-                        method: 'PATCH',
+                    await fetch('/tasks/api/tasks/reorder/', {
+                        method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken
                         },
-                        body: JSON.stringify({ state_id: newStateId })
+                        body: JSON.stringify({ task_ids: cardIds })
                     });
-
-                    const data = await response.json();
-                    if (!data.success) {
-                        console.error('Failed to update task state');
-                        // Move back on failure
-                        oldBody.appendChild(draggedKanbanCard);
-                        updateKanbanCounts();
-                    }
                 } catch (error) {
-                    console.error('Error updating task state:', error);
-                    oldBody.appendChild(draggedKanbanCard);
-                    updateKanbanCounts();
+                    console.error('Error saving task order:', error);
                 }
             });
         });

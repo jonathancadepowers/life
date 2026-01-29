@@ -309,3 +309,18 @@ def reorder_states(request):
         return JsonResponse({'success': True})
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_POST
+def reorder_tasks(request):
+    """Reorder tasks within a state/column via AJAX."""
+    try:
+        data = json.loads(request.body)
+        task_ids = data.get('task_ids', [])  # List of task IDs in new order
+
+        for index, task_id in enumerate(task_ids):
+            Task.objects.filter(id=task_id).update(order=index)
+
+        return JsonResponse({'success': True})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
