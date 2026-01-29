@@ -581,19 +581,81 @@ def add_habit(request):
 
 @require_POST
 def import_outlook_calendar(request):
-    """Import calendar events from an Outlook CSV export."""
+    """Import calendar events from an Outlook JSON export."""
+    import json
+    from datetime import datetime
+    from calendar_events.models import CalendarEvent
+
     file = request.FILES.get('file')
 
     if not file:
-        messages.error(request, 'Please select a CSV file to upload.')
+        messages.error(request, 'Please select a JSON file to upload.')
         return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
 
-    if not file.name.endswith('.csv'):
-        messages.error(request, 'Please upload a CSV file.')
+    if not file.name.endswith('.json'):
+        messages.error(request, 'Please upload a JSON file.')
         return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
 
-    # TODO: Process the CSV file
-    messages.success(request, f'File "{file.name}" uploaded successfully. Processing not yet implemented.')
+    try:
+        # Parse JSON file
+        content = file.read().decode('utf-8')
+        data = json.loads(content)
+
+        events = data.get('body', [])
+        created_count = 0
+        updated_count = 0
+
+        for event in events:
+            outlook_id = event.get('id')
+            if not outlook_id:
+                continue
+
+            # Parse datetime strings (format: 2026-01-30T15:00:00.0000000)
+            start_str = event.get('start', '')
+            end_str = event.get('end', '')
+
+            # Remove extra precision from datetime strings
+            if start_str:
+                start_str = start_str[:19]  # Trim to 2026-01-30T15:00:00
+                start_dt = datetime.fromisoformat(start_str)
+            else:
+                continue
+
+            if end_str:
+                end_str = end_str[:19]
+                end_dt = datetime.fromisoformat(end_str)
+            else:
+                continue
+
+            # Use update_or_create for idempotent import
+            obj, created = CalendarEvent.objects.update_or_create(
+                outlook_id=outlook_id,
+                defaults={
+                    'subject': event.get('subject', '')[:500],
+                    'start': start_dt,
+                    'end': end_dt,
+                    'is_all_day': event.get('isAllDay', False),
+                    'location': event.get('location', '')[:500],
+                    'organizer': event.get('organizer', '')[:255],
+                    'body_preview': event.get('bodyPreview', ''),
+                }
+            )
+
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+
+        messages.success(
+            request,
+            f'Import complete: {created_count} events created, {updated_count} events updated.'
+        )
+
+    except json.JSONDecodeError as e:
+        messages.error(request, f'Invalid JSON file: {str(e)}')
+    except Exception as e:
+        messages.error(request, f'Error importing calendar: {str(e)}')
+
     return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
 
 

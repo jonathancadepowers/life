@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "settings",
     "inspirations_app",
     "youtube_avoidance",
+    "calendar_events",
 ]
 
 MIDDLEWARE = [
