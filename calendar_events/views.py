@@ -1,7 +1,9 @@
 import json
+import hashlib
+import hmac
 from datetime import datetime, timezone
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.conf import settings
@@ -62,6 +64,88 @@ def import_calendar_events(events_data):
             updated_count += 1
 
     return created_count, updated_count
+
+
+def verify_mailgun_signature(token, timestamp, signature, api_key):
+    """Verify that the request came from Mailgun."""
+    hmac_digest = hmac.new(
+        key=api_key.encode('utf-8'),
+        msg=f'{timestamp}{token}'.encode('utf-8'),
+        digestmod=hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(str(signature), str(hmac_digest))
+
+
+@csrf_exempt
+@require_POST
+def mailgun_webhook(request):
+    """
+    Webhook endpoint for receiving calendar exports via email (Mailgun).
+
+    Mailgun sends parsed emails as multipart/form-data with:
+    - sender, recipient, subject, body-plain, etc.
+    - attachments as files
+    - signature verification fields: token, timestamp, signature
+
+    Forward your calendar export email to: calendar@mail.yourdomain.com
+    """
+    # Get Mailgun API key for signature verification
+    mailgun_api_key = getattr(settings, 'MAILGUN_API_KEY', None)
+
+    # Verify Mailgun signature (optional but recommended)
+    if mailgun_api_key:
+        token = request.POST.get('token', '')
+        timestamp = request.POST.get('timestamp', '')
+        signature = request.POST.get('signature', '')
+
+        if not verify_mailgun_signature(token, timestamp, signature, mailgun_api_key):
+            return HttpResponse('Invalid signature', status=403)
+
+    # Log some info for debugging
+    sender = request.POST.get('sender', '')
+    subject = request.POST.get('subject', '')
+
+    # Look for JSON attachments
+    json_data = None
+    attachment_count = int(request.POST.get('attachment-count', 0))
+
+    # Check numbered attachments (attachment-1, attachment-2, etc.)
+    for i in range(1, attachment_count + 1):
+        attachment = request.FILES.get(f'attachment-{i}')
+        if attachment and attachment.name.endswith('.json'):
+            try:
+                content = attachment.read().decode('utf-8')
+                json_data = json.loads(content)
+                break
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                continue
+
+    # Also check generic 'attachment' key
+    if not json_data:
+        attachment = request.FILES.get('attachment')
+        if attachment and attachment.name.endswith('.json'):
+            try:
+                content = attachment.read().decode('utf-8')
+                json_data = json.loads(content)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                pass
+
+    if not json_data:
+        return HttpResponse(
+            f'No valid JSON attachment found. Sender: {sender}, Subject: {subject}',
+            status=400
+        )
+
+    # Import the calendar events
+    try:
+        created_count, updated_count = import_calendar_events(json_data)
+        return HttpResponse(
+            f'Success! {created_count} events created, {updated_count} events updated. '
+            f'From: {sender}, Subject: {subject}',
+            status=200
+        )
+    except Exception as e:
+        return HttpResponse(f'Import error: {str(e)}', status=500)
 
 
 @csrf_exempt

@@ -180,3 +180,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Calendar Import API Key (for webhook endpoint)
 CALENDAR_IMPORT_API_KEY = os.getenv('CALENDAR_IMPORT_API_KEY')
+
+# Mailgun API Key (for inbound email signature verification)
+MAILGUN_API_KEY = os.getenv('MAILGUN_API_KEY')
