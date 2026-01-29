@@ -155,12 +155,12 @@ class Command(BaseCommand):
                     except Exception as label_err:
                         self.stdout.write(self.style.WARNING(f'  Could not add label: {label_err}'))
 
-                    # Archive (remove from Inbox) - copy to All Mail then delete from Inbox
+                    # Archive (remove from Inbox - Gmail keeps in All Mail)
                     try:
-                        mail.copy(email_id, '[Gmail]/All Mail')
+                        # In Gmail, deleting from INBOX moves to All Mail (archives)
                         mail.store(email_id, '+FLAGS', '\\Deleted')
                         mail.expunge()
-                        self.stdout.write('  Archived')
+                        self.stdout.write('  Archived (removed from Inbox)')
                     except Exception as archive_err:
                         self.stdout.write(self.style.WARNING(f'  Could not archive: {archive_err}'))
 
