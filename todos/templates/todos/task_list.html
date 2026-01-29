@@ -547,16 +547,16 @@
         </div>
         <div class="color-palette" id="color-palette">
             <span class="color-palette-label">Pick a color for new context:</span>
-            <div class="color-swatch selected" data-color="#6c757d" style="background: #6c757d;" title="Gray"></div>
-            <div class="color-swatch" data-color="#0d6efd" style="background: #0d6efd;" title="Blue"></div>
-            <div class="color-swatch" data-color="#6f42c1" style="background: #6f42c1;" title="Purple"></div>
-            <div class="color-swatch" data-color="#d63384" style="background: #d63384;" title="Pink"></div>
-            <div class="color-swatch" data-color="#dc3545" style="background: #dc3545;" title="Red"></div>
-            <div class="color-swatch" data-color="#fd7e14" style="background: #fd7e14;" title="Orange"></div>
-            <div class="color-swatch" data-color="#ffc107" style="background: #ffc107;" title="Yellow"></div>
-            <div class="color-swatch" data-color="#198754" style="background: #198754;" title="Green"></div>
-            <div class="color-swatch" data-color="#20c997" style="background: #20c997;" title="Teal"></div>
-            <div class="color-swatch" data-color="#0dcaf0" style="background: #0dcaf0;" title="Cyan"></div>
+            <div class="color-swatch selected" data-color="#6B9080" style="background: #6B9080;" title="Sage"></div>
+            <div class="color-swatch" data-color="#D4C4A8" style="background: #D4C4A8;" title="Tan"></div>
+            <div class="color-swatch" data-color="#C9A227" style="background: #C9A227;" title="Gold"></div>
+            <div class="color-swatch" data-color="#8B7B8B" style="background: #8B7B8B;" title="Mauve"></div>
+            <div class="color-swatch" data-color="#A89090" style="background: #A89090;" title="Dusty Rose"></div>
+            <div class="color-swatch" data-color="#8A9878" style="background: #8A9878;" title="Olive"></div>
+            <div class="color-swatch" data-color="#7B8B98" style="background: #7B8B98;" title="Slate"></div>
+            <div class="color-swatch" data-color="#6c757d" style="background: #6c757d;" title="Gray"></div>
+            <div class="color-swatch" data-color="#5D5D5D" style="background: #5D5D5D;" title="Charcoal"></div>
+            <div class="color-swatch" data-color="#4A6670" style="background: #4A6670;" title="Steel"></div>
         </div>
         <div class="panel-body" style="padding: 0;">
             <ul class="context-list" id="context-list">
@@ -622,7 +622,7 @@
         ];
 
         // Currently selected color for new contexts
-        let selectedColor = '#6c757d';
+        let selectedColor = '#6B9080';
 
         // Add new task on Enter
         document.getElementById('new-task-input').addEventListener('keypress', async function(e) {
@@ -1021,7 +1021,7 @@
                 z-index: 1100;
             `;
 
-            const colors = ['#6c757d', '#0d6efd', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'];
+            const colors = ['#6B9080', '#D4C4A8', '#C9A227', '#8B7B8B', '#A89090', '#8A9878', '#7B8B98', '#6c757d', '#5D5D5D', '#4A6670'];
             colors.forEach(color => {
                 const swatch = document.createElement('div');
                 swatch.style.cssText = `
