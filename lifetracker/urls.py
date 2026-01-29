@@ -43,6 +43,7 @@ urlpatterns = [
     path("settings/book-cover/upload/", settings_views.upload_book_cover, name='upload_book_cover'),
     path("settings/habits/add/", settings_views.add_habit, name='add_habit'),
     path("settings/habits/<str:column_name>/toggle-abandon/", settings_views.toggle_abandon_day, name='toggle_abandon_day'),
+    path("settings/import/outlook-calendar/", settings_views.import_outlook_calendar, name='import_outlook_calendar'),
     path("targets/", include("targets.urls")),
     path("writing/", include("writing.urls")),
     path("", include("fasting.urls")),

@@ -580,6 +580,24 @@ def add_habit(request):
 
 
 @require_POST
+def import_outlook_calendar(request):
+    """Import calendar events from an Outlook CSV export."""
+    file = request.FILES.get('file')
+
+    if not file:
+        messages.error(request, 'Please select a CSV file to upload.')
+        return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
+
+    if not file.name.endswith('.csv'):
+        messages.error(request, 'Please upload a CSV file.')
+        return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
+
+    # TODO: Process the CSV file
+    messages.success(request, f'File "{file.name}" uploaded successfully. Processing not yet implemented.')
+    return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
+
+
+@require_POST
 def toggle_abandon_day(request, column_name):
     """Toggle the abandoned status for a specific day for a given column."""
     import json

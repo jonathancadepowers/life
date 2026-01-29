@@ -416,6 +416,34 @@
             </div>
         </div>
 
+        <!-- Data Imports Section -->
+        <div class="settings-section">
+            <h3>
+                <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#dataImportsSection" aria-expanded="false">
+                    Data Imports
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </button>
+            </h3>
+
+            <div class="collapse" id="dataImportsSection">
+                <div class="card card-body mb-4">
+                    <h5><i class="bi bi-calendar-event me-2"></i>Outlook Calendar</h5>
+                    <p class="text-muted">Import calendar events from an Outlook CSV export file.</p>
+                    <form method="POST" action="{% url 'import_outlook_calendar' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="outlook_calendar_file" class="form-label">Select CSV File</label>
+                            <input type="file" class="form-control" id="outlook_calendar_file" name="file" accept=".csv" required>
+                            <div class="form-text">Export your calendar from Outlook as a CSV file and upload it here.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Import Calendar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Life Tracker Section -->
         <div class="settings-section">
             <h3>
