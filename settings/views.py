@@ -583,7 +583,7 @@ def add_habit(request):
 def import_outlook_calendar(request):
     """Import calendar events from an Outlook JSON export."""
     import json
-    from datetime import datetime
+    from datetime import datetime, timezone
     from calendar_events.models import CalendarEvent
 
     file = request.FILES.get('file')
@@ -611,19 +611,20 @@ def import_outlook_calendar(request):
                 continue
 
             # Parse datetime strings (format: 2026-01-30T15:00:00.0000000)
+            # Outlook exports times in UTC
             start_str = event.get('start', '')
             end_str = event.get('end', '')
 
-            # Remove extra precision from datetime strings
+            # Remove extra precision and parse as UTC
             if start_str:
                 start_str = start_str[:19]  # Trim to 2026-01-30T15:00:00
-                start_dt = datetime.fromisoformat(start_str)
+                start_dt = datetime.fromisoformat(start_str).replace(tzinfo=timezone.utc)
             else:
                 continue
 
             if end_str:
                 end_str = end_str[:19]
-                end_dt = datetime.fromisoformat(end_str)
+                end_dt = datetime.fromisoformat(end_str).replace(tzinfo=timezone.utc)
             else:
                 continue
 
