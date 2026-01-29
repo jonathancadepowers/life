@@ -16,4 +16,5 @@ urlpatterns = [
     path('api/states/create/', views.create_state, name='create_state'),
     path('api/states/<int:state_id>/update/', views.update_state, name='update_state'),
     path('api/states/<int:state_id>/delete/', views.delete_state, name='delete_state'),
+    path('api/states/reorder/', views.reorder_states, name='reorder_states'),
 ]

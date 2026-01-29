@@ -560,6 +560,36 @@
             gap: 0.5rem;
         }
 
+        .state-drag-handle {
+            cursor: grab;
+            color: #adb5bd;
+            padding: 0.25rem;
+            margin-right: 0.25rem;
+        }
+
+        .state-drag-handle:hover {
+            color: #6c757d;
+        }
+
+        .state-item.dragging {
+            opacity: 0.5;
+            background: #e9ecef;
+        }
+
+        .state-item.drag-over {
+            border-top: 2px solid #6B9080;
+        }
+
+        .state-item.terminal-state .state-drag-handle {
+            visibility: hidden;
+            cursor: default;
+        }
+
+        .state-item.terminal-state {
+            background: #f8f9fa;
+            border-top: 1px dashed #dee2e6;
+        }
+
         .state-terminal-checkbox {
             width: 16px;
             height: 16px;
@@ -585,9 +615,9 @@
         .state-terminal-checkbox-wrapper.disabled-terminal::after {
             content: attr(data-tooltip);
             position: absolute;
-            left: 50%;
-            bottom: 100%;
-            transform: translateX(-50%);
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
             background: #333;
             color: white;
             padding: 0.4rem 0.6rem;
@@ -598,7 +628,7 @@
             visibility: hidden;
             transition: opacity 0.2s, visibility 0.2s;
             z-index: 1200;
-            margin-bottom: 4px;
+            margin-left: 8px;
         }
 
         .state-terminal-checkbox-wrapper.disabled-terminal:hover::after {
@@ -736,13 +766,14 @@
                 <div class="state-input-container">
                     <input type="text" id="new-state-input" placeholder="Add new state..." autocomplete="off">
                 </div>
-                <div style="padding: 0.5rem 1.25rem; font-size: 0.75rem; color: #6c757d;">
-                    Check to mark as terminal (completed) state
+                <div style="padding: 0.5rem 1.25rem; font-size: 0.75rem; color: #6c757d; line-height: 1.4;">
+                    Drag to reorder. Check to mark as terminal state (always last).
                 </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
-                    <li class="state-item" data-state-id="{{ state.id }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}">
+                    <li class="state-item{% if state.is_terminal %} terminal-state{% endif %}" data-state-id="{{ state.id }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" data-order="{{ state.order }}" draggable="{% if state.is_terminal %}false{% else %}true{% endif %}">
                         <div class="state-item-left">
+                            <i class="bi bi-grip-vertical state-drag-handle"></i>
                             <div class="state-terminal-checkbox-wrapper">
                                 <input type="checkbox"
                                        class="state-terminal-checkbox"
@@ -1310,7 +1341,7 @@
         // Store states locally
         let statesList = [
             {% for state in states %}
-            { id: {{ state.id }}, name: "{{ state.name|escapejs }}", is_terminal: {{ state.is_terminal|yesno:'true,false' }} }{% if not forloop.last %},{% endif %}
+            { id: {{ state.id }}, name: "{{ state.name|escapejs }}", is_terminal: {{ state.is_terminal|yesno:'true,false' }}, order: {{ state.order }} }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
 
@@ -1365,9 +1396,21 @@
                     const state = statesList.find(s => s.id === stateId);
                     if (state) state.is_terminal = newValue;
 
-                    // Update data attribute
+                    // Update data attribute and classes
                     const stateItem = checkbox.closest('.state-item');
                     stateItem.dataset.isTerminal = newValue ? 'true' : 'false';
+
+                    if (newValue) {
+                        stateItem.classList.add('terminal-state');
+                        stateItem.draggable = false;
+                        // Move to bottom of list
+                        const stateList = document.getElementById('state-list');
+                        stateList.appendChild(stateItem);
+                    } else {
+                        stateItem.classList.remove('terminal-state');
+                        stateItem.draggable = true;
+                        setupDragEvents(stateItem);
+                    }
 
                     // Update all checkboxes
                     updateTerminalCheckboxes();
@@ -1420,11 +1463,14 @@
             }
 
             const li = document.createElement('li');
-            li.className = 'state-item';
+            li.className = 'state-item' + (state.is_terminal ? ' terminal-state' : '');
             li.dataset.stateId = state.id;
             li.dataset.isTerminal = state.is_terminal ? 'true' : 'false';
+            li.dataset.order = state.order;
+            li.draggable = !state.is_terminal;
             li.innerHTML = `
                 <div class="state-item-left">
+                    <i class="bi bi-grip-vertical state-drag-handle"></i>
                     <div class="state-terminal-checkbox-wrapper">
                         <input type="checkbox"
                                class="state-terminal-checkbox"
@@ -1438,7 +1484,17 @@
                 </button>
             `;
 
-            document.getElementById('state-list').appendChild(li);
+            // Insert before terminal state if exists, otherwise append
+            const stateList = document.getElementById('state-list');
+            const terminalItem = stateList.querySelector('.terminal-state');
+            if (terminalItem && !state.is_terminal) {
+                stateList.insertBefore(li, terminalItem);
+            } else {
+                stateList.appendChild(li);
+            }
+
+            // Setup drag events for new item
+            setupDragEvents(li);
         }
 
         async function deleteState(stateId, button) {
@@ -1478,6 +1534,110 @@
                 console.error('Error deleting state:', error);
             }
         }
+
+        // ========== Drag and Drop for States ==========
+
+        let draggedItem = null;
+
+        function setupDragEvents(item) {
+            if (item.classList.contains('terminal-state')) return;
+
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('dragleave', handleDragLeave);
+            item.addEventListener('drop', handleDrop);
+        }
+
+        function handleDragStart(e) {
+            if (this.classList.contains('terminal-state')) {
+                e.preventDefault();
+                return;
+            }
+            draggedItem = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.state-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+            draggedItem = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            if (this.classList.contains('terminal-state')) return;
+            if (this !== draggedItem) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            if (this.classList.contains('terminal-state') || this === draggedItem) return;
+
+            const stateList = document.getElementById('state-list');
+            const items = [...stateList.querySelectorAll('.state-item:not(.terminal-state)')];
+            const draggedIndex = items.indexOf(draggedItem);
+            const dropIndex = items.indexOf(this);
+
+            if (draggedIndex < dropIndex) {
+                this.parentNode.insertBefore(draggedItem, this.nextSibling);
+            } else {
+                this.parentNode.insertBefore(draggedItem, this);
+            }
+
+            // Save new order
+            saveStateOrder();
+        }
+
+        async function saveStateOrder() {
+            const stateList = document.getElementById('state-list');
+            const items = [...stateList.querySelectorAll('.state-item:not(.terminal-state):not(#no-states)')];
+            const order = items.map(item => parseInt(item.dataset.stateId));
+
+            try {
+                const response = await fetch('/tasks/api/states/reorder/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ order })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local order values
+                    items.forEach((item, index) => {
+                        item.dataset.order = index;
+                        const state = statesList.find(s => s.id === parseInt(item.dataset.stateId));
+                        if (state) state.order = index;
+                    });
+                }
+            } catch (error) {
+                console.error('Error saving state order:', error);
+            }
+        }
+
+        // Initialize drag events for existing items
+        document.querySelectorAll('.state-item:not(#no-states)').forEach(item => {
+            setupDragEvents(item);
+            // Also setup drop zone for terminal state
+            if (item.classList.contains('terminal-state')) {
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('dragleave', handleDragLeave);
+            }
+        });
 
         // Subtle icon color animation
         (function() {

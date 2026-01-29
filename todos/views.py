@@ -175,7 +175,7 @@ def list_states(request):
     states = TaskState.objects.all()
     return JsonResponse({
         'success': True,
-        'states': [{'id': s.id, 'name': s.name, 'is_terminal': s.is_terminal} for s in states]
+        'states': [{'id': s.id, 'name': s.name, 'is_terminal': s.is_terminal, 'order': s.order} for s in states]
     })
 
 
@@ -189,9 +189,13 @@ def create_state(request):
         if not name:
             return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
 
-        state, created = TaskState.objects.get_or_create(name=name)
-        if not created:
+        # Check if state already exists
+        if TaskState.objects.filter(name=name).exists():
             return JsonResponse({'success': False, 'error': 'State already exists'}, status=400)
+
+        # Set order to be after all non-terminal states but before terminal
+        max_order = TaskState.objects.filter(is_terminal=False).count()
+        state = TaskState.objects.create(name=name, order=max_order)
 
         return JsonResponse({
             'success': True,
@@ -199,6 +203,7 @@ def create_state(request):
                 'id': state.id,
                 'name': state.name,
                 'is_terminal': state.is_terminal,
+                'order': state.order,
             }
         })
     except json.JSONDecodeError:
@@ -223,6 +228,8 @@ def update_state(request, state_id):
                         'success': False,
                         'error': f'"{existing_terminal.name}" is already marked as terminal. Unmark it first.'
                     }, status=400)
+                # Terminal state gets highest order
+                state.order = 9999
             state.is_terminal = data['is_terminal']
 
         state.save()
@@ -232,6 +239,7 @@ def update_state(request, state_id):
                 'id': state.id,
                 'name': state.name,
                 'is_terminal': state.is_terminal,
+                'order': state.order,
             }
         })
     except TaskState.DoesNotExist:
@@ -249,3 +257,21 @@ def delete_state(request, state_id):
         return JsonResponse({'success': True})
     except TaskState.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
+
+
+@require_POST
+def reorder_states(request):
+    """Reorder task states via AJAX."""
+    try:
+        data = json.loads(request.body)
+        order_list = data.get('order', [])  # List of state IDs in new order
+
+        for index, state_id in enumerate(order_list):
+            TaskState.objects.filter(id=state_id, is_terminal=False).update(order=index)
+
+        # Ensure terminal state stays at the end
+        TaskState.objects.filter(is_terminal=True).update(order=9999)
+
+        return JsonResponse({'success': True})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)

@@ -20,10 +20,11 @@ class TaskState(models.Model):
 
     name = models.CharField(max_length=100, unique=True)
     is_terminal = models.BooleanField(default=False)
+    order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['order', 'name']
 
     def __str__(self):
         return self.name
