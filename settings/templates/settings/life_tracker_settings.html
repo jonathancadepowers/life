@@ -433,7 +433,7 @@
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="outlook_calendar_file" class="form-label">Select JSON File</label>
-                            <input type="file" class="form-control" id="outlook_calendar_file" name="file" accept=".json" required>
+                            <input type="file" class="form-control" id="outlook_calendar_file" name="file" accept="application/json,.json,text/json" required>
                             <div class="form-text">Export your calendar from Outlook as a JSON file and upload it here.</div>
                         </div>
                         <button type="submit" class="btn btn-primary">
