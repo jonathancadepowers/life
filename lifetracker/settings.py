@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "inspirations_app",
     "youtube_avoidance",
     "calendar_events",
+    "todos",
 ]
 
 MIDDLEWARE = [
