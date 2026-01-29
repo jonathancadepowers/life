@@ -649,27 +649,26 @@
 
         /* Kanban Board */
         .kanban-container {
-            max-width: 100%;
-            padding: 0 1.5rem 2rem;
-            margin-top: 1rem;
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem 2rem;
         }
 
         .kanban-board {
             display: flex;
-            gap: 1rem;
+            gap: 1.25rem;
             overflow-x: auto;
             padding-bottom: 1rem;
         }
 
         .kanban-column {
-            min-width: 250px;
-            max-width: 300px;
+            flex: 1;
+            min-width: 200px;
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            flex-shrink: 0;
         }
 
         .kanban-column-header {
@@ -814,7 +813,7 @@
                 </div>
                 <div class="kanban-column-body" data-state-id="{{ state.id }}">
                     {% for task in tasks %}
-                    {% if task.state_id == state.id %}
+                    {% if task.state == state %}
                     <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                         <div class="kanban-card-title">
                             {{ task.title }}
