@@ -11,10 +11,14 @@ from django.conf import settings
 from .models import CalendarEvent
 
 
-def import_calendar_events(events_data):
+def import_calendar_events(events_data, source=''):
     """
     Import calendar events from a list of event dictionaries.
     Returns tuple of (created_count, updated_count).
+
+    Args:
+        events_data: Dict with 'body' key containing list of events
+        source: Source identifier to store with each event (e.g., "Oxy Calendar Import")
     """
     created_count = 0
     updated_count = 0
@@ -45,17 +49,21 @@ def import_calendar_events(events_data):
             continue
 
         # Use update_or_create for idempotent import
+        defaults = {
+            'subject': event.get('subject', '')[:500],
+            'start': start_dt,
+            'end': end_dt,
+            'is_all_day': event.get('isAllDay', False),
+            'location': event.get('location', '')[:500],
+            'organizer': event.get('organizer', '')[:255],
+            'body_preview': event.get('bodyPreview', ''),
+        }
+        if source:
+            defaults['source'] = source
+
         obj, created = CalendarEvent.objects.update_or_create(
             outlook_id=outlook_id,
-            defaults={
-                'subject': event.get('subject', '')[:500],
-                'start': start_dt,
-                'end': end_dt,
-                'is_all_day': event.get('isAllDay', False),
-                'location': event.get('location', '')[:500],
-                'organizer': event.get('organizer', '')[:255],
-                'body_preview': event.get('bodyPreview', ''),
-            }
+            defaults=defaults
         )
 
         if created:

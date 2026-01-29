@@ -7,6 +7,9 @@ class CalendarEvent(models.Model):
     # Unique ID from Outlook for idempotent imports
     outlook_id = models.CharField(max_length=255, unique=True, db_index=True)
 
+    # Source of the import (e.g., "Oxy Calendar Import")
+    source = models.CharField(max_length=100, blank=True, default='')
+
     # Event details
     subject = models.CharField(max_length=500)
     start = models.DateTimeField(db_index=True)

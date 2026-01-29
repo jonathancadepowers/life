@@ -9,7 +9,10 @@ Environment variables required:
     GMAIL_IMPORT_APP_PASSWORD - Gmail App Password (not regular password)
 
 Optional:
-    GMAIL_CALENDAR_SUBJECT - Subject line to look for (default: "Calendar Export")
+    GMAIL_CALENDAR_SUBJECT - Exact subject line to look for (default: "[Oxy Calendar Import]")
+
+The source field is derived from the subject by removing brackets.
+E.g., "[Oxy Calendar Import]" -> source = "Oxy Calendar Import"
 """
 import imaplib
 import email
@@ -126,9 +129,15 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.WARNING('  [DRY RUN] Would import events from this email'))
                     continue
 
+                # Derive source from subject by removing brackets
+                # E.g., "[Oxy Calendar Import]" -> "Oxy Calendar Import"
+                source = subject.strip()
+                if source.startswith('[') and source.endswith(']'):
+                    source = source[1:-1]
+
                 # Import the calendar events
                 try:
-                    created, updated = import_calendar_events(json_data)
+                    created, updated = import_calendar_events(json_data, source=source)
                     total_created += created
                     total_updated += updated
                     processed_count += 1
