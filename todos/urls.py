@@ -14,5 +14,6 @@ urlpatterns = [
     path('api/contexts/<int:context_id>/delete/', views.delete_context, name='delete_context'),
     path('api/states/', views.list_states, name='list_states'),
     path('api/states/create/', views.create_state, name='create_state'),
+    path('api/states/<int:state_id>/update/', views.update_state, name='update_state'),
     path('api/states/<int:state_id>/delete/', views.delete_state, name='delete_state'),
 ]

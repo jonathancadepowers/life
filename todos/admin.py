@@ -10,7 +10,8 @@ class TaskContextAdmin(admin.ModelAdmin):
 
 @admin.register(TaskState)
 class TaskStateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'created_at']
+    list_display = ['name', 'is_terminal', 'created_at']
+    list_filter = ['is_terminal']
     search_fields = ['name']
 
 

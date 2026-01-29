@@ -175,7 +175,7 @@ def list_states(request):
     states = TaskState.objects.all()
     return JsonResponse({
         'success': True,
-        'states': [{'id': s.id, 'name': s.name} for s in states]
+        'states': [{'id': s.id, 'name': s.name, 'is_terminal': s.is_terminal} for s in states]
     })
 
 
@@ -198,8 +198,44 @@ def create_state(request):
             'state': {
                 'id': state.id,
                 'name': state.name,
+                'is_terminal': state.is_terminal,
             }
         })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_http_methods(["PATCH"])
+def update_state(request, state_id):
+    """Update a task state via AJAX."""
+    try:
+        state = TaskState.objects.get(id=state_id)
+        data = json.loads(request.body)
+
+        if 'name' in data:
+            state.name = data['name'].strip()
+        if 'is_terminal' in data:
+            if data['is_terminal']:
+                # Check if another state is already terminal
+                existing_terminal = TaskState.objects.filter(is_terminal=True).exclude(id=state_id).first()
+                if existing_terminal:
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'"{existing_terminal.name}" is already marked as terminal. Unmark it first.'
+                    }, status=400)
+            state.is_terminal = data['is_terminal']
+
+        state.save()
+        return JsonResponse({
+            'success': True,
+            'state': {
+                'id': state.id,
+                'name': state.name,
+                'is_terminal': state.is_terminal,
+            }
+        })
+    except TaskState.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 

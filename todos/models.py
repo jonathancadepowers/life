@@ -19,6 +19,7 @@ class TaskState(models.Model):
     """A state/status for tasks."""
 
     name = models.CharField(max_length=100, unique=True)
+    is_terminal = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

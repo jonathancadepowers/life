@@ -554,6 +554,34 @@
             border-color: #0d6efd;
         }
 
+        .state-item-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .state-terminal-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #6B9080;
+        }
+
+        .state-terminal-checkbox:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .state-terminal-checkbox-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .state-terminal-checkbox-wrapper[title] {
+            cursor: help;
+        }
+
         /* Mobile adjustments */
         @media (max-width: 576px) {
             .container {
@@ -684,10 +712,21 @@
                 <div class="state-input-container">
                     <input type="text" id="new-state-input" placeholder="Add new state..." autocomplete="off">
                 </div>
+                <div style="padding: 0.5rem 1.25rem; font-size: 0.75rem; color: #6c757d;">
+                    Check to mark as terminal (completed) state
+                </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
-                    <li class="state-item" data-state-id="{{ state.id }}">
-                        <span class="state-name">{{ state.name }}</span>
+                    <li class="state-item" data-state-id="{{ state.id }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}">
+                        <div class="state-item-left">
+                            <div class="state-terminal-checkbox-wrapper">
+                                <input type="checkbox"
+                                       class="state-terminal-checkbox"
+                                       {% if state.is_terminal %}checked{% endif %}
+                                       onchange="toggleTerminal({{ state.id }}, this)">
+                            </div>
+                            <span class="state-name">{{ state.name }}</span>
+                        </div>
                         <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
                             <i class="bi bi-x-lg"></i>
                         </button>
@@ -1247,9 +1286,75 @@
         // Store states locally
         let statesList = [
             {% for state in states %}
-            { id: {{ state.id }}, name: "{{ state.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+            { id: {{ state.id }}, name: "{{ state.name|escapejs }}", is_terminal: {{ state.is_terminal|yesno:'true,false' }} }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
+
+        // Get current terminal state ID
+        function getTerminalStateId() {
+            const terminalState = statesList.find(s => s.is_terminal);
+            return terminalState ? terminalState.id : null;
+        }
+
+        // Update checkbox states based on terminal state
+        function updateTerminalCheckboxes() {
+            const terminalId = getTerminalStateId();
+            document.querySelectorAll('.state-item').forEach(item => {
+                const stateId = parseInt(item.dataset.stateId);
+                const checkbox = item.querySelector('.state-terminal-checkbox');
+                const wrapper = item.querySelector('.state-terminal-checkbox-wrapper');
+
+                if (!checkbox) return;
+
+                if (terminalId && terminalId !== stateId) {
+                    checkbox.disabled = true;
+                    wrapper.title = 'Unmark the current terminal state first';
+                } else {
+                    checkbox.disabled = false;
+                    wrapper.title = '';
+                }
+            });
+        }
+
+        // Initialize checkbox states
+        updateTerminalCheckboxes();
+
+        // Toggle terminal state
+        async function toggleTerminal(stateId, checkbox) {
+            const newValue = checkbox.checked;
+
+            try {
+                const response = await fetch(`/tasks/api/states/${stateId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ is_terminal: newValue })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local list
+                    const state = statesList.find(s => s.id === stateId);
+                    if (state) state.is_terminal = newValue;
+
+                    // Update data attribute
+                    const stateItem = checkbox.closest('.state-item');
+                    stateItem.dataset.isTerminal = newValue ? 'true' : 'false';
+
+                    // Update all checkboxes
+                    updateTerminalCheckboxes();
+                } else {
+                    // Revert checkbox
+                    checkbox.checked = !newValue;
+                    alert(data.error || 'Failed to update state');
+                }
+            } catch (error) {
+                console.error('Error updating state:', error);
+                checkbox.checked = !newValue;
+            }
+        }
 
         // Add new state on Enter
         document.getElementById('new-state-input').addEventListener('keypress', async function(e) {
@@ -1271,6 +1376,7 @@
                     if (data.success) {
                         addStateToList(data.state);
                         statesList.push(data.state);
+                        updateTerminalCheckboxes();
                     } else {
                         alert(data.error || 'Failed to create state');
                     }
@@ -1290,8 +1396,17 @@
             const li = document.createElement('li');
             li.className = 'state-item';
             li.dataset.stateId = state.id;
+            li.dataset.isTerminal = state.is_terminal ? 'true' : 'false';
             li.innerHTML = `
-                <span class="state-name">${escapeHtml(state.name)}</span>
+                <div class="state-item-left">
+                    <div class="state-terminal-checkbox-wrapper">
+                        <input type="checkbox"
+                               class="state-terminal-checkbox"
+                               ${state.is_terminal ? 'checked' : ''}
+                               onchange="toggleTerminal(${state.id}, this)">
+                    </div>
+                    <span class="state-name">${escapeHtml(state.name)}</span>
+                </div>
                 <button class="state-delete" onclick="deleteState(${state.id}, this)" title="Delete state">
                     <i class="bi bi-x-lg"></i>
                 </button>
@@ -1319,6 +1434,9 @@
 
                     // Update local list
                     statesList = statesList.filter(s => s.id !== stateId);
+
+                    // Update checkboxes in case the terminal state was deleted
+                    updateTerminalCheckboxes();
 
                     // Check if state list is now empty
                     const stateList = document.getElementById('state-list');
