@@ -425,39 +425,6 @@
             margin-left: 0.5rem;
         }
 
-        /* Color picker styles */
-        .color-palette {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            padding: 0.75rem 1.25rem;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .color-palette-label {
-            width: 100%;
-            font-size: 0.75rem;
-            color: #6c757d;
-            margin-bottom: 0.25rem;
-        }
-
-        .color-swatch {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: transform 0.15s, border-color 0.15s;
-        }
-
-        .color-swatch:hover {
-            transform: scale(1.1);
-        }
-
-        .color-swatch.selected {
-            border-color: #212529;
-        }
-
         /* Context color indicator */
         .context-color-dot {
             width: 12px;
@@ -880,19 +847,6 @@
                 <div class="context-input-container">
                     <input type="text" id="new-context-input" placeholder="Add new context..." autocomplete="off">
                 </div>
-                <div class="color-palette" id="color-palette">
-                    <span class="color-palette-label">Pick a color for new context:</span>
-                    <div class="color-swatch selected" data-color="#6B9080" style="background: #6B9080;" title="Sage"></div>
-                    <div class="color-swatch" data-color="#D4C4A8" style="background: #D4C4A8;" title="Tan"></div>
-                    <div class="color-swatch" data-color="#C9A227" style="background: #C9A227;" title="Gold"></div>
-                    <div class="color-swatch" data-color="#8B7B8B" style="background: #8B7B8B;" title="Mauve"></div>
-                    <div class="color-swatch" data-color="#A89090" style="background: #A89090;" title="Dusty Rose"></div>
-                    <div class="color-swatch" data-color="#8A9878" style="background: #8A9878;" title="Olive"></div>
-                    <div class="color-swatch" data-color="#7B8B98" style="background: #7B8B98;" title="Slate"></div>
-                    <div class="color-swatch" data-color="#6c757d" style="background: #6c757d;" title="Gray"></div>
-                    <div class="color-swatch" data-color="#5D5D5D" style="background: #5D5D5D;" title="Charcoal"></div>
-                    <div class="color-swatch" data-color="#4A6670" style="background: #4A6670;" title="Steel"></div>
-                </div>
                 <ul class="context-list" id="context-list">
                     {% for context in contexts %}
                     <li class="context-item" data-context-id="{{ context.id }}" data-context-color="{{ context.color }}">
@@ -999,8 +953,21 @@
             {% endfor %}
         ];
 
-        // Currently selected color for new contexts
-        let selectedColor = '#6B9080';
+        // Color palette for auto-assignment
+        const colorPalette = ['#6B9080', '#D4C4A8', '#C9A227', '#8B7B8B', '#A89090', '#8A9878', '#7B8B98', '#6c757d', '#5D5D5D', '#4A6670'];
+
+        // Get next color for new context (cycles through palette)
+        function getNextColor() {
+            const usedColors = contextsList.map(c => c.color.toUpperCase());
+            // Find first unused color
+            for (const color of colorPalette) {
+                if (!usedColors.includes(color.toUpperCase())) {
+                    return color;
+                }
+            }
+            // If all colors used, cycle based on count
+            return colorPalette[contextsList.length % colorPalette.length];
+        }
 
         // Add new task on Enter
         document.getElementById('new-task-input').addEventListener('keypress', async function(e) {
@@ -1261,20 +1228,12 @@
         document.getElementById('context-panel-close').addEventListener('click', closeContextPanel);
         document.getElementById('context-panel-overlay').addEventListener('click', closeContextPanel);
 
-        // Color swatch selection
-        document.querySelectorAll('.color-swatch').forEach(swatch => {
-            swatch.addEventListener('click', function() {
-                document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedColor = this.dataset.color;
-            });
-        });
-
         // Add new context on Enter
         document.getElementById('new-context-input').addEventListener('keypress', async function(e) {
             if (e.key === 'Enter' && this.value.trim()) {
                 const name = this.value.trim();
                 this.value = '';
+                const autoColor = getNextColor();
 
                 try {
                     const response = await fetch('/tasks/api/contexts/create/', {
@@ -1283,7 +1242,7 @@
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken
                         },
-                        body: JSON.stringify({ name, color: selectedColor })
+                        body: JSON.stringify({ name, color: autoColor })
                     });
 
                     const data = await response.json();
