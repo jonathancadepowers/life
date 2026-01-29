@@ -50,6 +50,7 @@ urlpatterns = [
     path("", include("nutrition.urls")),
     path("", include("youtube_avoidance.urls")),
     path("", include("waist_measurements.urls")),
+    path("api/calendar/", include("calendar_events.urls")),
     path("", home_views.home, name='home'),  # Catch-all for homepage, must be last
 ]
 

@@ -583,8 +583,7 @@ def add_habit(request):
 def import_outlook_calendar(request):
     """Import calendar events from an Outlook JSON export."""
     import json
-    from datetime import datetime, timezone
-    from calendar_events.models import CalendarEvent
+    from calendar_events.views import import_calendar_events
 
     file = request.FILES.get('file')
 
@@ -601,51 +600,8 @@ def import_outlook_calendar(request):
         content = file.read().decode('utf-8')
         data = json.loads(content)
 
-        events = data.get('body', [])
-        created_count = 0
-        updated_count = 0
-
-        for event in events:
-            outlook_id = event.get('id')
-            if not outlook_id:
-                continue
-
-            # Parse datetime strings (format: 2026-01-30T15:00:00.0000000)
-            # Outlook exports times in UTC
-            start_str = event.get('start', '')
-            end_str = event.get('end', '')
-
-            # Remove extra precision and parse as UTC
-            if start_str:
-                start_str = start_str[:19]  # Trim to 2026-01-30T15:00:00
-                start_dt = datetime.fromisoformat(start_str).replace(tzinfo=timezone.utc)
-            else:
-                continue
-
-            if end_str:
-                end_str = end_str[:19]
-                end_dt = datetime.fromisoformat(end_str).replace(tzinfo=timezone.utc)
-            else:
-                continue
-
-            # Use update_or_create for idempotent import
-            obj, created = CalendarEvent.objects.update_or_create(
-                outlook_id=outlook_id,
-                defaults={
-                    'subject': event.get('subject', '')[:500],
-                    'start': start_dt,
-                    'end': end_dt,
-                    'is_all_day': event.get('isAllDay', False),
-                    'location': event.get('location', '')[:500],
-                    'organizer': event.get('organizer', '')[:255],
-                    'body_preview': event.get('bodyPreview', ''),
-                }
-            )
-
-            if created:
-                created_count += 1
-            else:
-                updated_count += 1
+        # Use shared import function
+        created_count, updated_count = import_calendar_events(data)
 
         messages.success(
             request,
