@@ -183,3 +183,8 @@ CALENDAR_IMPORT_API_KEY = os.getenv('CALENDAR_IMPORT_API_KEY')
 
 # Mailgun API Key (for inbound email signature verification)
 MAILGUN_API_KEY = os.getenv('MAILGUN_API_KEY')
+
+# Gmail Import Settings (for checking inbox via IMAP)
+GMAIL_IMPORT_ADDRESS = os.getenv('GMAIL_IMPORT_ADDRESS')
+GMAIL_IMPORT_APP_PASSWORD = os.getenv('GMAIL_IMPORT_APP_PASSWORD')
+GMAIL_CALENDAR_SUBJECT = os.getenv('GMAIL_CALENDAR_SUBJECT', 'Calendar Export')
