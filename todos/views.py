@@ -36,6 +36,8 @@ def create_task(request):
                 'context_id': None,
                 'context_name': None,
                 'context_color': None,
+                'state_id': None,
+                'state_name': None,
             }
         })
     except json.JSONDecodeError:
@@ -60,6 +62,11 @@ def update_task(request, task_id):
                 task.context = TaskContext.objects.get(id=data['context_id'])
             else:
                 task.context = None
+        if 'state_id' in data:
+            if data['state_id']:
+                task.state = TaskState.objects.get(id=data['state_id'])
+            else:
+                task.state = None
 
         task.save()
         return JsonResponse({
@@ -72,12 +79,16 @@ def update_task(request, task_id):
                 'context_id': task.context_id,
                 'context_name': task.context.name if task.context else None,
                 'context_color': task.context.color if task.context else None,
+                'state_id': task.state_id,
+                'state_name': task.state.name if task.state else None,
             }
         })
     except Task.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
     except TaskContext.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Context not found'}, status=404)
+    except TaskState.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 

@@ -668,6 +668,124 @@
             .task-title {
                 font-size: 1rem;
             }
+
+            .kanban-board {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .kanban-column {
+                min-width: 100%;
+                max-height: 300px;
+            }
+        }
+
+        /* Kanban Board */
+        .kanban-container {
+            max-width: 100%;
+            padding: 0 1.5rem 2rem;
+            margin-top: 1rem;
+        }
+
+        .kanban-board {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }
+
+        .kanban-column {
+            min-width: 250px;
+            max-width: 300px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .kanban-column-header {
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #333;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .kanban-column-count {
+            background: #e9ecef;
+            color: #6c757d;
+            font-size: 0.75rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 10px;
+        }
+
+        .kanban-column-body {
+            padding: 0.5rem;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 100px;
+            max-height: 400px;
+        }
+
+        .kanban-column-body.drag-over {
+            background: #f0f7f4;
+        }
+
+        .kanban-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.625rem 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: grab;
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+
+        .kanban-card:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .kanban-card.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+        }
+
+        .kanban-card-title {
+            font-size: 0.9rem;
+            color: #212529;
+            margin-bottom: 0.25rem;
+        }
+
+        .kanban-card.critical .kanban-card-title {
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        .kanban-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .kanban-card-context {
+            font-size: 0.7rem;
+            color: white;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        .kanban-empty {
+            color: #adb5bd;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 1rem;
+            font-style: italic;
         }
     </style>
 </head>
@@ -690,7 +808,8 @@
 
         <ul class="task-list" id="task-list">
             {% for task in tasks %}
-            <li class="task-item{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{{ task.context_id|default:'' }}" data-context-color="{{ task.context.color|default:'' }}">
+            {% if not task.state %}
+            <li class="task-item{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{{ task.context_id|default:'' }}" data-context-color="{{ task.context.color|default:'' }}" data-state-id="">
                 <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask({{ task.id }}, this);">
                     <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
                 </div>
@@ -705,6 +824,7 @@
                     {% endif %}
                 </div>
             </li>
+            {% endif %}
             {% empty %}
             <li class="empty-state" id="empty-state">
                 <i class="bi bi-check2-circle"></i>
@@ -713,6 +833,38 @@
             {% endfor %}
         </ul>
     </div>
+
+    <!-- Kanban Board -->
+    {% if states %}
+    <div class="kanban-container">
+        <div class="kanban-board" id="kanban-board">
+            {% for state in states %}
+            {% if not state.is_terminal %}
+            <div class="kanban-column" data-state-id="{{ state.id }}">
+                <div class="kanban-column-header">
+                    <span>{{ state.name }}</span>
+                    <span class="kanban-column-count" id="count-state-{{ state.id }}">0</span>
+                </div>
+                <div class="kanban-column-body" data-state-id="{{ state.id }}">
+                    {% for task in tasks %}
+                    {% if task.state_id == state.id %}
+                    <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                        <div class="kanban-card-title">
+                            {{ task.title }}
+                        </div>
+                        <div class="kanban-card-meta">
+                            {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Left slide-out Panel for Settings -->
     <div class="panel-overlay" id="context-panel-overlay"></div>
@@ -812,6 +964,15 @@
                 <option value="">No context</option>
                 {% for context in contexts %}
                 <option value="{{ context.id }}">{{ context.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="panel-context-label">State</div>
+            <select id="panel-state">
+                <option value="">No state (shows in main list)</option>
+                {% for state in states %}
+                {% if not state.is_terminal %}
+                <option value="{{ state.id }}">{{ state.name }}</option>
+                {% endif %}
                 {% endfor %}
             </select>
         </div>
@@ -925,9 +1086,11 @@
             const title = taskItem.querySelector('.task-title').childNodes[0].textContent.trim();
             const detailsEl = taskItem.querySelector('.task-details-preview');
             const contextId = taskItem.dataset.contextId || '';
+            const stateId = taskItem.dataset.stateId || '';
 
             document.getElementById('panel-title').value = title;
             document.getElementById('panel-context').value = contextId;
+            document.getElementById('panel-state').value = stateId;
 
             // Fetch full task details
             try {
@@ -962,7 +1125,7 @@
         document.getElementById('panel-overlay').addEventListener('click', closePanel);
 
         // Auto-save on changes
-        ['panel-title', 'panel-details', 'panel-critical', 'panel-context'].forEach(id => {
+        ['panel-title', 'panel-details', 'panel-critical', 'panel-context', 'panel-state'].forEach(id => {
             const el = document.getElementById(id);
             const event = (el.type === 'checkbox') ? 'change' : (el.tagName === 'SELECT' ? 'change' : 'input');
             el.addEventListener(event, () => {
@@ -978,6 +1141,7 @@
             const details = document.getElementById('panel-details').value;
             const critical = document.getElementById('panel-critical').checked;
             const contextId = document.getElementById('panel-context').value || null;
+            const stateId = document.getElementById('panel-state').value || null;
 
             try {
                 const response = await fetch(`/tasks/api/${currentTaskId}/update/`, {
@@ -986,12 +1150,12 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ title, details, critical, context_id: contextId })
+                    body: JSON.stringify({ title, details, critical, context_id: contextId, state_id: stateId })
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    updateTaskInList(data.task);
+                    handleTaskStateChange(data.task);
                 }
             } catch (error) {
                 console.error('Error updating task:', error);
@@ -1042,6 +1206,7 @@
 
                 const data = await response.json();
                 if (data.success) {
+                    // Remove from main list
                     const taskItem = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
                     if (taskItem) {
                         taskItem.style.opacity = '0';
@@ -1049,16 +1214,19 @@
                         taskItem.style.transition = 'all 0.3s';
                         setTimeout(() => {
                             taskItem.remove();
-                            // Check if list is empty
-                            const taskList = document.getElementById('task-list');
-                            if (!taskList.querySelector('.task-item')) {
-                                taskList.innerHTML = `
-                                    <li class="empty-state" id="empty-state">
-                                        <i class="bi bi-check2-circle"></i>
-                                        <p>No tasks yet. Add one above!</p>
-                                    </li>
-                                `;
-                            }
+                            checkEmptyState();
+                        }, 300);
+                    }
+
+                    // Remove from kanban
+                    const kanbanCard = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+                    if (kanbanCard) {
+                        kanbanCard.style.opacity = '0';
+                        kanbanCard.style.transform = 'translateX(20px)';
+                        kanbanCard.style.transition = 'all 0.3s';
+                        setTimeout(() => {
+                            kanbanCard.remove();
+                            updateKanbanCounts();
                         }, 300);
                     }
                 }
@@ -1638,6 +1806,228 @@
                 item.addEventListener('dragleave', handleDragLeave);
             }
         });
+
+        // ========== Kanban Board ==========
+
+        // Update column counts
+        function updateKanbanCounts() {
+            document.querySelectorAll('.kanban-column-body').forEach(body => {
+                const stateId = body.dataset.stateId;
+                const count = body.querySelectorAll('.kanban-card').length;
+                const countEl = document.getElementById(`count-state-${stateId}`);
+                if (countEl) countEl.textContent = count;
+            });
+        }
+
+        // Initialize counts on load
+        updateKanbanCounts();
+
+        // Check if main task list should show empty state on load
+        checkEmptyState();
+
+        // Make kanban cards clickable
+        document.querySelectorAll('.kanban-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (e.target.closest('.kanban-card')) {
+                    openKanbanPanel(this.dataset.taskId);
+                }
+            });
+        });
+
+        async function openKanbanPanel(taskId) {
+            currentTaskId = taskId;
+            const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+            const title = card.querySelector('.kanban-card-title').textContent.trim();
+            const stateId = card.closest('.kanban-column-body').dataset.stateId;
+
+            document.getElementById('panel-title').value = title;
+            document.getElementById('panel-state').value = stateId;
+
+            // Fetch full task details from server or use cached
+            const contextBadge = card.querySelector('.kanban-card-context');
+            if (contextBadge) {
+                // Try to find context ID by color
+                const bgColor = contextBadge.style.background;
+                const ctx = contextsList.find(c => c.color.toLowerCase() === bgColor.toLowerCase());
+                if (ctx) {
+                    document.getElementById('panel-context').value = ctx.id;
+                } else {
+                    document.getElementById('panel-context').value = '';
+                }
+            } else {
+                document.getElementById('panel-context').value = '';
+            }
+
+            document.getElementById('panel-details').value = '';
+            document.getElementById('panel-critical').checked = card.classList.contains('critical');
+
+            document.getElementById('panel-overlay').classList.add('active');
+            document.getElementById('slide-panel').classList.add('active');
+        }
+
+        // Kanban drag and drop
+        let draggedKanbanCard = null;
+
+        function setupKanbanCardDrag(card) {
+            card.addEventListener('dragstart', function(e) {
+                draggedKanbanCard = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', this.dataset.taskId);
+            });
+
+            card.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                document.querySelectorAll('.kanban-column-body').forEach(body => {
+                    body.classList.remove('drag-over');
+                });
+                draggedKanbanCard = null;
+            });
+        }
+
+        // Setup drag events for existing kanban cards
+        document.querySelectorAll('.kanban-card').forEach(card => {
+            setupKanbanCardDrag(card);
+        });
+
+        // Setup drop zones on column bodies
+        document.querySelectorAll('.kanban-column-body').forEach(body => {
+            body.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (draggedKanbanCard) {
+                    this.classList.add('drag-over');
+                }
+            });
+
+            body.addEventListener('dragleave', function(e) {
+                if (!this.contains(e.relatedTarget)) {
+                    this.classList.remove('drag-over');
+                }
+            });
+
+            body.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+
+                if (!draggedKanbanCard) return;
+
+                const newStateId = parseInt(this.dataset.stateId);
+                const taskId = parseInt(draggedKanbanCard.dataset.taskId);
+                const oldBody = draggedKanbanCard.parentElement;
+
+                if (oldBody === this) return; // Dropped in same column
+
+                // Move card to new column
+                this.appendChild(draggedKanbanCard);
+                updateKanbanCounts();
+
+                // Update state in database
+                try {
+                    const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ state_id: newStateId })
+                    });
+
+                    const data = await response.json();
+                    if (!data.success) {
+                        console.error('Failed to update task state');
+                        // Move back on failure
+                        oldBody.appendChild(draggedKanbanCard);
+                        updateKanbanCounts();
+                    }
+                } catch (error) {
+                    console.error('Error updating task state:', error);
+                    oldBody.appendChild(draggedKanbanCard);
+                    updateKanbanCounts();
+                }
+            });
+        });
+
+        function handleTaskStateChange(task) {
+            const taskItem = document.querySelector(`.task-item[data-task-id="${task.id}"]`);
+            const kanbanCard = document.querySelector(`.kanban-card[data-task-id="${task.id}"]`);
+
+            if (task.state_id) {
+                // Task should be in kanban
+                if (taskItem) {
+                    // Remove from main list
+                    taskItem.remove();
+                    checkEmptyState();
+                }
+
+                const targetColumn = document.querySelector(`.kanban-column-body[data-state-id="${task.state_id}"]`);
+                if (targetColumn) {
+                    if (kanbanCard) {
+                        // Move to correct column if needed
+                        if (kanbanCard.parentElement !== targetColumn) {
+                            targetColumn.appendChild(kanbanCard);
+                        }
+                        // Update card content
+                        updateKanbanCard(kanbanCard, task);
+                    } else {
+                        // Create new kanban card
+                        const card = createKanbanCard(task);
+                        targetColumn.appendChild(card);
+                    }
+                }
+            } else {
+                // Task should be in main list
+                if (kanbanCard) {
+                    kanbanCard.remove();
+                }
+                if (taskItem) {
+                    updateTaskInList(task);
+                } else {
+                    addTaskToList(task);
+                }
+            }
+            updateKanbanCounts();
+        }
+
+        function createKanbanCard(task) {
+            const card = document.createElement('div');
+            card.className = 'kanban-card' + (task.critical ? ' critical' : '');
+            card.dataset.taskId = task.id;
+            card.draggable = true;
+            card.innerHTML = `
+                <div class="kanban-card-title">${escapeHtml(task.title)}</div>
+                <div class="kanban-card-meta">
+                    ${task.context_name ? `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : ''}
+                </div>
+            `;
+            card.addEventListener('click', function() {
+                openKanbanPanel(task.id);
+            });
+            setupKanbanCardDrag(card);
+            return card;
+        }
+
+        function updateKanbanCard(card, task) {
+            card.className = 'kanban-card' + (task.critical ? ' critical' : '');
+            card.querySelector('.kanban-card-title').textContent = task.title;
+            const meta = card.querySelector('.kanban-card-meta');
+            if (task.context_name) {
+                meta.innerHTML = `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>`;
+            } else {
+                meta.innerHTML = '';
+            }
+        }
+
+        function checkEmptyState() {
+            const taskList = document.getElementById('task-list');
+            if (!taskList.querySelector('.task-item')) {
+                taskList.innerHTML = `
+                    <li class="empty-state" id="empty-state">
+                        <i class="bi bi-check2-circle"></i>
+                        <p>No tasks yet. Add one above!</p>
+                    </li>
+                `;
+            }
+        }
 
         // Subtle icon color animation
         (function() {
