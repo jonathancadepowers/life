@@ -188,7 +188,7 @@ def list_states(request):
     states = TaskState.objects.all()
     return JsonResponse({
         'success': True,
-        'states': [{'id': s.id, 'name': s.name, 'is_terminal': s.is_terminal, 'order': s.order} for s in states]
+        'states': [{'id': s.id, 'name': s.name, 'is_terminal': s.is_terminal, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon} for s in states]
     })
 
 
@@ -217,6 +217,7 @@ def create_state(request):
                 'name': state.name,
                 'is_terminal': state.is_terminal,
                 'order': state.order,
+                'bootstrap_icon': state.bootstrap_icon,
             }
         })
     except json.JSONDecodeError:
@@ -251,6 +252,8 @@ def update_state(request, state_id):
                 # Terminal state gets highest order
                 state.order = 9999
             state.is_terminal = data['is_terminal']
+        if 'bootstrap_icon' in data:
+            state.bootstrap_icon = data['bootstrap_icon'].strip() if data['bootstrap_icon'] else ''
 
         state.save()
         return JsonResponse({
@@ -260,6 +263,7 @@ def update_state(request, state_id):
                 'name': state.name,
                 'is_terminal': state.is_terminal,
                 'order': state.order,
+                'bootstrap_icon': state.bootstrap_icon,
             }
         })
     except TaskState.DoesNotExist:

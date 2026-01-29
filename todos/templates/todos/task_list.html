@@ -504,6 +504,84 @@
             color: #dc3545;
         }
 
+        .state-icon-btn {
+            background: none;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0.25rem 0.4rem;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+        }
+
+        .state-icon-btn:hover {
+            border-color: #6B9080;
+            color: #6B9080;
+        }
+
+        .state-icon-btn i.bi-plus-circle-dotted {
+            opacity: 0.5;
+        }
+
+        .icon-picker-popup {
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            padding: 0.75rem;
+            z-index: 1200;
+            max-width: 280px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .icon-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.25rem;
+        }
+
+        .icon-picker-item {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: #333;
+            transition: background 0.15s;
+        }
+
+        .icon-picker-item:hover {
+            background: #e9ecef;
+        }
+
+        .icon-picker-item.selected {
+            background: #6B9080;
+            color: white;
+        }
+
+        .icon-picker-clear {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .icon-picker-clear:hover {
+            background: #f8f9fa;
+        }
+
         .state-input-container {
             padding: 0.75rem 1.25rem;
         }
@@ -779,9 +857,9 @@
         <div class="kanban-board" id="kanban-board">
             {% for state in states %}
             {% if not state.is_terminal %}
-            <div class="kanban-column" data-state-id="{{ state.id }}">
+            <div class="kanban-column" data-state-id="{{ state.id }}" data-icon="{{ state.bootstrap_icon }}">
                 <div class="kanban-column-header">
-                    <span>{{ state.name }}</span>
+                    <span class="kanban-column-title">{% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }}"></i> {% endif %}{{ state.name }}</span>
                     <span class="kanban-column-count" id="count-state-{{ state.id }}">0</span>
                 </div>
                 <div class="kanban-column-body" data-state-id="{{ state.id }}">
@@ -849,7 +927,7 @@
                 </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
-                    <li class="state-item{% if state.is_terminal %} terminal-state{% endif %}{% if state.name == 'Inbox' %} inbox-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" data-order="{{ state.order }}" draggable="{% if state.is_terminal or state.name == 'Inbox' %}false{% else %}true{% endif %}">
+                    <li class="state-item{% if state.is_terminal %} terminal-state{% endif %}{% if state.name == 'Inbox' %} inbox-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" draggable="{% if state.is_terminal or state.name == 'Inbox' %}false{% else %}true{% endif %}">
                         <div class="state-item-left">
                             <i class="bi bi-grip-vertical state-drag-handle"{% if state.name == 'Inbox' %} style="visibility: hidden;"{% endif %}></i>
                             {% if state.name != 'Inbox' %}
@@ -860,6 +938,9 @@
                                        onchange="toggleTerminal({{ state.id }}, this)">
                             </div>
                             {% endif %}
+                            <button class="state-icon-btn" onclick="openIconPicker({{ state.id }}, this)" title="Choose icon">
+                                <i class="bi {% if state.bootstrap_icon %}{{ state.bootstrap_icon }}{% else %}bi-plus-circle-dotted{% endif %}"></i>
+                            </button>
                             <span class="state-name">{{ state.name }}</span>
                         </div>
                         {% if state.name != 'Inbox' %}
@@ -1354,7 +1435,7 @@
         // Store states locally
         let statesList = [
             {% for state in states %}
-            { id: {{ state.id }}, name: "{{ state.name|escapejs }}", is_terminal: {{ state.is_terminal|yesno:'true,false' }}, order: {{ state.order }} }{% if not forloop.last %},{% endif %}
+            { id: {{ state.id }}, name: "{{ state.name|escapejs }}", is_terminal: {{ state.is_terminal|yesno:'true,false' }}, order: {{ state.order }}, bootstrap_icon: "{{ state.bootstrap_icon|escapejs }}" }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
 
@@ -1388,6 +1469,135 @@
 
         // Initialize checkbox states
         updateTerminalCheckboxes();
+
+        // Icon picker for states
+        const stateIcons = [
+            'bi-inbox', 'bi-inbox-fill', 'bi-play-circle', 'bi-play-fill', 'bi-arrow-right-circle',
+            'bi-hourglass-split', 'bi-clock', 'bi-clock-fill', 'bi-pause-circle', 'bi-pause-fill',
+            'bi-check-circle', 'bi-check-circle-fill', 'bi-check2-circle', 'bi-check-lg',
+            'bi-star', 'bi-star-fill', 'bi-flag', 'bi-flag-fill', 'bi-bookmark', 'bi-bookmark-fill',
+            'bi-lightning', 'bi-lightning-fill', 'bi-fire', 'bi-rocket', 'bi-bullseye',
+            'bi-eye', 'bi-eye-fill', 'bi-search', 'bi-binoculars', 'bi-crosshair',
+            'bi-gear', 'bi-gear-fill', 'bi-tools', 'bi-wrench', 'bi-hammer',
+            'bi-pencil', 'bi-pencil-fill', 'bi-brush', 'bi-palette', 'bi-vector-pen',
+            'bi-chat', 'bi-chat-fill', 'bi-chat-dots', 'bi-chat-dots-fill', 'bi-megaphone',
+            'bi-people', 'bi-people-fill', 'bi-person', 'bi-person-fill', 'bi-person-check',
+            'bi-folder', 'bi-folder-fill', 'bi-file-earmark', 'bi-file-text', 'bi-journal',
+            'bi-calendar', 'bi-calendar-event', 'bi-calendar-check', 'bi-alarm', 'bi-bell',
+            'bi-heart', 'bi-heart-fill', 'bi-emoji-smile', 'bi-hand-thumbs-up', 'bi-trophy',
+            'bi-shield-check', 'bi-lock', 'bi-unlock', 'bi-key', 'bi-safe',
+            'bi-code-slash', 'bi-terminal', 'bi-bug', 'bi-cpu', 'bi-database',
+            'bi-cart', 'bi-bag', 'bi-gift', 'bi-currency-dollar', 'bi-credit-card'
+        ];
+
+        let currentIconPickerStateId = null;
+        let iconPickerElement = null;
+
+        function openIconPicker(stateId, btnElement) {
+            closeIconPicker();
+
+            currentIconPickerStateId = stateId;
+            const stateItem = btnElement.closest('.state-item');
+            const currentIcon = stateItem.dataset.icon || '';
+
+            const picker = document.createElement('div');
+            picker.className = 'icon-picker-popup';
+            picker.id = 'icon-picker-popup';
+
+            let gridHtml = '<div class="icon-picker-grid">';
+            stateIcons.forEach(icon => {
+                const isSelected = icon === currentIcon ? ' selected' : '';
+                gridHtml += `<button class="icon-picker-item${isSelected}" data-icon="${icon}" onclick="selectStateIcon('${icon}')"><i class="bi ${icon}"></i></button>`;
+            });
+            gridHtml += '</div>';
+            gridHtml += '<button class="icon-picker-clear" onclick="selectStateIcon(\'\')">Remove icon</button>';
+
+            picker.innerHTML = gridHtml;
+
+            // Position near the button
+            const rect = btnElement.getBoundingClientRect();
+            picker.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
+            picker.style.top = (rect.bottom + 5) + 'px';
+
+            document.body.appendChild(picker);
+            iconPickerElement = picker;
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', handleIconPickerOutsideClick);
+            }, 0);
+        }
+
+        function handleIconPickerOutsideClick(e) {
+            const picker = document.getElementById('icon-picker-popup');
+            if (picker && !picker.contains(e.target) && !e.target.closest('.state-icon-btn')) {
+                closeIconPicker();
+            }
+        }
+
+        function closeIconPicker() {
+            const picker = document.getElementById('icon-picker-popup');
+            if (picker) {
+                picker.remove();
+            }
+            document.removeEventListener('click', handleIconPickerOutsideClick);
+            currentIconPickerStateId = null;
+            iconPickerElement = null;
+        }
+
+        async function selectStateIcon(icon) {
+            if (currentIconPickerStateId === null) return;
+
+            const stateId = currentIconPickerStateId;
+
+            try {
+                const response = await fetch(`/tasks/api/states/${stateId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ bootstrap_icon: icon })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update the state item in settings
+                    const stateItem = document.querySelector(`.state-item[data-state-id="${stateId}"]`);
+                    if (stateItem) {
+                        stateItem.dataset.icon = icon;
+                        const iconBtn = stateItem.querySelector('.state-icon-btn i');
+                        iconBtn.className = 'bi ' + (icon || 'bi-plus-circle-dotted');
+                        if (!icon) {
+                            iconBtn.classList.add('bi-plus-circle-dotted');
+                        }
+                    }
+
+                    // Update the kanban column header
+                    const kanbanColumn = document.querySelector(`.kanban-column[data-state-id="${stateId}"]`);
+                    if (kanbanColumn) {
+                        kanbanColumn.dataset.icon = icon;
+                        const titleSpan = kanbanColumn.querySelector('.kanban-column-title');
+                        const stateName = statesList.find(s => s.id === stateId)?.name || '';
+                        if (icon) {
+                            titleSpan.innerHTML = `<i class="bi ${icon}"></i> ${escapeHtml(stateName)}`;
+                        } else {
+                            titleSpan.textContent = stateName;
+                        }
+                    }
+
+                    // Update local states list
+                    const state = statesList.find(s => s.id === stateId);
+                    if (state) state.bootstrap_icon = icon;
+
+                    closeIconPicker();
+                } else {
+                    alert(data.error || 'Failed to update icon');
+                }
+            } catch (error) {
+                console.error('Error updating state icon:', error);
+            }
+        }
 
         // Toggle terminal state
         async function toggleTerminal(stateId, checkbox) {
