@@ -178,3 +178,8 @@ else:
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Gmail Import Settings (for checking inbox via IMAP)
+GMAIL_IMPORT_ADDRESS = os.getenv('GMAIL_IMPORT_ADDRESS')
+GMAIL_IMPORT_APP_PASSWORD = os.getenv('GMAIL_IMPORT_APP_PASSWORD')
+GMAIL_CALENDAR_SUBJECT = os.getenv('GMAIL_CALENDAR_SUBJECT', '[Oxy Calendar Import]')
+
