@@ -15,6 +15,19 @@ class TaskContext(models.Model):
         return self.name
 
 
+class TaskState(models.Model):
+    """A state/status for tasks."""
+
+    name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Task(models.Model):
     """A task item."""
 
@@ -23,6 +36,13 @@ class Task(models.Model):
     critical = models.BooleanField(default=False)
     context = models.ForeignKey(
         TaskContext,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tasks'
+    )
+    state = models.ForeignKey(
+        TaskState,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
