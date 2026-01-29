@@ -23,11 +23,23 @@
             padding: 1.5rem;
         }
 
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
         .page-icon {
             font-size: 1.75rem;
             color: #333;
-            margin-bottom: 2rem;
-            display: block;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 300;
+            color: #333;
+            margin: 0;
         }
 
         /* Task Input */
@@ -500,7 +512,10 @@
     <i class="bi bi-gear settings-gear" id="settings-gear" title="Manage contexts"></i>
 
     <div class="container">
-        <i class="bi bi-highlights page-icon" id="page-icon"></i>
+        <div class="page-header">
+            <i class="bi bi-highlights page-icon" id="page-icon"></i>
+            <h1 class="page-title">Task Manager</h1>
+        </div>
 
         <div class="task-input-container">
             <input type="text"
