@@ -1,8 +1,8 @@
 from django.db import models
 
 
-class ToDo(models.Model):
-    """A to-do item."""
+class Task(models.Model):
+    """A task item."""
 
     title = models.CharField(max_length=255)
     details = models.TextField(blank=True, default='')
@@ -13,8 +13,6 @@ class ToDo(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        verbose_name = 'To-Do'
-        verbose_name_plural = 'To-Dos'
 
     def __str__(self):
         return self.title

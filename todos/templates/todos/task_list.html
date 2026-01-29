@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Tasks</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            padding-bottom: 2rem;
+        }
+
+        .container {
+            max-width: 700px;
+            padding: 1.5rem;
+        }
+
+        h1 {
+            font-weight: 300;
+            color: #333;
+            margin-bottom: 2rem;
+            font-size: 1.75rem;
+        }
+
+        /* Task Input */
+        .task-input-container {
+            margin-bottom: 2rem;
+        }
+
+        #new-task-input {
+            width: 100%;
+            font-size: 1.5rem;
+            padding: 1rem;
+            border: none;
+            border-bottom: 2px solid #dee2e6;
+            background: transparent;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #new-task-input:focus {
+            border-bottom-color: #0d6efd;
+        }
+
+        #new-task-input::placeholder {
+            color: #adb5bd;
+        }
+
+        /* Task List */
+        .task-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.15s;
+            margin: 0 -0.5rem;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            border-radius: 6px;
+        }
+
+        .task-item:hover {
+            background-color: #f1f3f4;
+        }
+
+        .task-item.critical .task-title {
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        .task-checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #adb5bd;
+            border-radius: 50%;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+        }
+
+        .task-checkbox:hover {
+            border-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+
+        .task-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-title {
+            font-size: 1.1rem;
+            color: #212529;
+            word-wrap: break-word;
+        }
+
+        .task-details-preview {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-critical-indicator {
+            color: #dc3545;
+            margin-left: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* Slide-out Panel */
+        .panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 1000;
+        }
+
+        .panel-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .slide-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide-panel.active {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .panel-close:hover {
+            color: #212529;
+        }
+
+        .panel-body {
+            flex: 1;
+            padding: 1.25rem;
+            overflow-y: auto;
+        }
+
+        .panel-title-input {
+            width: 100%;
+            font-size: 1.25rem;
+            font-weight: 500;
+            border: none;
+            padding: 0.5rem 0;
+            margin-bottom: 1rem;
+            outline: none;
+            border-bottom: 1px solid transparent;
+        }
+
+        .panel-title-input:focus {
+            border-bottom-color: #0d6efd;
+        }
+
+        .panel-details-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+
+        .panel-details-input {
+            width: 100%;
+            min-height: 150px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 1rem;
+            resize: vertical;
+            outline: none;
+        }
+
+        .panel-details-input:focus {
+            border-color: #0d6efd;
+        }
+
+        .panel-footer {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .critical-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .critical-toggle input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .critical-toggle label {
+            cursor: pointer;
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .delete-btn:hover {
+            color: #dc3545;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 576px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            #new-task-input {
+                font-size: 1.25rem;
+                padding: 0.75rem 0;
+            }
+
+            .slide-panel {
+                max-width: 100%;
+            }
+
+            .task-title {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tasks</h1>
+
+        <div class="task-input-container">
+            <input type="text"
+                   id="new-task-input"
+                   placeholder="Add a new task..."
+                   autocomplete="off">
+        </div>
+
+        <ul class="task-list" id="task-list">
+            {% for task in tasks %}
+            <li class="task-item{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}">
+                <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask({{ task.id }}, this);">
+                    <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
+                </div>
+                <div class="task-content">
+                    <div class="task-title">
+                        {{ task.title }}
+                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>{% endif %}
+                    </div>
+                    {% if task.details %}
+                    <div class="task-details-preview">{{ task.details|truncatechars:50 }}</div>
+                    {% endif %}
+                </div>
+            </li>
+            {% empty %}
+            <li class="empty-state" id="empty-state">
+                <i class="bi bi-check2-circle"></i>
+                <p>No tasks yet. Add one above!</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Slide-out Panel -->
+    <div class="panel-overlay" id="panel-overlay"></div>
+    <div class="slide-panel" id="slide-panel">
+        <div class="panel-header">
+            <span style="font-weight: 500;">Edit Task</span>
+            <button class="panel-close" id="panel-close">&times;</button>
+        </div>
+        <div class="panel-body">
+            <input type="text" class="panel-title-input" id="panel-title" placeholder="Task title">
+            <div class="panel-details-label">Details / Context</div>
+            <textarea class="panel-details-input" id="panel-details" placeholder="Add details or context..."></textarea>
+        </div>
+        <div class="panel-footer">
+            <div class="critical-toggle">
+                <input type="checkbox" id="panel-critical">
+                <label for="panel-critical">Critical</label>
+            </div>
+            <button class="delete-btn" id="panel-delete" title="Delete task">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        let currentTaskId = null;
+        let saveTimeout = null;
+
+        // Add new task on Enter
+        document.getElementById('new-task-input').addEventListener('keypress', async function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                const title = this.value.trim();
+                this.value = '';
+
+                try {
+                    const response = await fetch('/tasks/api/create/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ title })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        addTaskToList(data.task);
+                    }
+                } catch (error) {
+                    console.error('Error creating task:', error);
+                }
+            }
+        });
+
+        function addTaskToList(task) {
+            const emptyState = document.getElementById('empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const li = document.createElement('li');
+            li.className = 'task-item' + (task.critical ? ' critical' : '');
+            li.dataset.taskId = task.id;
+            li.innerHTML = `
+                <div class="task-checkbox" onclick="event.stopPropagation(); deleteTask(${task.id}, this);">
+                    <i class="bi bi-check" style="display: none; color: #0d6efd;"></i>
+                </div>
+                <div class="task-content">
+                    <div class="task-title">
+                        ${escapeHtml(task.title)}
+                        ${task.critical ? '<i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>' : ''}
+                    </div>
+                    ${task.details ? `<div class="task-details-preview">${escapeHtml(task.details.substring(0, 50))}</div>` : ''}
+                </div>
+            `;
+            li.addEventListener('click', () => openPanel(task.id));
+
+            const taskList = document.getElementById('task-list');
+            taskList.insertBefore(li, taskList.firstChild);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Open slide panel
+        document.querySelectorAll('.task-item').forEach(item => {
+            item.addEventListener('click', function() {
+                openPanel(this.dataset.taskId);
+            });
+        });
+
+        async function openPanel(taskId) {
+            currentTaskId = taskId;
+            const taskItem = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+            const title = taskItem.querySelector('.task-title').childNodes[0].textContent.trim();
+            const detailsEl = taskItem.querySelector('.task-details-preview');
+
+            document.getElementById('panel-title').value = title;
+
+            // Fetch full task details
+            try {
+                const taskData = await getTaskData(taskId);
+                document.getElementById('panel-details').value = taskData.details || '';
+                document.getElementById('panel-critical').checked = taskData.critical;
+            } catch (e) {
+                document.getElementById('panel-details').value = detailsEl ? detailsEl.textContent : '';
+                document.getElementById('panel-critical').checked = taskItem.classList.contains('critical');
+            }
+
+            document.getElementById('panel-overlay').classList.add('active');
+            document.getElementById('slide-panel').classList.add('active');
+        }
+
+        async function getTaskData(taskId) {
+            // We'll just use what's in the DOM for now, but could fetch from server
+            const taskItem = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+            return {
+                details: taskItem.querySelector('.task-details-preview')?.textContent || '',
+                critical: taskItem.classList.contains('critical')
+            };
+        }
+
+        function closePanel() {
+            document.getElementById('panel-overlay').classList.remove('active');
+            document.getElementById('slide-panel').classList.remove('active');
+            currentTaskId = null;
+        }
+
+        document.getElementById('panel-close').addEventListener('click', closePanel);
+        document.getElementById('panel-overlay').addEventListener('click', closePanel);
+
+        // Auto-save on changes
+        ['panel-title', 'panel-details', 'panel-critical'].forEach(id => {
+            const el = document.getElementById(id);
+            const event = el.type === 'checkbox' ? 'change' : 'input';
+            el.addEventListener(event, () => {
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(saveCurrentTask, 500);
+            });
+        });
+
+        async function saveCurrentTask() {
+            if (!currentTaskId) return;
+
+            const title = document.getElementById('panel-title').value.trim();
+            const details = document.getElementById('panel-details').value;
+            const critical = document.getElementById('panel-critical').checked;
+
+            try {
+                const response = await fetch(`/tasks/api/${currentTaskId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ title, details, critical })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    updateTaskInList(data.task);
+                }
+            } catch (error) {
+                console.error('Error updating task:', error);
+            }
+        }
+
+        function updateTaskInList(task) {
+            const taskItem = document.querySelector(`.task-item[data-task-id="${task.id}"]`);
+            if (!taskItem) return;
+
+            taskItem.className = 'task-item' + (task.critical ? ' critical' : '');
+
+            const titleEl = taskItem.querySelector('.task-title');
+            titleEl.innerHTML = escapeHtml(task.title) +
+                (task.critical ? ' <i class="bi bi-exclamation-circle-fill task-critical-indicator"></i>' : '');
+
+            let detailsEl = taskItem.querySelector('.task-details-preview');
+            if (task.details) {
+                if (!detailsEl) {
+                    detailsEl = document.createElement('div');
+                    detailsEl.className = 'task-details-preview';
+                    taskItem.querySelector('.task-content').appendChild(detailsEl);
+                }
+                detailsEl.textContent = task.details.substring(0, 50) + (task.details.length > 50 ? '...' : '');
+            } else if (detailsEl) {
+                detailsEl.remove();
+            }
+        }
+
+        // Delete task
+        document.getElementById('panel-delete').addEventListener('click', async () => {
+            if (!currentTaskId || !confirm('Delete this task?')) return;
+            await deleteTask(currentTaskId);
+            closePanel();
+        });
+
+        async function deleteTask(taskId, checkboxEl) {
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    const taskItem = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+                    if (taskItem) {
+                        taskItem.style.opacity = '0';
+                        taskItem.style.transform = 'translateX(20px)';
+                        taskItem.style.transition = 'all 0.3s';
+                        setTimeout(() => {
+                            taskItem.remove();
+                            // Check if list is empty
+                            const taskList = document.getElementById('task-list');
+                            if (!taskList.querySelector('.task-item')) {
+                                taskList.innerHTML = `
+                                    <li class="empty-state" id="empty-state">
+                                        <i class="bi bi-check2-circle"></i>
+                                        <p>No tasks yet. Add one above!</p>
+                                    </li>
+                                `;
+                            }
+                        }, 300);
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting task:', error);
+            }
+        }
+
+        // Show check icon on checkbox hover
+        document.querySelectorAll('.task-checkbox').forEach(cb => {
+            cb.addEventListener('mouseenter', function() {
+                this.querySelector('i').style.display = 'block';
+            });
+            cb.addEventListener('mouseleave', function() {
+                this.querySelector('i').style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>

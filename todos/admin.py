@@ -1,9 +1,9 @@
 from django.contrib import admin
-from .models import ToDo
+from .models import Task
 
 
-@admin.register(ToDo)
-class ToDoAdmin(admin.ModelAdmin):
+@admin.register(Task)
+class TaskAdmin(admin.ModelAdmin):
     list_display = ['title', 'critical', 'created_at']
     list_filter = ['critical']
     search_fields = ['title', 'details']
