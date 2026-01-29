@@ -23,11 +23,11 @@
             padding: 1.5rem;
         }
 
-        h1 {
-            font-weight: 300;
+        .page-icon {
+            font-size: 1.75rem;
             color: #333;
             margin-bottom: 2rem;
-            font-size: 1.75rem;
+            display: block;
         }
 
         /* Task Input */
@@ -500,7 +500,7 @@
     <i class="bi bi-gear settings-gear" id="settings-gear" title="Manage contexts"></i>
 
     <div class="container">
-        <h1>Tasks</h1>
+        <i class="bi bi-highlights page-icon" id="page-icon"></i>
 
         <div class="task-input-container">
             <input type="text"
@@ -1118,6 +1118,57 @@
                 });
             }
         });
+
+        // Subtle icon color animation
+        (function() {
+            const icon = document.getElementById('page-icon');
+            const baseColor = { r: 51, g: 51, b: 51 }; // #333
+            const accentColor = { r: 107, g: 144, b: 128 }; // #6B9080 (Sage)
+            let animationFrame;
+            let startTime;
+            let duration;
+            let direction = 1; // 1 = to accent, -1 = to base
+
+            function lerp(a, b, t) {
+                return a + (b - a) * t;
+            }
+
+            function getRandomDuration() {
+                return 3000 + Math.random() * 4000; // 3-7 seconds
+            }
+
+            function animate(timestamp) {
+                if (!startTime) {
+                    startTime = timestamp;
+                    duration = getRandomDuration();
+                }
+
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Ease in-out
+                const eased = progress < 0.5
+                    ? 2 * progress * progress
+                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+                const t = direction === 1 ? eased : 1 - eased;
+
+                const r = Math.round(lerp(baseColor.r, accentColor.r, t));
+                const g = Math.round(lerp(baseColor.g, accentColor.g, t));
+                const b = Math.round(lerp(baseColor.b, accentColor.b, t));
+
+                icon.style.color = `rgb(${r}, ${g}, ${b})`;
+
+                if (progress >= 1) {
+                    direction *= -1;
+                    startTime = null;
+                }
+
+                animationFrame = requestAnimationFrame(animate);
+            }
+
+            animationFrame = requestAnimationFrame(animate);
+        })();
     </script>
 </body>
 </html>
