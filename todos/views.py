@@ -4,14 +4,15 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Task, TaskContext
+from .models import Task, TaskContext, TaskState
 
 
 def task_list(request):
     """Display all tasks."""
-    tasks = Task.objects.select_related('context').all()
+    tasks = Task.objects.select_related('context', 'state').all()
     contexts = TaskContext.objects.all()
-    return render(request, 'todos/task_list.html', {'tasks': tasks, 'contexts': contexts})
+    states = TaskState.objects.all()
+    return render(request, 'todos/task_list.html', {'tasks': tasks, 'contexts': contexts, 'states': states})
 
 
 @require_POST
@@ -167,3 +168,48 @@ def delete_context(request, context_id):
         return JsonResponse({'success': True})
     except TaskContext.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Context not found'}, status=404)
+
+
+def list_states(request):
+    """List all task states."""
+    states = TaskState.objects.all()
+    return JsonResponse({
+        'success': True,
+        'states': [{'id': s.id, 'name': s.name} for s in states]
+    })
+
+
+@require_POST
+def create_state(request):
+    """Create a new task state via AJAX."""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+
+        state, created = TaskState.objects.get_or_create(name=name)
+        if not created:
+            return JsonResponse({'success': False, 'error': 'State already exists'}, status=400)
+
+        return JsonResponse({
+            'success': True,
+            'state': {
+                'id': state.id,
+                'name': state.name,
+            }
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_http_methods(["DELETE"])
+def delete_state(request, state_id):
+    """Delete a task state via AJAX."""
+    try:
+        state = TaskState.objects.get(id=state_id)
+        state.delete()
+        return JsonResponse({'success': True})
+    except TaskState.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'State not found'}, status=404)

@@ -472,6 +472,88 @@
             align-items: center;
         }
 
+        /* Settings section headers */
+        .settings-section-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1rem 1.25rem 0.5rem;
+            background: #f8f9fa;
+        }
+
+        .settings-section {
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .settings-section:last-child {
+            border-bottom: none;
+        }
+
+        /* State list styles */
+        .state-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .state-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .state-item:last-child {
+            border-bottom: none;
+        }
+
+        .state-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .state-name {
+            font-size: 1rem;
+        }
+
+        .state-delete {
+            background: none;
+            border: none;
+            color: #adb5bd;
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 1rem;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s;
+        }
+
+        .state-item:hover .state-delete {
+            opacity: 1;
+        }
+
+        .state-delete:hover {
+            color: #dc3545;
+        }
+
+        .state-input-container {
+            padding: 0.75rem 1.25rem;
+        }
+
+        #new-state-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        #new-state-input:focus {
+            border-color: #0d6efd;
+        }
+
         /* Mobile adjustments */
         @media (max-width: 576px) {
             .container {
@@ -509,7 +591,7 @@
 </head>
 <body>
     <!-- Settings gear icon -->
-    <i class="bi bi-gear settings-gear" id="settings-gear" title="Manage contexts"></i>
+    <i class="bi bi-gear settings-gear" id="settings-gear" title="Settings"></i>
 
     <div class="container">
         <div class="page-header">
@@ -550,47 +632,73 @@
         </ul>
     </div>
 
-    <!-- Left slide-out Panel for Contexts -->
+    <!-- Left slide-out Panel for Settings -->
     <div class="panel-overlay" id="context-panel-overlay"></div>
     <div class="context-panel" id="context-panel">
         <div class="panel-header">
-            <span style="font-weight: 500;">Contexts</span>
+            <span style="font-weight: 500;">Settings</span>
             <button class="panel-close" id="context-panel-close">&times;</button>
         </div>
-        <div class="context-input-container">
-            <input type="text" id="new-context-input" placeholder="Add new context..." autocomplete="off">
-        </div>
-        <div class="color-palette" id="color-palette">
-            <span class="color-palette-label">Pick a color for new context:</span>
-            <div class="color-swatch selected" data-color="#6B9080" style="background: #6B9080;" title="Sage"></div>
-            <div class="color-swatch" data-color="#D4C4A8" style="background: #D4C4A8;" title="Tan"></div>
-            <div class="color-swatch" data-color="#C9A227" style="background: #C9A227;" title="Gold"></div>
-            <div class="color-swatch" data-color="#8B7B8B" style="background: #8B7B8B;" title="Mauve"></div>
-            <div class="color-swatch" data-color="#A89090" style="background: #A89090;" title="Dusty Rose"></div>
-            <div class="color-swatch" data-color="#8A9878" style="background: #8A9878;" title="Olive"></div>
-            <div class="color-swatch" data-color="#7B8B98" style="background: #7B8B98;" title="Slate"></div>
-            <div class="color-swatch" data-color="#6c757d" style="background: #6c757d;" title="Gray"></div>
-            <div class="color-swatch" data-color="#5D5D5D" style="background: #5D5D5D;" title="Charcoal"></div>
-            <div class="color-swatch" data-color="#4A6670" style="background: #4A6670;" title="Steel"></div>
-        </div>
         <div class="panel-body" style="padding: 0;">
-            <ul class="context-list" id="context-list">
-                {% for context in contexts %}
-                <li class="context-item" data-context-id="{{ context.id }}" data-context-color="{{ context.color }}">
-                    <div class="context-item-left">
-                        <div class="context-color-dot" style="background: {{ context.color }};"></div>
-                        <span class="context-name">{{ context.name }}</span>
-                    </div>
-                    <button class="context-delete" onclick="deleteContext({{ context.id }}, this)" title="Delete context">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                </li>
-                {% empty %}
-                <li class="context-item" id="no-contexts" style="color: #6c757d; justify-content: center;">
-                    No contexts yet
-                </li>
-                {% endfor %}
-            </ul>
+            <!-- Contexts Section -->
+            <div class="settings-section">
+                <div class="settings-section-header">Contexts</div>
+                <div class="context-input-container">
+                    <input type="text" id="new-context-input" placeholder="Add new context..." autocomplete="off">
+                </div>
+                <div class="color-palette" id="color-palette">
+                    <span class="color-palette-label">Pick a color for new context:</span>
+                    <div class="color-swatch selected" data-color="#6B9080" style="background: #6B9080;" title="Sage"></div>
+                    <div class="color-swatch" data-color="#D4C4A8" style="background: #D4C4A8;" title="Tan"></div>
+                    <div class="color-swatch" data-color="#C9A227" style="background: #C9A227;" title="Gold"></div>
+                    <div class="color-swatch" data-color="#8B7B8B" style="background: #8B7B8B;" title="Mauve"></div>
+                    <div class="color-swatch" data-color="#A89090" style="background: #A89090;" title="Dusty Rose"></div>
+                    <div class="color-swatch" data-color="#8A9878" style="background: #8A9878;" title="Olive"></div>
+                    <div class="color-swatch" data-color="#7B8B98" style="background: #7B8B98;" title="Slate"></div>
+                    <div class="color-swatch" data-color="#6c757d" style="background: #6c757d;" title="Gray"></div>
+                    <div class="color-swatch" data-color="#5D5D5D" style="background: #5D5D5D;" title="Charcoal"></div>
+                    <div class="color-swatch" data-color="#4A6670" style="background: #4A6670;" title="Steel"></div>
+                </div>
+                <ul class="context-list" id="context-list">
+                    {% for context in contexts %}
+                    <li class="context-item" data-context-id="{{ context.id }}" data-context-color="{{ context.color }}">
+                        <div class="context-item-left">
+                            <div class="context-color-dot" style="background: {{ context.color }};"></div>
+                            <span class="context-name">{{ context.name }}</span>
+                        </div>
+                        <button class="context-delete" onclick="deleteContext({{ context.id }}, this)" title="Delete context">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </li>
+                    {% empty %}
+                    <li class="context-item" id="no-contexts" style="color: #6c757d; justify-content: center;">
+                        No contexts yet
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- States Section -->
+            <div class="settings-section">
+                <div class="settings-section-header">States</div>
+                <div class="state-input-container">
+                    <input type="text" id="new-state-input" placeholder="Add new state..." autocomplete="off">
+                </div>
+                <ul class="state-list" id="state-list">
+                    {% for state in states %}
+                    <li class="state-item" data-state-id="{{ state.id }}">
+                        <span class="state-name">{{ state.name }}</span>
+                        <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </li>
+                    {% empty %}
+                    <li class="state-item" id="no-states" style="color: #6c757d; justify-content: center;">
+                        No states yet
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -1133,6 +1241,99 @@
                 });
             }
         });
+
+        // ========== States Management ==========
+
+        // Store states locally
+        let statesList = [
+            {% for state in states %}
+            { id: {{ state.id }}, name: "{{ state.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        // Add new state on Enter
+        document.getElementById('new-state-input').addEventListener('keypress', async function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                const name = this.value.trim();
+                this.value = '';
+
+                try {
+                    const response = await fetch('/tasks/api/states/create/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ name })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        addStateToList(data.state);
+                        statesList.push(data.state);
+                    } else {
+                        alert(data.error || 'Failed to create state');
+                    }
+                } catch (error) {
+                    console.error('Error creating state:', error);
+                }
+            }
+        });
+
+        function addStateToList(state) {
+            // Remove "no states" message if present
+            const noStates = document.getElementById('no-states');
+            if (noStates) {
+                noStates.remove();
+            }
+
+            const li = document.createElement('li');
+            li.className = 'state-item';
+            li.dataset.stateId = state.id;
+            li.innerHTML = `
+                <span class="state-name">${escapeHtml(state.name)}</span>
+                <button class="state-delete" onclick="deleteState(${state.id}, this)" title="Delete state">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            `;
+
+            document.getElementById('state-list').appendChild(li);
+        }
+
+        async function deleteState(stateId, button) {
+            if (!confirm('Delete this state? Tasks with this state will become unassigned.')) return;
+
+            try {
+                const response = await fetch(`/tasks/api/states/${stateId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Remove from state list
+                    const stateItem = button.closest('.state-item');
+                    stateItem.remove();
+
+                    // Update local list
+                    statesList = statesList.filter(s => s.id !== stateId);
+
+                    // Check if state list is now empty
+                    const stateList = document.getElementById('state-list');
+                    if (!stateList.querySelector('.state-item')) {
+                        stateList.innerHTML = `
+                            <li class="state-item" id="no-states" style="color: #6c757d; justify-content: center;">
+                                No states yet
+                            </li>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting state:', error);
+            }
+        }
 
         // Subtle icon color animation
         (function() {
