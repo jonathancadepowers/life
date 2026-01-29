@@ -578,8 +578,32 @@
             align-items: center;
         }
 
-        .state-terminal-checkbox-wrapper[title] {
+        .state-terminal-checkbox-wrapper.disabled-terminal {
             cursor: help;
+        }
+
+        .state-terminal-checkbox-wrapper.disabled-terminal::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 1200;
+            margin-bottom: 4px;
+        }
+
+        .state-terminal-checkbox-wrapper.disabled-terminal:hover::after {
+            opacity: 1;
+            visibility: visible;
         }
 
         /* Mobile adjustments */
@@ -1308,10 +1332,12 @@
 
                 if (terminalId && terminalId !== stateId) {
                     checkbox.disabled = true;
-                    wrapper.title = 'Unmark the current terminal state first';
+                    wrapper.classList.add('disabled-terminal');
+                    wrapper.dataset.tooltip = 'Unmark the current terminal state first';
                 } else {
                     checkbox.disabled = false;
-                    wrapper.title = '';
+                    wrapper.classList.remove('disabled-terminal');
+                    wrapper.dataset.tooltip = '';
                 }
             });
         }
