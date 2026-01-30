@@ -1720,7 +1720,7 @@
             font-weight: 600;
         }
 
-        /* Add Event button - only visible when Calendar is expanded */
+        /* Block Time button - only visible when Calendar is expanded */
         .add-event-btn {
             display: none;
             background: #f8f9fa;
@@ -2217,6 +2217,20 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             font-weight: 500;
+            cursor: text;
+        }
+
+        .time-block-inline-input {
+            background: white;
+            border: 1px solid #6B9080;
+            border-radius: 2px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #3d5a4c;
+            padding: 0 2px;
+            margin: -1px 0;
+            width: 100%;
+            outline: none;
         }
 
         .time-block-resize-handle {
@@ -2691,8 +2705,8 @@
                             <span class="metric-pill">Meetings: <span id="meetings-count">0</span></span>
                             <span class="metric-pill">Time in Meetings: <span id="meetings-time">0h</span></span>
                         </div>
-                        <button class="add-event-btn" id="add-event-btn" title="Add Event">
-                            <i class="bi bi-plus-lg"></i> Add Event
+                        <button class="add-event-btn" id="add-event-btn" title="Block Time">
+                            <i class="bi bi-plus-lg"></i> Block Time
                         </button>
                         <span class="panel-expand-btn" id="calendar-expand-btn" title="Expand Calendar">
                             <i class="bi bi-arrows-angle-expand"></i>
@@ -2859,10 +2873,10 @@
         </div>
     </div>
 
-    <!-- Add Event Modal -->
+    <!-- Block Time Modal -->
     <div class="modal-overlay" id="add-event-modal">
         <div class="modal-content">
-            <div class="modal-title">Add Event</div>
+            <div class="modal-title">Block Time</div>
             <div class="modal-body">
                 <div style="margin-bottom: 0.75rem;">
                     <label for="event-name-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Name</label>
@@ -5826,10 +5840,14 @@
                 const contentWrapper = document.createElement('div');
                 contentWrapper.className = 'time-block-content';
 
-                // Add title text
+                // Add title text (click to edit)
                 const titleSpan = document.createElement('span');
                 titleSpan.className = 'time-block-title';
                 titleSpan.textContent = block.name;
+                titleSpan.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    startTimeBlockInlineEdit(blockEl, block.id, titleSpan);
+                });
                 contentWrapper.appendChild(titleSpan);
 
                 blockEl.appendChild(contentWrapper);
@@ -5959,7 +5977,71 @@
             }
         }
 
-        // ========== Add Event Modal ==========
+        // Inline edit a time block name
+        function startTimeBlockInlineEdit(blockEl, blockId, titleSpan) {
+            // Don't start another edit if already editing
+            if (titleSpan.querySelector('input')) return;
+
+            const currentName = titleSpan.textContent;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'time-block-inline-input';
+            input.value = currentName;
+
+            // Replace title with input
+            titleSpan.textContent = '';
+            titleSpan.appendChild(input);
+            input.focus();
+            input.select();
+
+            // Save on blur or Enter
+            async function saveEdit() {
+                const newName = input.value.trim();
+                if (newName && newName !== currentName) {
+                    try {
+                        const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ name: newName })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            // Update local data
+                            const block = timeBlocks.find(b => b.id === blockId);
+                            if (block) {
+                                block.name = data.time_block.name;
+                            }
+                            titleSpan.textContent = newName;
+                            blockEl.title = newName;
+                        } else {
+                            titleSpan.textContent = currentName;
+                        }
+                    } catch (error) {
+                        console.error('Error updating time block name:', error);
+                        titleSpan.textContent = currentName;
+                    }
+                } else {
+                    titleSpan.textContent = currentName || newName;
+                }
+            }
+
+            input.addEventListener('blur', saveEdit);
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    titleSpan.textContent = currentName;
+                }
+            });
+        }
+
+        // ========== Block Time Modal ==========
 
         const addEventBtn = document.getElementById('add-event-btn');
         const addEventModal = document.getElementById('add-event-modal');
