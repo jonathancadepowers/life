@@ -1964,11 +1964,18 @@
             opacity: 0.7;
         }
 
+        .task-card-icons {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
         .task-critical-icon {
             color: #dc3545;
             font-size: 0.85rem;
             flex-shrink: 0;
-            margin-left: auto;
         }
 
         .task-card.completed .task-card-title {
@@ -2047,7 +2054,6 @@
         .task-card-today-icon {
             color: #ffc107;
             font-size: 0.85rem;
-            margin-left: auto;
             flex-shrink: 0;
         }
 
@@ -2517,7 +2523,7 @@
                                     <div class="task-card-content">
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>{% endif %}
+                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -2544,7 +2550,7 @@
                                     <div class="task-card-content">
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>{% endif %}
+                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -3001,7 +3007,7 @@
                 card.innerHTML = `
                     <div class="task-card-content">
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
-                        ${task.critical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>' : ''}
+                        ${task.critical ? '<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>' : ''}
                     </div>
                 `;
 
@@ -5142,13 +5148,14 @@
 
                 const todayIconHtml = isToday ? '<i class="bi bi-brightness-high-fill task-card-today-icon"></i>' : '';
                 const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>' : '';
+                const hasIcons = isToday || task.isCritical;
+                const iconsHtml = hasIcons ? `<div class="task-card-icons">${todayIconHtml}${criticalIconHtml}</div>` : '';
 
                 card.innerHTML = `
                     <div class="task-card-content">
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
                         ${tagsHtml}
-                        ${todayIconHtml}
-                        ${criticalIconHtml}
+                        ${iconsHtml}
                     </div>
                 `;
 
@@ -5479,6 +5486,25 @@
             });
         }
 
+        // Click anywhere on minimized panel to expand it back to normal
+        tasksPanel.addEventListener('click', function(e) {
+            if (this.classList.contains('minimized')) {
+                // Return both panels to normal 50/50 state
+                tasksPanel.classList.remove('collapsed', 'minimized', 'expanded');
+                calendarPanel.classList.remove('collapsed', 'minimized', 'expanded');
+                updateTasksPanelWrapperState();
+            }
+        });
+
+        calendarPanel.addEventListener('click', function(e) {
+            if (this.classList.contains('minimized')) {
+                // Return both panels to normal 50/50 state
+                tasksPanel.classList.remove('collapsed', 'minimized', 'expanded');
+                calendarPanel.classList.remove('collapsed', 'minimized', 'expanded');
+                updateTasksPanelWrapperState();
+            }
+        });
+
         // Initialize wrapper state on page load
         updateTasksPanelWrapperState();
 
@@ -5600,10 +5626,9 @@
 
                 eventEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden;">
-                        <i class="bi bi-calendar-heart" style="font-size: 0.7rem; opacity: 0.7; flex-shrink: 0;"></i>
                         <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis;">${event.subject}</span>
                     </div>
-                    <div style="font-size: 0.65rem; opacity: 0.9; margin-left: 18px;">${startDisplayHour}:${startMinuteStr} ${startAmPm}${event.location ? ' • ' + event.location : ''}</div>
+                    <div style="font-size: 0.65rem; opacity: 0.9;">${startDisplayHour}:${startMinuteStr} ${startAmPm}${event.location ? ' • ' + event.location : ''}</div>
                 `;
 
                 eventEl.title = `${event.subject}${event.location ? '\n' + event.location : ''}`;
@@ -5648,8 +5673,6 @@
 
                 const titleEl = taskCard.querySelector('.task-card-title');
                 const title = titleEl ? titleEl.textContent : 'Task';
-                const isCritical = taskCard.classList.contains('critical');
-                const tags = taskTagsMap[taskId] || [];
 
                 // Calculate duration in minutes (default to 30 if no end time)
                 let durationMinutes = 30;
@@ -5661,7 +5684,7 @@
 
                 // Create scheduled task element
                 const taskEl = document.createElement('div');
-                taskEl.className = 'calendar-scheduled-task' + (isCritical ? ' critical' : '');
+                taskEl.className = 'calendar-scheduled-task';
                 taskEl.dataset.taskId = taskId;
                 taskEl.draggable = true;
                 taskEl.title = title;
@@ -5682,26 +5705,6 @@
                 contentWrapper.appendChild(titleSpan);
 
                 taskEl.appendChild(contentWrapper);
-
-                // Add critical icon on the right if task is critical
-                if (isCritical) {
-                    const criticalIcon = document.createElement('i');
-                    criticalIcon.className = 'bi bi-exclamation-circle-fill calendar-critical-icon';
-                    taskEl.appendChild(criticalIcon);
-                }
-
-                // Add tag pills if task has tags
-                if (tags.length > 0) {
-                    const tagsContainer = document.createElement('div');
-                    tagsContainer.className = 'calendar-task-tags';
-                    tags.forEach(tag => {
-                        const tagPill = document.createElement('span');
-                        tagPill.className = 'calendar-task-tag';
-                        tagPill.textContent = tag.name;
-                        tagsContainer.appendChild(tagPill);
-                    });
-                    taskEl.appendChild(tagsContainer);
-                }
 
                 // Add remove button
                 const removeBtn = document.createElement('button');
@@ -5904,16 +5907,26 @@
                     if (!todayIcon) {
                         todayIcon = document.createElement('i');
                         todayIcon.className = 'bi bi-brightness-high-fill task-card-today-icon';
-                        // Insert after task-card-content or at the end
+                        // Insert into icons container or create one
                         const content = card.querySelector('.task-card-content');
                         if (content) {
-                            content.appendChild(todayIcon);
-                        } else {
-                            card.appendChild(todayIcon);
+                            let iconsContainer = content.querySelector('.task-card-icons');
+                            if (!iconsContainer) {
+                                iconsContainer = document.createElement('div');
+                                iconsContainer.className = 'task-card-icons';
+                                content.appendChild(iconsContainer);
+                            }
+                            // Insert today icon at the start (before critical icon)
+                            iconsContainer.insertBefore(todayIcon, iconsContainer.firstChild);
                         }
                     }
                 } else if (todayIcon) {
                     todayIcon.remove();
+                    // Remove icons container if empty
+                    const iconsContainer = card.querySelector('.task-card-icons');
+                    if (iconsContainer && iconsContainer.children.length === 0) {
+                        iconsContainer.remove();
+                    }
                 }
             });
         }
@@ -5927,6 +5940,41 @@
             if (success) {
                 renderScheduledTasks();
             }
+        }
+
+        // Check if there's an overlapping task or event at the given time
+        function hasOverlappingItem(newStart, newEnd, excludeTaskId) {
+            // Check existing scheduled tasks
+            for (const [taskId, calendarStartTime] of Object.entries(taskCalendarStartTimeMap)) {
+                if (!calendarStartTime) continue;
+                if (taskId === excludeTaskId || taskId === String(excludeTaskId)) continue;
+
+                const taskStart = new Date(calendarStartTime);
+                const calendarEndTime = taskCalendarEndTimeMap[taskId];
+                const taskEnd = calendarEndTime ? new Date(calendarEndTime) : new Date(taskStart.getTime() + 30 * 60 * 1000);
+
+                // Check for overlap: (newStart < taskEnd) && (newEnd > taskStart)
+                if (newStart < taskEnd && newEnd > taskStart) {
+                    return true;
+                }
+            }
+
+            // Check calendar events
+            if (calendarEvents && calendarEvents.length > 0) {
+                for (const event of calendarEvents) {
+                    if (event.is_all_day) continue;
+
+                    const eventStart = new Date(event.start);
+                    const eventEnd = new Date(event.end);
+
+                    // Check for overlap
+                    if (newStart < eventEnd && newEnd > eventStart) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         // Setup drop zones on calendar hour rows
@@ -5967,13 +6015,18 @@
                     // Round to nearest 30 minutes (0 or 30)
                     const clampedMinute = percentY < 0.5 ? 0 : 30;
 
-                    // Create the scheduled start time in local timezone, then convert to UTC
+                    // Create the scheduled start time in local timezone
                     const now = new Date();
                     const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
-                    const startUTC = localToUTC(startLocal);
-
-                    // Create end time (30 minutes after start)
                     const endLocal = new Date(startLocal.getTime() + 30 * 60 * 1000);
+
+                    // Check for overlapping tasks or events before allowing drop
+                    if (hasOverlappingItem(startLocal, endLocal, taskId)) {
+                        // Don't drop - there's already something at this time
+                        return;
+                    }
+
+                    const startUTC = localToUTC(startLocal);
                     const endUTC = localToUTC(endLocal);
 
                     // Update on server with both start and end times
