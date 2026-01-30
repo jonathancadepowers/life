@@ -72,7 +72,8 @@ def create_task(request):
                 'state_id': task.state_id,
                 'state_name': task.state.name if task.state else None,
                 'tags': [],
-                'calendar_time': task.calendar_time.isoformat() if task.calendar_time else None,
+                'calendar_start_time': task.calendar_start_time.isoformat() if task.calendar_start_time else None,
+                'calendar_end_time': task.calendar_end_time.isoformat() if task.calendar_end_time else None,
             }
         })
     except json.JSONDecodeError:
@@ -97,12 +98,16 @@ def update_task(request, task_id):
                 task.state = TaskState.objects.get(id=data['state_id'])
             else:
                 task.state = None
-        if 'calendar_time' in data:
-            if data['calendar_time']:
-                # Parse ISO format datetime string
-                task.calendar_time = datetime.fromisoformat(data['calendar_time'].replace('Z', '+00:00'))
+        if 'calendar_start_time' in data:
+            if data['calendar_start_time']:
+                task.calendar_start_time = datetime.fromisoformat(data['calendar_start_time'].replace('Z', '+00:00'))
             else:
-                task.calendar_time = None
+                task.calendar_start_time = None
+        if 'calendar_end_time' in data:
+            if data['calendar_end_time']:
+                task.calendar_end_time = datetime.fromisoformat(data['calendar_end_time'].replace('Z', '+00:00'))
+            else:
+                task.calendar_end_time = None
 
         task.save()
         return JsonResponse({
@@ -115,7 +120,8 @@ def update_task(request, task_id):
                 'state_id': task.state_id,
                 'state_name': task.state.name if task.state else None,
                 'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
-                'calendar_time': task.calendar_time.isoformat() if task.calendar_time else None,
+                'calendar_start_time': task.calendar_start_time.isoformat() if task.calendar_start_time else None,
+                'calendar_end_time': task.calendar_end_time.isoformat() if task.calendar_end_time else None,
             }
         })
     except Task.DoesNotExist:
@@ -151,7 +157,8 @@ def get_task(request, task_id):
                 'state_id': task.state_id,
                 'state_name': task.state.name if task.state else None,
                 'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
-                'calendar_time': task.calendar_time.isoformat() if task.calendar_time else None,
+                'calendar_start_time': task.calendar_start_time.isoformat() if task.calendar_start_time else None,
+                'calendar_end_time': task.calendar_end_time.isoformat() if task.calendar_end_time else None,
             }
         })
     except Task.DoesNotExist:

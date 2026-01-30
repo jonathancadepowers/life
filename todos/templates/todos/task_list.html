@@ -2022,25 +2022,7 @@
             white-space: nowrap;
         }
 
-        /* Scheduled task indicator (task has calendar_time set) */
-        .task-card.scheduled {
-            background: #f0f9f4;
-            border-color: #c3e6cb;
-        }
-
-        .task-card.scheduled:hover {
-            background: #e8f5ec;
-            border-color: #b1dfbb;
-        }
-
-        .task-card.scheduled.critical {
-            background: #fff5f5;
-            border-color: #f8d7da;
-        }
-
-        .task-card.scheduled.critical:hover {
-            background: #ffecec;
-        }
+        /* Scheduled task indicator - no background change, only sun icon shows scheduling */
 
         .task-card-today-icon {
             color: #ffc107;
@@ -2066,7 +2048,7 @@
             position: absolute;
             left: 4px;
             right: 4px;
-            height: 28px;
+            min-height: 28px;
             background: #d4edda;
             color: #155724;
             font-size: 0.75rem;
@@ -2075,18 +2057,76 @@
             border-radius: 4px;
             cursor: grab;
             border: 1px solid #c3e6cb;
-            white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
             z-index: 2;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .calendar-task-content {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .calendar-task-icon {
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+
+        .calendar-task-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .calendar-task-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            overflow: hidden;
+        }
+
+        .calendar-task-tag {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 0.6rem;
+            white-space: nowrap;
+        }
+
+        .calendar-scheduled-task.critical .calendar-task-tag {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-task-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            cursor: ns-resize;
+            background: transparent;
+        }
+
+        .calendar-task-resize-handle:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-scheduled-task.resizing {
+            user-select: none;
+            cursor: ns-resize;
         }
 
         .calendar-scheduled-task .remove-btn {
             position: absolute;
             right: 4px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 4px;
             background: none;
             border: none;
             color: #155724;
@@ -2447,7 +2487,7 @@
                             <div class="state-group-body" data-state-id="{{ state.id }}">
                                 {% for task in tasks %}
                                 {% if task.state == state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                     <div class="task-card-content">
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
@@ -2473,7 +2513,7 @@
                             <div class="state-group-body" data-state-id="none">
                                 {% for task in tasks %}
                                 {% if not task.state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                     <div class="task-card-content">
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
@@ -2684,10 +2724,13 @@
         taskTagsMap[{{ task.id }}] = [{% for tag in task.tags.all %}{ id: {{ tag.id }}, name: "{{ tag.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
         {% endfor %}
 
-        // Store task calendar_time for quick lookup (task_id -> ISO string or null)
-        let taskCalendarTimeMap = {};
+        // Store task calendar_start_time for quick lookup (task_id -> ISO string or null)
+        // Store task calendar start/end times for quick lookup
+        let taskCalendarStartTimeMap = {};
+        let taskCalendarEndTimeMap = {};
         {% for task in tasks %}
-        taskCalendarTimeMap[{{ task.id }}] = {% if task.calendar_time %}"{{ task.calendar_time.isoformat }}"{% else %}null{% endif %};
+        taskCalendarStartTimeMap[{{ task.id }}] = {% if task.calendar_start_time %}"{{ task.calendar_start_time.isoformat }}"{% else %}null{% endif %};
+        taskCalendarEndTimeMap[{{ task.id }}] = {% if task.calendar_end_time %}"{{ task.calendar_end_time.isoformat }}"{% else %}null{% endif %};
         {% endfor %}
 
         // ========== Custom Modal Functions ==========
@@ -2875,7 +2918,7 @@
                     // Remove from tags map
                     delete taskTagsMap[taskId];
                     // Remove from calendar time map and re-render calendar
-                    delete taskCalendarTimeMap[taskId];
+                    delete taskCalendarStartTimeMap[taskId];
                     renderScheduledTasks();
                 } catch (error) {
                     console.error('Error deleting task:', error);
@@ -2915,13 +2958,14 @@
         function addTaskToKanban(task) {
             // Initialize tags map for the new task
             taskTagsMap[task.id] = task.tags || [];
-            // Initialize calendar time for the new task
-            taskCalendarTimeMap[task.id] = task.calendar_time || null;
+            // Initialize calendar times for the new task
+            taskCalendarStartTimeMap[task.id] = task.calendar_start_time || null;
+            taskCalendarEndTimeMap[task.id] = task.calendar_end_time || null;
 
             // Helper to create a task card
             function createTaskCard(withHighlight) {
                 const card = document.createElement('div');
-                const isScheduled = !!taskCalendarTimeMap[task.id];
+                const isScheduled = !!taskCalendarStartTimeMap[task.id];
                 card.className = 'task-card' + (task.critical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (withHighlight ? ' highlight-new' : '');
                 card.dataset.taskId = task.id;
                 card.draggable = true;
@@ -3217,7 +3261,7 @@
                     // Remove from tags map
                     delete taskTagsMap[taskId];
                     // Remove from calendar time map and re-render calendar
-                    delete taskCalendarTimeMap[taskId];
+                    delete taskCalendarStartTimeMap[taskId];
                     renderScheduledTasks();
                 }
             } catch (error) {
@@ -4275,7 +4319,7 @@
                 card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
             }
             const isCritical = card ? card.classList.contains('critical') : false;
-            const isScheduled = !!taskCalendarTimeMap[taskId];
+            const isScheduled = !!taskCalendarStartTimeMap[taskId];
             const taskTags = taskTagsMap[taskId] || [];
 
             // Build menu HTML
@@ -5055,7 +5099,7 @@
             const body = group.querySelector('.state-group-body');
             tasks.forEach(task => {
                 const card = document.createElement('div');
-                const calendarTime = taskCalendarTimeMap[task.id];
+                const calendarTime = taskCalendarStartTimeMap[task.id];
                 const isScheduled = !!calendarTime;
                 const isToday = isScheduled && isScheduledForToday(calendarTime);
                 card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (task.isCompleted ? ' completed' : '');
@@ -5252,7 +5296,7 @@
 
                 // Filter by today (only show tasks scheduled for today)
                 if (show && activeFilters.today) {
-                    const calendarTime = taskCalendarTimeMap[taskId];
+                    const calendarTime = taskCalendarStartTimeMap[taskId];
                     if (!calendarTime || !isScheduledForToday(calendarTime)) {
                         show = false;
                     }
@@ -5530,17 +5574,17 @@
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-            // Iterate through tasks with calendar_time
-            Object.entries(taskCalendarTimeMap).forEach(([taskId, calendarTime]) => {
-                if (!calendarTime) return;
+            // Iterate through tasks with calendar_start_time
+            Object.entries(taskCalendarStartTimeMap).forEach(([taskId, calendarStartTime]) => {
+                if (!calendarStartTime) return;
 
-                const scheduledDate = new Date(calendarTime);
+                const startDate = new Date(calendarStartTime);
 
                 // Skip tasks not scheduled for today
-                if (scheduledDate < todayStart || scheduledDate >= todayEnd) return;
+                if (startDate < todayStart || startDate >= todayEnd) return;
 
-                const hour = scheduledDate.getHours();
-                const minute = scheduledDate.getMinutes();
+                const hour = startDate.getHours();
+                const minute = startDate.getMinutes();
 
                 // Skip if outside visible range (7am-6pm)
                 if (hour < 7 || hour > 18) return;
@@ -5555,6 +5599,15 @@
                 const titleEl = taskCard.querySelector('.task-card-title');
                 const title = titleEl ? titleEl.textContent : 'Task';
                 const isCritical = taskCard.classList.contains('critical');
+                const tags = taskTagsMap[taskId] || [];
+
+                // Calculate duration in minutes (default to 30 if no end time)
+                let durationMinutes = 30;
+                const calendarEndTime = taskCalendarEndTimeMap[taskId];
+                if (calendarEndTime) {
+                    const endDate = new Date(calendarEndTime);
+                    durationMinutes = Math.max(15, (endDate - startDate) / (1000 * 60));
+                }
 
                 // Create scheduled task element
                 const taskEl = document.createElement('div');
@@ -5563,11 +5616,37 @@
                 taskEl.draggable = true;
                 taskEl.title = title;
 
-                // Add title text and remove button
-                const titleSpan = document.createElement('span');
-                titleSpan.textContent = title;
-                taskEl.appendChild(titleSpan);
+                // Create content wrapper
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'calendar-task-content';
 
+                // Add task icon
+                const taskIcon = document.createElement('i');
+                taskIcon.className = 'bi bi-check2-square calendar-task-icon';
+                contentWrapper.appendChild(taskIcon);
+
+                // Add title text
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'calendar-task-title';
+                titleSpan.textContent = title;
+                contentWrapper.appendChild(titleSpan);
+
+                taskEl.appendChild(contentWrapper);
+
+                // Add tag pills if task has tags
+                if (tags.length > 0) {
+                    const tagsContainer = document.createElement('div');
+                    tagsContainer.className = 'calendar-task-tags';
+                    tags.forEach(tag => {
+                        const tagPill = document.createElement('span');
+                        tagPill.className = 'calendar-task-tag';
+                        tagPill.textContent = tag.name;
+                        tagsContainer.appendChild(tagPill);
+                    });
+                    taskEl.appendChild(tagsContainer);
+                }
+
+                // Add remove button
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'remove-btn';
                 removeBtn.innerHTML = '<i class="bi bi-x"></i>';
@@ -5578,9 +5657,24 @@
                 });
                 taskEl.appendChild(removeBtn);
 
+                // Add resize handle at bottom
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'calendar-task-resize-handle';
+                resizeHandle.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    startTaskResize(taskEl, taskId, startDate);
+                });
+                taskEl.appendChild(resizeHandle);
+
                 // Position based on minute within the hour (absolute positioning)
                 const topPercent = (minute / 60) * 100;
                 taskEl.style.top = `${topPercent}%`;
+
+                // Calculate height based on duration (each hour content is 100%)
+                // Duration in minutes / 60 * 100 = percent of hour
+                const heightPercent = (durationMinutes / 60) * 100;
+                taskEl.style.height = `${heightPercent}%`;
 
                 // Setup drag events for scheduled task
                 setupScheduledTaskDragEvents(taskEl);
@@ -5593,6 +5687,66 @@
 
                 hourContent.appendChild(taskEl);
             });
+        }
+
+        // Handle task resize by dragging bottom edge
+        let resizeState = null;
+
+        function startTaskResize(taskEl, taskId, startDate) {
+            const hourContent = taskEl.closest('.hour-content');
+            const hourlyGrid = document.getElementById('hourly-grid');
+
+            resizeState = {
+                taskEl,
+                taskId,
+                startDate,
+                initialHeight: taskEl.offsetHeight,
+                hourContentHeight: hourContent.offsetHeight
+            };
+
+            document.addEventListener('mousemove', handleTaskResize);
+            document.addEventListener('mouseup', endTaskResize);
+            taskEl.classList.add('resizing');
+        }
+
+        function handleTaskResize(e) {
+            if (!resizeState) return;
+
+            const { taskEl, hourContentHeight } = resizeState;
+            const hourContent = taskEl.closest('.hour-content');
+            const rect = hourContent.getBoundingClientRect();
+            const taskTop = parseFloat(taskEl.style.top) || 0;
+
+            // Calculate new height based on mouse position relative to hour content
+            const relativeY = e.clientY - rect.top;
+            const newHeightPercent = Math.max(25, relativeY - (taskTop / 100 * rect.height)) / rect.height * 100;
+
+            // Snap to 15-minute increments (25% of hour)
+            const snappedHeight = Math.round(newHeightPercent / 25) * 25;
+            const finalHeight = Math.max(25, Math.min(300, snappedHeight)); // Min 15 min, max 3 hours
+
+            taskEl.style.height = `${finalHeight}%`;
+        }
+
+        async function endTaskResize() {
+            if (!resizeState) return;
+
+            const { taskEl, taskId, startDate } = resizeState;
+            const heightPercent = parseFloat(taskEl.style.height) || 50;
+
+            // Calculate new end time based on height
+            const durationMinutes = (heightPercent / 100) * 60;
+            const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+            const endTimeUTC = localToUTC(endDate);
+
+            taskEl.classList.remove('resizing');
+
+            // Update on server
+            await updateTaskCalendarEndTime(taskId, endTimeUTC);
+
+            document.removeEventListener('mousemove', handleTaskResize);
+            document.removeEventListener('mouseup', endTaskResize);
+            resizeState = null;
         }
 
         // Setup drag events for scheduled tasks on the calendar
@@ -5615,22 +5769,31 @@
             return localDate.toISOString();
         }
 
-        // Update a task's calendar_time on the server
-        async function updateTaskCalendarTime(taskId, calendarTimeUTC) {
+        // Update a task's calendar times on the server
+        async function updateTaskCalendarTime(taskId, startTimeUTC, endTimeUTC = undefined) {
             try {
+                const body = { calendar_start_time: startTimeUTC };
+                // If endTimeUTC is explicitly provided (including null), include it
+                if (endTimeUTC !== undefined) {
+                    body.calendar_end_time = endTimeUTC;
+                }
+
                 const response = await fetch(`/tasks/api/${taskId}/update/`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ calendar_time: calendarTimeUTC })
+                    body: JSON.stringify(body)
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    // Update local map
-                    taskCalendarTimeMap[taskId] = calendarTimeUTC;
+                    // Update local maps
+                    taskCalendarStartTimeMap[taskId] = startTimeUTC;
+                    if (endTimeUTC !== undefined) {
+                        taskCalendarEndTimeMap[taskId] = endTimeUTC;
+                    }
 
                     // Update task card scheduled class
                     updateTaskScheduledClass(taskId);
@@ -5643,10 +5806,34 @@
             return false;
         }
 
+        // Update only the end time of a task
+        async function updateTaskCalendarEndTime(taskId, endTimeUTC) {
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ calendar_end_time: endTimeUTC })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local map
+                    taskCalendarEndTimeMap[taskId] = endTimeUTC;
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error updating calendar end time:', error);
+            }
+            return false;
+        }
+
         // Update the scheduled class on a task card
         function updateTaskScheduledClass(taskId) {
             const cards = document.querySelectorAll(`.task-card[data-task-id="${taskId}"]`);
-            const calendarTime = taskCalendarTimeMap[taskId];
+            const calendarTime = taskCalendarStartTimeMap[taskId];
             const isScheduled = !!calendarTime;
             const isToday = isScheduled && isScheduledForToday(calendarTime);
 
@@ -5673,11 +5860,11 @@
             });
         }
 
-        // Remove a task from the calendar (via context menu)
+        // Remove a task from the calendar (via context menu or remove button)
         async function removeFromCalendar(taskId) {
             closeContextMenu();
 
-            const success = await updateTaskCalendarTime(taskId, null);
+            const success = await updateTaskCalendarTime(taskId, null, null);
 
             if (success) {
                 renderScheduledTasks();
@@ -5722,13 +5909,17 @@
                     // Round to nearest 30 minutes (0 or 30)
                     const clampedMinute = percentY < 0.5 ? 0 : 30;
 
-                    // Create the scheduled time in local timezone, then convert to UTC
+                    // Create the scheduled start time in local timezone, then convert to UTC
                     const now = new Date();
-                    const scheduledLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
-                    const scheduledUTC = localToUTC(scheduledLocal);
+                    const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
+                    const startUTC = localToUTC(startLocal);
 
-                    // Update on server
-                    const success = await updateTaskCalendarTime(taskId, scheduledUTC);
+                    // Create end time (30 minutes after start)
+                    const endLocal = new Date(startLocal.getTime() + 30 * 60 * 1000);
+                    const endUTC = localToUTC(endLocal);
+
+                    // Update on server with both start and end times
+                    const success = await updateTaskCalendarTime(taskId, startUTC, endUTC);
 
                     if (success) {
                         // Re-render scheduled tasks on calendar
@@ -5743,7 +5934,7 @@
             // Task cards can already be dragged (setupTaskCardDragEvents handles this)
             // We just need to make sure the calendar drop zones accept them
 
-            // Also set up the tasks panel as a drop target for removing calendar_time
+            // Also set up the tasks panel as a drop target for removing calendar times
             const tasksPanel = document.getElementById('tasks-panel');
             if (tasksPanel) {
                 tasksPanel.addEventListener('dragover', function(e) {
@@ -5762,8 +5953,8 @@
                     const taskId = e.dataTransfer.getData('text/plain');
                     if (!taskId) return;
 
-                    // Remove calendar_time
-                    const success = await updateTaskCalendarTime(taskId, null);
+                    // Remove calendar times (both start and end)
+                    const success = await updateTaskCalendarTime(taskId, null, null);
 
                     if (success) {
                         // Re-render scheduled tasks (will remove the element)
@@ -5775,7 +5966,7 @@
 
         // Initialize scheduled task indicators on existing cards
         function initScheduledTaskIndicators() {
-            Object.entries(taskCalendarTimeMap).forEach(([taskId, calendarTime]) => {
+            Object.entries(taskCalendarStartTimeMap).forEach(([taskId, calendarTime]) => {
                 if (calendarTime) {
                     updateTaskScheduledClass(taskId);
                 }
@@ -5784,6 +5975,9 @@
 
         // Update task counts in the panel layout
         function updatePanelCounts() {
+            // Check if any filters are active (excluding showCompleted which is not a filter)
+            const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0;
+
             // Update state group counts (in states-content)
             document.querySelectorAll('#states-content .state-group').forEach(group => {
                 const stateId = group.dataset.stateId;
@@ -5798,13 +5992,14 @@
                 const metricPill = document.querySelector(`.panel-collapsed-metrics .metric-pill[data-state-id="${stateId}"] .metric-count`);
                 if (metricPill) metricPill.textContent = visibleCards;
 
-                // Show/hide empty message (or hide "No State" group entirely when empty)
+                // Show/hide empty message or hide entire group when filters are active
                 let emptyMsg = body.querySelector('.state-group-empty');
                 if (visibleCards === 0) {
-                    if (stateId === 'none') {
-                        // Hide "No State" group entirely when empty
+                    if (hasActiveFilters || stateId === 'none') {
+                        // Hide group entirely when filters are active and no matching tasks
                         group.style.display = 'none';
                     } else {
+                        group.style.display = '';
                         if (!emptyMsg) {
                             emptyMsg = document.createElement('div');
                             emptyMsg.className = 'state-group-empty';
@@ -5813,9 +6008,7 @@
                         }
                     }
                 } else {
-                    if (stateId === 'none') {
-                        group.style.display = '';
-                    }
+                    group.style.display = '';
                     if (emptyMsg) {
                         emptyMsg.remove();
                     }
@@ -5831,17 +6024,26 @@
                 const countEl = group.querySelector('.state-group-count');
                 if (countEl) countEl.textContent = visibleCards;
 
-                // Show/hide empty message
+                // Show/hide empty message or hide entire group when filters are active
                 let emptyMsg = body.querySelector('.state-group-empty');
                 if (visibleCards === 0) {
-                    if (!emptyMsg) {
-                        emptyMsg = document.createElement('div');
-                        emptyMsg.className = 'state-group-empty';
-                        emptyMsg.textContent = 'No tasks';
-                        body.appendChild(emptyMsg);
+                    if (hasActiveFilters) {
+                        // Hide group entirely when filters are active and no matching tasks
+                        group.style.display = 'none';
+                    } else {
+                        group.style.display = '';
+                        if (!emptyMsg) {
+                            emptyMsg = document.createElement('div');
+                            emptyMsg.className = 'state-group-empty';
+                            emptyMsg.textContent = 'No tasks';
+                            body.appendChild(emptyMsg);
+                        }
                     }
-                } else if (emptyMsg) {
-                    emptyMsg.remove();
+                } else {
+                    group.style.display = '';
+                    if (emptyMsg) {
+                        emptyMsg.remove();
+                    }
                 }
             });
         }

@@ -17,7 +17,7 @@ class TaskTagAdmin(admin.ModelAdmin):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ['title', 'state', 'critical', 'calendar_time', 'created_at']
+    list_display = ['title', 'state', 'critical', 'calendar_start_time', 'calendar_end_time', 'created_at']
     list_filter = ['critical', 'state', 'tags']
     search_fields = ['title', 'details']
     filter_horizontal = ['tags']
