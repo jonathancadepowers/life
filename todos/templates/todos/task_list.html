@@ -1277,6 +1277,10 @@
                             <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
                                 <i class="bi bi-x-lg"></i>
                             </button>
+                            {% else %}
+                            <button class="state-delete" style="visibility: hidden; pointer-events: none;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
                             {% endif %}
                         </div>
                     </li>
