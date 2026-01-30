@@ -1371,6 +1371,34 @@
             border-bottom: none;
         }
 
+        /* Collapsed panel metrics */
+        .panel-collapsed-metrics {
+            display: none;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-left: 1rem;
+            flex: 1;
+        }
+
+        .panel.collapsed .panel-collapsed-metrics {
+            display: flex;
+        }
+
+        .metric-pill {
+            background: #e9ecef;
+            color: #495057;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        .metric-pill .metric-count,
+        .metric-pill #meetings-count,
+        .metric-pill #meetings-time {
+            font-weight: 600;
+        }
+
         /* Tasks Panel - State Groups */
         .state-group {
             margin-bottom: 1.5rem;
@@ -1758,6 +1786,13 @@
                     <div class="panel-header-left">
                         <span class="panel-header-title">Tasks</span>
                     </div>
+                    <div class="panel-collapsed-metrics" id="tasks-collapsed-metrics">
+                        {% for state in states %}
+                        {% if not state.is_terminal %}
+                        <span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
                     <button class="panel-collapse-btn" id="tasks-collapse-btn" title="Collapse Tasks">
                         <i class="bi bi-chevron-down"></i>
                     </button>
@@ -1799,6 +1834,10 @@
                 <div class="panel-header">
                     <div class="panel-header-left">
                         <span class="panel-header-title">Calendar</span>
+                    </div>
+                    <div class="panel-collapsed-metrics" id="calendar-collapsed-metrics">
+                        <span class="metric-pill">Meetings: <span id="meetings-count">0</span></span>
+                        <span class="metric-pill">Time in Meetings: <span id="meetings-time">0h</span></span>
                     </div>
                     <button class="panel-collapse-btn" id="calendar-collapse-btn" title="Collapse Calendar">
                         <i class="bi bi-chevron-down"></i>
@@ -3744,6 +3783,10 @@
                 const countEl = document.getElementById(`panel-count-${stateId}`);
                 if (countEl) countEl.textContent = visibleCards;
 
+                // Update collapsed metrics pill
+                const metricPill = document.querySelector(`.panel-collapsed-metrics .metric-pill[data-state-id="${stateId}"] .metric-count`);
+                if (metricPill) metricPill.textContent = visibleCards;
+
                 // Show/hide empty message
                 let emptyMsg = body.querySelector('.state-group-empty');
                 if (visibleCards === 0) {
@@ -3757,6 +3800,42 @@
                     emptyMsg.remove();
                 }
             });
+        }
+
+        // Update calendar metrics in collapsed view
+        function updateCalendarMetrics() {
+            if (!calendarEvents || calendarEvents.length === 0) {
+                document.getElementById('meetings-count').textContent = '0';
+                document.getElementById('meetings-time').textContent = '0h';
+                return;
+            }
+
+            // Count non-all-day events as meetings
+            const meetings = calendarEvents.filter(e => !e.is_all_day);
+            const meetingCount = meetings.length;
+
+            // Calculate total time in meetings (in minutes)
+            let totalMinutes = 0;
+            meetings.forEach(event => {
+                const startMinutes = event.start_hour * 60 + event.start_minute;
+                const endMinutes = event.end_hour * 60 + event.end_minute;
+                totalMinutes += endMinutes - startMinutes;
+            });
+
+            // Format time
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = totalMinutes % 60;
+            let timeStr;
+            if (hours > 0 && mins > 0) {
+                timeStr = `${hours}h ${mins}m`;
+            } else if (hours > 0) {
+                timeStr = `${hours}h`;
+            } else {
+                timeStr = `${mins}m`;
+            }
+
+            document.getElementById('meetings-count').textContent = meetingCount;
+            document.getElementById('meetings-time').textContent = timeStr;
         }
 
         // ========== Task Card Drag and Drop ==========
@@ -3854,6 +3933,7 @@
         setCalendarDate();
         renderCalendarEvents();
         updatePanelCounts();
+        updateCalendarMetrics();
 
         // Subtle icon color animation
         (function() {
