@@ -3899,7 +3899,7 @@
                     // If state changed, update on server
                     if (newStateId !== oldStateId) {
                         try {
-                            const response = await fetch(`/tasks/api/tasks/${taskId}/update/`, {
+                            const response = await fetch(`/tasks/api/${taskId}/update/`, {
                                 method: 'PATCH',
                                 headers: {
                                     'Content-Type': 'application/json',
