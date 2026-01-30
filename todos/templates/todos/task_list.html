@@ -1996,7 +1996,7 @@
             position: absolute;
             left: 4px;
             right: 4px;
-            height: 26px;
+            height: 28px;
             background: #d4edda;
             color: #155724;
             font-size: 0.75rem;
@@ -2093,7 +2093,7 @@
 
         .hour-content {
             flex: 1;
-            padding: 0.25rem 0.5rem;
+            padding: 0 0.5rem;
             position: relative;
             min-height: 60px;
         }
@@ -5399,9 +5399,8 @@
                     const rect = this.getBoundingClientRect();
                     const relativeY = e.clientY - rect.top;
                     const percentY = relativeY / rect.height;
-                    // Round to nearest 15 minutes
-                    const minute = Math.round(percentY * 60 / 15) * 15;
-                    const clampedMinute = Math.max(0, Math.min(45, minute));
+                    // Round to nearest 30 minutes (0 or 30)
+                    const clampedMinute = percentY < 0.5 ? 0 : 30;
 
                     // Create the scheduled time in local timezone, then convert to UTC
                     const now = new Date();
