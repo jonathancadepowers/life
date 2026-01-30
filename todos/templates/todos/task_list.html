@@ -934,14 +934,12 @@
         }
 
         .delete-completed-link {
-            display: block;
-            text-align: center;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: #999;
-            padding: 0.5rem;
             cursor: pointer;
-            border-top: 1px dashed #eee;
-            margin-top: 0.25rem;
+            text-align: right;
+            padding: 0.25rem 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .delete-completed-link:hover {
@@ -2303,8 +2301,12 @@
                     const deleteLink = document.createElement('div');
                     deleteLink.className = 'delete-completed-link';
                     deleteLink.textContent = 'Delete completed tasks';
-                    deleteLink.onclick = () => deleteCompletedTasks(terminalStateId);
-                    body.after(deleteLink);
+                    deleteLink.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteCompletedTasks(terminalStateId);
+                    };
+                    // Insert at the beginning of the body
+                    body.insertBefore(deleteLink, body.firstChild);
                 }
             }
         }
