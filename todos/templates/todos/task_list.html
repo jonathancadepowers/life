@@ -1286,8 +1286,8 @@
 
         .panels-wrapper {
             display: flex;
-            flex-direction: column;
             gap: 1rem;
+            align-items: flex-start;
         }
 
         .panel {
@@ -1299,6 +1299,8 @@
             overflow: hidden;
             transition: max-height 0.3s ease;
             position: relative;
+            flex: 1;
+            min-width: 300px;
         }
 
         .panel.tasks-panel {
