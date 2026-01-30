@@ -3280,6 +3280,8 @@
                 // Add card to calendar section
                 const cardClone = draggedKanbanCard.cloneNode(true);
                 cardClone.draggable = true;
+                cardClone.classList.remove('dragging');
+                cardClone.style.opacity = '1';
                 this.appendChild(cardClone);
 
                 // Setup drag for cloned card
