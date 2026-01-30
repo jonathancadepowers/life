@@ -6211,6 +6211,10 @@
                 blockEl.style.height = `${heightPercent}%`;
                 blockEl.style.minHeight = '28px';
 
+                // Make time block draggable
+                blockEl.draggable = true;
+                setupTimeBlockDragEvents(blockEl);
+
                 hourContent.appendChild(blockEl);
             });
         }
@@ -6762,6 +6766,60 @@
             });
         }
 
+        // Track dragged time block
+        let currentDragTimeBlockId = null;
+
+        function setupTimeBlockDragEvents(blockEl) {
+            blockEl.addEventListener('dragstart', function(e) {
+                this.classList.add('dragging');
+                currentDragTimeBlockId = this.dataset.blockId;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', this.dataset.blockId);
+                e.dataTransfer.setData('application/x-time-block', 'true');
+            });
+
+            blockEl.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                currentDragTimeBlockId = null;
+                document.querySelectorAll('.hour-content.drag-over').forEach(el => {
+                    el.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
+                    el.style.removeProperty('--preview-height');
+                });
+            });
+        }
+
+        // Update a time block's times on the server
+        async function updateTimeBlockTime(blockId, startTimeUTC, endTimeUTC) {
+            try {
+                const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        start_time: startTimeUTC,
+                        end_time: endTimeUTC
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local timeBlocks array
+                    const block = timeBlocks.find(b => b.id === parseInt(blockId));
+                    if (block) {
+                        block.start = startTimeUTC;
+                        block.end = endTimeUTC;
+                    }
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error updating time block:', error);
+                return false;
+            }
+        }
+
         // Convert local datetime to UTC ISO string
         function localToUTC(localDate) {
             return localDate.toISOString();
@@ -6914,6 +6972,9 @@
             // Check time blocks
             if (timeBlocks && timeBlocks.length > 0) {
                 for (const block of timeBlocks) {
+                    // Skip if this is the time block being moved
+                    if (excludeTaskId === 'timeblock-' + block.id) continue;
+
                     const blockStart = new Date(block.start);
                     const blockEnd = new Date(block.end);
 
@@ -6934,17 +6995,29 @@
                     e.preventDefault();
                     this.classList.add('drag-over');
 
-                    // Use currentDragTaskId which works for both task cards and calendar items
+                    // Check if dragging a task or a time block
                     const taskId = currentDragTaskId;
+                    const timeBlockId = currentDragTimeBlockId;
 
-                    // Use existing duration if task has one, otherwise 30 minutes
+                    // Use existing duration if available, otherwise 30 minutes
                     let durationMs = 30 * 60 * 1000;
+                    let excludeId = null;
+
                     if (taskId) {
+                        excludeId = taskId;
                         const existingStartTime = taskCalendarStartTimeMap[taskId];
                         const existingEndTime = taskCalendarEndTimeMap[taskId];
                         if (existingStartTime && existingEndTime) {
                             const existingStart = new Date(existingStartTime);
                             const existingEnd = new Date(existingEndTime);
+                            durationMs = existingEnd - existingStart;
+                        }
+                    } else if (timeBlockId) {
+                        excludeId = 'timeblock-' + timeBlockId;
+                        const block = timeBlocks.find(b => b.id === parseInt(timeBlockId));
+                        if (block) {
+                            const existingStart = new Date(block.start);
+                            const existingEnd = new Date(block.end);
                             durationMs = existingEnd - existingStart;
                         }
                     }
@@ -6968,7 +7041,7 @@
                     const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
                     const endLocal = new Date(startLocal.getTime() + durationMs);
 
-                    const isBlocked = taskId && hasOverlappingItem(startLocal, endLocal, taskId);
+                    const isBlocked = excludeId && hasOverlappingItem(startLocal, endLocal, excludeId);
                     this.classList.toggle('drag-blocked', isBlocked);
                     e.dataTransfer.dropEffect = isBlocked ? 'none' : 'move';
                 });
@@ -6985,9 +7058,10 @@
                     this.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
                     this.style.removeProperty('--preview-height');
 
-                    const taskId = e.dataTransfer.getData('text/plain');
-                    if (!taskId) return;
+                    const dataId = e.dataTransfer.getData('text/plain');
+                    if (!dataId) return;
 
+                    const isTimeBlock = e.dataTransfer.types.includes('application/x-time-block');
                     const hour = parseInt(this.dataset.hour);
 
                     // Calculate minute based on drop position within the hour
@@ -7001,33 +7075,58 @@
                     const now = new Date();
                     const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
 
-                    // Preserve existing duration if task already has one, otherwise default to 30 minutes
-                    let durationMs = 30 * 60 * 1000; // 30 minutes default
-                    const existingStartTime = taskCalendarStartTimeMap[taskId];
-                    const existingEndTime = taskCalendarEndTimeMap[taskId];
-                    if (existingStartTime && existingEndTime) {
-                        const existingStart = new Date(existingStartTime);
-                        const existingEnd = new Date(existingEndTime);
-                        durationMs = existingEnd - existingStart;
-                    }
+                    if (isTimeBlock) {
+                        // Handle time block drop
+                        const blockId = dataId;
+                        const block = timeBlocks.find(b => b.id === parseInt(blockId));
+                        if (!block) return;
 
-                    const endLocal = new Date(startLocal.getTime() + durationMs);
+                        // Preserve existing duration
+                        const existingStart = new Date(block.start);
+                        const existingEnd = new Date(block.end);
+                        const durationMs = existingEnd - existingStart;
+                        const endLocal = new Date(startLocal.getTime() + durationMs);
 
-                    // Check for overlapping tasks or events before allowing drop
-                    if (hasOverlappingItem(startLocal, endLocal, taskId)) {
-                        // Don't drop - there's already something at this time
-                        return;
-                    }
+                        // Check for overlapping items
+                        if (hasOverlappingItem(startLocal, endLocal, 'timeblock-' + blockId)) {
+                            return;
+                        }
 
-                    const startUTC = localToUTC(startLocal);
-                    const endUTC = localToUTC(endLocal);
+                        const startUTC = localToUTC(startLocal);
+                        const endUTC = localToUTC(endLocal);
 
-                    // Update on server with both start and end times
-                    const success = await updateTaskCalendarTime(taskId, startUTC, endUTC);
+                        const success = await updateTimeBlockTime(blockId, startUTC, endUTC);
+                        if (success) {
+                            renderTimeBlocks();
+                        }
+                    } else {
+                        // Handle task drop
+                        const taskId = dataId;
 
-                    if (success) {
-                        // Re-render scheduled tasks on calendar
-                        renderScheduledTasks();
+                        // Preserve existing duration if task already has one, otherwise default to 30 minutes
+                        let durationMs = 30 * 60 * 1000; // 30 minutes default
+                        const existingStartTime = taskCalendarStartTimeMap[taskId];
+                        const existingEndTime = taskCalendarEndTimeMap[taskId];
+                        if (existingStartTime && existingEndTime) {
+                            const existingStart = new Date(existingStartTime);
+                            const existingEnd = new Date(existingEndTime);
+                            durationMs = existingEnd - existingStart;
+                        }
+
+                        const endLocal = new Date(startLocal.getTime() + durationMs);
+
+                        // Check for overlapping tasks or events before allowing drop
+                        if (hasOverlappingItem(startLocal, endLocal, taskId)) {
+                            return;
+                        }
+
+                        const startUTC = localToUTC(startLocal);
+                        const endUTC = localToUTC(endLocal);
+
+                        const success = await updateTaskCalendarTime(taskId, startUTC, endUTC);
+                        if (success) {
+                            renderScheduledTasks();
+                        }
                     }
                 });
             });
