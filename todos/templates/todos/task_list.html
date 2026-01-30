@@ -1742,7 +1742,9 @@
             border-color: #ced4da;
         }
 
-        .calendar-panel.expanded .add-event-btn {
+        /* Show when horizontally expanded OR vertically expanded (not collapsed) */
+        .calendar-panel.expanded .add-event-btn,
+        .calendar-panel:not(.collapsed):not(.minimized) .add-event-btn {
             display: flex;
         }
 
