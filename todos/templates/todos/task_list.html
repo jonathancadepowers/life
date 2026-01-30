@@ -462,6 +462,23 @@
 
         .context-name {
             font-size: 1rem;
+            cursor: pointer;
+            padding: 0.125rem 0.25rem;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .context-name:hover {
+            background: #e9ecef;
+        }
+
+        .context-name-input {
+            font-size: 1rem;
+            padding: 0.125rem 0.25rem;
+            border: 1px solid #6B9080;
+            border-radius: 4px;
+            outline: none;
+            width: 120px;
         }
 
         .context-delete {
@@ -591,6 +608,31 @@
 
         .state-name {
             font-size: 1rem;
+            cursor: pointer;
+            padding: 0.125rem 0.25rem;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .state-name:hover {
+            background: #e9ecef;
+        }
+
+        .state-name.no-edit {
+            cursor: default;
+        }
+
+        .state-name.no-edit:hover {
+            background: transparent;
+        }
+
+        .state-name-input {
+            font-size: 1rem;
+            padding: 0.125rem 0.25rem;
+            border: 1px solid #6B9080;
+            border-radius: 4px;
+            outline: none;
+            width: 100px;
         }
 
         .state-delete {
@@ -1150,7 +1192,7 @@
                 <div class="kanban-column-body" data-state-id="{{ state.id }}">
                     {% for task in tasks %}
                     {% if task.state == state %}
-                    <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                    <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
                         <div class="kanban-card-title">
                             {{ task.title }}
                         </div>
@@ -1187,7 +1229,7 @@
                     <li class="context-item" data-context-id="{{ context.id }}" data-context-color="{{ context.color }}">
                         <div class="context-item-left">
                             <div class="context-color-dot" style="background: {{ context.color }};"></div>
-                            <span class="context-name">{{ context.name }}</span>
+                            <span class="context-name" onclick="editContextName({{ context.id }}, this)">{{ context.name }}</span>
                         </div>
                         <button class="context-delete" onclick="deleteContext({{ context.id }}, this)" title="Delete context">
                             <i class="bi bi-x-lg"></i>
@@ -1222,7 +1264,7 @@
                                        {% if state.name == 'Inbox' %}disabled{% endif %}
                                        onchange="toggleTerminal({{ state.id }}, this)">
                             </div>
-                            <span class="state-name">{{ state.name }}</span>
+                            <span class="state-name{% if state.name == 'Inbox' %} no-edit{% endif %}" {% if state.name != 'Inbox' %}onclick="editStateName({{ state.id }}, this)"{% endif %}>{{ state.name }}</span>
                             <button class="state-icon-btn" onclick="openIconPicker({{ state.id }}, this)" title="Choose icon">
                                 <i class="bi {% if state.bootstrap_icon %}{{ state.bootstrap_icon }}{% else %}bi-plus-circle-dotted{% endif %}"></i>
                             </button>
@@ -1250,7 +1292,7 @@
                                        checked
                                        onchange="toggleTerminal({{ state.id }}, this)">
                             </div>
-                            <span class="state-name">{{ state.name }}</span>
+                            <span class="state-name" onclick="editStateName({{ state.id }}, this)">{{ state.name }}</span>
                         </div>
                         <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
                             <i class="bi bi-x-lg"></i>
@@ -1534,7 +1576,7 @@
             li.innerHTML = `
                 <div class="context-item-left">
                     <div class="context-color-dot" style="background: ${context.color};" onclick="event.stopPropagation(); openColorPicker(${context.id}, this)"></div>
-                    <span class="context-name">${escapeHtml(context.name)}</span>
+                    <span class="context-name" onclick="editContextName(${context.id}, this)">${escapeHtml(context.name)}</span>
                 </div>
                 <button class="context-delete" onclick="deleteContext(${context.id}, this)" title="Delete context">
                     <i class="bi bi-x-lg"></i>
@@ -1723,6 +1765,160 @@
                 });
             }
         });
+
+        // Edit context name inline
+        function editContextName(contextId, spanElement) {
+            const currentName = spanElement.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'context-name-input';
+            input.value = currentName;
+
+            spanElement.replaceWith(input);
+            input.focus();
+            input.select();
+
+            async function saveContextName() {
+                const newName = input.value.trim();
+                if (newName && newName !== currentName) {
+                    try {
+                        const response = await fetch(`/tasks/api/contexts/${contextId}/update/`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ name: newName })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            // Update local list
+                            const ctx = contextsList.find(c => c.id === contextId);
+                            if (ctx) ctx.name = newName;
+
+                            // Update dropdown
+                            const option = document.querySelector(`#panel-context option[value="${contextId}"]`);
+                            if (option) option.textContent = newName;
+
+                            // Update kanban cards with this context
+                            document.querySelectorAll('.kanban-card-context').forEach(badge => {
+                                const bgColor = badge.style.background;
+                                if (ctx && ctx.color.toLowerCase() === bgColor.toLowerCase()) {
+                                    badge.textContent = newName;
+                                }
+                            });
+
+                            restoreContextSpan(newName);
+                        } else {
+                            alert(data.error || 'Failed to rename context');
+                            restoreContextSpan(currentName);
+                        }
+                    } catch (error) {
+                        console.error('Error renaming context:', error);
+                        restoreContextSpan(currentName);
+                    }
+                } else {
+                    restoreContextSpan(currentName);
+                }
+            }
+
+            function restoreContextSpan(name) {
+                const span = document.createElement('span');
+                span.className = 'context-name';
+                span.textContent = name;
+                span.onclick = () => editContextName(contextId, span);
+                input.replaceWith(span);
+            }
+
+            input.addEventListener('blur', saveContextName);
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    restoreContextSpan(currentName);
+                }
+            });
+        }
+
+        // Edit state name inline
+        function editStateName(stateId, spanElement) {
+            const currentName = spanElement.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'state-name-input';
+            input.value = currentName;
+
+            spanElement.replaceWith(input);
+            input.focus();
+            input.select();
+
+            async function saveStateName() {
+                const newName = input.value.trim();
+                if (newName && newName !== currentName) {
+                    try {
+                        const response = await fetch(`/tasks/api/states/${stateId}/update/`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ name: newName })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            // Update local list
+                            const state = statesList.find(s => s.id === stateId);
+                            if (state) state.name = newName;
+
+                            // Update the state item data attribute
+                            const stateItem = input.closest('.state-item');
+                            if (stateItem) stateItem.dataset.stateName = newName;
+
+                            // Update kanban column header
+                            const kanbanColumn = document.querySelector(`.kanban-column[data-state-id="${stateId}"]`);
+                            if (kanbanColumn) {
+                                const titleSpan = kanbanColumn.querySelector('.kanban-column-title');
+                                const icon = state?.bootstrap_icon;
+                                if (icon) {
+                                    titleSpan.innerHTML = `<i class="bi ${icon}"></i> ${escapeHtml(newName)}`;
+                                } else {
+                                    titleSpan.textContent = newName;
+                                }
+                            }
+
+                            restoreStateSpan(newName);
+                        } else {
+                            alert(data.error || 'Failed to rename state');
+                            restoreStateSpan(currentName);
+                        }
+                    } catch (error) {
+                        console.error('Error renaming state:', error);
+                        restoreStateSpan(currentName);
+                    }
+                } else {
+                    restoreStateSpan(currentName);
+                }
+            }
+
+            function restoreStateSpan(name) {
+                const span = document.createElement('span');
+                span.className = 'state-name';
+                span.textContent = name;
+                span.onclick = () => editStateName(stateId, span);
+                input.replaceWith(span);
+            }
+
+            input.addEventListener('blur', saveStateName);
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    restoreStateSpan(currentName);
+                }
+            });
+        }
 
         // ========== States Management ==========
 
@@ -2025,7 +2221,7 @@
                                ${state.is_terminal ? 'checked' : ''}
                                onchange="toggleTerminal(${state.id}, this)">
                     </div>
-                    <span class="state-name">${escapeHtml(state.name)}</span>
+                    <span class="state-name" onclick="editStateName(${state.id}, this)">${escapeHtml(state.name)}</span>
                     <button class="state-icon-btn" onclick="openIconPicker(${state.id}, this)" title="Choose icon">
                         <i class="bi bi-plus-circle-dotted"></i>
                     </button>
@@ -2433,6 +2629,7 @@
             const card = document.createElement('div');
             card.className = 'kanban-card' + (task.critical ? ' critical' : '');
             card.dataset.taskId = task.id;
+            card.dataset.contextId = task.context_id || '';
             card.draggable = true;
             card.innerHTML = `
                 <div class="kanban-card-title">${escapeHtml(task.title)}</div>
@@ -2450,6 +2647,7 @@
 
         function updateKanbanCard(card, task) {
             card.className = 'kanban-card' + (task.critical ? ' critical' : '');
+            card.dataset.contextId = task.context_id || '';
             card.querySelector('.kanban-card-title').textContent = task.title;
             const meta = card.querySelector('.kanban-card-meta');
             if (task.context_name) {
@@ -2709,15 +2907,9 @@
 
                 // Filter by context
                 if (activeFilters.contexts.length > 0) {
-                    const contextBadge = card.querySelector('.kanban-card-context');
-                    if (contextBadge) {
-                        const bgColor = contextBadge.style.background;
-                        const ctx = contextsList.find(c => c.color.toLowerCase() === bgColor.toLowerCase());
-                        if (!ctx || !activeFilters.contexts.includes(ctx.id)) {
-                            show = false;
-                        }
-                    } else {
-                        show = false; // No context, but context filter is active
+                    const cardContextId = card.dataset.contextId ? parseInt(card.dataset.contextId) : null;
+                    if (!cardContextId || !activeFilters.contexts.includes(cardContextId)) {
+                        show = false;
                     }
                 }
 
