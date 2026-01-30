@@ -4034,8 +4034,14 @@
                 card.dataset.taskId = task.id;
                 card.draggable = true;
 
+                // Only show tag pills if task has multiple tags
+                const tagsHtml = task.tags.length > 1
+                    ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
+                    : '';
+
                 card.innerHTML = `
                     <div class="task-card-title">${escapeHtml(task.title)}</div>
+                    ${tagsHtml}
                 `;
 
                 // Setup event handlers
