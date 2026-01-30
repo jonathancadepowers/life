@@ -811,6 +811,10 @@
             border-top: 2px solid #6B9080;
         }
 
+        .state-list.drag-over-bottom {
+            border-bottom: 2px solid #6B9080;
+            padding-bottom: 8px;
+        }
 
         .state-terminal-checkbox-wrapper.disabled-terminal {
             cursor: help;
@@ -1450,6 +1454,8 @@
             border-bottom-left-radius: 6px;
             border-bottom-right-radius: 6px;
             min-height: 40px;
+            max-height: 220px;
+            overflow-y: auto;
             transition: background 0.15s;
         }
 
@@ -1519,6 +1525,23 @@
             color: white;
             padding: 0.1rem 0.4rem;
             border-radius: 3px;
+        }
+
+        .task-card-tags {
+            display: flex;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            margin-top: 0.25rem;
+        }
+
+        .task-tag-pill {
+            font-size: 0.6rem;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            background: #e9ecef;
+            color: #6c757d;
+            white-space: nowrap;
         }
 
         .state-group-empty {
@@ -1765,6 +1788,7 @@
                             {% if task.state == state %}
                             <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                 <div class="task-card-title">{{ task.title }}</div>
+                                {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                             </div>
                             {% endif %}
                             {% endfor %}
@@ -2419,6 +2443,7 @@
             document.querySelectorAll('.state-item').forEach(item => {
                 item.classList.remove('drag-over');
             });
+            document.getElementById('state-list').classList.remove('drag-over-bottom');
             draggedItem = null;
         }
 
@@ -2454,6 +2479,44 @@
             saveStateOrder();
         }
 
+        // Allow dropping at the end of the list by handling drops on the container
+        const stateListContainer = document.getElementById('state-list');
+        stateListContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            // Only show bottom indicator if cursor is below all items
+            const items = [...this.querySelectorAll('.state-item:not(#no-states):not(.dragging)')];
+            if (items.length > 0) {
+                const lastItem = items[items.length - 1];
+                const lastItemRect = lastItem.getBoundingClientRect();
+                if (e.clientY > lastItemRect.bottom) {
+                    this.classList.add('drag-over-bottom');
+                } else {
+                    this.classList.remove('drag-over-bottom');
+                }
+            }
+        });
+
+        stateListContainer.addEventListener('dragleave', function(e) {
+            this.classList.remove('drag-over-bottom');
+        });
+
+        stateListContainer.addEventListener('drop', function(e) {
+            if (!draggedItem) return;
+
+            // Check if we're dropping at the bottom (not on a specific item)
+            const items = [...this.querySelectorAll('.state-item:not(#no-states):not(.dragging)')];
+            if (items.length > 0) {
+                const lastItem = items[items.length - 1];
+                const lastItemRect = lastItem.getBoundingClientRect();
+                if (e.clientY > lastItemRect.bottom) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over-bottom');
+                    this.appendChild(draggedItem);
+                    saveStateOrder();
+                }
+            }
+        });
+
         async function saveStateOrder() {
             const stateList = document.getElementById('state-list');
             const items = [...stateList.querySelectorAll('.state-item:not(#no-states)')];
@@ -2477,6 +2540,30 @@
                         const state = statesList.find(s => s.id === parseInt(item.dataset.stateId));
                         if (state) state.order = index;
                     });
+
+                    // Reorder the state groups in the Tasks panel to match
+                    const tasksContent = document.getElementById('tasks-content');
+                    if (tasksContent) {
+                        const stateGroups = [...tasksContent.querySelectorAll('.state-group')];
+                        order.forEach(stateId => {
+                            const group = stateGroups.find(g => parseInt(g.dataset.stateId) === stateId);
+                            if (group) {
+                                tasksContent.appendChild(group);
+                            }
+                        });
+                    }
+
+                    // Reorder the metric pills in the collapsed Tasks header
+                    const metricsContainer = document.getElementById('tasks-collapsed-metrics');
+                    if (metricsContainer) {
+                        const pills = [...metricsContainer.querySelectorAll('.metric-pill')];
+                        order.forEach(stateId => {
+                            const pill = pills.find(p => parseInt(p.dataset.stateId) === stateId);
+                            if (pill) {
+                                metricsContainer.appendChild(pill);
+                            }
+                        });
+                    }
                 }
             } catch (error) {
                 console.error('Error saving state order:', error);
@@ -2715,13 +2802,17 @@
             const card = document.createElement('div');
             card.className = 'kanban-card' + (task.critical ? ' critical' : '');
             card.dataset.taskId = task.id;
-            card.dataset.contextId = task.context_id || '';
             card.draggable = true;
+
+            // Build tags HTML
+            const tags = task.tags || taskTagsMap[task.id] || [];
+            const tagsHtml = tags.length > 0
+                ? `<div class="task-card-tags">${tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
+                : '';
+
             card.innerHTML = `
                 <div class="kanban-card-title" title="${escapeHtml(task.title)}">${escapeHtml(task.title)}</div>
-                <div class="kanban-card-meta">
-                    ${task.context_name ? `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : ''}
-                </div>
+                ${tagsHtml}
             `;
             card.addEventListener('click', function() {
                 openKanbanPanel(task.id);
@@ -2733,20 +2824,15 @@
 
         function updateKanbanCard(card, task) {
             card.className = 'kanban-card' + (task.critical ? ' critical' : '');
-            card.dataset.contextId = task.context_id || '';
 
             // Update title
             const title = card.querySelector('.kanban-card-title');
             title.textContent = task.title;
             title.title = task.title;
 
-            // Update meta
-            const meta = card.querySelector('.kanban-card-meta');
-            if (task.context_name) {
-                meta.innerHTML = `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>`;
-            } else {
-                meta.innerHTML = '';
-            }
+            // Update tags
+            const tags = task.tags || taskTagsMap[task.id] || [];
+            updateTaskCardTags(task.id, tags);
 
             // Update critical class
             if (task.critical) {
@@ -2866,6 +2952,33 @@
             contextMenuTaskId = null;
         }
 
+        function updateTaskCardTags(taskId, tags) {
+            // Update both task-card and kanban-card
+            const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+            const kanbanCard = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+
+            [taskCard, kanbanCard].forEach(card => {
+                if (!card) return;
+
+                // Remove existing tags container
+                let tagsContainer = card.querySelector('.task-card-tags');
+                if (tagsContainer) tagsContainer.remove();
+
+                // Add new tags if any
+                if (tags && tags.length > 0) {
+                    tagsContainer = document.createElement('div');
+                    tagsContainer.className = 'task-card-tags';
+                    tags.forEach(tag => {
+                        const pill = document.createElement('span');
+                        pill.className = 'task-tag-pill';
+                        pill.textContent = tag.name;
+                        tagsContainer.appendChild(pill);
+                    });
+                    card.appendChild(tagsContainer);
+                }
+            });
+        }
+
         async function toggleTaskTag(taskId, tagId, hasTag) {
             try {
                 const url = hasTag
@@ -2883,6 +2996,7 @@
                 const data = await response.json();
                 if (data.success) {
                     taskTagsMap[taskId] = data.task_tags;
+                    updateTaskCardTags(taskId, data.task_tags);
                 }
             } catch (error) {
                 console.error('Error toggling task tag:', error);
@@ -2908,6 +3022,7 @@
                 const data = await response.json();
                 if (data.success) {
                     taskTagsMap[taskId] = data.task_tags;
+                    updateTaskCardTags(taskId, data.task_tags);
                     // Also add to tagsList if it's a new tag
                     const newTag = data.task_tags.find(t => t.name === name.trim());
                     if (newTag && !tagsList.some(t => t.id === newTag.id)) {
