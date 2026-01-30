@@ -465,8 +465,9 @@
             padding: 1rem 1.25rem;
             border-top: 1px solid #e9ecef;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
+            gap: 1rem;
         }
 
         .critical-toggle {
@@ -497,7 +498,6 @@
             cursor: pointer;
             font-size: 0.85rem;
             font-weight: 500;
-            margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
             gap: 0.35rem;
@@ -1153,6 +1153,7 @@
             flex-direction: column;
             flex: 1;
             min-width: 300px;
+            height: 100%;
         }
 
         .state-terminal-checkbox-wrapper.disabled-terminal {
@@ -1585,7 +1586,7 @@
         .panels-wrapper {
             display: flex;
             gap: 1rem;
-            align-items: flex-start;
+            align-items: stretch;
         }
 
         .panel {
@@ -1599,7 +1600,7 @@
             position: relative;
             flex: 1;
             min-width: 300px;
-            height: 870px;
+            min-height: 870px;
         }
 
         .panel.collapsed {
@@ -2099,11 +2100,26 @@
             background: #f5c6cb;
         }
 
-        /* Drop indicator for calendar */
-        .hour-content.drag-over {
-            background: #e8f5ec !important;
-            outline: 2px dashed #6B9080;
-            outline-offset: -2px;
+        /* Drop indicator for calendar - 30 minute preview */
+        .hour-content.drag-over::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            height: 50%;
+            background: #d4edda;
+            border: 2px dashed #6B9080;
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .hour-content.drag-over.drag-top::before {
+            top: 0;
+        }
+
+        .hour-content.drag-over.drag-bottom::before {
+            top: 50%;
         }
 
         .state-group-empty {
@@ -2530,18 +2546,16 @@
                 <textarea class="panel-details-input" id="panel-details" placeholder="Markdown supported"></textarea>
                 <div class="panel-details-preview" id="panel-details-preview" style="display: none;"></div>
             </div>
+            <div class="critical-toggle" style="margin-top: 1rem;">
+                <input type="checkbox" id="panel-critical">
+                <label for="panel-critical">Critical</label>
+            </div>
         </div>
         <div class="panel-footer">
-            <div>
-                <button class="mark-done-btn" id="panel-mark-done">
-                    <i class="bi bi-check-circle"></i>
-                    <span>Mark as done</span>
-                </button>
-                <div class="critical-toggle">
-                    <input type="checkbox" id="panel-critical">
-                    <label for="panel-critical">Critical</label>
-                </div>
-            </div>
+            <button class="mark-done-btn" id="panel-mark-done">
+                <i class="bi bi-check-circle"></i>
+                <span>Task Complete!</span>
+            </button>
             <button class="delete-btn" id="panel-delete" title="Delete task">
                 <i class="bi bi-trash"></i>
             </button>
@@ -3117,7 +3131,7 @@
                 if (data.success) {
                     // Update button state
                     markDoneBtn.classList.add('is-done');
-                    markDoneBtn.querySelector('span').textContent = 'Completed';
+                    markDoneBtn.querySelector('span').textContent = 'Task Complete!';
                     markDoneBtn.querySelector('i').className = 'bi bi-check-circle-fill';
 
                     // Update the UI
@@ -3911,11 +3925,11 @@
 
                     if (isAlreadyDone) {
                         markDoneBtn.classList.add('is-done');
-                        markDoneBtn.querySelector('span').textContent = 'Completed';
+                        markDoneBtn.querySelector('span').textContent = 'Task Complete!';
                         markDoneBtn.querySelector('i').className = 'bi bi-check-circle-fill';
                     } else {
                         markDoneBtn.classList.remove('is-done');
-                        markDoneBtn.querySelector('span').textContent = 'Mark as done';
+                        markDoneBtn.querySelector('span').textContent = 'Task Complete!';
                         markDoneBtn.querySelector('i').className = 'bi bi-check-circle';
                     }
 
@@ -5577,17 +5591,24 @@
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
                     this.classList.add('drag-over');
+
+                    // Determine if in top or bottom half for 30-min preview
+                    const rect = this.getBoundingClientRect();
+                    const relativeY = e.clientY - rect.top;
+                    const isTopHalf = relativeY < rect.height / 2;
+                    this.classList.toggle('drag-top', isTopHalf);
+                    this.classList.toggle('drag-bottom', !isTopHalf);
                 });
 
                 hourContent.addEventListener('dragleave', function(e) {
                     if (!this.contains(e.relatedTarget)) {
-                        this.classList.remove('drag-over');
+                        this.classList.remove('drag-over', 'drag-top', 'drag-bottom');
                     }
                 });
 
                 hourContent.addEventListener('drop', async function(e) {
                     e.preventDefault();
-                    this.classList.remove('drag-over');
+                    this.classList.remove('drag-over', 'drag-top', 'drag-bottom');
 
                     const taskId = e.dataTransfer.getData('text/plain');
                     if (!taskId) return;
