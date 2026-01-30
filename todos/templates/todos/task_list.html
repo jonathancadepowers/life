@@ -4095,9 +4095,9 @@
                 }
             });
 
-            // Rebuild tag groups if currently viewing by tags
+            // Rebuild tag groups if currently viewing by tags (with highlight on the affected task)
             if (currentGroupBy === 'tags') {
-                buildTagGroups();
+                buildTagGroups(taskId);
             }
         }
 
@@ -4462,7 +4462,7 @@
             }
         })();
 
-        function buildTagGroups() {
+        function buildTagGroups(highlightTaskId = null) {
             const tagsContent = document.getElementById('tags-content');
             tagsContent.innerHTML = '';
 
@@ -4522,6 +4522,24 @@
             // Create Untagged group at the bottom
             const untaggedGroup = createTagGroup('untagged', 'Untagged', untaggedTasks);
             tagsContent.appendChild(untaggedGroup);
+
+            // If highlighting a task, expand its groups and apply visual feedback
+            if (highlightTaskId) {
+                const taskCards = tagsContent.querySelectorAll(`.task-card[data-task-id="${highlightTaskId}"]`);
+                taskCards.forEach(card => {
+                    // Expand the parent group
+                    const group = card.closest('.state-group');
+                    if (group) {
+                        group.classList.remove('collapsed');
+                    }
+                    // Apply yellow highlight that fades
+                    card.style.backgroundColor = '#fff3cd';
+                    card.style.transition = 'background-color 2s ease';
+                    setTimeout(() => {
+                        card.style.backgroundColor = '';
+                    }, 100);
+                });
+            }
         }
 
         function createTagGroup(tagId, tagName, tasks) {
@@ -4876,34 +4894,52 @@
             dateEl.textContent = today.toLocaleDateString('en-US', options);
         }
 
-        // Calendar events from database (already converted to CST)
+        // Calendar events from database (UTC ISO timestamps)
         const calendarEvents = {{ calendar_events|safe }};
 
-        // Render calendar events on the hourly grid
+        // Render calendar events on the hourly grid (using browser's local timezone)
         function renderCalendarEvents() {
             if (!calendarEvents || calendarEvents.length === 0) return;
+
+            // Get today's date boundaries in local timezone
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
             calendarEvents.forEach(event => {
                 // Skip all-day events for now (could add a separate section)
                 if (event.is_all_day) return;
 
+                // Parse UTC timestamps and convert to local time
+                const startDate = new Date(event.start);
+                const endDate = new Date(event.end);
+
+                // Skip events that don't overlap with today (in local timezone)
+                if (endDate <= todayStart || startDate >= todayEnd) return;
+
+                // Get local hours and minutes
+                const startHourLocal = startDate.getHours();
+                const startMinuteLocal = startDate.getMinutes();
+                const endHourLocal = endDate.getHours();
+                const endMinuteLocal = endDate.getMinutes();
+
                 // Find the starting hour row (clamp to visible range 7-18)
-                const startHour = Math.max(7, Math.min(18, event.start_hour));
-                const endHour = Math.max(7, Math.min(19, event.end_hour + (event.end_minute > 0 ? 1 : 0)));
+                const startHour = Math.max(7, Math.min(18, startHourLocal));
+                const endHour = Math.max(7, Math.min(19, endHourLocal + (endMinuteLocal > 0 ? 1 : 0)));
 
                 // Skip events that end before 7am or start after 6pm
-                if (event.end_hour < 7 || event.start_hour > 18) return;
+                if (endHourLocal < 7 || startHourLocal > 18) return;
 
                 const hourContent = document.querySelector(`.hour-content[data-hour="${startHour}"]`);
                 if (!hourContent) return;
 
                 // Calculate position and height
-                const minuteOffset = event.start_hour >= 7 ? event.start_minute : 0;
+                const minuteOffset = startHourLocal >= 7 ? startMinuteLocal : 0;
                 const topPercent = (minuteOffset / 60) * 100;
 
                 // Calculate duration in hours (for height)
-                const startMinutes = event.start_hour * 60 + event.start_minute;
-                const endMinutes = event.end_hour * 60 + event.end_minute;
+                const startMinutes = startHourLocal * 60 + startMinuteLocal;
+                const endMinutes = endHourLocal * 60 + endMinuteLocal;
                 let durationMinutes = endMinutes - startMinutes;
 
                 // Clamp to visible range
@@ -4929,10 +4965,10 @@
                 eventEl.style.borderRadius = '4px';
                 eventEl.style.overflow = 'hidden';
 
-                // Format time
-                const startAmPm = event.start_hour >= 12 ? 'PM' : 'AM';
-                const startDisplayHour = event.start_hour > 12 ? event.start_hour - 12 : (event.start_hour === 0 ? 12 : event.start_hour);
-                const startMinuteStr = event.start_minute.toString().padStart(2, '0');
+                // Format time in local timezone
+                const startAmPm = startHourLocal >= 12 ? 'PM' : 'AM';
+                const startDisplayHour = startHourLocal > 12 ? startHourLocal - 12 : (startHourLocal === 0 ? 12 : startHourLocal);
+                const startMinuteStr = startMinuteLocal.toString().padStart(2, '0');
 
                 eventEl.innerHTML = `
                     <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${event.subject}</div>
@@ -5017,16 +5053,29 @@
                 return;
             }
 
-            // Count non-all-day events as meetings
-            const meetings = calendarEvents.filter(e => !e.is_all_day);
-            const meetingCount = meetings.length;
+            // Get today's date boundaries in local timezone
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            // Filter to today's events and count non-all-day events as meetings
+            const todaysEvents = calendarEvents.filter(event => {
+                if (event.is_all_day) return false;
+                const startDate = new Date(event.start);
+                const endDate = new Date(event.end);
+                // Event overlaps with today
+                return endDate > todayStart && startDate < todayEnd;
+            });
+
+            const meetingCount = todaysEvents.length;
 
             // Calculate total time in meetings (in minutes)
             let totalMinutes = 0;
-            meetings.forEach(event => {
-                const startMinutes = event.start_hour * 60 + event.start_minute;
-                const endMinutes = event.end_hour * 60 + event.end_minute;
-                totalMinutes += endMinutes - startMinutes;
+            todaysEvents.forEach(event => {
+                const startDate = new Date(event.start);
+                const endDate = new Date(event.end);
+                const durationMs = endDate - startDate;
+                totalMinutes += Math.round(durationMs / 60000);
             });
 
             // Format time

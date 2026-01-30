@@ -17,34 +17,26 @@ def task_list(request):
     states = TaskState.objects.all()
     tags = TaskTag.objects.all()
 
-    # Get today's calendar events in CST
-    cst = pytz.timezone('America/Chicago')
-    now_cst = datetime.now(cst)
-    today_start_cst = now_cst.replace(hour=0, minute=0, second=0, microsecond=0)
-    today_end_cst = today_start_cst + timedelta(days=1)
+    # Get calendar events for today and nearby (let JS filter by local timezone)
+    # Query a 48-hour window to handle all timezone edge cases
+    now_utc = datetime.now(pytz.UTC)
+    query_start = now_utc - timedelta(hours=24)
+    query_end = now_utc + timedelta(hours=48)
 
-    # Convert to UTC for database query
-    today_start_utc = today_start_cst.astimezone(pytz.UTC)
-    today_end_utc = today_end_cst.astimezone(pytz.UTC)
-
-    # Query events that overlap with today (in UTC)
+    # Query events that overlap with this window
     calendar_events = CalendarEvent.objects.filter(
-        start__lt=today_end_utc,
-        end__gt=today_start_utc
+        start__lt=query_end,
+        end__gt=query_start
     ).order_by('start')
 
-    # Convert events to CST for template
+    # Send UTC ISO timestamps - JavaScript will convert to local timezone
     events_data = []
     for event in calendar_events:
-        start_cst = event.start.astimezone(cst)
-        end_cst = event.end.astimezone(cst)
         events_data.append({
             'id': event.id,
             'subject': event.subject,
-            'start_hour': start_cst.hour,
-            'start_minute': start_cst.minute,
-            'end_hour': end_cst.hour,
-            'end_minute': end_cst.minute,
+            'start': event.start.isoformat(),
+            'end': event.end.isoformat(),
             'location': event.location,
             'is_all_day': event.is_all_day,
         })
