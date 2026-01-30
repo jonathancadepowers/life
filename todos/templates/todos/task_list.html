@@ -1623,6 +1623,36 @@
             background: #ffecec;
         }
 
+        .task-card.highlight-new {
+            animation: highlightGlow 1.5s ease-out;
+        }
+
+        @keyframes highlightGlow {
+            0% {
+                background: #fff9c4;
+                box-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
+            }
+            100% {
+                background: #fafbfc;
+                box-shadow: none;
+            }
+        }
+
+        .task-card.critical.highlight-new {
+            animation: highlightGlowCritical 1.5s ease-out;
+        }
+
+        @keyframes highlightGlowCritical {
+            0% {
+                background: #fff9c4;
+                box-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
+            }
+            100% {
+                background: #fff5f5;
+                box-shadow: none;
+            }
+        }
+
         .task-card-meta {
             display: none;
         }
@@ -2084,15 +2114,56 @@
         });
 
         function addTaskToKanban(task) {
-            // Find the Inbox column (or the column matching the task's state)
-            const stateId = task.state_id;
-            const columnBody = document.querySelector(`.kanban-column-body[data-state-id="${stateId}"]`);
+            // Find the first state group (topmost)
+            const firstStateGroup = document.querySelector('.state-group');
+            if (!firstStateGroup) return;
 
-            if (columnBody) {
-                const card = createKanbanCard(task);
-                columnBody.insertBefore(card, columnBody.firstChild);
-                updateKanbanCounts();
+            const stateGroupBody = firstStateGroup.querySelector('.state-group-body');
+            if (!stateGroupBody) return;
+
+            // Create the task card
+            const card = document.createElement('div');
+            card.className = 'task-card' + (task.critical ? ' critical' : '') + ' highlight-new';
+            card.dataset.taskId = task.id;
+            card.draggable = true;
+            card.innerHTML = `
+                <div class="task-card-title">${escapeHtml(task.title)}</div>
+            `;
+
+            // Insert at the top of the first state group
+            stateGroupBody.insertBefore(card, stateGroupBody.firstChild);
+
+            // Setup drag events and context menu for the new card
+            setupTaskCardDragEvents(card);
+            card.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+            });
+            card.addEventListener('click', function() {
+                openTaskPanel(parseInt(this.dataset.taskId));
+            });
+
+            // Expand the Tasks panel if collapsed
+            const tasksPanel = document.getElementById('tasks-panel');
+            if (tasksPanel && tasksPanel.classList.contains('collapsed')) {
+                tasksPanel.classList.remove('collapsed');
             }
+
+            // Expand the first state group if collapsed
+            if (firstStateGroup.classList.contains('collapsed')) {
+                firstStateGroup.classList.remove('collapsed');
+            }
+
+            // Update counts
+            updatePanelCounts();
+
+            // Initialize tags map for the new task
+            taskTagsMap[task.id] = task.tags || [];
+
+            // Remove highlight class after animation completes
+            setTimeout(() => {
+                card.classList.remove('highlight-new');
+            }, 1500);
         }
 
         function escapeHtml(text) {
