@@ -208,6 +208,22 @@
             margin-bottom: 1rem;
         }
 
+        .modal-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #6B9080;
+            box-shadow: 0 0 0 2px rgba(107, 144, 128, 0.2);
+        }
+
         .modal-buttons {
             display: flex;
             justify-content: flex-end;
@@ -1624,11 +1640,15 @@
         }
 
         .task-card.highlight-new {
-            animation: highlightGlow 1.5s ease-out;
+            animation: highlightGlow 4.5s ease-out;
         }
 
         @keyframes highlightGlow {
             0% {
+                background: #fff9c4;
+                box-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
+            }
+            44% {
                 background: #fff9c4;
                 box-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
             }
@@ -1639,11 +1659,15 @@
         }
 
         .task-card.critical.highlight-new {
-            animation: highlightGlowCritical 1.5s ease-out;
+            animation: highlightGlowCritical 4.5s ease-out;
         }
 
         @keyframes highlightGlowCritical {
             0% {
+                background: #fff9c4;
+                box-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
+            }
+            44% {
                 background: #fff9c4;
                 box-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
             }
@@ -2069,6 +2093,42 @@
         </div>
     </div>
 
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-content">
+            <div class="modal-title" id="confirm-modal-title">Confirm</div>
+            <div class="modal-body" id="confirm-modal-body"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="confirm-modal-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-danger" id="confirm-modal-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div class="modal-overlay" id="alert-modal">
+        <div class="modal-content">
+            <div class="modal-title" id="alert-modal-title">Error</div>
+            <div class="modal-body" id="alert-modal-body"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" id="alert-modal-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Modal -->
+    <div class="modal-overlay" id="prompt-modal">
+        <div class="modal-content">
+            <div class="modal-title" id="prompt-modal-title">Input</div>
+            <div class="modal-body" id="prompt-modal-body"></div>
+            <input type="text" class="modal-input" id="prompt-modal-input" placeholder="">
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="prompt-modal-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-primary" id="prompt-modal-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         let currentTaskId = null;
@@ -2086,6 +2146,114 @@
         {% for task in tasks %}
         taskTagsMap[{{ task.id }}] = [{% for tag in task.tags.all %}{ id: {{ tag.id }}, name: "{{ tag.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
         {% endfor %}
+
+        // ========== Custom Modal Functions ==========
+
+        // Confirm modal - returns a Promise that resolves to true/false
+        function showConfirmModal(message, title = 'Confirm', confirmText = 'Delete') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirm-modal');
+                const titleEl = document.getElementById('confirm-modal-title');
+                const bodyEl = document.getElementById('confirm-modal-body');
+                const cancelBtn = document.getElementById('confirm-modal-cancel');
+                const confirmBtn = document.getElementById('confirm-modal-confirm');
+
+                titleEl.textContent = title;
+                bodyEl.textContent = message;
+                confirmBtn.textContent = confirmText;
+
+                const cleanup = () => {
+                    modal.classList.remove('active');
+                    cancelBtn.removeEventListener('click', handleCancel);
+                    confirmBtn.removeEventListener('click', handleConfirm);
+                };
+
+                const handleCancel = () => {
+                    cleanup();
+                    resolve(false);
+                };
+
+                const handleConfirm = () => {
+                    cleanup();
+                    resolve(true);
+                };
+
+                cancelBtn.addEventListener('click', handleCancel);
+                confirmBtn.addEventListener('click', handleConfirm);
+
+                modal.classList.add('active');
+            });
+        }
+
+        // Alert modal - returns a Promise that resolves when closed
+        function showAlertModal(message, title = 'Error') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('alert-modal');
+                const titleEl = document.getElementById('alert-modal-title');
+                const bodyEl = document.getElementById('alert-modal-body');
+                const okBtn = document.getElementById('alert-modal-ok');
+
+                titleEl.textContent = title;
+                bodyEl.textContent = message;
+
+                const handleOk = () => {
+                    modal.classList.remove('active');
+                    okBtn.removeEventListener('click', handleOk);
+                    resolve();
+                };
+
+                okBtn.addEventListener('click', handleOk);
+                modal.classList.add('active');
+            });
+        }
+
+        // Prompt modal - returns a Promise that resolves to the input value or null if cancelled
+        function showPromptModal(message, title = 'Input', placeholder = '') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('prompt-modal');
+                const titleEl = document.getElementById('prompt-modal-title');
+                const bodyEl = document.getElementById('prompt-modal-body');
+                const inputEl = document.getElementById('prompt-modal-input');
+                const cancelBtn = document.getElementById('prompt-modal-cancel');
+                const okBtn = document.getElementById('prompt-modal-ok');
+
+                titleEl.textContent = title;
+                bodyEl.textContent = message;
+                inputEl.placeholder = placeholder;
+                inputEl.value = '';
+
+                const cleanup = () => {
+                    modal.classList.remove('active');
+                    cancelBtn.removeEventListener('click', handleCancel);
+                    okBtn.removeEventListener('click', handleOk);
+                    inputEl.removeEventListener('keypress', handleKeypress);
+                };
+
+                const handleCancel = () => {
+                    cleanup();
+                    resolve(null);
+                };
+
+                const handleOk = () => {
+                    const value = inputEl.value;
+                    cleanup();
+                    resolve(value);
+                };
+
+                const handleKeypress = (e) => {
+                    if (e.key === 'Enter') {
+                        handleOk();
+                    }
+                };
+
+                cancelBtn.addEventListener('click', handleCancel);
+                okBtn.addEventListener('click', handleOk);
+                inputEl.addEventListener('keypress', handleKeypress);
+
+                modal.classList.add('active');
+                setTimeout(() => inputEl.focus(), 100);
+            });
+        }
 
         // Add new task on Enter
         document.getElementById('new-task-input').addEventListener('keypress', async function(e) {
@@ -2242,7 +2410,9 @@
 
         // Delete task
         document.getElementById('panel-delete').addEventListener('click', async () => {
-            if (!currentTaskId || !confirm('Delete this task?')) return;
+            if (!currentTaskId) return;
+            const confirmed = await showConfirmModal('Are you sure you want to delete this task?', 'Delete Task', 'Delete');
+            if (!confirmed) return;
             await deleteTask(currentTaskId);
             closePanel();
         });
@@ -2343,7 +2513,7 @@
 
                             restoreStateSpan(newName);
                         } else {
-                            alert(data.error || 'Failed to rename state');
+                            showAlertModal(data.error || 'Failed to rename state', 'Error');
                             restoreStateSpan(currentName);
                         }
                     } catch (error) {
@@ -2528,7 +2698,7 @@
 
                     closeIconPicker();
                 } else {
-                    alert(data.error || 'Failed to update icon');
+                    showAlertModal(data.error || 'Failed to update icon', 'Error');
                 }
             } catch (error) {
                 console.error('Error updating state icon:', error);
@@ -2556,7 +2726,7 @@
                         addStateToList(data.state);
                         statesList.push(data.state);
                     } else {
-                        alert(data.error || 'Failed to create state');
+                        showAlertModal(data.error || 'Failed to create state', 'Error');
                     }
                 } catch (error) {
                     console.error('Error creating state:', error);
@@ -2649,7 +2819,7 @@
                 const data = await response.json();
 
                 if (!data.success) {
-                    alert(data.error || 'Failed to get state info');
+                    showAlertModal(data.error || 'Failed to get state info', 'Error');
                     return;
                 }
 
@@ -2762,7 +2932,7 @@
 
                     closeDeleteStateModal();
                 } else {
-                    alert(data.error || 'Failed to delete state');
+                    showAlertModal(data.error || 'Failed to delete state', 'Error');
                 }
             } catch (error) {
                 console.error('Error deleting state:', error);
@@ -3388,7 +3558,7 @@
 
         async function promptNewTag(taskId) {
             closeContextMenu();
-            const name = prompt('Enter new tag name:');
+            const name = await showPromptModal('Enter the name for the new tag:', 'New Tag', 'Tag name');
             if (!name || !name.trim()) return;
 
             try {
@@ -3456,7 +3626,8 @@
 
         async function deleteTaskFromMenu(taskId) {
             closeContextMenu();
-            if (!confirm('Delete this task?')) return;
+            const confirmed = await showConfirmModal('Are you sure you want to delete this task?', 'Delete Task', 'Delete');
+            if (!confirmed) return;
             await deleteTask(taskId);
         }
 
