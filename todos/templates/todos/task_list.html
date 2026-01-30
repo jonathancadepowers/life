@@ -992,6 +992,8 @@
             margin-bottom: 0.5rem;
             cursor: grab;
             transition: box-shadow 0.15s, transform 0.15s;
+            position: relative;
+            min-height: 50px;
         }
 
         .kanban-card:hover {
@@ -1007,15 +1009,16 @@
             font-size: 0.9rem;
             color: #212529;
             margin-bottom: 0.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
+            padding-right: 1.5rem;
         }
 
         .kanban-card-critical-icon {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
             color: #6c757d;
-            font-size: 0.75rem;
-            opacity: 0.6;
+            font-size: 1rem;
+            opacity: 0.5;
         }
 
         .kanban-card-meta {
@@ -1038,6 +1041,62 @@
             text-align: center;
             padding: 1rem;
             font-style: italic;
+        }
+
+        /* Calendar (Today View) */
+        .calendar-container {
+            max-width: 1800px;
+            margin: 0 auto 2rem;
+            padding: 0 3rem;
+        }
+
+        .calendar-board {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .calendar-box {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .calendar-box-header {
+            padding: 0.75rem 1rem;
+            background: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .calendar-box-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #495057;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .calendar-box-body {
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+
+        .calendar-section {
+            flex: 1;
+            padding: 0.5rem;
+            border-bottom: 1px dashed #dee2e6;
+            min-height: 60px;
+        }
+
+        .calendar-section:last-child {
+            border-bottom: none;
+        }
+
+        .calendar-section.drag-over {
+            background: #e3f2fd;
+            border: 2px dashed #2196F3;
         }
 
         /* Right-click context menu */
@@ -1203,12 +1262,12 @@
                     {% if task.state == state %}
                     <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
                         <div class="kanban-card-title">
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon"></i>{% endif %}
-                            <span>{{ task.title }}</span>
+                            {{ task.title }}
                         </div>
                         <div class="kanban-card-meta">
                             {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                         </div>
+                        {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
                     </div>
                     {% endif %}
                     {% endfor %}
@@ -1219,6 +1278,47 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Today Calendar -->
+    <div class="calendar-container">
+        <div class="calendar-board">
+            <!-- Morning Box -->
+            <div class="calendar-box" data-time-period="morning">
+                <div class="calendar-box-header">
+                    <span class="calendar-box-title">Morning</span>
+                </div>
+                <div class="calendar-box-body">
+                    <div class="calendar-section" data-section="1"></div>
+                    <div class="calendar-section" data-section="2"></div>
+                    <div class="calendar-section" data-section="3"></div>
+                </div>
+            </div>
+
+            <!-- Afternoon Box -->
+            <div class="calendar-box" data-time-period="afternoon">
+                <div class="calendar-box-header">
+                    <span class="calendar-box-title">Afternoon</span>
+                </div>
+                <div class="calendar-box-body">
+                    <div class="calendar-section" data-section="1"></div>
+                    <div class="calendar-section" data-section="2"></div>
+                    <div class="calendar-section" data-section="3"></div>
+                </div>
+            </div>
+
+            <!-- Evening Box -->
+            <div class="calendar-box" data-time-period="evening">
+                <div class="calendar-box-header">
+                    <span class="calendar-box-title">Evening</span>
+                </div>
+                <div class="calendar-box-body">
+                    <div class="calendar-section" data-section="1"></div>
+                    <div class="calendar-section" data-section="2"></div>
+                    <div class="calendar-section" data-section="3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Left slide-out Panel for Settings -->
     <div class="panel-overlay" id="context-panel-overlay"></div>
@@ -2433,8 +2533,7 @@
         async function openKanbanPanel(taskId) {
             currentTaskId = taskId;
             const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
-            const titleSpan = card.querySelector('.kanban-card-title span');
-            const title = titleSpan ? titleSpan.textContent.trim() : card.querySelector('.kanban-card-title').textContent.trim();
+            const title = card.querySelector('.kanban-card-title').textContent.trim();
 
             document.getElementById('panel-title').value = title;
 
@@ -2653,13 +2752,11 @@
             card.dataset.contextId = task.context_id || '';
             card.draggable = true;
             card.innerHTML = `
-                <div class="kanban-card-title">
-                    ${task.critical ? '<i class="bi bi-send-exclamation-fill kanban-card-critical-icon"></i>' : ''}
-                    <span>${escapeHtml(task.title)}</span>
-                </div>
+                <div class="kanban-card-title">${escapeHtml(task.title)}</div>
                 <div class="kanban-card-meta">
                     ${task.context_name ? `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : ''}
                 </div>
+                ${task.critical ? '<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>' : ''}
             `;
             card.addEventListener('click', function() {
                 openKanbanPanel(task.id);
@@ -2672,13 +2769,32 @@
         function updateKanbanCard(card, task) {
             card.className = 'kanban-card' + (task.critical ? ' critical' : '');
             card.dataset.contextId = task.context_id || '';
+
+            // Update title
             const title = card.querySelector('.kanban-card-title');
-            title.innerHTML = `${task.critical ? '<i class="bi bi-send-exclamation-fill kanban-card-critical-icon"></i>' : ''}<span>${escapeHtml(task.title)}</span>`;
+            title.textContent = task.title;
+
+            // Update meta
             const meta = card.querySelector('.kanban-card-meta');
             if (task.context_name) {
                 meta.innerHTML = `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>`;
             } else {
                 meta.innerHTML = '';
+            }
+
+            // Update/add/remove critical icon
+            let icon = card.querySelector('.kanban-card-critical-icon');
+            if (task.critical) {
+                if (!icon) {
+                    icon = document.createElement('i');
+                    icon.className = 'bi bi-send-exclamation-fill kanban-card-critical-icon';
+                    icon.title = 'Critical';
+                    card.appendChild(icon);
+                }
+            } else {
+                if (icon) {
+                    icon.remove();
+                }
             }
         }
 
@@ -3025,6 +3141,112 @@
 
             animationFrame = requestAnimationFrame(animate);
         })();
+
+        // ========== Calendar Drag and Drop ==========
+
+        // Setup calendar sections as drop zones
+        document.querySelectorAll('.calendar-section').forEach(section => {
+            section.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (!draggedKanbanCard) return;
+                this.classList.add('drag-over');
+            });
+
+            section.addEventListener('dragleave', function(e) {
+                this.classList.remove('drag-over');
+            });
+
+            section.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+
+                if (!draggedKanbanCard) return;
+
+                const taskId = parseInt(draggedKanbanCard.dataset.taskId);
+
+                // Add card to calendar section
+                const cardClone = draggedKanbanCard.cloneNode(true);
+                cardClone.draggable = true;
+                this.appendChild(cardClone);
+
+                // Setup drag for cloned card
+                setupCalendarCardDrag(cardClone);
+
+                // Update today field to true
+                try {
+                    await fetch(`/tasks/api/tasks/${taskId}/set-today/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ today: true })
+                    });
+                } catch (error) {
+                    console.error('Error updating today field:', error);
+                }
+
+                draggedKanbanCard = null;
+            });
+        });
+
+        // Setup drag for calendar cards (to drag back to kanban)
+        function setupCalendarCardDrag(card) {
+            card.addEventListener('dragstart', function(e) {
+                draggedKanbanCard = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', this.dataset.taskId);
+                setTimeout(() => {
+                    this.style.opacity = '0.4';
+                }, 0);
+            });
+
+            card.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                this.style.opacity = '1';
+                draggedKanbanCard = null;
+            });
+
+            // Add click handler
+            card.addEventListener('click', function() {
+                openKanbanPanel(parseInt(this.dataset.taskId));
+            });
+
+            // Add context menu
+            setupKanbanCardContextMenu(card);
+        }
+
+        // Enhance kanban column drop to remove from calendar when dropped back
+        const originalKanbanDropHandler = document.querySelectorAll('.kanban-column-body');
+        originalKanbanDropHandler.forEach(body => {
+            body.addEventListener('drop', async function(e) {
+                if (!draggedKanbanCard) return;
+
+                const taskId = parseInt(draggedKanbanCard.dataset.taskId);
+                const wasInCalendar = draggedKanbanCard.closest('.calendar-section');
+
+                if (wasInCalendar) {
+                    // Remove from calendar
+                    draggedKanbanCard.remove();
+
+                    // Update today field to false
+                    try {
+                        await fetch(`/tasks/api/tasks/${taskId}/set-today/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ today: false })
+                        });
+                    } catch (error) {
+                        console.error('Error updating today field:', error);
+                    }
+                }
+            });
+        });
+
     </script>
 </body>
 </html>

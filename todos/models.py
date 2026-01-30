@@ -37,6 +37,7 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     details = models.TextField(blank=True, default='')
     critical = models.BooleanField(default=False)
+    today = models.BooleanField(default=False)
     context = models.ForeignKey(
         TaskContext,
         on_delete=models.SET_NULL,

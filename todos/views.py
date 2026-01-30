@@ -106,6 +106,30 @@ def delete_task(request, task_id):
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
 
 
+@require_POST
+def set_task_today(request, task_id):
+    """Set or unset the today field for a task via AJAX."""
+    try:
+        task = Task.objects.get(id=task_id)
+        data = json.loads(request.body)
+
+        today = data.get('today', False)
+        task.today = today
+        task.save()
+
+        return JsonResponse({
+            'success': True,
+            'task': {
+                'id': task.id,
+                'today': task.today,
+            }
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
 def list_contexts(request):
     """List all task contexts."""
     contexts = TaskContext.objects.all()
