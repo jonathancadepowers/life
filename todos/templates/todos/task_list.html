@@ -1668,6 +1668,28 @@
             color: #aaa;
         }
 
+        .tasks-search-btn {
+            padding: 0.25rem 0.6rem;
+            border: 1px solid #6B9080;
+            border-radius: 4px;
+            background: #6B9080;
+            color: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .tasks-search-btn:hover {
+            background: #5a7d6e;
+        }
+
+        .tasks-search-results {
+            font-size: 0.75rem;
+            color: #6B9080;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
         .tasks-hidden-count {
             font-size: 0.75rem;
             color: #999;
@@ -2694,6 +2716,8 @@
                 <div class="tasks-search-bar" id="tasks-search-bar">
                     <i class="bi bi-search tasks-search-icon"></i>
                     <input type="text" id="tasks-search-input" placeholder="Search tasks..." autocomplete="off">
+                    <button type="button" class="tasks-search-btn" id="tasks-search-btn">Search</button>
+                    <span class="tasks-search-results" id="tasks-search-results"></span>
                     <span class="tasks-hidden-count" id="tasks-hidden-count"></span>
                 </div>
             </div>
@@ -5026,12 +5050,84 @@
             saveFilterSettings();
         });
 
-        // Tasks search input
+        // Tasks search functionality
         const tasksSearchInput = document.getElementById('tasks-search-input');
-        if (tasksSearchInput) {
-            tasksSearchInput.addEventListener('input', function() {
-                searchText = this.value.trim();
+        const tasksSearchBtn = document.getElementById('tasks-search-btn');
+        const tasksSearchResults = document.getElementById('tasks-search-results');
+
+        function performSearch() {
+            const query = tasksSearchInput.value.trim();
+
+            // If search is cleared, reset everything
+            if (!query) {
+                searchText = '';
+                tasksSearchResults.textContent = '';
                 applyFilters();
+                return;
+            }
+
+            searchText = query;
+            applyFilters();
+
+            // Count visible results and highlight them
+            const allCards = document.querySelectorAll('.kanban-card, .task-card');
+            let resultCount = 0;
+            const matchingCards = [];
+
+            allCards.forEach(card => {
+                if (card.style.display !== 'none') {
+                    const titleEl = card.querySelector('.task-card-title, .kanban-card-title');
+                    const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+                    if (title.includes(searchText.toLowerCase())) {
+                        resultCount++;
+                        matchingCards.push(card);
+                    }
+                }
+            });
+
+            // Show result count
+            tasksSearchResults.textContent = resultCount === 1 ? '1 result' : `${resultCount} results`;
+
+            // Auto-expand collapsed groups containing results and highlight cards
+            matchingCards.forEach(card => {
+                // Find parent state-group and expand if collapsed
+                const stateGroup = card.closest('.state-group');
+                if (stateGroup && stateGroup.classList.contains('collapsed')) {
+                    stateGroup.classList.remove('collapsed');
+                }
+
+                // Remove any existing highlight and re-add for animation
+                card.classList.remove('highlight-new');
+                // Force reflow to restart animation
+                void card.offsetWidth;
+                card.classList.add('highlight-new');
+
+                // Remove highlight class after animation completes
+                setTimeout(() => {
+                    card.classList.remove('highlight-new');
+                }, 4500);
+            });
+        }
+
+        if (tasksSearchBtn) {
+            tasksSearchBtn.addEventListener('click', performSearch);
+        }
+
+        if (tasksSearchInput) {
+            tasksSearchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    performSearch();
+                }
+            });
+
+            // Clear results display when input is cleared
+            tasksSearchInput.addEventListener('input', function() {
+                if (!this.value.trim()) {
+                    searchText = '';
+                    tasksSearchResults.textContent = '';
+                    applyFilters();
+                }
             });
         }
 
