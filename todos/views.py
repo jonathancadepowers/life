@@ -115,6 +115,16 @@ def set_task_today(request, task_id):
 
         today = data.get('today', False)
         task.today = today
+
+        if today:
+            # When setting today=true, also save time_period and section_number
+            task.time_period = data.get('time_period', '')
+            task.section_number = data.get('section_number', None)
+        else:
+            # When unsetting today, clear time_period and section_number
+            task.time_period = ''
+            task.section_number = None
+
         task.save()
 
         return JsonResponse({
@@ -122,6 +132,8 @@ def set_task_today(request, task_id):
             'task': {
                 'id': task.id,
                 'today': task.today,
+                'time_period': task.time_period,
+                'section_number': task.section_number,
             }
         })
     except Task.DoesNotExist:

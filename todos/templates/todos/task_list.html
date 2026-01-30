@@ -1014,7 +1014,7 @@
 
         .kanban-card-critical-icon {
             position: absolute;
-            bottom: 0.5rem;
+            bottom: 0.25rem;
             right: 0.5rem;
             color: #6c757d;
             font-size: 1rem;
@@ -1288,9 +1288,45 @@
                     <span class="calendar-box-title">Morning</span>
                 </div>
                 <div class="calendar-box-body">
-                    <div class="calendar-section" data-section="1"></div>
-                    <div class="calendar-section" data-section="2"></div>
-                    <div class="calendar-section" data-section="3"></div>
+                    <div class="calendar-section" data-section="1">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'morning' and task.section_number == 1 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="calendar-section" data-section="2">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'morning' and task.section_number == 2 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="calendar-section" data-section="3">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'morning' and task.section_number == 3 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
 
@@ -1300,9 +1336,45 @@
                     <span class="calendar-box-title">Afternoon</span>
                 </div>
                 <div class="calendar-box-body">
-                    <div class="calendar-section" data-section="1"></div>
-                    <div class="calendar-section" data-section="2"></div>
-                    <div class="calendar-section" data-section="3"></div>
+                    <div class="calendar-section" data-section="1">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'afternoon' and task.section_number == 1 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="calendar-section" data-section="2">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'afternoon' and task.section_number == 2 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="calendar-section" data-section="3">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'afternoon' and task.section_number == 3 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
 
@@ -1312,9 +1384,45 @@
                     <span class="calendar-box-title">Evening</span>
                 </div>
                 <div class="calendar-box-body">
-                    <div class="calendar-section" data-section="1"></div>
-                    <div class="calendar-section" data-section="2"></div>
-                    <div class="calendar-section" data-section="3"></div>
+                    <div class="calendar-section" data-section="1">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'evening' and task.section_number == 1 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="calendar-section" data-section="2">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'evening' and task.section_number == 2 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="calendar-section" data-section="3">
+                        {% for task in tasks %}
+                        {% if task.today and task.time_period == 'evening' and task.section_number == 3 %}
+                        <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-meta">
+                                {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
+                            </div>
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -3164,6 +3272,11 @@
 
                 const taskId = parseInt(draggedKanbanCard.dataset.taskId);
 
+                // Get time period from parent calendar box
+                const calendarBox = this.closest('.calendar-box');
+                const timePeriod = calendarBox.dataset.timePeriod;
+                const sectionNumber = parseInt(this.dataset.section);
+
                 // Add card to calendar section
                 const cardClone = draggedKanbanCard.cloneNode(true);
                 cardClone.draggable = true;
@@ -3172,7 +3285,7 @@
                 // Setup drag for cloned card
                 setupCalendarCardDrag(cardClone);
 
-                // Update today field to true
+                // Update today field to true with time_period and section_number
                 try {
                     await fetch(`/tasks/api/tasks/${taskId}/set-today/`, {
                         method: 'POST',
@@ -3180,7 +3293,11 @@
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken
                         },
-                        body: JSON.stringify({ today: true })
+                        body: JSON.stringify({
+                            today: true,
+                            time_period: timePeriod,
+                            section_number: sectionNumber
+                        })
                     });
                 } catch (error) {
                     console.error('Error updating today field:', error);
@@ -3216,6 +3333,11 @@
             // Add context menu
             setupKanbanCardContextMenu(card);
         }
+
+        // Setup drag for existing calendar cards
+        document.querySelectorAll('.calendar-section .kanban-card').forEach(card => {
+            setupCalendarCardDrag(card);
+        });
 
         // Enhance kanban column drop to remove from calendar when dropped back
         const originalKanbanDropHandler = document.querySelectorAll('.kanban-column-body');
