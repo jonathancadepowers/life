@@ -1815,11 +1815,8 @@
                         <div class="state-group-body" data-state-id="{{ state.id }}">
                             {% for task in tasks %}
                             {% if task.state == state %}
-                            <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
+                            <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                 <div class="task-card-title">{{ task.title }}</div>
-                                <div class="task-card-meta">
-                                    {% if task.context %}<span class="task-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
-                                </div>
                             </div>
                             {% endif %}
                             {% endfor %}
@@ -3842,6 +3839,29 @@
         // ========== Task Card Drag and Drop ==========
 
         let draggedTaskCard = null;
+        let taskDropIndicator = null;
+
+        // Create drop indicator element for task cards
+        function createTaskDropIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'task-drop-indicator';
+            indicator.style.cssText = 'height: 3px; background: #6B9080; border-radius: 2px; margin: 0.35rem 0;';
+            return indicator;
+        }
+
+        // Get drop position within state-group-body
+        function getTaskDropPosition(container, y) {
+            const cards = [...container.querySelectorAll('.task-card:not(.dragging)')];
+
+            for (const card of cards) {
+                const rect = card.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                if (y < midpoint) {
+                    return { element: card, position: 'before' };
+                }
+            }
+            return { element: null, position: 'end' };
+        }
 
         // Setup drag events for task cards
         function setupTaskCardDragEvents(card) {
@@ -3850,13 +3870,21 @@
                 this.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', this.dataset.taskId);
+                setTimeout(() => {
+                    this.style.opacity = '0.4';
+                }, 0);
             });
 
             card.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
+                this.style.opacity = '1';
                 draggedTaskCard = null;
-                // Remove all drag-over classes
+                // Remove all drag-over classes and drop indicator
                 document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                if (taskDropIndicator && taskDropIndicator.parentElement) {
+                    taskDropIndicator.remove();
+                }
+                taskDropIndicator = null;
             });
 
             // Click to open task panel
@@ -3872,14 +3900,32 @@
             document.querySelectorAll('.state-group-body').forEach(dropZone => {
                 dropZone.addEventListener('dragover', function(e) {
                     e.preventDefault();
+                    if (!draggedTaskCard) return;
+
                     e.dataTransfer.dropEffect = 'move';
                     this.classList.add('drag-over');
+
+                    // Show drop indicator at correct position
+                    const { element, position } = getTaskDropPosition(this, e.clientY);
+
+                    if (!taskDropIndicator) {
+                        taskDropIndicator = createTaskDropIndicator();
+                    }
+
+                    if (position === 'end') {
+                        this.appendChild(taskDropIndicator);
+                    } else if (element) {
+                        element.parentElement.insertBefore(taskDropIndicator, element);
+                    }
                 });
 
                 dropZone.addEventListener('dragleave', function(e) {
                     // Only remove if we're actually leaving the drop zone
                     if (!this.contains(e.relatedTarget)) {
                         this.classList.remove('drag-over');
+                        if (taskDropIndicator && taskDropIndicator.parentElement === this) {
+                            taskDropIndicator.remove();
+                        }
                     }
                 });
 
@@ -3891,15 +3937,35 @@
 
                     const taskId = parseInt(draggedTaskCard.dataset.taskId);
                     const newStateId = parseInt(this.dataset.stateId);
+                    const oldBody = draggedTaskCard.parentElement;
                     const oldStateId = parseInt(draggedTaskCard.closest('.state-group').dataset.stateId);
+                    const changedState = (newStateId !== oldStateId);
 
-                    // Move the card visually
-                    this.appendChild(draggedTaskCard);
+                    // Get drop position
+                    const { element, position } = getTaskDropPosition(this, e.clientY);
 
-                    // If state changed, update on server
-                    if (newStateId !== oldStateId) {
+                    // Remove drop indicator
+                    if (taskDropIndicator && taskDropIndicator.parentElement) {
+                        taskDropIndicator.remove();
+                    }
+
+                    // Move card to new position
+                    if (position === 'end') {
+                        this.appendChild(draggedTaskCard);
+                    } else if (element) {
+                        element.parentElement.insertBefore(draggedTaskCard, element);
+                    }
+
+                    // Update counts
+                    updatePanelCounts();
+
+                    // Get new order of all cards in this state
+                    const cardIds = [...this.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+
+                    // If state changed, update state on server
+                    if (changedState) {
                         try {
-                            const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                            await fetch(`/tasks/api/${taskId}/update/`, {
                                 method: 'PATCH',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -3907,18 +3973,41 @@
                                 },
                                 body: JSON.stringify({ state_id: newStateId })
                             });
-
-                            if (!response.ok) {
-                                console.error('Failed to update task state');
-                                // Revert on failure - would need to track original parent
-                            }
                         } catch (error) {
                             console.error('Error updating task state:', error);
                         }
                     }
 
-                    // Update counts
-                    updatePanelCounts();
+                    // Always update order (for both same-state reorder and cross-state moves)
+                    try {
+                        await fetch('/tasks/api/tasks/reorder/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ task_ids: cardIds })
+                        });
+                    } catch (error) {
+                        console.error('Error updating task order:', error);
+                    }
+
+                    // If we moved to a different state, also reorder the old state
+                    if (changedState && oldBody) {
+                        const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                        try {
+                            await fetch('/tasks/api/tasks/reorder/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ task_ids: oldCardIds })
+                            });
+                        } catch (error) {
+                            console.error('Error updating old state order:', error);
+                        }
+                    }
                 });
             });
         }
