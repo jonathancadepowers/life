@@ -1682,7 +1682,6 @@
             display: none;
             flex-wrap: wrap;
             gap: 0.5rem;
-            margin-left: auto;
             margin-right: 0.5rem;
             justify-content: flex-end;
         }
@@ -2363,12 +2362,12 @@
                     <div class="panel-header-left">
                         <span class="panel-header-title">Tasks</span>
                     </div>
-                    <div class="panel-collapsed-metrics" id="tasks-collapsed-metrics">
-                        {% for state in states %}
-                        <span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>
-                        {% endfor %}
-                    </div>
                     <div class="panel-header-right">
+                        <div class="panel-collapsed-metrics" id="tasks-collapsed-metrics">
+                            {% for state in states %}
+                            <span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>
+                            {% endfor %}
+                        </div>
                         <label class="completed-toggle-inline" id="completed-toggle-inline" onclick="event.stopPropagation();">
                             <span class="toggle-label-inline" id="completed-toggle-label">Show Completed</span>
                             <input type="checkbox" id="show-completed-toggle">
@@ -2445,16 +2444,18 @@
                     <div class="panel-header-left">
                         <span class="panel-header-title">Calendar</span>
                     </div>
-                    <div class="panel-collapsed-metrics" id="calendar-collapsed-metrics">
-                        <span class="metric-pill">Meetings: <span id="meetings-count">0</span></span>
-                        <span class="metric-pill">Time in Meetings: <span id="meetings-time">0h</span></span>
+                    <div class="panel-header-right">
+                        <div class="panel-collapsed-metrics" id="calendar-collapsed-metrics">
+                            <span class="metric-pill">Meetings: <span id="meetings-count">0</span></span>
+                            <span class="metric-pill">Time in Meetings: <span id="meetings-time">0h</span></span>
+                        </div>
+                        <span class="panel-expand-btn" id="calendar-expand-btn" title="Expand Calendar">
+                            <i class="bi bi-arrows-angle-expand"></i>
+                        </span>
+                        <span class="panel-collapse-btn" id="calendar-collapse-btn" title="Collapse Calendar">
+                            <i class="bi bi-chevron-down"></i>
+                        </span>
                     </div>
-                    <span class="panel-expand-btn" id="calendar-expand-btn" title="Expand Calendar">
-                        <i class="bi bi-arrows-angle-expand"></i>
-                    </span>
-                    <span class="panel-collapse-btn" id="calendar-collapse-btn" title="Collapse Calendar">
-                        <i class="bi bi-chevron-down"></i>
-                    </span>
                 </div>
                 <div class="panel-content">
                     <div class="calendar-date-header">
