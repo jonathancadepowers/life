@@ -7,14 +7,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import pytz
 
-from .models import Task, TaskState
+from .models import Task, TaskState, TaskTag
 from calendar_events.models import CalendarEvent
 
 
 def task_list(request):
     """Display all tasks."""
-    tasks = Task.objects.select_related('state').all()
+    tasks = Task.objects.select_related('state').prefetch_related('tags').all()
     states = TaskState.objects.all()
+    tags = TaskTag.objects.all()
 
     # Get today's calendar events in CST
     cst = pytz.timezone('America/Chicago')
@@ -51,6 +52,7 @@ def task_list(request):
     return render(request, 'todos/task_list.html', {
         'tasks': tasks,
         'states': states,
+        'tags': tags,
         'calendar_events': json.dumps(events_data),
     })
 
@@ -77,6 +79,7 @@ def create_task(request):
                 'critical': task.critical,
                 'state_id': task.state_id,
                 'state_name': task.state.name if task.state else None,
+                'tags': [],
             }
         })
     except json.JSONDecodeError:
@@ -112,6 +115,7 @@ def update_task(request, task_id):
                 'critical': task.critical,
                 'state_id': task.state_id,
                 'state_name': task.state.name if task.state else None,
+                'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
             }
         })
     except Task.DoesNotExist:
@@ -240,3 +244,101 @@ def reorder_tasks(request):
         return JsonResponse({'success': True})
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+def list_tags(request):
+    """List all task tags."""
+    tags = TaskTag.objects.all()
+    return JsonResponse({
+        'success': True,
+        'tags': [{'id': t.id, 'name': t.name} for t in tags]
+    })
+
+
+@require_POST
+def create_tag(request):
+    """Create a new task tag via AJAX."""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+
+        tag, created = TaskTag.objects.get_or_create(name=name)
+        return JsonResponse({
+            'success': True,
+            'tag': {'id': tag.id, 'name': tag.name},
+            'created': created
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_POST
+def add_tag_to_task(request, task_id):
+    """Add a tag to a task."""
+    try:
+        task = Task.objects.get(id=task_id)
+        data = json.loads(request.body)
+        tag_id = data.get('tag_id')
+
+        if tag_id:
+            tag = TaskTag.objects.get(id=tag_id)
+            task.tags.add(tag)
+        else:
+            # Create new tag if name provided
+            name = data.get('name', '').strip()
+            if name:
+                tag, _ = TaskTag.objects.get_or_create(name=name)
+                task.tags.add(tag)
+            else:
+                return JsonResponse({'success': False, 'error': 'Tag ID or name required'}, status=400)
+
+        return JsonResponse({
+            'success': True,
+            'task_tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()]
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+    except TaskTag.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_POST
+def remove_tag_from_task(request, task_id):
+    """Remove a tag from a task."""
+    try:
+        task = Task.objects.get(id=task_id)
+        data = json.loads(request.body)
+        tag_id = data.get('tag_id')
+
+        if not tag_id:
+            return JsonResponse({'success': False, 'error': 'Tag ID required'}, status=400)
+
+        tag = TaskTag.objects.get(id=tag_id)
+        task.tags.remove(tag)
+
+        return JsonResponse({
+            'success': True,
+            'task_tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()]
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+    except TaskTag.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_http_methods(["DELETE"])
+def delete_tag(request, tag_id):
+    """Delete a tag."""
+    try:
+        tag = TaskTag.objects.get(id=tag_id)
+        tag.delete()
+        return JsonResponse({'success': True})
+    except TaskTag.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)

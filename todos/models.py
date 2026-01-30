@@ -16,6 +16,19 @@ class TaskState(models.Model):
         return self.name
 
 
+class TaskTag(models.Model):
+    """A tag that can be applied to tasks."""
+
+    name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Task(models.Model):
     """A task item."""
 
@@ -26,6 +39,11 @@ class Task(models.Model):
         TaskState,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
+        related_name='tasks'
+    )
+    tags = models.ManyToManyField(
+        TaskTag,
         blank=True,
         related_name='tasks'
     )

@@ -14,4 +14,9 @@ urlpatterns = [
     path('api/states/<int:state_id>/delete/', views.delete_state, name='delete_state'),
     path('api/states/reorder/', views.reorder_states, name='reorder_states'),
     path('api/tasks/reorder/', views.reorder_tasks, name='reorder_tasks'),
+    path('api/tags/', views.list_tags, name='list_tags'),
+    path('api/tags/create/', views.create_tag, name='create_tag'),
+    path('api/tags/<int:tag_id>/delete/', views.delete_tag, name='delete_tag'),
+    path('api/<int:task_id>/tags/add/', views.add_tag_to_task, name='add_tag_to_task'),
+    path('api/<int:task_id>/tags/remove/', views.remove_tag_from_task, name='remove_tag_from_task'),
 ]
