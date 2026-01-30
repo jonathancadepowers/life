@@ -3698,10 +3698,17 @@
             if (!content) return;
 
             const tasks = Array.from(content.querySelectorAll('.kanban-card'));
-            const timeLabelEl = section.querySelector('.calendar-time-label');
             const calendarBox = section.closest('.calendar-box');
+            if (!calendarBox) return;
 
-            if (!timeLabelEl || !calendarBox) return;
+            // Find the time label by section number
+            const sectionNumber = parseInt(section.dataset.section);
+            const labelColumn = calendarBox.querySelector('.calendar-label-column');
+            if (!labelColumn) return;
+
+            const timeLabels = labelColumn.querySelectorAll('.calendar-time-label');
+            const timeLabelEl = timeLabels[sectionNumber - 1]; // section numbers are 1-indexed
+            if (!timeLabelEl) return;
 
             const timeLabel = timeLabelEl.textContent;
             const timePeriod = calendarBox.dataset.timePeriod;
