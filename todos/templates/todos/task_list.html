@@ -7221,6 +7221,9 @@
             return { element: null, position: 'end' };
         }
 
+        // Track if mousedown was on a drag handle
+        let dragStartedFromHandle = false;
+
         // Setup drag events for task cards
         function setupTaskCardDragEvents(card) {
             const handle = card.querySelector('.task-card-drag-handle');
@@ -7228,9 +7231,14 @@
             // Make card draggable
             card.draggable = true;
 
+            // Track mousedown to know if drag started from handle
+            card.addEventListener('mousedown', function(e) {
+                dragStartedFromHandle = handle && (e.target === handle || handle.contains(e.target));
+            });
+
             card.addEventListener('dragstart', function(e) {
                 // Only allow drag if started from the handle
-                if (handle && !handle.contains(e.target)) {
+                if (!dragStartedFromHandle) {
                     e.preventDefault();
                     return;
                 }
@@ -7250,6 +7258,7 @@
                 card.style.opacity = '1';
                 draggedTaskCard = null;
                 currentDragTaskId = null;
+                dragStartedFromHandle = false;
                 // Remove all drag-over classes and drop indicator
                 document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
                 if (taskDropIndicator && taskDropIndicator.parentElement) {
