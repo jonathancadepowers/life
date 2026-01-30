@@ -2353,6 +2353,20 @@
             background: transparent;
         }
 
+        .calendar-task-resize-handle-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            cursor: ns-resize;
+            background: transparent;
+        }
+
+        .calendar-task-resize-handle-top:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
         /* Time block on calendar - subtle teal/sage color */
         .calendar-time-block {
             position: absolute;
@@ -2423,6 +2437,20 @@
         }
 
         .time-block-resize-handle:hover {
+            background: rgba(61, 90, 76, 0.2);
+        }
+
+        .time-block-resize-handle-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            cursor: ns-resize;
+            background: transparent;
+        }
+
+        .time-block-resize-handle-top:hover {
             background: rgba(61, 90, 76, 0.2);
         }
 
@@ -2555,7 +2583,7 @@
         }
 
         .hour-row:last-child {
-            border-bottom: none;
+            /* Keep bottom border on last row */
         }
 
         .hour-label {
@@ -2580,9 +2608,7 @@
             min-height: 60px;
         }
 
-        .hour-content:hover {
-            background: #fafafa;
-        }
+        /* Removed hover effect on hour rows */
 
         .hour-event {
             background: #6B9080;
@@ -2732,6 +2758,13 @@
                 Tags
             </label>
         </div>
+        <div class="filter-section" id="filter-completed-section" style="display: none;">
+            <div class="filter-section-title">Completed Tasks</div>
+            <label class="filter-option">
+                <input type="checkbox" id="show-completed-toggle">
+                Show Completed
+            </label>
+        </div>
         <div class="filter-section">
             <div class="filter-section-title">Priority</div>
             <label class="filter-option">
@@ -2755,11 +2788,11 @@
                 <!-- Tags will be populated by JavaScript -->
             </div>
         </div>
-        <div class="filter-section" id="filter-completed-section" style="display: none;">
-            <div class="filter-section-title">Completed Tasks</div>
+        <div class="filter-section">
+            <div class="filter-section-title">Less Is More</div>
             <label class="filter-option">
-                <input type="checkbox" id="show-completed-toggle">
-                Show Completed
+                <input type="checkbox" id="hide-rollups-toggle">
+                Hide Rollups
             </label>
         </div>
         <button class="filter-clear" id="filter-clear">Clear Filters</button>
@@ -2768,7 +2801,7 @@
     <div class="container">
         <div class="page-header">
             <i class="bi bi-highlights page-icon" id="page-icon"></i>
-            <h1 class="page-title">Task Manager</h1>
+            <h1 class="page-title">Empty, Marvelous</h1>
         </div>
 
         <div class="task-input-container">
@@ -5067,6 +5100,7 @@
 
         let showCompletedTasks = false;  // Default to hiding completed tasks
         let searchText = '';  // Current search query for tasks
+        let hideRollups = false;  // Default to showing rollup metrics
 
         function saveFilterSettings() {
             setCookie('taskFilters', {
@@ -5074,8 +5108,20 @@
                 today: activeFilters.today,
                 tags: activeFilters.tags,
                 groupBy: currentGroupBy,
-                showCompleted: showCompletedTasks
+                showCompleted: showCompletedTasks,
+                hideRollups: hideRollups
             });
+        }
+
+        function updateRollupsVisibility() {
+            const tasksMetrics = document.getElementById('tasks-collapsed-metrics');
+            const calendarMetrics = document.getElementById('calendar-collapsed-metrics');
+            if (tasksMetrics) {
+                tasksMetrics.style.display = hideRollups ? 'none' : '';
+            }
+            if (calendarMetrics) {
+                calendarMetrics.style.display = hideRollups ? 'none' : '';
+            }
         }
 
         const filterIcon = document.getElementById('filter-icon');
@@ -5424,6 +5470,13 @@
             saveFilterSettings();
         });
 
+        // Toggle for hiding rollup metrics in collapsed panels
+        document.getElementById('hide-rollups-toggle').addEventListener('change', function() {
+            hideRollups = this.checked;
+            updateRollupsVisibility();
+            saveFilterSettings();
+        });
+
         // Load saved filter settings from cookies on page load
         (function loadFilterSettings() {
             const saved = getCookie('taskFilters');
@@ -5460,6 +5513,14 @@
                     showCompletedTasks = saved.showCompleted;
                     const toggle = document.getElementById('show-completed-toggle');
                     toggle.checked = saved.showCompleted;
+                }
+
+                // Restore hide rollups toggle
+                if (saved.hideRollups !== undefined) {
+                    hideRollups = saved.hideRollups;
+                    const toggle = document.getElementById('hide-rollups-toggle');
+                    toggle.checked = saved.hideRollups;
+                    updateRollupsVisibility();
                 }
 
                 // Switch to tags view if needed (after showCompleted is set)
@@ -6195,13 +6256,23 @@
                 });
                 blockEl.appendChild(removeBtn);
 
-                // Add resize handle
+                // Add top resize handle
+                const resizeHandleTop = document.createElement('div');
+                resizeHandleTop.className = 'time-block-resize-handle-top';
+                resizeHandleTop.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    startTimeBlockResize(blockEl, block.id, startDate, endDate, 'top');
+                });
+                blockEl.appendChild(resizeHandleTop);
+
+                // Add bottom resize handle
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'time-block-resize-handle';
                 resizeHandle.addEventListener('mousedown', function(e) {
                     e.stopPropagation();
                     e.preventDefault();
-                    startTimeBlockResize(blockEl, block.id, startDate);
+                    startTimeBlockResize(blockEl, block.id, startDate, endDate, 'bottom');
                 });
                 blockEl.appendChild(resizeHandle);
 
@@ -6220,16 +6291,19 @@
         }
 
         // Start resizing a time block
-        function startTimeBlockResize(blockEl, blockId, startDate) {
+        function startTimeBlockResize(blockEl, blockId, startDate, endDate, edge) {
             const block = timeBlocks.find(b => b.id === blockId);
             if (!block) return;
 
             timeBlockResizeState = {
                 blockEl,
                 blockId,
-                startDate,
+                startDate: new Date(startDate),
+                endDate: new Date(endDate),
+                initialTop: parseFloat(blockEl.style.top) || 0,
                 initialHeight: parseFloat(blockEl.style.height) || 50,
-                startY: event.clientY
+                startY: event.clientY,
+                edge: edge // 'top' or 'bottom'
             };
 
             blockEl.classList.add('resizing');
@@ -6240,38 +6314,72 @@
         function handleTimeBlockResize(e) {
             if (!timeBlockResizeState) return;
 
-            const { blockEl, startY, initialHeight } = timeBlockResizeState;
+            const { blockEl, startY, initialHeight, initialTop, edge } = timeBlockResizeState;
             const deltaY = e.clientY - startY;
             const hourHeight = 60; // pixels per hour
             const deltaPercent = (deltaY / hourHeight) * 100;
 
-            // Minimum 30 minutes (50%)
-            const newHeight = Math.max(50, initialHeight + deltaPercent);
-            blockEl.style.height = `${newHeight}%`;
+            // Snap to 30-minute increments (50% of an hour)
+            const snapTo30Min = (percent) => Math.round(percent / 50) * 50;
+
+            if (edge === 'bottom') {
+                // Dragging bottom edge - adjust height only
+                const rawHeight = initialHeight + deltaPercent;
+                const newHeight = Math.max(50, snapTo30Min(rawHeight)); // Min 30 minutes
+                blockEl.style.height = `${newHeight}%`;
+            } else {
+                // Dragging top edge - adjust both top position and height
+                const rawTop = initialTop + deltaPercent;
+                const snappedTop = snapTo30Min(rawTop);
+                const topChange = snappedTop - initialTop;
+                const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
+
+                // Don't allow top to go past the bottom
+                if (newHeight >= 50) {
+                    blockEl.style.top = `${Math.max(0, snappedTop)}%`;
+                    blockEl.style.height = `${newHeight}%`;
+                }
+            }
         }
 
         async function endTimeBlockResize() {
             if (!timeBlockResizeState) return;
 
-            const { blockEl, blockId, startDate } = timeBlockResizeState;
+            const { blockEl, blockId, startDate, endDate, edge, initialTop } = timeBlockResizeState;
             const heightPercent = parseFloat(blockEl.style.height) || 50;
-
-            // Calculate new end time based on height
-            const durationMinutes = (heightPercent / 100) * 60;
-            const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
-            const endTimeUTC = endDate.toISOString();
+            const topPercent = parseFloat(blockEl.style.top) || 0;
 
             blockEl.classList.remove('resizing');
 
+            // Calculate new times based on current position and height
+            // Get the hour from the parent hour-content
+            const hourContent = blockEl.parentElement;
+            const baseHour = parseInt(hourContent.dataset.hour);
+
+            // Calculate new start and end times
+            const now = new Date();
+            const startMinutes = (topPercent / 100) * 60;
+            const durationMinutes = (heightPercent / 100) * 60;
+
+            const newStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), baseHour, startMinutes);
+            const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
+
+            const startTimeUTC = newStartDate.toISOString();
+            const endTimeUTC = newEndDate.toISOString();
+
             // Update on server
             try {
+                const body = edge === 'top'
+                    ? { start_time: startTimeUTC, end_time: endTimeUTC }
+                    : { end_time: endTimeUTC };
+
                 const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ end_time: endTimeUTC })
+                    body: JSON.stringify(body)
                 });
 
                 const data = await response.json();
@@ -6279,6 +6387,9 @@
                     // Update local data
                     const block = timeBlocks.find(b => b.id === blockId);
                     if (block) {
+                        if (edge === 'top') {
+                            block.start = data.time_block.start;
+                        }
                         block.end = data.time_block.end;
                     }
                 }
@@ -6653,13 +6764,23 @@
                 });
                 taskEl.appendChild(removeBtn);
 
-                // Add resize handle at bottom
+                // Add top resize handle
+                const resizeHandleTop = document.createElement('div');
+                resizeHandleTop.className = 'calendar-task-resize-handle-top';
+                resizeHandleTop.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    startTaskResize(taskEl, taskId, startDate, durationMinutes, 'top');
+                });
+                taskEl.appendChild(resizeHandleTop);
+
+                // Add bottom resize handle
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'calendar-task-resize-handle';
                 resizeHandle.addEventListener('mousedown', function(e) {
                     e.stopPropagation();
                     e.preventDefault();
-                    startTaskResize(taskEl, taskId, startDate);
+                    startTaskResize(taskEl, taskId, startDate, durationMinutes, 'bottom');
                 });
                 taskEl.appendChild(resizeHandle);
 
@@ -6686,19 +6807,20 @@
             });
         }
 
-        // Handle task resize by dragging bottom edge
+        // Handle task resize by dragging top or bottom edge
         let resizeState = null;
 
-        function startTaskResize(taskEl, taskId, startDate) {
+        function startTaskResize(taskEl, taskId, startDate, durationMinutes, edge) {
             const hourContent = taskEl.closest('.hour-content');
-            const hourlyGrid = document.getElementById('hourly-grid');
 
             resizeState = {
                 taskEl,
                 taskId,
-                startDate,
-                initialHeight: taskEl.offsetHeight,
-                hourContentHeight: hourContent.offsetHeight
+                startDate: new Date(startDate),
+                initialTop: parseFloat(taskEl.style.top) || 0,
+                initialHeight: parseFloat(taskEl.style.height) || 50,
+                startY: event.clientY,
+                edge: edge // 'top' or 'bottom'
             };
 
             document.addEventListener('mousemove', handleTaskResize);
@@ -6709,37 +6831,64 @@
         function handleTaskResize(e) {
             if (!resizeState) return;
 
-            const { taskEl, hourContentHeight } = resizeState;
-            const hourContent = taskEl.closest('.hour-content');
-            const rect = hourContent.getBoundingClientRect();
-            const taskTop = parseFloat(taskEl.style.top) || 0;
+            const { taskEl, startY, initialHeight, initialTop, edge } = resizeState;
+            const deltaY = e.clientY - startY;
+            const hourHeight = 60; // pixels per hour
+            const deltaPercent = (deltaY / hourHeight) * 100;
 
-            // Calculate new height based on mouse position relative to hour content
-            const relativeY = e.clientY - rect.top;
-            const newHeightPercent = Math.max(25, relativeY - (taskTop / 100 * rect.height)) / rect.height * 100;
+            // Snap to 30-minute increments (50% of an hour)
+            const snapTo30Min = (percent) => Math.round(percent / 50) * 50;
 
-            // Snap to 15-minute increments (25% of hour)
-            const snappedHeight = Math.round(newHeightPercent / 25) * 25;
-            const finalHeight = Math.max(25, Math.min(300, snappedHeight)); // Min 15 min, max 3 hours
+            if (edge === 'bottom') {
+                // Dragging bottom edge - adjust height only
+                const rawHeight = initialHeight + deltaPercent;
+                const newHeight = Math.max(50, snapTo30Min(rawHeight)); // Min 30 minutes
+                taskEl.style.height = `${newHeight}%`;
+            } else {
+                // Dragging top edge - adjust both top position and height
+                const rawTop = initialTop + deltaPercent;
+                const snappedTop = snapTo30Min(rawTop);
+                const topChange = snappedTop - initialTop;
+                const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
 
-            taskEl.style.height = `${finalHeight}%`;
+                // Don't allow top to go past the bottom
+                if (newHeight >= 50) {
+                    taskEl.style.top = `${Math.max(0, snappedTop)}%`;
+                    taskEl.style.height = `${newHeight}%`;
+                }
+            }
         }
 
         async function endTaskResize() {
             if (!resizeState) return;
 
-            const { taskEl, taskId, startDate } = resizeState;
+            const { taskEl, taskId, startDate, edge } = resizeState;
             const heightPercent = parseFloat(taskEl.style.height) || 50;
-
-            // Calculate new end time based on height
-            const durationMinutes = (heightPercent / 100) * 60;
-            const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
-            const endTimeUTC = localToUTC(endDate);
+            const topPercent = parseFloat(taskEl.style.top) || 0;
 
             taskEl.classList.remove('resizing');
 
-            // Update on server
-            await updateTaskCalendarEndTime(taskId, endTimeUTC);
+            // Get the hour from the parent hour-content
+            const hourContent = taskEl.parentElement;
+            const baseHour = parseInt(hourContent.dataset.hour);
+
+            // Calculate new start and end times
+            const now = new Date();
+            const startMinutes = (topPercent / 100) * 60;
+            const durationMinutes = (heightPercent / 100) * 60;
+
+            const newStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), baseHour, startMinutes);
+            const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
+
+            const startTimeUTC = localToUTC(newStartDate);
+            const endTimeUTC = localToUTC(newEndDate);
+
+            // Update on server - update both times if top edge was moved
+            if (edge === 'top') {
+                await updateTaskCalendarTime(taskId, startTimeUTC, endTimeUTC);
+            } else {
+                await updateTaskCalendarEndTime(taskId, endTimeUTC);
+            }
 
             document.removeEventListener('mousemove', handleTaskResize);
             document.removeEventListener('mouseup', endTaskResize);
