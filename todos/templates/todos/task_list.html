@@ -1952,12 +1952,22 @@
         }
 
         .task-card.critical {
-            background: #fff5f5;
-            border-color: #f8d7da;
+            /* Critical tasks use icon instead of red background */
         }
 
         .task-card.critical:hover {
-            background: #ffecec;
+            background: #e8e8e8;
+        }
+
+        .panel-header-icon {
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        .task-critical-icon {
+            color: #dc3545;
+            font-size: 0.85rem;
+            flex-shrink: 0;
         }
 
         .task-card.completed .task-card-title {
@@ -2052,20 +2062,20 @@
             min-width: 0;
         }
 
-        /* Scheduled task on calendar */
+        /* Scheduled task on calendar - matches Tasks section styling */
         .calendar-scheduled-task {
             position: absolute;
             left: 4px;
             right: 4px;
             min-height: 28px;
-            background: #d4edda;
-            color: #155724;
+            background: #f8f9fa;
+            color: #333;
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
             padding-right: 1.5rem;
             border-radius: 4px;
             cursor: grab;
-            border: 1px solid #c3e6cb;
+            border: 1px solid #dee2e6;
             overflow: hidden;
             z-index: 2;
             box-sizing: border-box;
@@ -2144,7 +2154,7 @@
             top: 4px;
             background: none;
             border: none;
-            color: #155724;
+            color: #6c757d;
             opacity: 0.4;
             cursor: pointer;
             padding: 0;
@@ -2156,12 +2166,8 @@
             opacity: 1;
         }
 
-        .calendar-scheduled-task.critical .remove-btn {
-            color: #721c24;
-        }
-
         .calendar-scheduled-task:hover {
-            background: #c3e6cb;
+            background: #e8e8e8;
         }
 
         .calendar-scheduled-task.dragging {
@@ -2169,14 +2175,15 @@
             cursor: grabbing;
         }
 
+        /* Critical tasks use icon instead of red background */
         .calendar-scheduled-task.critical {
-            background: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
+            /* No special background - icon indicates critical */
         }
 
-        .calendar-scheduled-task.critical:hover {
-            background: #f5c6cb;
+        .calendar-critical-icon {
+            color: #dc3545;
+            font-size: 0.7rem;
+            flex-shrink: 0;
         }
 
         /* Drop indicator for calendar - 30 minute preview */
@@ -2186,8 +2193,8 @@
             left: 4px;
             right: 4px;
             height: 50%;
-            background: #d4edda;
-            border: 2px dashed #6B9080;
+            background: #e9ecef;
+            border: 2px dashed #6c757d;
             border-radius: 4px;
             pointer-events: none;
             z-index: 5;
@@ -2463,6 +2470,7 @@
             <div class="panel tasks-panel collapsed" id="tasks-panel">
                 <div class="panel-header" id="tasks-panel-header" style="cursor: pointer;">
                     <div class="panel-header-left">
+                        <i class="bi bi-check2-circle panel-header-icon"></i>
                         <span class="panel-header-title">Tasks</span>
                     </div>
                     <div class="panel-header-right">
@@ -2504,6 +2512,7 @@
                                 {% if task.state == state %}
                                 <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                     <div class="task-card-content">
+                                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>{% endif %}
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                                     </div>
@@ -2530,6 +2539,7 @@
                                 {% if not task.state %}
                                 <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                     <div class="task-card-content">
+                                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>{% endif %}
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                                     </div>
@@ -2549,6 +2559,7 @@
             <div class="panel calendar-panel collapsed" id="calendar-panel">
                 <div class="panel-header" id="calendar-panel-header" style="cursor: pointer;">
                     <div class="panel-header-left">
+                        <i class="bi bi-calendar-heart panel-header-icon"></i>
                         <span class="panel-header-title">Calendar</span>
                     </div>
                     <div class="panel-header-right">
@@ -2985,7 +2996,10 @@
                 card.dataset.taskId = task.id;
                 card.draggable = true;
                 card.innerHTML = `
-                    <div class="task-card-title">${escapeHtml(task.title)}</div>
+                    <div class="task-card-content">
+                        ${task.critical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>' : ''}
+                        <div class="task-card-title">${escapeHtml(task.title)}</div>
+                    </div>
                 `;
 
                 // Setup drag events and context menu for the new card
@@ -2993,9 +3007,6 @@
                 card.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
-                });
-                card.addEventListener('click', function() {
-                    openTaskPanel(parseInt(this.dataset.taskId));
                 });
 
                 return card;
@@ -5127,9 +5138,11 @@
                     : '';
 
                 const todayIconHtml = isToday ? '<i class="bi bi-brightness-high-fill task-card-today-icon"></i>' : '';
+                const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>' : '';
 
                 card.innerHTML = `
                     <div class="task-card-content">
+                        ${criticalIconHtml}
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
                         ${tagsHtml}
                         ${todayIconHtml}
@@ -5141,9 +5154,6 @@
                 card.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
-                });
-                card.addEventListener('click', function() {
-                    openTaskPanel(parseInt(this.dataset.taskId));
                 });
                 body.appendChild(card);
             });
@@ -5392,6 +5402,20 @@
             updateCompletedToggleVisibility();
         }
 
+        // Sync vertical collapse/expand between Tasks and Calendar
+        function toggleBothPanelsCollapsed() {
+            const isTasksCollapsed = tasksPanel.classList.contains('collapsed');
+            // Toggle both panels together
+            if (isTasksCollapsed) {
+                tasksPanel.classList.remove('collapsed');
+                calendarPanel.classList.remove('collapsed');
+            } else {
+                tasksPanel.classList.add('collapsed');
+                calendarPanel.classList.add('collapsed');
+            }
+            updateTasksPanelWrapperState();
+        }
+
         if (tasksPanelHeader) {
             tasksPanelHeader.addEventListener('click', function(e) {
                 // Don't toggle collapsed if clicking expand button or completed toggle
@@ -5400,8 +5424,7 @@
                 // Don't toggle vertical collapse if panel is horizontally minimized or expanded
                 if (tasksPanel.classList.contains('minimized')) return;
                 if (tasksPanel.classList.contains('expanded')) return;
-                tasksPanel.classList.toggle('collapsed');
-                updateTasksPanelWrapperState();
+                toggleBothPanelsCollapsed();
             });
         }
 
@@ -5412,7 +5435,7 @@
                 // Don't toggle vertical collapse if panel is horizontally minimized or expanded
                 if (calendarPanel.classList.contains('minimized')) return;
                 if (calendarPanel.classList.contains('expanded')) return;
-                calendarPanel.classList.toggle('collapsed');
+                toggleBothPanelsCollapsed();
             });
         }
 
@@ -5573,8 +5596,11 @@
                 const startMinuteStr = startMinuteLocal.toString().padStart(2, '0');
 
                 eventEl.innerHTML = `
-                    <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${event.subject}</div>
-                    <div style="font-size: 0.65rem; opacity: 0.9;">${startDisplayHour}:${startMinuteStr} ${startAmPm}${event.location ? ' • ' + event.location : ''}</div>
+                    <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden;">
+                        <i class="bi bi-calendar-heart" style="font-size: 0.7rem; opacity: 0.7; flex-shrink: 0;"></i>
+                        <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis;">${event.subject}</span>
+                    </div>
+                    <div style="font-size: 0.65rem; opacity: 0.9; margin-left: 18px;">${startDisplayHour}:${startMinuteStr} ${startAmPm}${event.location ? ' • ' + event.location : ''}</div>
                 `;
 
                 eventEl.title = `${event.subject}${event.location ? '\n' + event.location : ''}`;
@@ -5643,8 +5669,15 @@
 
                 // Add task icon
                 const taskIcon = document.createElement('i');
-                taskIcon.className = 'bi bi-check2-square calendar-task-icon';
+                taskIcon.className = 'bi bi-check2-circle calendar-task-icon';
                 contentWrapper.appendChild(taskIcon);
+
+                // Add critical icon if task is critical
+                if (isCritical) {
+                    const criticalIcon = document.createElement('i');
+                    criticalIcon.className = 'bi bi-exclamation-circle-fill calendar-critical-icon';
+                    contentWrapper.appendChild(criticalIcon);
+                }
 
                 // Add title text
                 const titleSpan = document.createElement('span');
@@ -5700,10 +5733,11 @@
                 // Setup drag events for scheduled task
                 setupScheduledTaskDragEvents(taskEl);
 
-                // Click to open task panel
-                taskEl.addEventListener('click', function(e) {
+                // Right-click context menu for calendar tasks
+                taskEl.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
                     e.stopPropagation();
-                    openTaskPanel(parseInt(this.dataset.taskId));
+                    showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
                 });
 
                 hourContent.appendChild(taskEl);
@@ -6169,14 +6203,7 @@
                 taskDropIndicator = null;
             });
 
-            // Click to open task panel
-            card.addEventListener('click', function(e) {
-                if (!this.classList.contains('dragging')) {
-                    openTaskPanel(parseInt(this.dataset.taskId));
-                }
-            });
-
-            // Right-click to show context menu
+            // Right-click to show context menu (only way to open task panel)
             card.addEventListener('contextmenu', function(e) {
                 showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
             });
