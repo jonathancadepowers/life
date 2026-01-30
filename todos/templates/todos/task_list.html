@@ -1801,10 +1801,20 @@
                         // Move to bottom of list
                         const stateList = document.getElementById('state-list');
                         stateList.appendChild(stateItem);
+                        // Hide the kanban column for this state
+                        const kanbanColumn = document.querySelector(`.kanban-column[data-state-id="${stateId}"]`);
+                        if (kanbanColumn) {
+                            kanbanColumn.style.display = 'none';
+                        }
                     } else {
                         stateItem.classList.remove('terminal-state');
                         stateItem.draggable = true;
                         setupDragEvents(stateItem);
+                        // Show the kanban column for this state
+                        const kanbanColumn = document.querySelector(`.kanban-column[data-state-id="${stateId}"]`);
+                        if (kanbanColumn) {
+                            kanbanColumn.style.display = '';
+                        }
                     }
 
                     // Update all checkboxes
