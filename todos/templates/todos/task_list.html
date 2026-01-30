@@ -488,6 +488,33 @@
             font-weight: 500;
         }
 
+        .mark-done-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .mark-done-btn:hover {
+            background: #218838;
+        }
+
+        .mark-done-btn.is-done {
+            background: #6c757d;
+        }
+
+        .mark-done-btn.is-done:hover {
+            background: #5a6268;
+        }
+
         .delete-btn {
             background: none;
             border: none;
@@ -1059,21 +1086,31 @@
             color: #dc3545;
         }
 
-        #completed-toggle-container {
+        /* Inline completed toggle in panel header */
+        .completed-toggle-inline {
             display: none;
-            position: fixed;
-            bottom: 1rem;
-            right: 1rem;
-            z-index: 100;
-            background: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            align-items: center;
+            gap: 0.35rem;
+            cursor: pointer;
+            user-select: none;
+            margin-right: 0.5rem;
+            font-size: 0.75rem;
+            color: #6c757d;
         }
 
-        /* Show toggle only when in tags view AND tasks panel is vertically expanded */
-        #completed-toggle-container.visible {
-            display: block;
+        .completed-toggle-inline.visible {
+            display: flex;
+        }
+
+        .completed-toggle-inline input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .toggle-label-inline {
+            white-space: nowrap;
         }
 
         .tasks-panel-wrapper {
@@ -1081,52 +1118,6 @@
             flex-direction: column;
             flex: 1;
             min-width: 300px;
-        }
-
-        .completed-toggle {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            font-size: 0.75rem;
-            color: #6c757d;
-        }
-
-        .completed-toggle input {
-            display: none;
-        }
-
-        .toggle-slider {
-            width: 32px;
-            height: 18px;
-            background: #ccc;
-            border-radius: 9px;
-            position: relative;
-            transition: background 0.2s;
-        }
-
-        .toggle-slider::after {
-            content: '';
-            position: absolute;
-            width: 14px;
-            height: 14px;
-            background: white;
-            border-radius: 50%;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.2s;
-        }
-
-        .completed-toggle input:checked + .toggle-slider {
-            background: #0d6efd;
-        }
-
-        .completed-toggle input:checked + .toggle-slider::after {
-            transform: translateX(14px);
-        }
-
-        .toggle-label {
-            user-select: none;
         }
 
         .state-terminal-checkbox-wrapper.disabled-terminal {
@@ -1578,6 +1569,10 @@
 
         .panel.collapsed {
             height: 48px;
+            min-height: 48px;
+            max-height: 48px;
+            overflow: hidden;
+            box-sizing: border-box;
         }
 
         .panel.collapsed .panel-content {
@@ -1641,6 +1636,10 @@
 
         .panel.collapsed .panel-header {
             border-bottom: none;
+            height: 46px;
+            min-height: 46px;
+            max-height: 46px;
+            box-sizing: border-box;
         }
 
         /* Collapsed panel metrics */
@@ -1910,6 +1909,11 @@
 
         .task-card.critical:hover {
             background: #ffecec;
+        }
+
+        .task-card.completed .task-card-title {
+            text-decoration: line-through;
+            color: #6c757d;
         }
 
         .task-card.highlight-new {
@@ -2329,6 +2333,10 @@
                         <span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>
                         {% endfor %}
                     </div>
+                    <label class="completed-toggle-inline" id="completed-toggle-inline" onclick="event.stopPropagation();">
+                        <input type="checkbox" id="show-completed-toggle">
+                        <span class="toggle-label-inline" id="completed-toggle-label">Hide Completed</span>
+                    </label>
                     <span class="panel-expand-btn" id="tasks-expand-btn" title="Expand Tasks">
                         <i class="bi bi-arrows-angle-expand"></i>
                     </span>
@@ -2423,14 +2431,6 @@
     </div>
 
     <!-- Toggle for showing/hiding completed tasks in tag view (fixed bottom right) -->
-    <div id="completed-toggle-container">
-        <label class="completed-toggle">
-            <input type="checkbox" id="show-completed-toggle">
-            <span class="toggle-slider"></span>
-            <span class="toggle-label" id="completed-toggle-label">Hide Completed Tasks</span>
-        </label>
-    </div>
-
     <!-- Left slide-out Panel for Settings -->
     <div class="panel-overlay" id="context-panel-overlay"></div>
     <div class="context-panel" id="context-panel">
@@ -2493,9 +2493,15 @@
             </div>
         </div>
         <div class="panel-footer">
-            <div class="critical-toggle">
-                <input type="checkbox" id="panel-critical">
-                <label for="panel-critical">Critical</label>
+            <div>
+                <button class="mark-done-btn" id="panel-mark-done">
+                    <i class="bi bi-check-circle"></i>
+                    <span>Mark as done</span>
+                </button>
+                <div class="critical-toggle">
+                    <input type="checkbox" id="panel-critical">
+                    <label for="panel-critical">Critical</label>
+                </div>
             </div>
             <button class="delete-btn" id="panel-delete" title="Delete task">
                 <i class="bi bi-trash"></i>
@@ -3044,6 +3050,43 @@
             if (!confirmed) return;
             await deleteTask(currentTaskId);
             closePanel();
+        });
+
+        // Mark as done button handler
+        document.getElementById('panel-mark-done').addEventListener('click', async () => {
+            if (!currentTaskId) return;
+            const terminalStateId = getTerminalStateId();
+            if (!terminalStateId) return;
+
+            const markDoneBtn = document.getElementById('panel-mark-done');
+            const isAlreadyDone = markDoneBtn.classList.contains('is-done');
+
+            // If already done, do nothing (or could toggle back to previous state if we stored it)
+            if (isAlreadyDone) return;
+
+            try {
+                const response = await fetch(`/tasks/api/${currentTaskId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ state_id: terminalStateId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update button state
+                    markDoneBtn.classList.add('is-done');
+                    markDoneBtn.querySelector('span').textContent = 'Completed';
+                    markDoneBtn.querySelector('i').className = 'bi bi-check-circle-fill';
+
+                    // Update the UI
+                    handleTaskStateChange(data.task);
+                }
+            } catch (error) {
+                console.error('Error marking task as done:', error);
+            }
         });
 
         async function deleteTask(taskId) {
@@ -3820,6 +3863,22 @@
                     document.getElementById('panel-title').value = data.task.title;
                     document.getElementById('panel-details').value = data.task.details || '';
                     document.getElementById('panel-critical').checked = data.task.critical;
+
+                    // Update "Mark as done" button state
+                    const markDoneBtn = document.getElementById('panel-mark-done');
+                    const terminalStateId = getTerminalStateId();
+                    const isAlreadyDone = data.task.state_id === terminalStateId;
+                    markDoneBtn.dataset.stateId = data.task.state_id || '';
+
+                    if (isAlreadyDone) {
+                        markDoneBtn.classList.add('is-done');
+                        markDoneBtn.querySelector('span').textContent = 'Completed';
+                        markDoneBtn.querySelector('i').className = 'bi bi-check-circle-fill';
+                    } else {
+                        markDoneBtn.classList.remove('is-done');
+                        markDoneBtn.querySelector('span').textContent = 'Mark as done';
+                        markDoneBtn.querySelector('i').className = 'bi bi-check-circle';
+                    }
 
                     // Show markdown preview if there's content, otherwise show edit mode
                     if (data.task.details && data.task.details.trim()) {
@@ -4696,7 +4755,7 @@
 
         // Update completed toggle visibility based on group-by mode and panel state
         function updateCompletedToggleVisibility() {
-            const toggle = document.getElementById('completed-toggle-container');
+            const toggle = document.getElementById('completed-toggle-inline');
             const tasksPanel = document.getElementById('tasks-panel');
             const isTagsView = currentGroupBy === 'tags';
             const isExpanded = !tasksPanel.classList.contains('collapsed');
@@ -4711,7 +4770,7 @@
         // Toggle for showing/hiding completed tasks in tag view
         document.getElementById('show-completed-toggle').addEventListener('change', function() {
             showCompletedTasks = this.checked;
-            document.getElementById('completed-toggle-label').textContent = this.checked ? 'Show Completed Tasks' : 'Hide Completed Tasks';
+            document.getElementById('completed-toggle-label').textContent = this.checked ? 'Show Completed' : 'Hide Completed';
             if (currentGroupBy === 'tags') {
                 buildTagGroups();
             }
@@ -4748,7 +4807,7 @@
                     showCompletedTasks = saved.showCompleted;
                     const toggle = document.getElementById('show-completed-toggle');
                     toggle.checked = saved.showCompleted;
-                    document.getElementById('completed-toggle-label').textContent = saved.showCompleted ? 'Show Completed Tasks' : 'Hide Completed Tasks';
+                    document.getElementById('completed-toggle-label').textContent = saved.showCompleted ? 'Show Completed' : 'Hide Completed';
                 }
 
                 // Switch to tags view if needed (after showCompleted is set)
@@ -4794,7 +4853,7 @@
                     return;
                 }
 
-                allTasks.push({ id: taskId, title, isCritical, tags, element: card });
+                allTasks.push({ id: taskId, title, isCritical, isCompleted, tags, element: card });
             });
 
             // Group tasks by tag
@@ -4893,7 +4952,7 @@
             tasks.forEach(task => {
                 const card = document.createElement('div');
                 const isScheduled = !!taskCalendarTimeMap[task.id];
-                card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '');
+                card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (task.isCompleted ? ' completed' : '');
                 card.dataset.taskId = task.id;
                 card.draggable = true;
 
@@ -5145,8 +5204,9 @@
 
         if (tasksPanelHeader) {
             tasksPanelHeader.addEventListener('click', function(e) {
-                // Don't toggle collapsed if clicking expand button
+                // Don't toggle collapsed if clicking expand button or completed toggle
                 if (e.target.closest('.panel-expand-btn')) return;
+                if (e.target.closest('.completed-toggle-inline')) return;
                 tasksPanel.classList.toggle('collapsed');
                 updateTasksPanelWrapperState();
             });
