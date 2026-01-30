@@ -1993,17 +1993,22 @@
 
         /* Scheduled task on calendar */
         .calendar-scheduled-task {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            height: 26px;
             background: #d4edda;
             color: #155724;
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
-            margin-bottom: 0.25rem;
             cursor: grab;
             border: 1px solid #c3e6cb;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            z-index: 2;
+            box-sizing: border-box;
         }
 
         .calendar-scheduled-task:hover {
@@ -5280,9 +5285,9 @@
                 taskEl.textContent = title;
                 taskEl.title = title;
 
-                // Position based on minute (if needed for multiple tasks)
+                // Position based on minute within the hour (absolute positioning)
                 const topPercent = (minute / 60) * 100;
-                taskEl.style.marginTop = minute > 0 ? `${Math.min(topPercent, 50)}%` : '0';
+                taskEl.style.top = `${topPercent}%`;
 
                 // Setup drag events for scheduled task
                 setupScheduledTaskDragEvents(taskEl);
