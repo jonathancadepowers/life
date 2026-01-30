@@ -932,10 +932,14 @@
         /* Section Containers */
         .section-container {
             max-width: 1800px;
-            margin: 2rem auto;
+            margin: 1rem auto;
             padding: 1.5rem 0;
             border-left: 4px solid;
             background: #fafbfc;
+        }
+
+        .section-container:first-of-type {
+            margin-top: 2rem;
         }
 
         .tasks-section {
@@ -1086,36 +1090,42 @@
 
         .calendar-box {
             flex: 1;
-            background: #f8f9fa;
+            min-width: 200px;
+            background: #fff;
             border-radius: 8px;
-            border: 1px solid #e0e0e0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
         }
 
         .calendar-box-header {
             padding: 0.75rem 1rem;
-            background: #e9ecef;
-            border-bottom: 1px solid #dee2e6;
-            border-radius: 8px 8px 0 0;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #333;
+            border-bottom: 1px solid #e9ecef;
         }
 
         .calendar-box-title {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #495057;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #333;
         }
 
         .calendar-box-body {
+            padding: 0.5rem;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 100px;
+            max-height: 400px;
             display: flex;
             flex-direction: column;
-            min-height: 200px;
         }
 
         .calendar-section {
             flex: 1;
             padding: 0.5rem;
-            border-bottom: 1px dashed #dee2e6;
+            border-bottom: 1px solid #e9ecef;
             min-height: 60px;
         }
 
@@ -1124,8 +1134,7 @@
         }
 
         .calendar-section.drag-over {
-            background: #e3f2fd;
-            border: 2px dashed #2196F3;
+            background: #f0f7f4;
         }
 
         /* Right-click context menu */
