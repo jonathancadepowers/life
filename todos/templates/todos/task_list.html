@@ -3566,6 +3566,9 @@
                     console.error('Error updating today field:', error);
                 }
 
+                // Update calendar display
+                processCalendarSections();
+
                 draggedKanbanCard = null;
             });
         });
@@ -3628,6 +3631,9 @@
                     } catch (error) {
                         console.error('Error updating today field:', error);
                     }
+
+                    // Update calendar display
+                    processCalendarSections();
                 }
             });
         });
