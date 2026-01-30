@@ -2825,7 +2825,7 @@
                                 {% if task.state == state %}
                                 <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
-                                        <i class="bi bi-grip-vertical task-card-drag-handle" draggable="true"></i>
+                                        <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                                         {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>{% endif %}
@@ -2853,7 +2853,7 @@
                                 {% if not task.state %}
                                 <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
-                                        <i class="bi bi-grip-vertical task-card-drag-handle" draggable="true"></i>
+                                        <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                                         {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>{% endif %}
@@ -3365,7 +3365,7 @@
                 card.dataset.taskId = task.id;
                 card.innerHTML = `
                     <div class="task-card-content">
-                        <i class="bi bi-grip-vertical task-card-drag-handle" draggable="true"></i>
+                        <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
                         ${task.critical ? '<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>' : ''}
                     </div>
@@ -5621,7 +5621,7 @@
 
                 card.innerHTML = `
                     <div class="task-card-content">
-                        <i class="bi bi-grip-vertical task-card-drag-handle" draggable="true"></i>
+                        <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
                         ${tagsHtml}
                         ${iconsHtml}
@@ -7224,9 +7224,17 @@
         // Setup drag events for task cards
         function setupTaskCardDragEvents(card) {
             const handle = card.querySelector('.task-card-drag-handle');
-            if (!handle) return;
 
-            handle.addEventListener('dragstart', function(e) {
+            // Make card draggable
+            card.draggable = true;
+
+            card.addEventListener('dragstart', function(e) {
+                // Only allow drag if started from the handle
+                if (handle && !handle.contains(e.target)) {
+                    e.preventDefault();
+                    return;
+                }
+
                 draggedTaskCard = card;
                 currentDragTaskId = card.dataset.taskId;
                 card.classList.add('dragging');
@@ -7237,7 +7245,7 @@
                 }, 0);
             });
 
-            handle.addEventListener('dragend', function() {
+            card.addEventListener('dragend', function() {
                 card.classList.remove('dragging');
                 card.style.opacity = '1';
                 draggedTaskCard = null;
