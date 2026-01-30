@@ -1463,13 +1463,18 @@
             letter-spacing: 0.03em;
         }
 
+        .state-group-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
         .state-group-count {
             background: #e9ecef;
             color: #6c757d;
             font-size: 0.7rem;
             padding: 0.125rem 0.4rem;
             border-radius: 10px;
-            margin-left: 0.5rem;
         }
 
         .state-group-toggle {
@@ -1483,7 +1488,7 @@
         }
 
         .state-group-body {
-            padding: 0.75rem;
+            padding: 0.25rem 0;
             background: white;
             border: 1px solid #e9ecef;
             border-top: none;
@@ -1496,18 +1501,22 @@
         }
 
         .task-card {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 0.625rem 0.75rem;
-            margin-bottom: 0.5rem;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #eef0f2;
+            border-radius: 0;
+            padding: 0.4rem 0.5rem;
+            margin-bottom: 0;
             cursor: pointer;
-            transition: box-shadow 0.15s, background 0.15s;
+            transition: background 0.15s;
+        }
+
+        .task-card:last-child {
+            border-bottom: none;
         }
 
         .task-card:hover {
-            background: #f0f7f4;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            background: #f5f7f8;
         }
 
         .task-card:last-child {
@@ -1515,9 +1524,9 @@
         }
 
         .task-card-title {
-            font-size: 0.875rem;
-            color: #212529;
-            margin-bottom: 0.25rem;
+            font-size: 0.8rem;
+            color: #333;
+            margin-bottom: 0;
         }
 
         .task-card.critical .task-card-title {
@@ -1526,10 +1535,7 @@
         }
 
         .task-card-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+            display: none;
         }
 
         .task-card-context {
@@ -1783,9 +1789,11 @@
                             <div class="state-group-left">
                                 {% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }} state-group-icon"></i>{% endif %}
                                 <span class="state-group-name">{{ state.name }}</span>
-                                <span class="state-group-count" id="panel-count-{{ state.id }}">0</span>
                             </div>
-                            <i class="bi bi-chevron-down state-group-toggle"></i>
+                            <div class="state-group-right">
+                                <span class="state-group-count" id="panel-count-{{ state.id }}">0</span>
+                                <i class="bi bi-chevron-down state-group-toggle"></i>
+                            </div>
                         </div>
                         <div class="state-group-body" data-state-id="{{ state.id }}">
                             {% for task in tasks %}
