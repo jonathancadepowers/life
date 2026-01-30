@@ -2079,6 +2079,21 @@
             color: #dc3545;
         }
 
+        .task-context-menu-item.save-tags-btn {
+            background: #0d6efd;
+            color: white;
+            justify-content: center;
+            font-weight: 500;
+        }
+
+        .task-context-menu-item.save-tags-btn:hover {
+            background: #0b5ed7;
+        }
+
+        .task-context-menu-item.save-tags-btn i {
+            color: white;
+        }
+
         .task-context-menu-divider {
             height: 1px;
             background: #e9ecef;
@@ -3969,10 +3984,12 @@
         // ========== Right-Click Context Menu ==========
 
         let contextMenuTaskId = null;
+        let pendingTagChanges = { toAdd: [], toRemove: [] };
 
         function showContextMenu(e, taskId, openPanelFn) {
             e.preventDefault();
             contextMenuTaskId = taskId;
+            pendingTagChanges = { toAdd: [], toRemove: [] };  // Reset pending changes
 
             // Remove any existing menu
             closeContextMenu();
@@ -4018,7 +4035,7 @@
                 tagsList.forEach(tag => {
                     const hasTag = taskTags.some(t => t.id === tag.id);
                     menuHtml += `
-                        <div class="task-context-menu-item${hasTag ? ' active' : ''}" onclick="toggleTaskTag(${taskId}, ${tag.id}, ${hasTag})">
+                        <div class="task-context-menu-item tag-toggle-item${hasTag ? ' active' : ''}" data-tag-id="${tag.id}" data-has-tag="${hasTag}" onclick="event.stopPropagation(); toggleTagLocally(this, ${tag.id})">
                             <i class="bi bi-${hasTag ? 'check-square-fill' : 'square'}"></i>
                             ${escapeHtml(tag.name)}
                         </div>
@@ -4027,6 +4044,11 @@
             }
 
             menuHtml += `
+                        <div class="task-context-menu-divider"></div>
+                        <div class="task-context-menu-item save-tags-btn" onclick="event.stopPropagation(); savePendingTags(${taskId});">
+                            <i class="bi bi-check2"></i>
+                            Save Tags
+                        </div>
                     </div>
                 </div>
                 <div class="task-context-menu-divider"></div>
@@ -4074,6 +4096,87 @@
             document.removeEventListener('click', closeContextMenu);
             document.removeEventListener('contextmenu', closeContextMenu);
             contextMenuTaskId = null;
+        }
+
+        function toggleTagLocally(element, tagId) {
+            const currentlyHasTag = element.dataset.hasTag === 'true';
+            const newHasTag = !currentlyHasTag;
+
+            // Update visual state
+            element.dataset.hasTag = newHasTag.toString();
+            element.classList.toggle('active', newHasTag);
+            const icon = element.querySelector('i');
+            icon.className = `bi bi-${newHasTag ? 'check-square-fill' : 'square'}`;
+
+            // Track the change
+            if (newHasTag) {
+                // Adding tag - remove from toRemove if present, add to toAdd
+                pendingTagChanges.toRemove = pendingTagChanges.toRemove.filter(id => id !== tagId);
+                if (!pendingTagChanges.toAdd.includes(tagId)) {
+                    pendingTagChanges.toAdd.push(tagId);
+                }
+            } else {
+                // Removing tag - remove from toAdd if present, add to toRemove
+                pendingTagChanges.toAdd = pendingTagChanges.toAdd.filter(id => id !== tagId);
+                if (!pendingTagChanges.toRemove.includes(tagId)) {
+                    pendingTagChanges.toRemove.push(tagId);
+                }
+            }
+        }
+
+        async function savePendingTags(taskId) {
+            const originalTags = taskTagsMap[taskId] || [];
+            const originalTagIds = originalTags.map(t => t.id);
+
+            // Calculate final tag state
+            let finalTagIds = [...originalTagIds];
+
+            // Remove tags
+            pendingTagChanges.toRemove.forEach(tagId => {
+                finalTagIds = finalTagIds.filter(id => id !== tagId);
+            });
+
+            // Add tags
+            pendingTagChanges.toAdd.forEach(tagId => {
+                if (!finalTagIds.includes(tagId)) {
+                    finalTagIds.push(tagId);
+                }
+            });
+
+            // Apply all changes
+            try {
+                // Remove tags first
+                for (const tagId of pendingTagChanges.toRemove) {
+                    if (originalTagIds.includes(tagId)) {
+                        await fetch(`/tasks/api/${taskId}/tags/remove/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ tag_id: tagId })
+                        });
+                    }
+                }
+
+                // Add new tags
+                for (const tagId of pendingTagChanges.toAdd) {
+                    if (!originalTagIds.includes(tagId)) {
+                        await fetch(`/tasks/api/${taskId}/tags/add/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ tag_id: tagId })
+                        });
+                    }
+                }
+
+                // Build final tags array
+                const finalTags = tagsList.filter(t => finalTagIds.includes(t.id));
+                taskTagsMap[taskId] = finalTags;
+                updateTaskCardTags(taskId, finalTags);
+
+            } catch (error) {
+                console.error('Error saving tags:', error);
+            }
+
+            closeContextMenu();
         }
 
         function updateTaskCardTags(taskId, tags) {
