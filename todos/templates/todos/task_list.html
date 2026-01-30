@@ -2270,7 +2270,7 @@
                     <label class="completed-toggle">
                         <input type="checkbox" id="show-completed-toggle">
                         <span class="toggle-slider"></span>
-                        <span class="toggle-label" id="completed-toggle-label">Show Completed Tasks</span>
+                        <span class="toggle-label" id="completed-toggle-label">Hiding Completed Tasks</span>
                     </label>
                 </div>
             </div>
@@ -4419,7 +4419,7 @@
         // Toggle for showing/hiding completed tasks in tag view
         document.getElementById('show-completed-toggle').addEventListener('change', function() {
             showCompletedTasks = this.checked;
-            document.getElementById('completed-toggle-label').textContent = this.checked ? 'Hide Completed Tasks' : 'Show Completed Tasks';
+            document.getElementById('completed-toggle-label').textContent = this.checked ? 'Showing Completed Tasks' : 'Hiding Completed Tasks';
             if (currentGroupBy === 'tags') {
                 buildTagGroups();
             }
@@ -4456,7 +4456,7 @@
                     showCompletedTasks = saved.showCompleted;
                     const toggle = document.getElementById('show-completed-toggle');
                     toggle.checked = saved.showCompleted;
-                    document.getElementById('completed-toggle-label').textContent = saved.showCompleted ? 'Hide Completed Tasks' : 'Show Completed Tasks';
+                    document.getElementById('completed-toggle-label').textContent = saved.showCompleted ? 'Showing Completed Tasks' : 'Hiding Completed Tasks';
                 }
 
                 // Switch to tags view if needed (after showCompleted is set)
