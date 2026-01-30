@@ -954,6 +954,59 @@
             color: #dc3545;
         }
 
+        #completed-toggle-container {
+            padding: 0.5rem;
+            text-align: right;
+            border-top: 1px solid #e9ecef;
+            margin-top: 0.5rem;
+        }
+
+        .completed-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .completed-toggle input {
+            display: none;
+        }
+
+        .toggle-slider {
+            width: 32px;
+            height: 18px;
+            background: #ccc;
+            border-radius: 9px;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .toggle-slider::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+
+        .completed-toggle input:checked + .toggle-slider {
+            background: #0d6efd;
+        }
+
+        .completed-toggle input:checked + .toggle-slider::after {
+            transform: translateX(14px);
+        }
+
+        .toggle-label {
+            user-select: none;
+        }
+
         .state-terminal-checkbox-wrapper.disabled-terminal {
             cursor: help;
         }
@@ -2010,6 +2063,14 @@
                     </div>
                     <!-- Tags grouping (hidden by default) -->
                     <div id="tags-content" style="display: none;"></div>
+                    <!-- Toggle for showing/hiding completed tasks in tag view -->
+                    <div id="completed-toggle-container" style="display: none;">
+                        <label class="completed-toggle">
+                            <input type="checkbox" id="show-completed-toggle">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label" id="completed-toggle-label">Show Completed</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -3901,11 +3962,14 @@
             return null;
         }
 
+        let showCompletedTasks = false;  // Default to hiding completed tasks
+
         function saveFilterSettings() {
             setCookie('taskFilters', {
                 critical: activeFilters.critical,
                 tags: activeFilters.tags,
-                groupBy: currentGroupBy
+                groupBy: currentGroupBy,
+                showCompleted: showCompletedTasks
             });
         }
 
@@ -3983,17 +4047,30 @@
         function switchGroupBy(groupBy) {
             const statesContent = document.getElementById('states-content');
             const tagsContent = document.getElementById('tags-content');
+            const completedToggleContainer = document.getElementById('completed-toggle-container');
 
             if (groupBy === 'states') {
                 statesContent.style.display = '';
                 tagsContent.style.display = 'none';
+                completedToggleContainer.style.display = 'none';
             } else {
                 statesContent.style.display = 'none';
                 tagsContent.style.display = '';
+                completedToggleContainer.style.display = '';
                 buildTagGroups();
             }
             updatePanelCounts();
         }
+
+        // Toggle for showing/hiding completed tasks in tag view
+        document.getElementById('show-completed-toggle').addEventListener('change', function() {
+            showCompletedTasks = this.checked;
+            document.getElementById('completed-toggle-label').textContent = this.checked ? 'Hide Completed' : 'Show Completed';
+            if (currentGroupBy === 'tags') {
+                buildTagGroups();
+            }
+            saveFilterSettings();
+        });
 
         // Load saved filter settings from cookies on page load
         (function loadFilterSettings() {
@@ -4023,9 +4100,19 @@
                     if (radio) {
                         radio.checked = true;
                     }
-                    if (saved.groupBy === 'tags') {
-                        switchGroupBy('tags');
-                    }
+                }
+
+                // Restore show completed toggle
+                if (saved.showCompleted !== undefined) {
+                    showCompletedTasks = saved.showCompleted;
+                    const toggle = document.getElementById('show-completed-toggle');
+                    toggle.checked = saved.showCompleted;
+                    document.getElementById('completed-toggle-label').textContent = saved.showCompleted ? 'Hide Completed' : 'Show Completed';
+                }
+
+                // Switch to tags view if needed (after showCompleted is set)
+                if (saved.groupBy === 'tags') {
+                    switchGroupBy('tags');
                 }
 
                 // Apply the restored filters
@@ -4037,6 +4124,9 @@
             const tagsContent = document.getElementById('tags-content');
             tagsContent.innerHTML = '';
 
+            // Get the terminal state ID to filter completed tasks
+            const terminalStateId = getTerminalStateId();
+
             // Get all tasks from the state groups
             const allTasks = [];
             document.querySelectorAll('#states-content .task-card').forEach(card => {
@@ -4044,6 +4134,17 @@
                 const title = card.querySelector('.task-card-title').textContent;
                 const isCritical = card.classList.contains('critical');
                 const tags = taskTagsMap[taskId] || [];
+
+                // Check if task is in terminal state
+                const stateGroup = card.closest('.state-group');
+                const taskStateId = stateGroup ? parseInt(stateGroup.dataset.stateId) : null;
+                const isCompleted = taskStateId === terminalStateId;
+
+                // Skip completed tasks if showCompletedTasks is false
+                if (!showCompletedTasks && isCompleted) {
+                    return;
+                }
+
                 allTasks.push({ id: taskId, title, isCritical, tags, element: card });
             });
 
