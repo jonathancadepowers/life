@@ -1652,19 +1652,42 @@
 
         .tasks-search-icon {
             color: #aaa;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: color 0.15s;
         }
 
-        .tasks-search-bar input {
+        .tasks-search-icon:hover {
+            color: #6B9080;
+        }
+
+        .tasks-search-expanded {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .tasks-search-bar.expanded .tasks-search-expanded {
+            display: flex;
+        }
+
+        .tasks-search-bar.expanded .tasks-search-icon {
+            display: none;
+        }
+
+        .tasks-search-expanded input {
             flex: 1;
             border: none;
             background: transparent;
             font-size: 0.85rem;
             color: #333;
             outline: none;
+            min-width: 100px;
         }
 
-        .tasks-search-bar input::placeholder {
+        .tasks-search-expanded input::placeholder {
             color: #aaa;
         }
 
@@ -1690,10 +1713,16 @@
             font-weight: 500;
         }
 
-        .tasks-hidden-count {
-            font-size: 0.75rem;
-            color: #999;
-            white-space: nowrap;
+        .tasks-search-clear {
+            color: #aaa;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: color 0.15s;
+        }
+
+        .tasks-search-clear:hover {
+            color: #dc3545;
         }
 
         /* Hide search bar when panel is collapsed or minimized */
@@ -2714,11 +2743,13 @@
                     <div id="tags-content" style="display: none;"></div>
                 </div>
                 <div class="tasks-search-bar" id="tasks-search-bar">
-                    <i class="bi bi-search tasks-search-icon"></i>
-                    <input type="text" id="tasks-search-input" placeholder="Search tasks..." autocomplete="off">
-                    <button type="button" class="tasks-search-btn" id="tasks-search-btn">Search</button>
-                    <span class="tasks-search-results" id="tasks-search-results"></span>
-                    <span class="tasks-hidden-count" id="tasks-hidden-count"></span>
+                    <i class="bi bi-search tasks-search-icon" id="tasks-search-icon" title="Search tasks"></i>
+                    <div class="tasks-search-expanded" id="tasks-search-expanded">
+                        <input type="text" id="tasks-search-input" placeholder="Search tasks..." autocomplete="off">
+                        <button type="button" class="tasks-search-btn" id="tasks-search-btn">Search</button>
+                        <span class="tasks-search-results" id="tasks-search-results"></span>
+                        <i class="bi bi-x tasks-search-clear" id="tasks-search-clear" title="Clear search"></i>
+                    </div>
                 </div>
             </div>
             </div>
@@ -5051,42 +5082,76 @@
         });
 
         // Tasks search functionality
+        const tasksSearchBar = document.getElementById('tasks-search-bar');
+        const tasksSearchIcon = document.getElementById('tasks-search-icon');
         const tasksSearchInput = document.getElementById('tasks-search-input');
         const tasksSearchBtn = document.getElementById('tasks-search-btn');
         const tasksSearchResults = document.getElementById('tasks-search-results');
+        const tasksSearchClear = document.getElementById('tasks-search-clear');
+
+        // Toggle search bar expansion
+        if (tasksSearchIcon) {
+            tasksSearchIcon.addEventListener('click', function() {
+                tasksSearchBar.classList.add('expanded');
+                tasksSearchInput.focus();
+            });
+        }
+
+        function clearSearch() {
+            searchText = '';
+            tasksSearchInput.value = '';
+            tasksSearchResults.textContent = '';
+            tasksSearchBar.classList.remove('expanded');
+            applyFilters();
+        }
+
+        if (tasksSearchClear) {
+            tasksSearchClear.addEventListener('click', clearSearch);
+        }
 
         function performSearch() {
             const query = tasksSearchInput.value.trim();
 
             // If search is cleared, reset everything
             if (!query) {
-                searchText = '';
-                tasksSearchResults.textContent = '';
-                applyFilters();
+                clearSearch();
                 return;
             }
 
-            searchText = query;
-            applyFilters();
-
-            // Count visible results and highlight them
+            // First, find all cards that match the search (ignoring current filters)
             const allCards = document.querySelectorAll('.kanban-card, .task-card');
-            let resultCount = 0;
             const matchingCards = [];
 
             allCards.forEach(card => {
-                if (card.style.display !== 'none') {
-                    const titleEl = card.querySelector('.task-card-title, .kanban-card-title');
-                    const title = titleEl ? titleEl.textContent.toLowerCase() : '';
-                    if (title.includes(searchText.toLowerCase())) {
-                        resultCount++;
-                        matchingCards.push(card);
-                    }
+                const titleEl = card.querySelector('.task-card-title, .kanban-card-title');
+                const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+                if (title.includes(query.toLowerCase())) {
+                    matchingCards.push(card);
                 }
             });
 
+            // Check if any filters would hide matching cards - if so, clear filters
+            const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0 || (currentGroupBy === 'tags' && !showCompletedTasks);
+
+            if (hasActiveFilters && matchingCards.length > 0) {
+                // Clear all filters to show all matching results
+                activeFilters.critical = false;
+                activeFilters.today = false;
+                activeFilters.tags = [];
+                showCompletedTasks = true;
+                filterCritical.checked = false;
+                filterToday.checked = false;
+                document.getElementById('show-completed-toggle').checked = true;
+                populateFilterTags();
+                saveFilterSettings();
+            }
+
+            // Now apply the search
+            searchText = query;
+            applyFilters();
+
             // Show result count
-            tasksSearchResults.textContent = resultCount === 1 ? '1 result' : `${resultCount} results`;
+            tasksSearchResults.textContent = matchingCards.length === 1 ? '1 result' : `${matchingCards.length} results`;
 
             // Auto-expand collapsed groups containing results and highlight cards
             matchingCards.forEach(card => {
@@ -5119,14 +5184,8 @@
                     e.preventDefault();
                     performSearch();
                 }
-            });
-
-            // Clear results display when input is cleared
-            tasksSearchInput.addEventListener('input', function() {
-                if (!this.value.trim()) {
-                    searchText = '';
-                    tasksSearchResults.textContent = '';
-                    applyFilters();
+                if (e.key === 'Escape') {
+                    clearSearch();
                 }
             });
         }
@@ -5574,19 +5633,14 @@
             // Filter both kanban cards and task cards in the new panel layout
             const allCards = document.querySelectorAll('.kanban-card, .task-card');
             let visibleCount = 0;
-            let hiddenByFilters = 0;
-            let totalCards = 0;
 
             allCards.forEach(card => {
-                totalCards++;
                 let show = true;
-                let hiddenByFilter = false;
                 const taskId = parseInt(card.dataset.taskId);
 
                 // Filter by critical
                 if (activeFilters.critical && !card.classList.contains('critical')) {
                     show = false;
-                    hiddenByFilter = true;
                 }
 
                 // Filter by today (only show tasks scheduled for today)
@@ -5594,7 +5648,6 @@
                     const calendarTime = taskCalendarStartTimeMap[taskId];
                     if (!calendarTime || !isScheduledForToday(calendarTime)) {
                         show = false;
-                        hiddenByFilter = true;
                     }
                 }
 
@@ -5605,7 +5658,6 @@
                     const hasMatchingTag = activeFilters.tags.some(tagId => taskTagIds.includes(tagId));
                     if (!hasMatchingTag) {
                         show = false;
-                        hiddenByFilter = true;
                     }
                 }
 
@@ -5614,7 +5666,6 @@
                     const taskStateId = parseInt(card.closest('.state-group, .kanban-column')?.dataset?.stateId);
                     if (taskStateId === terminalStateId) {
                         show = false;
-                        hiddenByFilter = true;
                     }
                 }
 
@@ -5629,18 +5680,7 @@
 
                 card.style.display = show ? '' : 'none';
                 if (show) visibleCount++;
-                if (hiddenByFilter) hiddenByFilters++;
             });
-
-            // Update hidden count display
-            const hiddenCountEl = document.getElementById('tasks-hidden-count');
-            if (hiddenCountEl) {
-                if (hiddenByFilters > 0) {
-                    hiddenCountEl.textContent = `${hiddenByFilters} hidden by filters`;
-                } else {
-                    hiddenCountEl.textContent = '';
-                }
-            }
 
             // Update filter badge (showCompleted only counts in Tags view)
             const filterCount = (activeFilters.critical ? 1 : 0) + (activeFilters.today ? 1 : 0) + activeFilters.tags.length + (currentGroupBy === 'tags' && !showCompletedTasks ? 1 : 0);
