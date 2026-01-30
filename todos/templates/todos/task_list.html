@@ -6004,8 +6004,20 @@
                     const clampedMinute = isTopHalf ? 0 : 30;
                     const now = new Date();
                     const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
-                    const endLocal = new Date(startLocal.getTime() + 30 * 60 * 1000);
                     const taskId = draggedTaskCard ? draggedTaskCard.dataset.taskId : null;
+
+                    // Use existing duration if task has one, otherwise 30 minutes
+                    let durationMs = 30 * 60 * 1000;
+                    if (taskId) {
+                        const existingStartTime = taskCalendarStartTimeMap[taskId];
+                        const existingEndTime = taskCalendarEndTimeMap[taskId];
+                        if (existingStartTime && existingEndTime) {
+                            const existingStart = new Date(existingStartTime);
+                            const existingEnd = new Date(existingEndTime);
+                            durationMs = existingEnd - existingStart;
+                        }
+                    }
+                    const endLocal = new Date(startLocal.getTime() + durationMs);
 
                     const isBlocked = taskId && hasOverlappingItem(startLocal, endLocal, taskId);
                     this.classList.toggle('drag-blocked', isBlocked);
@@ -6037,7 +6049,18 @@
                     // Create the scheduled start time in local timezone
                     const now = new Date();
                     const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
-                    const endLocal = new Date(startLocal.getTime() + 30 * 60 * 1000);
+
+                    // Preserve existing duration if task already has one, otherwise default to 30 minutes
+                    let durationMs = 30 * 60 * 1000; // 30 minutes default
+                    const existingStartTime = taskCalendarStartTimeMap[taskId];
+                    const existingEndTime = taskCalendarEndTimeMap[taskId];
+                    if (existingStartTime && existingEndTime) {
+                        const existingStart = new Date(existingStartTime);
+                        const existingEnd = new Date(existingEndTime);
+                        durationMs = existingEnd - existingStart;
+                    }
+
+                    const endLocal = new Date(startLocal.getTime() + durationMs);
 
                     // Check for overlapping tasks or events before allowing drop
                     if (hasOverlappingItem(startLocal, endLocal, taskId)) {
