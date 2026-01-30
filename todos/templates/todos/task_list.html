@@ -1065,7 +1065,8 @@
             right: 0.75rem;
         }
 
-        .panel.collapsed #completed-toggle-container {
+        .panel.collapsed #completed-toggle-container,
+        .panel.minimized #completed-toggle-container {
             display: none !important;
         }
 
@@ -4846,12 +4847,17 @@
 
         function togglePanelExpand(expandPanel, minimizePanel) {
             const isExpanded = expandPanel.classList.contains('expanded');
+            const isMinimized = expandPanel.classList.contains('minimized');
 
             if (isExpanded) {
                 // Already expanded - do nothing (one panel must always be expanded)
                 return;
+            } else if (isMinimized) {
+                // Minimized panel clicked - return both to normal 50/50 state
+                expandPanel.classList.remove('collapsed', 'minimized', 'expanded');
+                minimizePanel.classList.remove('collapsed', 'minimized', 'expanded');
             } else {
-                // Expand this panel, minimize the other
+                // Normal state - expand this panel, minimize the other
                 expandPanel.classList.add('expanded');
                 expandPanel.classList.remove('collapsed', 'minimized');
                 minimizePanel.classList.add('minimized');
