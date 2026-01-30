@@ -1007,11 +1007,15 @@
             font-size: 0.9rem;
             color: #212529;
             margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
         }
 
-        .kanban-card.critical .kanban-card-title {
-            color: #dc3545;
-            font-weight: 500;
+        .kanban-card-critical-icon {
+            color: #6c757d;
+            font-size: 0.75rem;
+            opacity: 0.6;
         }
 
         .kanban-card-meta {
@@ -1199,7 +1203,8 @@
                     {% if task.state == state %}
                     <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
                         <div class="kanban-card-title">
-                            {{ task.title }}
+                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon"></i>{% endif %}
+                            <span>{{ task.title }}</span>
                         </div>
                         <div class="kanban-card-meta">
                             {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
@@ -2428,7 +2433,8 @@
         async function openKanbanPanel(taskId) {
             currentTaskId = taskId;
             const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
-            const title = card.querySelector('.kanban-card-title').textContent.trim();
+            const titleSpan = card.querySelector('.kanban-card-title span');
+            const title = titleSpan ? titleSpan.textContent.trim() : card.querySelector('.kanban-card-title').textContent.trim();
 
             document.getElementById('panel-title').value = title;
 
@@ -2647,7 +2653,10 @@
             card.dataset.contextId = task.context_id || '';
             card.draggable = true;
             card.innerHTML = `
-                <div class="kanban-card-title">${escapeHtml(task.title)}</div>
+                <div class="kanban-card-title">
+                    ${task.critical ? '<i class="bi bi-send-exclamation-fill kanban-card-critical-icon"></i>' : ''}
+                    <span>${escapeHtml(task.title)}</span>
+                </div>
                 <div class="kanban-card-meta">
                     ${task.context_name ? `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : ''}
                 </div>
@@ -2663,7 +2672,8 @@
         function updateKanbanCard(card, task) {
             card.className = 'kanban-card' + (task.critical ? ' critical' : '');
             card.dataset.contextId = task.context_id || '';
-            card.querySelector('.kanban-card-title').textContent = task.title;
+            const title = card.querySelector('.kanban-card-title');
+            title.innerHTML = `${task.critical ? '<i class="bi bi-send-exclamation-fill kanban-card-critical-icon"></i>' : ''}<span>${escapeHtml(task.title)}</span>`;
             const meta = card.querySelector('.kanban-card-meta');
             if (task.context_name) {
                 meta.innerHTML = `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>`;
