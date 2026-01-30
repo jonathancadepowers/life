@@ -323,6 +323,11 @@
             margin-bottom: 1rem;
             outline: none;
             border-bottom: 1px solid transparent;
+            resize: none;
+            overflow: hidden;
+            min-height: 2rem;
+            font-family: inherit;
+            line-height: 1.4;
         }
 
         .panel-title-input:focus {
@@ -2063,7 +2068,7 @@
             <button class="panel-close" id="panel-close">&times;</button>
         </div>
         <div class="panel-body">
-            <input type="text" class="panel-title-input" id="panel-title" placeholder="Task title">
+            <textarea class="panel-title-input" id="panel-title" placeholder="Task title" rows="1"></textarea>
             <div class="panel-details-label">Details</div>
             <textarea class="panel-details-input" id="panel-details" placeholder="Add details..."></textarea>
         </div>
@@ -2300,7 +2305,7 @@
                 if (body) {
                     const deleteLink = document.createElement('div');
                     deleteLink.className = 'delete-completed-link';
-                    deleteLink.textContent = 'Delete completed tasks';
+                    deleteLink.textContent = 'Delete Completed Tasks';
                     deleteLink.onclick = (e) => {
                         e.stopPropagation();
                         deleteCompletedTasks(terminalStateId);
@@ -2445,11 +2450,19 @@
         document.getElementById('panel-close').addEventListener('click', closePanel);
         document.getElementById('panel-overlay').addEventListener('click', closePanel);
 
+        // Auto-resize title textarea
+        function autoResizeTitle() {
+            const titleEl = document.getElementById('panel-title');
+            titleEl.style.height = 'auto';
+            titleEl.style.height = titleEl.scrollHeight + 'px';
+        }
+
         // Auto-save on changes
         ['panel-title', 'panel-details', 'panel-critical'].forEach(id => {
             const el = document.getElementById(id);
             const event = (el.type === 'checkbox') ? 'change' : 'input';
             el.addEventListener(event, () => {
+                if (id === 'panel-title') autoResizeTitle();
                 if (saveTimeout) clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(saveCurrentTask, 500);
             });
@@ -3266,6 +3279,7 @@
 
             document.getElementById('panel-overlay').classList.add('active');
             document.getElementById('slide-panel').classList.add('active');
+            setTimeout(autoResizeTitle, 10);
         }
 
         async function openTaskPanel(taskId) {
@@ -3282,6 +3296,7 @@
 
             document.getElementById('panel-overlay').classList.add('active');
             document.getElementById('slide-panel').classList.add('active');
+            setTimeout(autoResizeTitle, 10);
         }
 
         // Kanban drag and drop
