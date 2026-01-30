@@ -1,10 +1,14 @@
 import json
+from datetime import datetime, timedelta
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+import pytz
 
 from .models import Task, TaskContext, TaskState
+from calendar_events.models import CalendarEvent
 
 
 def task_list(request):
@@ -12,7 +16,45 @@ def task_list(request):
     tasks = Task.objects.select_related('context', 'state').all()
     contexts = TaskContext.objects.all()
     states = TaskState.objects.all()
-    return render(request, 'todos/task_list.html', {'tasks': tasks, 'contexts': contexts, 'states': states})
+
+    # Get today's calendar events in CST
+    cst = pytz.timezone('America/Chicago')
+    now_cst = datetime.now(cst)
+    today_start_cst = now_cst.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end_cst = today_start_cst + timedelta(days=1)
+
+    # Convert to UTC for database query
+    today_start_utc = today_start_cst.astimezone(pytz.UTC)
+    today_end_utc = today_end_cst.astimezone(pytz.UTC)
+
+    # Query events that overlap with today (in UTC)
+    calendar_events = CalendarEvent.objects.filter(
+        start__lt=today_end_utc,
+        end__gt=today_start_utc
+    ).order_by('start')
+
+    # Convert events to CST for template
+    events_data = []
+    for event in calendar_events:
+        start_cst = event.start.astimezone(cst)
+        end_cst = event.end.astimezone(cst)
+        events_data.append({
+            'id': event.id,
+            'subject': event.subject,
+            'start_hour': start_cst.hour,
+            'start_minute': start_cst.minute,
+            'end_hour': end_cst.hour,
+            'end_minute': end_cst.minute,
+            'location': event.location,
+            'is_all_day': event.is_all_day,
+        })
+
+    return render(request, 'todos/task_list.html', {
+        'tasks': tasks,
+        'contexts': contexts,
+        'states': states,
+        'calendar_events': json.dumps(events_data),
+    })
 
 
 @require_POST
