@@ -18,6 +18,6 @@ class TaskStateAdmin(admin.ModelAdmin):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ['title', 'context', 'state', 'critical', 'created_at']
-    list_filter = ['critical', 'context', 'state']
+    list_display = ['title', 'state', 'critical', 'created_at']
+    list_filter = ['critical', 'state']
     search_fields = ['title', 'details']

@@ -8,7 +8,6 @@ urlpatterns = [
     path('api/create/', views.create_task, name='create_task'),
     path('api/<int:task_id>/update/', views.update_task, name='update_task'),
     path('api/<int:task_id>/delete/', views.delete_task, name='delete_task'),
-    path('api/tasks/<int:task_id>/set-today/', views.set_task_today, name='set_task_today'),
     path('api/contexts/', views.list_contexts, name='list_contexts'),
     path('api/contexts/create/', views.create_context, name='create_context'),
     path('api/contexts/<int:context_id>/update/', views.update_context, name='update_context'),

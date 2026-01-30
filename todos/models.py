@@ -37,16 +37,6 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     details = models.TextField(blank=True, default='')
     critical = models.BooleanField(default=False)
-    today = models.BooleanField(default=False)
-    time_period = models.CharField(max_length=20, blank=True, default='')  # morning/afternoon/evening
-    section_number = models.IntegerField(null=True, blank=True)  # 1, 2, or 3
-    context = models.ForeignKey(
-        TaskContext,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='tasks'
-    )
     state = models.ForeignKey(
         TaskState,
         on_delete=models.SET_NULL,

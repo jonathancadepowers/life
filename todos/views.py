@@ -13,7 +13,7 @@ from calendar_events.models import CalendarEvent
 
 def task_list(request):
     """Display all tasks."""
-    tasks = Task.objects.select_related('context', 'state').all()
+    tasks = Task.objects.select_related('state').all()
     contexts = TaskContext.objects.all()
     states = TaskState.objects.all()
 
@@ -77,9 +77,6 @@ def create_task(request):
                 'title': task.title,
                 'details': task.details,
                 'critical': task.critical,
-                'context_id': None,
-                'context_name': None,
-                'context_color': None,
                 'state_id': task.state_id,
                 'state_name': task.state.name if task.state else None,
             }
@@ -101,11 +98,6 @@ def update_task(request, task_id):
             task.details = data['details']
         if 'critical' in data:
             task.critical = data['critical']
-        if 'context_id' in data:
-            if data['context_id']:
-                task.context = TaskContext.objects.get(id=data['context_id'])
-            else:
-                task.context = None
         if 'state_id' in data:
             if data['state_id']:
                 task.state = TaskState.objects.get(id=data['state_id'])
@@ -120,17 +112,12 @@ def update_task(request, task_id):
                 'title': task.title,
                 'details': task.details,
                 'critical': task.critical,
-                'context_id': task.context_id,
-                'context_name': task.context.name if task.context else None,
-                'context_color': task.context.color if task.context else None,
                 'state_id': task.state_id,
                 'state_name': task.state.name if task.state else None,
             }
         })
     except Task.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
-    except TaskContext.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Context not found'}, status=404)
     except TaskState.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
     except json.JSONDecodeError:
@@ -146,42 +133,6 @@ def delete_task(request, task_id):
         return JsonResponse({'success': True})
     except Task.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
-
-
-@require_POST
-def set_task_today(request, task_id):
-    """Set or unset the today field for a task via AJAX."""
-    try:
-        task = Task.objects.get(id=task_id)
-        data = json.loads(request.body)
-
-        today = data.get('today', False)
-        task.today = today
-
-        if today:
-            # When setting today=true, also save time_period and section_number
-            task.time_period = data.get('time_period', '')
-            task.section_number = data.get('section_number', None)
-        else:
-            # When unsetting today, clear time_period and section_number
-            task.time_period = ''
-            task.section_number = None
-
-        task.save()
-
-        return JsonResponse({
-            'success': True,
-            'task': {
-                'id': task.id,
-                'today': task.today,
-                'time_period': task.time_period,
-                'section_number': task.section_number,
-            }
-        })
-    except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 
 
 def list_contexts(request):
