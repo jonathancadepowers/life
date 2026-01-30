@@ -1968,6 +1968,7 @@
             color: #dc3545;
             font-size: 0.85rem;
             flex-shrink: 0;
+            margin-left: auto;
         }
 
         .task-card.completed .task-card-title {
@@ -2184,6 +2185,8 @@
             color: #dc3545;
             font-size: 0.7rem;
             flex-shrink: 0;
+            margin-left: auto;
+            margin-top: 1.5px;
         }
 
         /* Drop indicator for calendar - 30 minute preview */
@@ -2512,9 +2515,9 @@
                                 {% if task.state == state %}
                                 <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                     <div class="task-card-content">
-                                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>{% endif %}
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
+                                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -2539,9 +2542,9 @@
                                 {% if not task.state %}
                                 <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                     <div class="task-card-content">
-                                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>{% endif %}
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
+                                        {% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -2997,8 +3000,8 @@
                 card.draggable = true;
                 card.innerHTML = `
                     <div class="task-card-content">
-                        ${task.critical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>' : ''}
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
+                        ${task.critical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>' : ''}
                     </div>
                 `;
 
@@ -5142,10 +5145,10 @@
 
                 card.innerHTML = `
                     <div class="task-card-content">
-                        ${criticalIconHtml}
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
                         ${tagsHtml}
                         ${todayIconHtml}
+                        ${criticalIconHtml}
                     </div>
                 `;
 
@@ -5672,13 +5675,6 @@
                 taskIcon.className = 'bi bi-check2-circle calendar-task-icon';
                 contentWrapper.appendChild(taskIcon);
 
-                // Add critical icon if task is critical
-                if (isCritical) {
-                    const criticalIcon = document.createElement('i');
-                    criticalIcon.className = 'bi bi-exclamation-circle-fill calendar-critical-icon';
-                    contentWrapper.appendChild(criticalIcon);
-                }
-
                 // Add title text
                 const titleSpan = document.createElement('span');
                 titleSpan.className = 'calendar-task-title';
@@ -5686,6 +5682,13 @@
                 contentWrapper.appendChild(titleSpan);
 
                 taskEl.appendChild(contentWrapper);
+
+                // Add critical icon on the right if task is critical
+                if (isCritical) {
+                    const criticalIcon = document.createElement('i');
+                    criticalIcon.className = 'bi bi-exclamation-circle-fill calendar-critical-icon';
+                    taskEl.appendChild(criticalIcon);
+                }
 
                 // Add tag pills if task has tags
                 if (tags.length > 0) {
