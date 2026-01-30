@@ -1488,12 +1488,18 @@
         }
 
         .state-group-body {
-            padding: 0.25rem 0;
+            padding: 0.5rem;
             background: white;
             border: 1px solid #e9ecef;
             border-top: none;
             border-bottom-left-radius: 6px;
             border-bottom-right-radius: 6px;
+            min-height: 40px;
+            transition: background 0.15s;
+        }
+
+        .state-group-body.drag-over {
+            background: #f0f7f4;
         }
 
         .state-group.collapsed .state-group-body {
@@ -1501,22 +1507,33 @@
         }
 
         .task-card {
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid #eef0f2;
-            border-radius: 0;
-            padding: 0.4rem 0.5rem;
-            margin-bottom: 0;
-            cursor: pointer;
-            transition: background 0.15s;
+            background: #fafbfc;
+            border: 1px solid #eef0f2;
+            border-radius: 4px;
+            padding: 0.4rem 0.6rem;
+            margin-bottom: 0.35rem;
+            cursor: grab;
+            transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
         }
 
         .task-card:last-child {
-            border-bottom: none;
+            margin-bottom: 0;
         }
 
         .task-card:hover {
-            background: #f5f7f8;
+            background: #f0f7f4;
+            border-color: #d0e0d8;
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .task-card.drag-over {
+            border-color: #6B9080;
+            box-shadow: 0 0 0 1px #6B9080;
+        }
         }
 
         .task-card:last-child {
@@ -1798,7 +1815,7 @@
                         <div class="state-group-body" data-state-id="{{ state.id }}">
                             {% for task in tasks %}
                             {% if task.state == state %}
-                            <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" onclick="openTaskPanel({{ task.id }})">
+                            <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
                                 <div class="task-card-title">{{ task.title }}</div>
                                 <div class="task-card-meta">
                                     {% if task.context %}<span class="task-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
@@ -3709,6 +3726,96 @@
                 }
             });
         }
+
+        // ========== Task Card Drag and Drop ==========
+
+        let draggedTaskCard = null;
+
+        // Setup drag events for task cards
+        function setupTaskCardDragEvents(card) {
+            card.addEventListener('dragstart', function(e) {
+                draggedTaskCard = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', this.dataset.taskId);
+            });
+
+            card.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                draggedTaskCard = null;
+                // Remove all drag-over classes
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            });
+
+            // Click to open task panel
+            card.addEventListener('click', function(e) {
+                if (!this.classList.contains('dragging')) {
+                    openTaskPanel(parseInt(this.dataset.taskId));
+                }
+            });
+        }
+
+        // Setup drop zones (state-group-body elements)
+        function setupDropZones() {
+            document.querySelectorAll('.state-group-body').forEach(dropZone => {
+                dropZone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    this.classList.add('drag-over');
+                });
+
+                dropZone.addEventListener('dragleave', function(e) {
+                    // Only remove if we're actually leaving the drop zone
+                    if (!this.contains(e.relatedTarget)) {
+                        this.classList.remove('drag-over');
+                    }
+                });
+
+                dropZone.addEventListener('drop', async function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+
+                    if (!draggedTaskCard) return;
+
+                    const taskId = parseInt(draggedTaskCard.dataset.taskId);
+                    const newStateId = parseInt(this.dataset.stateId);
+                    const oldStateId = parseInt(draggedTaskCard.closest('.state-group').dataset.stateId);
+
+                    // Move the card visually
+                    this.appendChild(draggedTaskCard);
+
+                    // If state changed, update on server
+                    if (newStateId !== oldStateId) {
+                        try {
+                            const response = await fetch(`/tasks/api/tasks/${taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ state_id: newStateId })
+                            });
+
+                            if (!response.ok) {
+                                console.error('Failed to update task state');
+                                // Revert on failure - would need to track original parent
+                            }
+                        } catch (error) {
+                            console.error('Error updating task state:', error);
+                        }
+                    }
+
+                    // Update counts
+                    updatePanelCounts();
+                });
+            });
+        }
+
+        // Initialize drag and drop for existing cards
+        document.querySelectorAll('.task-card').forEach(card => {
+            setupTaskCardDragEvents(card);
+        });
+        setupDropZones();
 
         // Initialize two-panel layout
         generateHourlyCalendar();
