@@ -929,11 +929,40 @@
             }
         }
 
+        /* Section Containers */
+        .section-container {
+            max-width: 1800px;
+            margin: 2rem auto;
+            padding: 1.5rem 0;
+            border-left: 4px solid;
+            background: #fafbfc;
+        }
+
+        .tasks-section {
+            border-left-color: #7B9FC4;
+        }
+
+        .calendar-section {
+            border-left-color: #6B9080;
+        }
+
+        .section-header {
+            padding: 0 3rem 1rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
         /* Kanban Board */
         .kanban-container {
             max-width: 1800px;
-            margin: 1rem auto;
-            padding: 0 3rem 2rem;
+            margin: 0 auto;
+            padding: 0 3rem 1rem;
         }
 
         .kanban-board {
@@ -1046,8 +1075,8 @@
         /* Calendar (Today View) */
         .calendar-container {
             max-width: 1800px;
-            margin: 0 auto 2rem;
-            padding: 0 3rem;
+            margin: 0 auto;
+            padding: 0 3rem 1rem;
         }
 
         .calendar-board {
@@ -1246,10 +1275,14 @@
         </div>
     </div>
 
-    <!-- Kanban Board -->
+    <!-- Tasks Section -->
     {% if states %}
-    <div class="kanban-container">
-        <div class="kanban-board" id="kanban-board">
+    <div class="section-container tasks-section">
+        <div class="section-header">
+            <h2 class="section-title">Tasks</h2>
+        </div>
+        <div class="kanban-container">
+            <div class="kanban-board" id="kanban-board">
             {% for state in states %}
             {% if not state.is_terminal %}
             <div class="kanban-column" data-state-id="{{ state.id }}" data-icon="{{ state.bootstrap_icon }}">
@@ -1275,12 +1308,17 @@
             </div>
             {% endif %}
             {% endfor %}
+            </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Today Calendar -->
-    <div class="calendar-container">
+    <!-- Calendar Section -->
+    <div class="section-container calendar-section">
+        <div class="section-header">
+            <h2 class="section-title">Calendar</h2>
+        </div>
+        <div class="calendar-container">
         <div class="calendar-board">
             <!-- Morning Box -->
             <div class="calendar-box" data-time-period="morning">
@@ -1425,6 +1463,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 
