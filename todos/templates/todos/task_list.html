@@ -1138,6 +1138,111 @@
             gap: 0.5rem;
         }
 
+        .calendar-task-count {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.625rem 0.75rem;
+            cursor: pointer;
+            transition: box-shadow 0.15s;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .calendar-task-count:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Right slide-out panel for time slot tasks */
+        .timeslot-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .timeslot-panel.active {
+            transform: translateX(0);
+        }
+
+        .timeslot-panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 1000;
+        }
+
+        .timeslot-panel-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .timeslot-task-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .timeslot-task-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            cursor: grab;
+            transition: box-shadow 0.15s;
+            position: relative;
+        }
+
+        .timeslot-task-item:active {
+            cursor: grabbing;
+        }
+
+        .timeslot-task-item:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .timeslot-task-item.dragging {
+            opacity: 0.5;
+        }
+
+        .timeslot-task-title {
+            font-size: 0.95rem;
+            color: #212529;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeslot-task-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timeslot-task-context {
+            font-size: 0.7rem;
+            color: white;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+        }
+
         .calendar-box-body .calendar-section:last-child {
             border-bottom: none;
         }
@@ -1642,6 +1747,18 @@
             <button class="delete-btn" id="panel-delete" title="Delete task">
                 <i class="bi bi-trash"></i>
             </button>
+        </div>
+    </div>
+
+    <!-- Right slide-out Panel for Time Slot Tasks -->
+    <div class="timeslot-panel-overlay" id="timeslot-panel-overlay"></div>
+    <div class="timeslot-panel" id="timeslot-panel">
+        <div class="panel-header">
+            <span style="font-weight: 500;" id="timeslot-panel-title">Time Slot Tasks</span>
+            <button class="panel-close" id="timeslot-panel-close">&times;</button>
+        </div>
+        <div class="timeslot-task-list" id="timeslot-task-list">
+            <!-- Tasks will be populated here -->
         </div>
     </div>
 
@@ -3468,6 +3585,201 @@
                         console.error('Error updating today field:', error);
                     }
                 }
+            });
+        });
+
+        // ===== TIME SLOT PANEL FUNCTIONALITY =====
+
+        let currentTimeslotSection = null;
+        let draggedTimeslotTask = null;
+
+        // Process calendar sections to show task counts
+        function processCalendarSections() {
+            document.querySelectorAll('.calendar-section').forEach(section => {
+                const content = section.querySelector('.calendar-section-content');
+                if (!content) return;
+
+                const tasks = content.querySelectorAll('.kanban-card');
+                const taskCount = tasks.length;
+
+                // Remove any existing count display
+                const existingCount = content.querySelector('.calendar-task-count');
+                if (existingCount) {
+                    existingCount.remove();
+                }
+
+                if (taskCount > 1) {
+                    // Hide individual tasks
+                    tasks.forEach(task => task.style.display = 'none');
+
+                    // Create and show count summary
+                    const countDiv = document.createElement('div');
+                    countDiv.className = 'calendar-task-count';
+                    countDiv.textContent = `${taskCount} tasks`;
+                    countDiv.dataset.sectionId = section.dataset.section;
+                    countDiv.dataset.timePeriod = section.closest('.calendar-box').dataset.timePeriod;
+
+                    countDiv.addEventListener('click', function() {
+                        openTimeslotPanel(section);
+                    });
+
+                    content.appendChild(countDiv);
+                } else if (taskCount === 1) {
+                    // Show single task normally
+                    tasks[0].style.display = 'flex';
+                }
+            });
+        }
+
+        // Open time slot panel
+        function openTimeslotPanel(section) {
+            currentTimeslotSection = section;
+            const content = section.querySelector('.calendar-section-content');
+            const tasks = Array.from(content.querySelectorAll('.kanban-card'));
+            const timeLabel = section.querySelector('.calendar-time-label').textContent;
+            const timePeriod = section.closest('.calendar-box').dataset.timePeriod;
+
+            // Set panel title
+            document.getElementById('timeslot-panel-title').textContent =
+                `${timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} - ${timeLabel}`;
+
+            // Populate task list
+            const taskList = document.getElementById('timeslot-task-list');
+            taskList.innerHTML = '';
+
+            tasks.forEach(task => {
+                const taskItem = createTimeslotTaskItem(task);
+                taskList.appendChild(taskItem);
+            });
+
+            // Setup drag and drop for reordering
+            setupTimeslotDragAndDrop();
+
+            // Show panel
+            document.getElementById('timeslot-panel-overlay').classList.add('active');
+            document.getElementById('timeslot-panel').classList.add('active');
+        }
+
+        // Create task item for timeslot panel
+        function createTimeslotTaskItem(task) {
+            const item = document.createElement('div');
+            item.className = 'timeslot-task-item';
+            item.draggable = true;
+            item.dataset.taskId = task.dataset.taskId;
+
+            const title = document.createElement('div');
+            title.className = 'timeslot-task-title';
+            title.textContent = task.querySelector('.kanban-card-title').textContent;
+
+            const meta = document.createElement('div');
+            meta.className = 'timeslot-task-meta';
+
+            const contextBadge = task.querySelector('.kanban-card-context');
+            if (contextBadge) {
+                const badge = document.createElement('span');
+                badge.className = 'timeslot-task-context';
+                badge.textContent = contextBadge.textContent;
+                badge.style.background = contextBadge.style.background;
+                meta.appendChild(badge);
+            }
+
+            item.appendChild(title);
+            item.appendChild(meta);
+
+            return item;
+        }
+
+        // Setup drag and drop for timeslot panel
+        function setupTimeslotDragAndDrop() {
+            const items = document.querySelectorAll('.timeslot-task-item');
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    draggedTimeslotTask = this;
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                item.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    draggedTimeslotTask = null;
+                });
+
+                item.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    if (draggedTimeslotTask === this) return;
+
+                    const rect = this.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+
+                    if (e.clientY < midpoint) {
+                        this.parentNode.insertBefore(draggedTimeslotTask, this);
+                    } else {
+                        this.parentNode.insertBefore(draggedTimeslotTask, this.nextSibling);
+                    }
+                });
+            });
+
+            // Save order on drop
+            document.getElementById('timeslot-task-list').addEventListener('drop', async function() {
+                await saveTimeslotTaskOrder();
+            });
+        }
+
+        // Save task order
+        async function saveTimeslotTaskOrder() {
+            const taskList = document.getElementById('timeslot-task-list');
+            const taskIds = Array.from(taskList.querySelectorAll('.timeslot-task-item'))
+                .map(item => parseInt(item.dataset.taskId));
+
+            try {
+                const response = await fetch('/tasks/api/tasks/reorder/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ task_ids: taskIds })
+                });
+
+                if (response.ok) {
+                    // Update order in the calendar section
+                    if (currentTimeslotSection) {
+                        const content = currentTimeslotSection.querySelector('.calendar-section-content');
+                        const tasks = Array.from(content.querySelectorAll('.kanban-card'));
+
+                        taskIds.forEach((taskId, index) => {
+                            const task = tasks.find(t => parseInt(t.dataset.taskId) === taskId);
+                            if (task) {
+                                task.style.order = index;
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving task order:', error);
+            }
+        }
+
+        // Close timeslot panel
+        function closeTimeslotPanel() {
+            document.getElementById('timeslot-panel-overlay').classList.remove('active');
+            document.getElementById('timeslot-panel').classList.remove('active');
+            currentTimeslotSection = null;
+        }
+
+        // Event listeners for timeslot panel
+        document.getElementById('timeslot-panel-close').addEventListener('click', closeTimeslotPanel);
+        document.getElementById('timeslot-panel-overlay').addEventListener('click', closeTimeslotPanel);
+
+        // Process calendar sections on page load
+        processCalendarSections();
+
+        // Also process after a task is moved to/from calendar
+        const originalDropHandler = document.querySelectorAll('.calendar-section');
+        originalDropHandler.forEach(section => {
+            section.addEventListener('drop', function() {
+                setTimeout(processCalendarSections, 100);
             });
         });
 
