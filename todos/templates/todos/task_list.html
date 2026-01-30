@@ -1648,6 +1648,11 @@
             border-top: 1px solid #eee;
             background: #fafafa;
             gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .tasks-search-bar.expanded {
+            cursor: default;
         }
 
         .tasks-search-icon {
@@ -5089,11 +5094,13 @@
         const tasksSearchResults = document.getElementById('tasks-search-results');
         const tasksSearchClear = document.getElementById('tasks-search-clear');
 
-        // Toggle search bar expansion
-        if (tasksSearchIcon) {
-            tasksSearchIcon.addEventListener('click', function() {
-                tasksSearchBar.classList.add('expanded');
-                tasksSearchInput.focus();
+        // Toggle search bar expansion - click anywhere in bar to expand
+        if (tasksSearchBar) {
+            tasksSearchBar.addEventListener('click', function(e) {
+                if (!tasksSearchBar.classList.contains('expanded')) {
+                    tasksSearchBar.classList.add('expanded');
+                    tasksSearchInput.focus();
+                }
             });
         }
 
