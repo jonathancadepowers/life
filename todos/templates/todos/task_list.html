@@ -1768,14 +1768,17 @@
         }
 
         .hour-label {
-            width: 70px;
-            padding: 0.5rem 0.75rem;
+            width: 55px;
+            padding: 0 0.75rem;
             font-size: 0.75rem;
             color: #6c757d;
             text-align: right;
             border-right: 1px solid #e9ecef;
             flex-shrink: 0;
             background: #fafafa;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
         }
 
         .hour-content {
@@ -3935,7 +3938,7 @@
                 const displayHour = hour > 12 ? hour - 12 : hour;
 
                 hourRow.innerHTML = `
-                    <div class="hour-label">${displayHour}:00 ${ampm}</div>
+                    <div class="hour-label">${displayHour} ${ampm}</div>
                     <div class="hour-content" data-hour="${hour}"></div>
                 `;
 
