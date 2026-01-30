@@ -1763,6 +1763,10 @@
             background: #f0f7f4;
         }
 
+        .state-group-header.drag-over {
+            background: #e8f4ea;
+        }
+
         .state-group.collapsed .state-group-body {
             display: none;
         }
@@ -4404,7 +4408,151 @@
                 body.appendChild(card);
             });
 
+            // Setup drag-drop for tag group body
+            setupTagGroupDragDrop(body, tagId, tagName);
+
+            // Also setup drag-drop for the header (for dropping on collapsed groups)
+            const header = group.querySelector('.state-group-header');
+            setupTagGroupHeaderDragDrop(header, group, tagId, tagName);
+
             return group;
+        }
+
+        // Setup drag-drop handlers for tag group headers
+        function setupTagGroupHeaderDragDrop(header, group, tagId, tagName) {
+            header.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (!draggedTaskCard) return;
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('drag-over');
+            });
+
+            header.addEventListener('dragleave', function(e) {
+                this.classList.remove('drag-over');
+            });
+
+            header.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('drag-over');
+                if (!draggedTaskCard) return;
+
+                const taskId = parseInt(draggedTaskCard.dataset.taskId);
+                const currentTags = taskTagsMap[taskId] || [];
+
+                if (tagId === 'untagged') {
+                    // Dropping into Untagged - remove all tags
+                    for (const tag of currentTags) {
+                        try {
+                            await fetch(`/tasks/api/${taskId}/tags/remove/`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ tag_id: tag.id })
+                            });
+                        } catch (error) {
+                            console.error('Error removing tag:', error);
+                        }
+                    }
+                    taskTagsMap[taskId] = [];
+                } else {
+                    // Dropping into a tag group - add this tag if not already present
+                    const numericTagId = parseInt(tagId);
+                    const hasTag = currentTags.some(t => t.id === numericTagId);
+                    if (!hasTag) {
+                        try {
+                            const response = await fetch(`/tasks/api/${taskId}/tags/add/`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ tag_id: numericTagId })
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                taskTagsMap[taskId] = data.task_tags;
+                            }
+                        } catch (error) {
+                            console.error('Error adding tag:', error);
+                        }
+                    }
+                }
+
+                // Rebuild tag groups to reflect changes
+                buildTagGroups();
+            });
+        }
+
+        // Setup drag-drop handlers for tag groups
+        function setupTagGroupDragDrop(body, tagId, tagName) {
+            body.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (!draggedTaskCard) return;
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('drag-over');
+            });
+
+            body.addEventListener('dragleave', function(e) {
+                if (!this.contains(e.relatedTarget)) {
+                    this.classList.remove('drag-over');
+                }
+            });
+
+            body.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                if (!draggedTaskCard) return;
+
+                const taskId = parseInt(draggedTaskCard.dataset.taskId);
+                const currentTags = taskTagsMap[taskId] || [];
+
+                if (tagId === 'untagged') {
+                    // Dropping into Untagged - remove all tags
+                    for (const tag of currentTags) {
+                        try {
+                            await fetch(`/tasks/api/${taskId}/tags/remove/`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ tag_id: tag.id })
+                            });
+                        } catch (error) {
+                            console.error('Error removing tag:', error);
+                        }
+                    }
+                    taskTagsMap[taskId] = [];
+                } else {
+                    // Dropping into a tag group - add this tag if not already present
+                    const numericTagId = parseInt(tagId);
+                    const hasTag = currentTags.some(t => t.id === numericTagId);
+                    if (!hasTag) {
+                        try {
+                            const response = await fetch(`/tasks/api/${taskId}/tags/add/`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ tag_id: numericTagId })
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                taskTagsMap[taskId] = data.task_tags;
+                            }
+                        } catch (error) {
+                            console.error('Error adding tag:', error);
+                        }
+                    }
+                }
+
+                // Rebuild tag groups to reflect changes
+                buildTagGroups();
+            });
         }
 
         function applyFilters() {
