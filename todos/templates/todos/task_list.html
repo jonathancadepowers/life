@@ -1911,6 +1911,17 @@
     <!-- Filter dropdown -->
     <div class="filter-dropdown" id="filter-dropdown">
         <div class="filter-section">
+            <div class="filter-section-title">Group By</div>
+            <label class="filter-option">
+                <input type="radio" name="group-by" value="states" id="group-by-states" checked>
+                States
+            </label>
+            <label class="filter-option">
+                <input type="radio" name="group-by" value="tags" id="group-by-tags">
+                Tags
+            </label>
+        </div>
+        <div class="filter-section">
             <div class="filter-section-title">Priority</div>
             <label class="filter-option">
                 <input type="checkbox" id="filter-critical">
@@ -1919,7 +1930,7 @@
             </label>
         </div>
         <div class="filter-section" id="filter-tags-section">
-            <div class="filter-section-title">Tags</div>
+            <div class="filter-section-title">Filter by Tags</div>
             <div id="filter-tags-list">
                 {% for tag in tags %}
                 <label class="filter-option">
@@ -1967,30 +1978,35 @@
                     </span>
                 </div>
                 <div class="panel-content" id="tasks-content">
-                    {% for state in states %}
-                    <div class="state-group collapsed" data-state-id="{{ state.id }}">
-                        <div class="state-group-header" onclick="toggleStateGroup(this)">
-                            <div class="state-group-left">
-                                {% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }} state-group-icon"></i>{% endif %}
-                                <span class="state-group-name">{{ state.name }}</span>
+                    <!-- States grouping (default) -->
+                    <div id="states-content">
+                        {% for state in states %}
+                        <div class="state-group collapsed" data-state-id="{{ state.id }}">
+                            <div class="state-group-header" onclick="toggleStateGroup(this)">
+                                <div class="state-group-left">
+                                    {% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }} state-group-icon"></i>{% endif %}
+                                    <span class="state-group-name">{{ state.name }}</span>
+                                </div>
+                                <div class="state-group-right">
+                                    <span class="state-group-count" id="panel-count-{{ state.id }}">0</span>
+                                    <i class="bi bi-chevron-down state-group-toggle"></i>
+                                </div>
                             </div>
-                            <div class="state-group-right">
-                                <span class="state-group-count" id="panel-count-{{ state.id }}">0</span>
-                                <i class="bi bi-chevron-down state-group-toggle"></i>
+                            <div class="state-group-body" data-state-id="{{ state.id }}">
+                                {% for task in tasks %}
+                                {% if task.state == state %}
+                                <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                                    <div class="task-card-title">{{ task.title }}</div>
+                                    {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
+                                </div>
+                                {% endif %}
+                                {% endfor %}
                             </div>
                         </div>
-                        <div class="state-group-body" data-state-id="{{ state.id }}">
-                            {% for task in tasks %}
-                            {% if task.state == state %}
-                            <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
-                                <div class="task-card-title">{{ task.title }}</div>
-                                {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                            </div>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
+                    <!-- Tags grouping (hidden by default) -->
+                    <div id="tags-content" style="display: none;"></div>
                 </div>
             </div>
 
@@ -2317,7 +2333,7 @@
         }
 
         async function deleteCompletedTasks(stateId) {
-            const body = document.querySelector(`.state-group-body[data-state-id="${stateId}"]`);
+            const body = document.querySelector(`#states-content .state-group-body[data-state-id="${stateId}"]`);
             if (!body) return;
 
             const taskCards = body.querySelectorAll('.task-card');
@@ -2336,9 +2352,12 @@
 
             if (!confirmed) return;
 
+            // Collect task IDs to delete
+            const taskIds = [];
+            taskCards.forEach(card => taskIds.push(parseInt(card.dataset.taskId)));
+
             // Delete all tasks in the terminal state
-            for (const card of taskCards) {
-                const taskId = parseInt(card.dataset.taskId);
+            for (const taskId of taskIds) {
                 try {
                     await fetch(`/tasks/api/${taskId}/delete/`, {
                         method: 'DELETE',
@@ -2346,13 +2365,17 @@
                             'X-CSRFToken': csrfToken
                         }
                     });
-                    card.remove();
+                    // Remove from all views
+                    document.querySelectorAll(`.kanban-card[data-task-id="${taskId}"], .task-card[data-task-id="${taskId}"]`).forEach(card => card.remove());
+                    // Remove from tags map
+                    delete taskTagsMap[taskId];
                 } catch (error) {
                     console.error('Error deleting task:', error);
                 }
             }
 
             updatePanelCounts();
+            updateKanbanCounts();
         }
 
         // Add new task on Enter
@@ -2382,34 +2405,31 @@
         });
 
         function addTaskToKanban(task) {
-            // Find the first state group (topmost)
-            const firstStateGroup = document.querySelector('.state-group');
-            if (!firstStateGroup) return;
+            // Initialize tags map for the new task
+            taskTagsMap[task.id] = task.tags || [];
 
-            const stateGroupBody = firstStateGroup.querySelector('.state-group-body');
-            if (!stateGroupBody) return;
+            // Helper to create a task card
+            function createTaskCard(withHighlight) {
+                const card = document.createElement('div');
+                card.className = 'task-card' + (task.critical ? ' critical' : '') + (withHighlight ? ' highlight-new' : '');
+                card.dataset.taskId = task.id;
+                card.draggable = true;
+                card.innerHTML = `
+                    <div class="task-card-title">${escapeHtml(task.title)}</div>
+                `;
 
-            // Create the task card
-            const card = document.createElement('div');
-            card.className = 'task-card' + (task.critical ? ' critical' : '') + ' highlight-new';
-            card.dataset.taskId = task.id;
-            card.draggable = true;
-            card.innerHTML = `
-                <div class="task-card-title">${escapeHtml(task.title)}</div>
-            `;
+                // Setup drag events and context menu for the new card
+                setupTaskCardDragEvents(card);
+                card.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+                });
+                card.addEventListener('click', function() {
+                    openTaskPanel(parseInt(this.dataset.taskId));
+                });
 
-            // Insert at the top of the first state group
-            stateGroupBody.insertBefore(card, stateGroupBody.firstChild);
-
-            // Setup drag events and context menu for the new card
-            setupTaskCardDragEvents(card);
-            card.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
-            });
-            card.addEventListener('click', function() {
-                openTaskPanel(parseInt(this.dataset.taskId));
-            });
+                return card;
+            }
 
             // Expand the Tasks panel if collapsed
             const tasksPanel = document.getElementById('tasks-panel');
@@ -2417,21 +2437,55 @@
                 tasksPanel.classList.remove('collapsed');
             }
 
-            // Expand the first state group if collapsed
-            if (firstStateGroup.classList.contains('collapsed')) {
-                firstStateGroup.classList.remove('collapsed');
+            // Always add to states-content (it's the master view)
+            const firstStateGroup = document.querySelector('#states-content .state-group');
+            if (firstStateGroup) {
+                const stateGroupBody = firstStateGroup.querySelector('.state-group-body');
+                if (stateGroupBody) {
+                    const statesCard = createTaskCard(currentGroupBy === 'states');
+                    stateGroupBody.insertBefore(statesCard, stateGroupBody.firstChild);
+
+                    if (currentGroupBy === 'states') {
+                        // Expand the first state group if collapsed
+                        if (firstStateGroup.classList.contains('collapsed')) {
+                            firstStateGroup.classList.remove('collapsed');
+                        }
+                        // Remove highlight class after animation
+                        setTimeout(() => {
+                            statesCard.classList.remove('highlight-new');
+                        }, 4500);
+                    }
+                }
+            }
+
+            // If currently viewing by tags, also add to the Untagged group
+            if (currentGroupBy === 'tags') {
+                const untaggedGroup = document.querySelector('#tags-content .state-group[data-tag-id="untagged"]');
+                if (untaggedGroup) {
+                    const untaggedBody = untaggedGroup.querySelector('.state-group-body');
+                    if (untaggedBody) {
+                        const tagsCard = createTaskCard(true);
+                        untaggedBody.insertBefore(tagsCard, untaggedBody.firstChild);
+
+                        // Expand the Untagged group if collapsed
+                        if (untaggedGroup.classList.contains('collapsed')) {
+                            untaggedGroup.classList.remove('collapsed');
+                        }
+                        // Update the count
+                        const countEl = untaggedGroup.querySelector('.state-group-count');
+                        if (countEl) {
+                            countEl.textContent = parseInt(countEl.textContent) + 1;
+                        }
+                        // Remove highlight class after animation
+                        setTimeout(() => {
+                            tagsCard.classList.remove('highlight-new');
+                        }, 4500);
+                    }
+                }
             }
 
             // Update counts
             updatePanelCounts();
-
-            // Initialize tags map for the new task
-            taskTagsMap[task.id] = task.tags || [];
-
-            // Remove highlight class after animation completes
-            setTimeout(() => {
-                card.classList.remove('highlight-new');
-            }, 4500);
         }
 
         function escapeHtml(text) {
@@ -2536,17 +2590,33 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    // Remove from kanban
-                    const kanbanCard = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
-                    if (kanbanCard) {
-                        kanbanCard.style.opacity = '0';
-                        kanbanCard.style.transform = 'translateX(20px)';
-                        kanbanCard.style.transition = 'all 0.3s';
+                    // Remove from all views
+                    const allCards = document.querySelectorAll(`.kanban-card[data-task-id="${taskId}"], .task-card[data-task-id="${taskId}"]`);
+                    allCards.forEach(card => {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(20px)';
+                        card.style.transition = 'all 0.3s';
                         setTimeout(() => {
-                            kanbanCard.remove();
-                            updateKanbanCounts();
+                            card.remove();
                         }, 300);
-                    }
+                    });
+
+                    // Update counts after removal animation
+                    setTimeout(() => {
+                        updateKanbanCounts();
+                        updatePanelCounts();
+                        // Update tag group counts if in tags view
+                        if (currentGroupBy === 'tags') {
+                            document.querySelectorAll('#tags-content .state-group').forEach(group => {
+                                const count = group.querySelectorAll('.task-card').length;
+                                const countEl = group.querySelector('.state-group-count');
+                                if (countEl) countEl.textContent = count;
+                            });
+                        }
+                    }, 300);
+
+                    // Remove from tags map
+                    delete taskTagsMap[taskId];
                 }
             } catch (error) {
                 console.error('Error deleting task:', error);
@@ -3640,8 +3710,8 @@
         }
 
         function updateTaskCardTags(taskId, tags) {
-            // Update both task-card and kanban-card
-            const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+            // Update both task-card and kanban-card in states view
+            const taskCard = document.querySelector(`#states-content .task-card[data-task-id="${taskId}"]`);
             const kanbanCard = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
 
             [taskCard, kanbanCard].forEach(card => {
@@ -3664,6 +3734,11 @@
                     card.appendChild(tagsContainer);
                 }
             });
+
+            // Rebuild tag groups if currently viewing by tags
+            if (currentGroupBy === 'tags') {
+                buildTagGroups();
+            }
         }
 
         async function toggleTaskTag(taskId, tagId, hasTag) {
@@ -3836,6 +3911,128 @@
             filterTagCheckboxes.forEach(cb => cb.checked = false);
             applyFilters();
         });
+
+        // ========== Group By Functionality ==========
+        let currentGroupBy = 'states';  // 'states' or 'tags'
+
+        document.querySelectorAll('input[name="group-by"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                currentGroupBy = this.value;
+                switchGroupBy(currentGroupBy);
+            });
+        });
+
+        function switchGroupBy(groupBy) {
+            const statesContent = document.getElementById('states-content');
+            const tagsContent = document.getElementById('tags-content');
+
+            if (groupBy === 'states') {
+                statesContent.style.display = '';
+                tagsContent.style.display = 'none';
+            } else {
+                statesContent.style.display = 'none';
+                tagsContent.style.display = '';
+                buildTagGroups();
+            }
+            updatePanelCounts();
+        }
+
+        function buildTagGroups() {
+            const tagsContent = document.getElementById('tags-content');
+            tagsContent.innerHTML = '';
+
+            // Get all tasks from the state groups
+            const allTasks = [];
+            document.querySelectorAll('#states-content .task-card').forEach(card => {
+                const taskId = parseInt(card.dataset.taskId);
+                const title = card.querySelector('.task-card-title').textContent;
+                const isCritical = card.classList.contains('critical');
+                const tags = taskTagsMap[taskId] || [];
+                allTasks.push({ id: taskId, title, isCritical, tags, element: card });
+            });
+
+            // Group tasks by tag
+            const tagGroups = {};
+            const untaggedTasks = [];
+
+            allTasks.forEach(task => {
+                if (task.tags.length === 0) {
+                    untaggedTasks.push(task);
+                } else {
+                    task.tags.forEach(tag => {
+                        if (!tagGroups[tag.id]) {
+                            tagGroups[tag.id] = { name: tag.name, tasks: [] };
+                        }
+                        tagGroups[tag.id].tasks.push(task);
+                    });
+                }
+            });
+
+            // Create tag group elements (sorted by tag name)
+            const sortedTagIds = Object.keys(tagGroups).sort((a, b) =>
+                tagGroups[a].name.localeCompare(tagGroups[b].name)
+            );
+
+            sortedTagIds.forEach(tagId => {
+                const group = tagGroups[tagId];
+                const groupEl = createTagGroup(tagId, group.name, group.tasks);
+                tagsContent.appendChild(groupEl);
+            });
+
+            // Create Untagged group at the bottom
+            const untaggedGroup = createTagGroup('untagged', 'Untagged', untaggedTasks);
+            tagsContent.appendChild(untaggedGroup);
+        }
+
+        function createTagGroup(tagId, tagName, tasks) {
+            const group = document.createElement('div');
+            group.className = 'state-group collapsed';
+            group.dataset.tagId = tagId;
+
+            group.innerHTML = `
+                <div class="state-group-header" onclick="toggleStateGroup(this)">
+                    <div class="state-group-left">
+                        <i class="bi bi-tag state-group-icon"></i>
+                        <span class="state-group-name">${escapeHtml(tagName)}</span>
+                    </div>
+                    <div class="state-group-right">
+                        <span class="state-group-count">${tasks.length}</span>
+                        <i class="bi bi-chevron-down state-group-toggle"></i>
+                    </div>
+                </div>
+                <div class="state-group-body" data-tag-id="${tagId}"></div>
+            `;
+
+            const body = group.querySelector('.state-group-body');
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = 'task-card' + (task.isCritical ? ' critical' : '');
+                card.dataset.taskId = task.id;
+                card.draggable = true;
+
+                const tagsHtml = task.tags.length > 0
+                    ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
+                    : '';
+
+                card.innerHTML = `
+                    <div class="task-card-title">${escapeHtml(task.title)}</div>
+                    ${tagsHtml}
+                `;
+
+                // Setup event handlers
+                setupTaskCardDragEvents(card);
+                card.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+                });
+                card.addEventListener('click', function() {
+                    openTaskPanel(parseInt(this.dataset.taskId));
+                });
+                body.appendChild(card);
+            });
+
+            return group;
+        }
 
         function applyFilters() {
             // Filter both kanban cards and task cards in the new panel layout
@@ -4027,7 +4224,8 @@
 
         // Update task counts in the panel layout
         function updatePanelCounts() {
-            document.querySelectorAll('.state-group').forEach(group => {
+            // Update state group counts (in states-content)
+            document.querySelectorAll('#states-content .state-group').forEach(group => {
                 const stateId = group.dataset.stateId;
                 const body = group.querySelector('.state-group-body');
                 if (!body) return;
@@ -4039,6 +4237,29 @@
                 // Update collapsed metrics pill
                 const metricPill = document.querySelector(`.panel-collapsed-metrics .metric-pill[data-state-id="${stateId}"] .metric-count`);
                 if (metricPill) metricPill.textContent = visibleCards;
+
+                // Show/hide empty message
+                let emptyMsg = body.querySelector('.state-group-empty');
+                if (visibleCards === 0) {
+                    if (!emptyMsg) {
+                        emptyMsg = document.createElement('div');
+                        emptyMsg.className = 'state-group-empty';
+                        emptyMsg.textContent = 'No tasks';
+                        body.appendChild(emptyMsg);
+                    }
+                } else if (emptyMsg) {
+                    emptyMsg.remove();
+                }
+            });
+
+            // Update tag group counts (in tags-content)
+            document.querySelectorAll('#tags-content .state-group').forEach(group => {
+                const body = group.querySelector('.state-group-body');
+                if (!body) return;
+
+                const visibleCards = body.querySelectorAll('.task-card:not([style*="display: none"])').length;
+                const countEl = group.querySelector('.state-group-count');
+                if (countEl) countEl.textContent = visibleCards;
 
                 // Show/hide empty message
                 let emptyMsg = body.querySelector('.state-group-empty');
