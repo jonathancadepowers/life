@@ -5513,8 +5513,8 @@
                     }
                 }
 
-                // Filter by completed tasks (terminal state)
-                if (show && !showCompletedTasks) {
+                // Filter by completed tasks (terminal state) - only in Tags view
+                if (show && !showCompletedTasks && currentGroupBy === 'tags') {
                     const taskStateId = parseInt(card.closest('.state-group, .kanban-column')?.dataset?.stateId);
                     if (taskStateId === terminalStateId) {
                         show = false;
@@ -5546,8 +5546,8 @@
                 }
             }
 
-            // Update filter badge
-            const filterCount = (activeFilters.critical ? 1 : 0) + (activeFilters.today ? 1 : 0) + activeFilters.tags.length + (!showCompletedTasks ? 1 : 0);
+            // Update filter badge (showCompleted only counts in Tags view)
+            const filterCount = (activeFilters.critical ? 1 : 0) + (activeFilters.today ? 1 : 0) + activeFilters.tags.length + (currentGroupBy === 'tags' && !showCompletedTasks ? 1 : 0);
             if (filterCount > 0) {
                 filterBadge.textContent = filterCount;
                 filterBadge.style.display = 'flex';
