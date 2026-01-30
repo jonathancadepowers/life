@@ -3566,8 +3566,10 @@
                     console.error('Error updating today field:', error);
                 }
 
-                // Update calendar display
-                processCalendarSections();
+                // Update calendar display after DOM updates
+                setTimeout(() => {
+                    processCalendarSections();
+                }, 0);
 
                 draggedKanbanCard = null;
             });
@@ -3632,8 +3634,10 @@
                         console.error('Error updating today field:', error);
                     }
 
-                    // Update calendar display
-                    processCalendarSections();
+                    // Update calendar display after DOM updates
+                    setTimeout(() => {
+                        processCalendarSections();
+                    }, 0);
                 }
             });
         });
