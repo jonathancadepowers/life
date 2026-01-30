@@ -1091,6 +1091,20 @@
         }
 
 
+        .calendar-box-header {
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #333;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .calendar-box-title {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #333;
+        }
+
         .calendar-box-body {
             flex: 1;
             overflow-y: auto;
@@ -1106,14 +1120,6 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
-        }
-
-        .calendar-period-header {
-            padding: 0.75rem 1rem;
-            font-weight: 500;
-            font-size: 0.875rem;
-            color: #333;
-            border-bottom: 1px solid #e0e0e0;
         }
 
         .calendar-label-column .calendar-time-label {
@@ -1460,10 +1466,12 @@
         <div class="calendar-board">
             <!-- Morning Box -->
             <div class="calendar-box" data-time-period="morning">
+                <div class="calendar-box-header">
+                    <span class="calendar-box-title">Morning</span>
+                </div>
                 <div class="calendar-box-body">
                     <!-- Left: Continuous shaded label column -->
                     <div class="calendar-label-column">
-                        <div class="calendar-period-header">Morning</div>
                         <div class="calendar-time-label">EARLY</div>
                         <div class="calendar-time-label">MID</div>
                         <div class="calendar-time-label">LATE</div>
@@ -1521,10 +1529,12 @@
 
             <!-- Afternoon Box -->
             <div class="calendar-box" data-time-period="afternoon">
+                <div class="calendar-box-header">
+                    <span class="calendar-box-title">Afternoon</span>
+                </div>
                 <div class="calendar-box-body">
                     <!-- Left: Continuous shaded label column -->
                     <div class="calendar-label-column">
-                        <div class="calendar-period-header">Afternoon</div>
                         <div class="calendar-time-label">EARLY</div>
                         <div class="calendar-time-label">MID</div>
                         <div class="calendar-time-label">LATE</div>
@@ -1582,10 +1592,12 @@
 
             <!-- Evening Box -->
             <div class="calendar-box" data-time-period="evening">
+                <div class="calendar-box-header">
+                    <span class="calendar-box-title">Evening</span>
+                </div>
                 <div class="calendar-box-body">
                     <!-- Left: Continuous shaded label column -->
                     <div class="calendar-label-column">
-                        <div class="calendar-period-header">Evening</div>
                         <div class="calendar-time-label">EARLY</div>
                         <div class="calendar-time-label">MID</div>
                         <div class="calendar-time-label">LATE</div>
