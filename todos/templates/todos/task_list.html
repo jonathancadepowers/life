@@ -1720,6 +1720,32 @@
             font-weight: 600;
         }
 
+        /* Add Event button - only visible when Calendar is expanded */
+        .add-event-btn {
+            display: none;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            align-items: center;
+            gap: 0.25rem;
+            margin-right: 0.5rem;
+            transition: all 0.15s;
+        }
+
+        .add-event-btn:hover {
+            background: #e9ecef;
+            border-color: #ced4da;
+        }
+
+        .calendar-panel.expanded .add-event-btn {
+            display: flex;
+        }
+
         /* Panel expand button */
         .panel-expand-btn {
             background: none;
@@ -2144,6 +2170,87 @@
             height: 6px;
             cursor: ns-resize;
             background: transparent;
+        }
+
+        /* Time block on calendar - subtle teal/sage color */
+        .calendar-time-block {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            min-height: 28px;
+            background: #e8f4f0;
+            color: #3d5a4c;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            padding-right: 1.5rem;
+            border-radius: 4px;
+            cursor: grab;
+            border: 1px solid #b8d4c8;
+            overflow: hidden;
+            z-index: 2;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .calendar-time-block:hover {
+            background: #dceee8;
+        }
+
+        .time-block-content {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            flex: 1;
+            min-width: 0;
+            margin-top: 1.5px;
+        }
+
+        .time-block-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .time-block-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            cursor: ns-resize;
+            background: transparent;
+        }
+
+        .time-block-resize-handle:hover {
+            background: rgba(61, 90, 76, 0.2);
+        }
+
+        .calendar-time-block .remove-btn {
+            background: transparent;
+            border: none;
+            color: #6c9080;
+            cursor: pointer;
+            position: absolute;
+            right: 2px;
+            top: 2px;
+            padding: 0;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .calendar-time-block:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .calendar-time-block .remove-btn:hover {
+            color: #dc3545;
         }
 
         .calendar-task-resize-handle:hover {
@@ -2582,6 +2689,9 @@
                             <span class="metric-pill">Meetings: <span id="meetings-count">0</span></span>
                             <span class="metric-pill">Time in Meetings: <span id="meetings-time">0h</span></span>
                         </div>
+                        <button class="add-event-btn" id="add-event-btn" title="Add Event">
+                            <i class="bi bi-plus-lg"></i> Add Event
+                        </button>
                         <span class="panel-expand-btn" id="calendar-expand-btn" title="Expand Calendar">
                             <i class="bi bi-arrows-angle-expand"></i>
                         </span>
@@ -2743,6 +2853,27 @@
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" id="prompt-modal-cancel">Cancel</button>
                 <button class="modal-btn modal-btn-primary" id="prompt-modal-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Event Modal -->
+    <div class="modal-overlay" id="add-event-modal">
+        <div class="modal-content">
+            <div class="modal-title">Add Event</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 0.75rem;">
+                    <label for="event-name-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Name</label>
+                    <input type="text" class="modal-input" id="event-name-input" placeholder="Event name" style="margin-bottom: 0;">
+                </div>
+                <div>
+                    <label for="event-time-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Time</label>
+                    <input type="time" class="modal-input" id="event-time-input" style="margin-bottom: 0;">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="add-event-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-primary" id="add-event-ok">Add</button>
             </div>
         </div>
     </div>
@@ -5557,6 +5688,9 @@
         // Calendar events from database (UTC ISO timestamps)
         const calendarEvents = {{ calendar_events|safe }};
 
+        // Time blocks from database (UTC ISO timestamps)
+        let timeBlocks = {{ time_blocks|safe }};
+
         // Render calendar events on the hourly grid (using browser's local timezone)
         function renderCalendarEvents() {
             if (!calendarEvents || calendarEvents.length === 0) return;
@@ -5640,6 +5774,296 @@
                 eventEl.title = `${event.subject}${event.location ? '\n' + event.location : ''}`;
 
                 hourContent.appendChild(eventEl);
+            });
+        }
+
+        // ========== Time Blocks on Calendar ==========
+
+        // State for time block resize
+        let timeBlockResizeState = null;
+
+        // Render time blocks on the calendar
+        function renderTimeBlocks() {
+            // Remove existing time block elements
+            document.querySelectorAll('.calendar-time-block').forEach(el => el.remove());
+
+            if (!timeBlocks || timeBlocks.length === 0) return;
+
+            // Get today's date boundaries in local timezone
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            timeBlocks.forEach(block => {
+                const startDate = new Date(block.start);
+                const endDate = new Date(block.end);
+
+                // Skip blocks not for today
+                if (endDate <= todayStart || startDate >= todayEnd) return;
+
+                const startHour = startDate.getHours();
+                const startMinute = startDate.getMinutes();
+
+                // Skip if outside visible range (7am-6pm)
+                if (startHour < 7 || startHour > 18) return;
+
+                const hourContent = document.querySelector(`.hour-content[data-hour="${startHour}"]`);
+                if (!hourContent) return;
+
+                // Calculate duration and height
+                const durationMinutes = (endDate - startDate) / (1000 * 60);
+                const heightPercent = (durationMinutes / 60) * 100;
+
+                // Create time block element
+                const blockEl = document.createElement('div');
+                blockEl.className = 'calendar-time-block';
+                blockEl.dataset.blockId = block.id;
+                blockEl.title = block.name;
+
+                // Create content wrapper
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'time-block-content';
+
+                // Add title text
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'time-block-title';
+                titleSpan.textContent = block.name;
+                contentWrapper.appendChild(titleSpan);
+
+                blockEl.appendChild(contentWrapper);
+
+                // Add remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                removeBtn.title = 'Remove event';
+                removeBtn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    await deleteTimeBlock(block.id);
+                });
+                blockEl.appendChild(removeBtn);
+
+                // Add resize handle
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'time-block-resize-handle';
+                resizeHandle.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    startTimeBlockResize(blockEl, block.id, startDate);
+                });
+                blockEl.appendChild(resizeHandle);
+
+                // Position based on minute within the hour
+                const topPercent = (startMinute / 60) * 100;
+                blockEl.style.top = `${topPercent}%`;
+                blockEl.style.height = `${heightPercent}%`;
+                blockEl.style.minHeight = '28px';
+
+                hourContent.appendChild(blockEl);
+            });
+        }
+
+        // Start resizing a time block
+        function startTimeBlockResize(blockEl, blockId, startDate) {
+            const block = timeBlocks.find(b => b.id === blockId);
+            if (!block) return;
+
+            timeBlockResizeState = {
+                blockEl,
+                blockId,
+                startDate,
+                initialHeight: parseFloat(blockEl.style.height) || 50,
+                startY: event.clientY
+            };
+
+            blockEl.classList.add('resizing');
+            document.addEventListener('mousemove', handleTimeBlockResize);
+            document.addEventListener('mouseup', endTimeBlockResize);
+        }
+
+        function handleTimeBlockResize(e) {
+            if (!timeBlockResizeState) return;
+
+            const { blockEl, startY, initialHeight } = timeBlockResizeState;
+            const deltaY = e.clientY - startY;
+            const hourHeight = 60; // pixels per hour
+            const deltaPercent = (deltaY / hourHeight) * 100;
+
+            // Minimum 30 minutes (50%)
+            const newHeight = Math.max(50, initialHeight + deltaPercent);
+            blockEl.style.height = `${newHeight}%`;
+        }
+
+        async function endTimeBlockResize() {
+            if (!timeBlockResizeState) return;
+
+            const { blockEl, blockId, startDate } = timeBlockResizeState;
+            const heightPercent = parseFloat(blockEl.style.height) || 50;
+
+            // Calculate new end time based on height
+            const durationMinutes = (heightPercent / 100) * 60;
+            const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+            const endTimeUTC = endDate.toISOString();
+
+            blockEl.classList.remove('resizing');
+
+            // Update on server
+            try {
+                const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ end_time: endTimeUTC })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local data
+                    const block = timeBlocks.find(b => b.id === blockId);
+                    if (block) {
+                        block.end = data.time_block.end;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating time block:', error);
+            }
+
+            document.removeEventListener('mousemove', handleTimeBlockResize);
+            document.removeEventListener('mouseup', endTimeBlockResize);
+            timeBlockResizeState = null;
+        }
+
+        // Delete a time block
+        async function deleteTimeBlock(blockId) {
+            try {
+                const response = await fetch(`/tasks/api/time-blocks/${blockId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Remove from local array
+                    timeBlocks = timeBlocks.filter(b => b.id !== blockId);
+                    // Re-render
+                    renderTimeBlocks();
+                }
+            } catch (error) {
+                console.error('Error deleting time block:', error);
+            }
+        }
+
+        // ========== Add Event Modal ==========
+
+        const addEventBtn = document.getElementById('add-event-btn');
+        const addEventModal = document.getElementById('add-event-modal');
+        const eventNameInput = document.getElementById('event-name-input');
+        const eventTimeInput = document.getElementById('event-time-input');
+        const addEventOk = document.getElementById('add-event-ok');
+        const addEventCancel = document.getElementById('add-event-cancel');
+
+        if (addEventBtn) {
+            addEventBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Set default time to next hour
+                const now = new Date();
+                const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
+                nextHour.setMinutes(0, 0, 0);
+                const hours = nextHour.getHours().toString().padStart(2, '0');
+                const minutes = nextHour.getMinutes().toString().padStart(2, '0');
+                eventTimeInput.value = `${hours}:${minutes}`;
+                eventNameInput.value = '';
+                addEventModal.classList.add('active');
+                eventNameInput.focus();
+            });
+        }
+
+        if (addEventCancel) {
+            addEventCancel.addEventListener('click', function() {
+                addEventModal.classList.remove('active');
+            });
+        }
+
+        if (addEventModal) {
+            addEventModal.addEventListener('click', function(e) {
+                if (e.target === addEventModal) {
+                    addEventModal.classList.remove('active');
+                }
+            });
+        }
+
+        if (addEventOk) {
+            addEventOk.addEventListener('click', async function() {
+                const name = eventNameInput.value.trim();
+                const time = eventTimeInput.value;
+
+                if (!name) {
+                    eventNameInput.focus();
+                    return;
+                }
+
+                if (!time) {
+                    eventTimeInput.focus();
+                    return;
+                }
+
+                // Create start time in local timezone, then convert to UTC
+                const [hours, minutes] = time.split(':').map(Number);
+                const now = new Date();
+                const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+                const startUTC = startLocal.toISOString();
+
+                try {
+                    const response = await fetch('/tasks/api/time-blocks/create/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            start_time: startUTC
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        // Add to local array
+                        timeBlocks.push(data.time_block);
+                        // Re-render
+                        renderTimeBlocks();
+                        // Close modal
+                        addEventModal.classList.remove('active');
+                    } else {
+                        alert(data.error || 'Failed to create event');
+                    }
+                } catch (error) {
+                    console.error('Error creating time block:', error);
+                    alert('Failed to create event');
+                }
+            });
+        }
+
+        // Handle Enter key in modal inputs
+        if (eventNameInput) {
+            eventNameInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addEventOk.click();
+                }
+            });
+        }
+
+        if (eventTimeInput) {
+            eventTimeInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addEventOk.click();
+                }
             });
         }
 
@@ -5980,6 +6404,19 @@
 
                     // Check for overlap
                     if (newStart < eventEnd && newEnd > eventStart) {
+                        return true;
+                    }
+                }
+            }
+
+            // Check time blocks
+            if (timeBlocks && timeBlocks.length > 0) {
+                for (const block of timeBlocks) {
+                    const blockStart = new Date(block.start);
+                    const blockEnd = new Date(block.end);
+
+                    // Check for overlap
+                    if (newStart < blockEnd && newEnd > blockStart) {
                         return true;
                     }
                 }
@@ -6783,6 +7220,7 @@
         generateHourlyCalendar();
         setCalendarDate();
         renderCalendarEvents();
+        renderTimeBlocks();
         setupCalendarDropZones();
         renderScheduledTasks();
         initScheduledTaskIndicators();

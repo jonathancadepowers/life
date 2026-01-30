@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import pytz
 
-from .models import Task, TaskState, TaskTag
+from .models import Task, TaskState, TaskTag, TimeBlock
 from calendar_events.models import CalendarEvent
 
 
@@ -41,11 +41,27 @@ def task_list(request):
             'is_all_day': event.is_all_day,
         })
 
+    # Query time blocks that overlap with this window
+    time_blocks = TimeBlock.objects.filter(
+        start_time__lt=query_end,
+        end_time__gt=query_start
+    ).order_by('start_time')
+
+    time_blocks_data = []
+    for block in time_blocks:
+        time_blocks_data.append({
+            'id': block.id,
+            'name': block.name,
+            'start': block.start_time.isoformat(),
+            'end': block.end_time.isoformat(),
+        })
+
     return render(request, 'todos/task_list.html', {
         'tasks': tasks,
         'states': states,
         'tags': tags,
         'calendar_events': json.dumps(events_data),
+        'time_blocks': json.dumps(time_blocks_data),
     })
 
 
@@ -410,3 +426,92 @@ def delete_tag(request, tag_id):
         return JsonResponse({'success': True})
     except TaskTag.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
+
+
+# ========== Time Block Views ==========
+
+@require_POST
+def create_time_block(request):
+    """Create a new time block via AJAX."""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        start_time = data.get('start_time')
+
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+        if not start_time:
+            return JsonResponse({'success': False, 'error': 'Start time is required'}, status=400)
+
+        # Parse start time and calculate end time (30 minutes later)
+        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        end_dt = start_dt + timedelta(minutes=30)
+
+        time_block = TimeBlock.objects.create(
+            name=name,
+            start_time=start_dt,
+            end_time=end_dt
+        )
+
+        return JsonResponse({
+            'success': True,
+            'time_block': {
+                'id': time_block.id,
+                'name': time_block.name,
+                'start': time_block.start_time.isoformat(),
+                'end': time_block.end_time.isoformat(),
+            }
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except ValueError as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["PATCH"])
+def update_time_block(request, block_id):
+    """Update a time block via AJAX."""
+    try:
+        block = TimeBlock.objects.get(id=block_id)
+        data = json.loads(request.body)
+
+        if 'name' in data:
+            block.name = data['name'].strip()
+        if 'start_time' in data:
+            if data['start_time']:
+                block.start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+            else:
+                return JsonResponse({'success': False, 'error': 'Start time cannot be empty'}, status=400)
+        if 'end_time' in data:
+            if data['end_time']:
+                block.end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+            else:
+                return JsonResponse({'success': False, 'error': 'End time cannot be empty'}, status=400)
+
+        block.save()
+        return JsonResponse({
+            'success': True,
+            'time_block': {
+                'id': block.id,
+                'name': block.name,
+                'start': block.start_time.isoformat(),
+                'end': block.end_time.isoformat(),
+            }
+        })
+    except TimeBlock.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Time block not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except ValueError as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["DELETE"])
+def delete_time_block(request, block_id):
+    """Delete a time block via AJAX."""
+    try:
+        block = TimeBlock.objects.get(id=block_id)
+        block.delete()
+        return JsonResponse({'success': True})
+    except TimeBlock.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Time block not found'}, status=404)

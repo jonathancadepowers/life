@@ -59,3 +59,19 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class TimeBlock(models.Model):
+    """A time block event on the calendar."""
+
+    name = models.CharField(max_length=255)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['start_time']
+
+    def __str__(self):
+        return self.name

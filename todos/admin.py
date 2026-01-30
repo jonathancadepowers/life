@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Task, TaskState, TaskTag
+from .models import Task, TaskState, TaskTag, TimeBlock
 
 
 @admin.register(TaskState)
@@ -21,3 +21,10 @@ class TaskAdmin(admin.ModelAdmin):
     list_filter = ['critical', 'state', 'tags']
     search_fields = ['title', 'details']
     filter_horizontal = ['tags']
+
+
+@admin.register(TimeBlock)
+class TimeBlockAdmin(admin.ModelAdmin):
+    list_display = ['name', 'start_time', 'end_time', 'created_at']
+    search_fields = ['name']
+    ordering = ['-start_time']
