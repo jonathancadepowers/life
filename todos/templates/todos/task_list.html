@@ -866,6 +866,101 @@
             padding: 1rem;
             font-style: italic;
         }
+
+        /* Right-click context menu */
+        .task-context-menu {
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            padding: 0.5rem 0;
+            min-width: 180px;
+            z-index: 1300;
+        }
+
+        .task-context-menu-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: #333;
+            transition: background 0.15s;
+        }
+
+        .task-context-menu-item:hover {
+            background: #f0f7f4;
+        }
+
+        .task-context-menu-item i {
+            width: 16px;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .task-context-menu-item.danger {
+            color: #dc3545;
+        }
+
+        .task-context-menu-item.danger i {
+            color: #dc3545;
+        }
+
+        .task-context-menu-divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 0.25rem 0;
+        }
+
+        .task-context-menu-submenu {
+            position: relative;
+        }
+
+        .task-context-menu-submenu-content {
+            position: absolute;
+            left: 100%;
+            top: -0.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            padding: 0.5rem 0;
+            min-width: 150px;
+            display: none;
+        }
+
+        .task-context-menu-submenu:hover .task-context-menu-submenu-content {
+            display: block;
+        }
+
+        .task-context-menu-item .submenu-arrow {
+            margin-left: auto;
+            font-size: 0.75rem;
+        }
+
+        .context-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .context-option-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .task-context-menu-item.active {
+            background: #f0f7f4;
+        }
+
+        .task-context-menu-item.active::before {
+            content: '✓';
+            position: absolute;
+            right: 1rem;
+            font-size: 0.75rem;
+            color: #6B9080;
+        }
     </style>
 </head>
 <body>
@@ -1032,15 +1127,6 @@
                 <option value="{{ context.id }}">{{ context.name }}</option>
                 {% endfor %}
             </select>
-            <div class="panel-context-label">State</div>
-            <select id="panel-state">
-                <option value="">No state (shows in main list)</option>
-                {% for state in states %}
-                {% if not state.is_terminal %}
-                <option value="{{ state.id }}">{{ state.name }}</option>
-                {% endif %}
-                {% endfor %}
-            </select>
         </div>
         <div class="panel-footer">
             <div class="critical-toggle">
@@ -1136,7 +1222,7 @@
         document.getElementById('panel-overlay').addEventListener('click', closePanel);
 
         // Auto-save on changes
-        ['panel-title', 'panel-details', 'panel-critical', 'panel-context', 'panel-state'].forEach(id => {
+        ['panel-title', 'panel-details', 'panel-critical', 'panel-context'].forEach(id => {
             const el = document.getElementById(id);
             const event = (el.type === 'checkbox') ? 'change' : (el.tagName === 'SELECT' ? 'change' : 'input');
             el.addEventListener(event, () => {
@@ -1152,7 +1238,6 @@
             const details = document.getElementById('panel-details').value;
             const critical = document.getElementById('panel-critical').checked;
             const contextId = document.getElementById('panel-context').value || null;
-            const stateId = document.getElementById('panel-state').value || null;
 
             try {
                 const response = await fetch(`/tasks/api/${currentTaskId}/update/`, {
@@ -1161,7 +1246,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ title, details, critical, context_id: contextId, state_id: stateId })
+                    body: JSON.stringify({ title, details, critical, context_id: contextId })
                 });
 
                 const data = await response.json();
@@ -1964,10 +2049,8 @@
             currentTaskId = taskId;
             const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
             const title = card.querySelector('.kanban-card-title').textContent.trim();
-            const stateId = card.closest('.kanban-column-body').dataset.stateId;
 
             document.getElementById('panel-title').value = title;
-            document.getElementById('panel-state').value = stateId;
 
             // Fetch full task details from server or use cached
             const contextBadge = card.querySelector('.kanban-card-context');
@@ -2192,6 +2275,7 @@
                 openKanbanPanel(task.id);
             });
             setupKanbanCardDrag(card);
+            setupKanbanCardContextMenu(card);
             return card;
         }
 
@@ -2205,6 +2289,189 @@
                 meta.innerHTML = '';
             }
         }
+
+        // ========== Right-Click Context Menu ==========
+
+        let contextMenuTaskId = null;
+
+        function showContextMenu(e, taskId) {
+            e.preventDefault();
+            contextMenuTaskId = taskId;
+
+            // Remove any existing menu
+            closeContextMenu();
+
+            const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+            const isCritical = card.classList.contains('critical');
+
+            // Get current context
+            const contextBadge = card.querySelector('.kanban-card-context');
+            let currentContextId = null;
+            if (contextBadge) {
+                const bgColor = contextBadge.style.background;
+                const ctx = contextsList.find(c => c.color.toLowerCase() === bgColor.toLowerCase());
+                if (ctx) currentContextId = ctx.id;
+            }
+
+            // Build menu HTML
+            let menuHtml = `
+                <div class="task-context-menu-item" onclick="openKanbanPanel(${taskId}); closeContextMenu();">
+                    <i class="bi bi-pencil"></i>
+                    Edit Task
+                </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-submenu">
+                    <div class="task-context-menu-item">
+                        <i class="bi bi-tag"></i>
+                        Set Context
+                        <span class="submenu-arrow"><i class="bi bi-chevron-right"></i></span>
+                    </div>
+                    <div class="task-context-menu-submenu-content">
+                        <div class="task-context-menu-item${!currentContextId ? ' active' : ''}" style="position: relative;" onclick="setTaskContext(${taskId}, null)">
+                            <span class="context-option">
+                                <span class="context-option-dot" style="background: #ccc; border: 1px dashed #999;"></span>
+                                No Context
+                            </span>
+                        </div>
+            `;
+
+            contextsList.forEach(ctx => {
+                const isActive = currentContextId === ctx.id;
+                menuHtml += `
+                    <div class="task-context-menu-item${isActive ? ' active' : ''}" style="position: relative;" onclick="setTaskContext(${taskId}, ${ctx.id})">
+                        <span class="context-option">
+                            <span class="context-option-dot" style="background: ${ctx.color};"></span>
+                            ${escapeHtml(ctx.name)}
+                        </span>
+                    </div>
+                `;
+            });
+
+            menuHtml += `
+                    </div>
+                </div>
+                <div class="task-context-menu-item" onclick="toggleTaskCritical(${taskId})">
+                    <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
+                    ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
+                </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-item danger" onclick="deleteTaskFromMenu(${taskId})">
+                    <i class="bi bi-trash"></i>
+                    Delete Task
+                </div>
+            `;
+
+            const menu = document.createElement('div');
+            menu.className = 'task-context-menu';
+            menu.id = 'task-context-menu';
+            menu.innerHTML = menuHtml;
+
+            // Position the menu
+            document.body.appendChild(menu);
+
+            // Adjust position to keep menu in viewport
+            const menuRect = menu.getBoundingClientRect();
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', closeContextMenu);
+                document.addEventListener('contextmenu', closeContextMenu);
+            }, 0);
+        }
+
+        function closeContextMenu() {
+            const menu = document.getElementById('task-context-menu');
+            if (menu) {
+                menu.remove();
+            }
+            document.removeEventListener('click', closeContextMenu);
+            document.removeEventListener('contextmenu', closeContextMenu);
+            contextMenuTaskId = null;
+        }
+
+        async function setTaskContext(taskId, contextId) {
+            closeContextMenu();
+
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ context_id: contextId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update the kanban card
+                    const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+                    if (card) {
+                        updateKanbanCard(card, data.task);
+                    }
+                }
+            } catch (error) {
+                console.error('Error setting task context:', error);
+            }
+        }
+
+        async function toggleTaskCritical(taskId) {
+            closeContextMenu();
+
+            const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+            const isCritical = card.classList.contains('critical');
+
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ critical: !isCritical })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update the kanban card
+                    if (card) {
+                        updateKanbanCard(card, data.task);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling task critical:', error);
+            }
+        }
+
+        async function deleteTaskFromMenu(taskId) {
+            closeContextMenu();
+            if (!confirm('Delete this task?')) return;
+            await deleteTask(taskId);
+        }
+
+        // Add right-click handler to kanban cards
+        function setupKanbanCardContextMenu(card) {
+            card.addEventListener('contextmenu', function(e) {
+                showContextMenu(e, parseInt(this.dataset.taskId));
+            });
+        }
+
+        // Setup for existing cards
+        document.querySelectorAll('.kanban-card').forEach(card => {
+            setupKanbanCardContextMenu(card);
+        });
 
         // Subtle icon color animation
         (function() {
