@@ -2255,16 +2255,19 @@
                             const stateItem = input.closest('.state-item');
                             if (stateItem) stateItem.dataset.stateName = newName;
 
-                            // Update kanban column header
-                            const kanbanColumn = document.querySelector(`.kanban-column[data-state-id="${stateId}"]`);
-                            if (kanbanColumn) {
-                                const titleSpan = kanbanColumn.querySelector('.kanban-column-title');
-                                const icon = state?.bootstrap_icon;
-                                if (icon) {
-                                    titleSpan.innerHTML = `<i class="bi ${icon}"></i> ${escapeHtml(newName)}`;
-                                } else {
-                                    titleSpan.textContent = newName;
-                                }
+                            // Update state group name in tasks panel
+                            const stateGroup = document.querySelector(`.state-group[data-state-id="${stateId}"]`);
+                            if (stateGroup) {
+                                const nameSpan = stateGroup.querySelector('.state-group-name');
+                                if (nameSpan) nameSpan.textContent = newName;
+                            }
+
+                            // Update metric pill text
+                            const metricPill = document.querySelector(`.metric-pill[data-state-id="${stateId}"]`);
+                            if (metricPill) {
+                                const countSpan = metricPill.querySelector('.metric-count');
+                                const count = countSpan ? countSpan.textContent : '0';
+                                metricPill.innerHTML = `${escapeHtml(newName)}: <span class="metric-count">${count}</span>`;
                             }
 
                             restoreStateSpan(newName);
@@ -2430,16 +2433,21 @@
                         }
                     }
 
-                    // Update the kanban column header
-                    const kanbanColumn = document.querySelector(`.kanban-column[data-state-id="${stateId}"]`);
-                    if (kanbanColumn) {
-                        kanbanColumn.dataset.icon = icon;
-                        const titleSpan = kanbanColumn.querySelector('.kanban-column-title');
-                        const stateName = statesList.find(s => s.id === stateId)?.name || '';
-                        if (icon) {
-                            titleSpan.innerHTML = `<i class="bi ${icon}"></i> ${escapeHtml(stateName)}`;
-                        } else {
-                            titleSpan.textContent = stateName;
+                    // Update state group icon in tasks panel
+                    const stateGroup = document.querySelector(`.state-group[data-state-id="${stateId}"]`);
+                    if (stateGroup) {
+                        const leftDiv = stateGroup.querySelector('.state-group-left');
+                        if (leftDiv) {
+                            // Remove existing icon if present
+                            const existingIcon = leftDiv.querySelector('.state-group-icon');
+                            if (existingIcon) existingIcon.remove();
+
+                            // Add new icon if provided
+                            if (icon) {
+                                const newIcon = document.createElement('i');
+                                newIcon.className = `bi ${icon} state-group-icon`;
+                                leftDiv.insertBefore(newIcon, leftDiv.firstChild);
+                            }
                         }
                     }
 
@@ -2514,12 +2522,47 @@
                 </div>
             `;
 
-            // Append to end of list
+            // Append to end of list in settings panel
             const stateList = document.getElementById('state-list');
             stateList.appendChild(li);
 
             // Setup drag events for new item
             setupDragEvents(li);
+
+            // Add state group to tasks panel
+            const tasksContent = document.getElementById('tasks-content');
+            if (tasksContent) {
+                const stateGroup = document.createElement('div');
+                stateGroup.className = 'state-group collapsed';
+                stateGroup.dataset.stateId = state.id;
+                stateGroup.innerHTML = `
+                    <div class="state-group-header" onclick="toggleStateGroup(this)">
+                        <div class="state-group-left">
+                            ${state.bootstrap_icon ? `<i class="bi ${state.bootstrap_icon} state-group-icon"></i>` : ''}
+                            <span class="state-group-name">${escapeHtml(state.name)}</span>
+                        </div>
+                        <div class="state-group-right">
+                            <span class="state-group-count" id="panel-count-${state.id}">0</span>
+                            <i class="bi bi-chevron-down state-group-toggle"></i>
+                        </div>
+                    </div>
+                    <div class="state-group-body" data-state-id="${state.id}"></div>
+                `;
+                tasksContent.appendChild(stateGroup);
+
+                // Setup drag-drop handlers for the new state group
+                setupStateGroupDragHandlers(stateGroup);
+            }
+
+            // Add metric pill to collapsed header
+            const metricsContainer = document.getElementById('tasks-collapsed-metrics');
+            if (metricsContainer) {
+                const pill = document.createElement('span');
+                pill.className = 'metric-pill';
+                pill.dataset.stateId = state.id;
+                pill.innerHTML = `${escapeHtml(state.name)}: <span class="metric-count">0</span>`;
+                metricsContainer.appendChild(pill);
+            }
         }
 
         let deleteStateId = null;
@@ -3857,6 +3900,134 @@
             setupTaskCardDragEvents(card);
         });
         setupDropZones();
+
+        // Setup drag handlers for a single state group (used when adding new states)
+        function setupStateGroupDragHandlers(stateGroup) {
+            const dropZone = stateGroup.querySelector('.state-group-body');
+            const header = stateGroup.querySelector('.state-group-header');
+
+            if (dropZone) {
+                dropZone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    if (!draggedTaskCard) return;
+
+                    e.dataTransfer.dropEffect = 'move';
+                    this.classList.add('drag-over');
+
+                    const { element, position } = getTaskDropPosition(this, e.clientY);
+
+                    if (!taskDropIndicator) {
+                        taskDropIndicator = createTaskDropIndicator();
+                    }
+
+                    if (position === 'end') {
+                        this.appendChild(taskDropIndicator);
+                    } else if (element) {
+                        element.parentElement.insertBefore(taskDropIndicator, element);
+                    }
+                });
+
+                dropZone.addEventListener('dragleave', function(e) {
+                    if (!this.contains(e.relatedTarget)) {
+                        this.classList.remove('drag-over');
+                        if (taskDropIndicator && taskDropIndicator.parentElement === this) {
+                            taskDropIndicator.remove();
+                        }
+                    }
+                });
+
+                dropZone.addEventListener('drop', async function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+
+                    if (!draggedTaskCard) return;
+
+                    const taskId = parseInt(draggedTaskCard.dataset.taskId);
+                    const newStateId = parseInt(this.dataset.stateId);
+                    const oldStateId = parseInt(draggedTaskCard.closest('.state-group').dataset.stateId);
+                    const changedState = (newStateId !== oldStateId);
+
+                    const { element, position } = getTaskDropPosition(this, e.clientY);
+
+                    if (taskDropIndicator && taskDropIndicator.parentElement) {
+                        taskDropIndicator.remove();
+                    }
+
+                    if (position === 'end') {
+                        this.appendChild(draggedTaskCard);
+                    } else if (element) {
+                        element.parentElement.insertBefore(draggedTaskCard, element);
+                    }
+
+                    updatePanelCounts();
+
+                    const cardIds = [...this.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+
+                    if (changedState) {
+                        try {
+                            await fetch(`/tasks/api/${taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ state_id: newStateId })
+                            });
+                        } catch (error) {
+                            console.error('Error updating task state:', error);
+                        }
+                    }
+
+                    try {
+                        await fetch('/tasks/api/tasks/reorder/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ task_ids: cardIds })
+                        });
+                    } catch (error) {
+                        console.error('Error reordering tasks:', error);
+                    }
+                });
+            }
+
+            if (header) {
+                header.addEventListener('dragover', function(e) {
+                    if (!draggedTaskCard) return;
+                    e.preventDefault();
+
+                    const sg = this.closest('.state-group');
+                    if (sg && sg.classList.contains('collapsed')) {
+                        this.classList.add('drag-hover');
+
+                        if (!expandTimeout) {
+                            expandTimeout = setTimeout(() => {
+                                sg.classList.remove('collapsed');
+                                this.classList.remove('drag-hover');
+                            }, 400);
+                        }
+                    }
+                });
+
+                header.addEventListener('dragleave', function(e) {
+                    this.classList.remove('drag-hover');
+                    if (expandTimeout) {
+                        clearTimeout(expandTimeout);
+                        expandTimeout = null;
+                    }
+                });
+
+                header.addEventListener('drop', function(e) {
+                    this.classList.remove('drag-hover');
+                    if (expandTimeout) {
+                        clearTimeout(expandTimeout);
+                        expandTimeout = null;
+                    }
+                });
+            }
+        }
 
         // Setup drag-over handlers for collapsed state groups
         // When dragging over a collapsed state header, expand it
