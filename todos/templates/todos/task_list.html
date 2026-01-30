@@ -2468,10 +2468,20 @@
             const items = [...stateList.querySelectorAll('.state-item:not(#no-states)')];
             const draggedIndex = items.indexOf(draggedItem);
             const dropIndex = items.indexOf(this);
+            const isLastItem = dropIndex === items.length - 1;
 
-            if (draggedIndex < dropIndex) {
+            // Check if dropping on bottom half of item (should insert after)
+            const rect = this.getBoundingClientRect();
+            const dropInBottomHalf = e.clientY > rect.top + rect.height / 2;
+
+            if (isLastItem && dropInBottomHalf) {
+                // Dropping on bottom half of last item - append to end
+                stateList.appendChild(draggedItem);
+            } else if (dropInBottomHalf) {
+                // Dropping on bottom half - insert after this item
                 this.parentNode.insertBefore(draggedItem, this.nextSibling);
             } else {
+                // Dropping on top half - insert before this item
                 this.parentNode.insertBefore(draggedItem, this);
             }
 
