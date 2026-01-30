@@ -44,7 +44,7 @@
 
         /* Task Input */
         .task-input-container {
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
 
         #new-task-input {
@@ -298,19 +298,127 @@
             opacity: 0.5;
         }
 
-        /* Gear icon */
-        .settings-gear {
-            position: absolute;
+        /* Sidebar icons */
+        .sidebar-icons {
+            position: fixed;
             top: 1.5rem;
             left: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 100;
+        }
+
+        .sidebar-icon {
             color: #adb5bd;
             cursor: pointer;
             font-size: 1.25rem;
             transition: color 0.2s;
         }
 
-        .settings-gear:hover {
+        .sidebar-icon:hover {
             color: #6c757d;
+        }
+
+        .sidebar-icon.active {
+            color: #6B9080;
+        }
+
+        /* Filter dropdown */
+        .filter-dropdown {
+            position: fixed;
+            top: 1.5rem;
+            left: 3.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 1rem;
+            min-width: 220px;
+            z-index: 1100;
+            display: none;
+        }
+
+        .filter-dropdown.active {
+            display: block;
+        }
+
+        .filter-section {
+            margin-bottom: 1rem;
+        }
+
+        .filter-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .filter-option:hover {
+            color: #6B9080;
+        }
+
+        .filter-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #6B9080;
+        }
+
+        .filter-option .context-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .filter-clear {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #6c757d;
+            transition: all 0.15s;
+        }
+
+        .filter-clear:hover {
+            background: #f8f9fa;
+            border-color: #6B9080;
+            color: #6B9080;
+        }
+
+        .filter-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #6B9080;
+            color: white;
+            font-size: 0.65rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Left slide-out panel for contexts */
@@ -776,9 +884,9 @@
 
         /* Kanban Board */
         .kanban-container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 2rem 2rem;
+            max-width: 1800px;
+            margin: 1rem auto;
+            padding: 0 3rem 2rem;
         }
 
         .kanban-board {
@@ -978,8 +1086,41 @@
     </style>
 </head>
 <body>
-    <!-- Settings gear icon -->
-    <i class="bi bi-gear settings-gear" id="settings-gear" title="Settings"></i>
+    <!-- Sidebar icons -->
+    <div class="sidebar-icons">
+        <div style="position: relative;">
+            <i class="bi bi-funnel sidebar-icon" id="filter-icon" title="Filter"></i>
+            <span class="filter-badge" id="filter-badge" style="display: none;">0</span>
+        </div>
+        <i class="bi bi-gear sidebar-icon" id="settings-gear" title="Settings"></i>
+    </div>
+
+    <!-- Filter dropdown -->
+    <div class="filter-dropdown" id="filter-dropdown">
+        <div class="filter-section">
+            <div class="filter-section-title">Context</div>
+            <div id="filter-contexts">
+                {% for context in contexts %}
+                <label class="filter-option">
+                    <input type="checkbox" class="filter-context-checkbox" value="{{ context.id }}" data-color="{{ context.color }}">
+                    <span class="context-dot" style="background: {{ context.color }};"></span>
+                    {{ context.name }}
+                </label>
+                {% empty %}
+                <div style="color: #adb5bd; font-size: 0.85rem; font-style: italic;">No contexts</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="filter-section">
+            <div class="filter-section-title">Priority</div>
+            <label class="filter-option">
+                <input type="checkbox" id="filter-critical">
+                <i class="bi bi-exclamation-circle" style="color: #dc3545;"></i>
+                Critical only
+            </label>
+        </div>
+        <button class="filter-clear" id="filter-clear">Clear Filters</button>
+    </div>
 
     <div class="container">
         <div class="page-header">
@@ -2500,6 +2641,122 @@
         document.querySelectorAll('.kanban-card').forEach(card => {
             setupKanbanCardContextMenu(card);
         });
+
+        // ========== Filter Functionality ==========
+
+        const filterIcon = document.getElementById('filter-icon');
+        const filterDropdown = document.getElementById('filter-dropdown');
+        const filterBadge = document.getElementById('filter-badge');
+        const filterCritical = document.getElementById('filter-critical');
+        const filterClear = document.getElementById('filter-clear');
+
+        let activeFilters = {
+            contexts: [],
+            critical: false
+        };
+
+        // Toggle filter dropdown
+        filterIcon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            filterDropdown.classList.toggle('active');
+            filterIcon.classList.toggle('active', filterDropdown.classList.contains('active'));
+        });
+
+        // Close filter dropdown on outside click
+        document.addEventListener('click', function(e) {
+            if (!filterDropdown.contains(e.target) && e.target !== filterIcon) {
+                filterDropdown.classList.remove('active');
+                filterIcon.classList.remove('active');
+            }
+        });
+
+        // Handle context filter changes
+        document.querySelectorAll('.filter-context-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const contextId = parseInt(this.value);
+                if (this.checked) {
+                    if (!activeFilters.contexts.includes(contextId)) {
+                        activeFilters.contexts.push(contextId);
+                    }
+                } else {
+                    activeFilters.contexts = activeFilters.contexts.filter(id => id !== contextId);
+                }
+                applyFilters();
+            });
+        });
+
+        // Handle critical filter change
+        filterCritical.addEventListener('change', function() {
+            activeFilters.critical = this.checked;
+            applyFilters();
+        });
+
+        // Clear all filters
+        filterClear.addEventListener('click', function() {
+            activeFilters.contexts = [];
+            activeFilters.critical = false;
+            document.querySelectorAll('.filter-context-checkbox').forEach(cb => cb.checked = false);
+            filterCritical.checked = false;
+            applyFilters();
+        });
+
+        function applyFilters() {
+            const cards = document.querySelectorAll('.kanban-card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                let show = true;
+
+                // Filter by context
+                if (activeFilters.contexts.length > 0) {
+                    const contextBadge = card.querySelector('.kanban-card-context');
+                    if (contextBadge) {
+                        const bgColor = contextBadge.style.background;
+                        const ctx = contextsList.find(c => c.color.toLowerCase() === bgColor.toLowerCase());
+                        if (!ctx || !activeFilters.contexts.includes(ctx.id)) {
+                            show = false;
+                        }
+                    } else {
+                        show = false; // No context, but context filter is active
+                    }
+                }
+
+                // Filter by critical
+                if (activeFilters.critical && !card.classList.contains('critical')) {
+                    show = false;
+                }
+
+                card.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            // Update filter badge
+            const filterCount = activeFilters.contexts.length + (activeFilters.critical ? 1 : 0);
+            if (filterCount > 0) {
+                filterBadge.textContent = filterCount;
+                filterBadge.style.display = 'flex';
+                filterIcon.classList.add('active');
+            } else {
+                filterBadge.style.display = 'none';
+                if (!filterDropdown.classList.contains('active')) {
+                    filterIcon.classList.remove('active');
+                }
+            }
+
+            // Update column counts (visible cards only)
+            updateKanbanCounts();
+        }
+
+        // Override updateKanbanCounts to respect filters
+        const originalUpdateKanbanCounts = updateKanbanCounts;
+        updateKanbanCounts = function() {
+            document.querySelectorAll('.kanban-column-body').forEach(body => {
+                const stateId = body.dataset.stateId;
+                const count = body.querySelectorAll('.kanban-card:not([style*="display: none"])').length;
+                const countEl = document.getElementById(`count-state-${stateId}`);
+                if (countEl) countEl.textContent = count;
+            });
+        };
 
         // Subtle icon color animation
         (function() {
