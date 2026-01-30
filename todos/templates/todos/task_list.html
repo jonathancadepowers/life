@@ -933,14 +933,6 @@
             padding-bottom: 8px;
         }
 
-        .state-type-label {
-            font-size: 0.65rem;
-            color: #6B9080;
-            font-style: italic;
-            margin-left: 0.5rem;
-            opacity: 0.8;
-        }
-
         .delete-completed-link {
             display: block;
             text-align: center;
@@ -1768,8 +1760,8 @@
         }
 
         .hour-label {
-            width: 55px;
-            padding: 0 0.75rem;
+            width: 50px;
+            padding: 0 0.5rem;
             font-size: 0.75rem;
             color: #6c757d;
             text-align: right;
@@ -1779,6 +1771,7 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
+            white-space: nowrap;
         }
 
         .hour-content {
@@ -2281,35 +2274,9 @@
             });
         }
 
-        // ========== State Type Labels (Inbox/Terminal) ==========
+        // ========== Terminal State Management ==========
 
         function updateStateTypeLabels() {
-            // Remove all existing labels
-            document.querySelectorAll('.state-type-label').forEach(el => el.remove());
-
-            const stateItems = document.querySelectorAll('.state-item:not(#no-states)');
-            if (stateItems.length === 0) return;
-
-            // Add inbox label to first state
-            const firstState = stateItems[0];
-            const firstName = firstState.querySelector('.state-name');
-            if (firstName && !firstName.parentElement.querySelector('.state-type-label')) {
-                const inboxLabel = document.createElement('span');
-                inboxLabel.className = 'state-type-label';
-                inboxLabel.textContent = '(inbox)';
-                firstName.after(inboxLabel);
-            }
-
-            // Add terminal label to last state
-            const lastState = stateItems[stateItems.length - 1];
-            const lastName = lastState.querySelector('.state-name');
-            if (lastName && !lastName.parentElement.querySelector('.state-type-label')) {
-                const terminalLabel = document.createElement('span');
-                terminalLabel.className = 'state-type-label';
-                terminalLabel.textContent = '(terminal)';
-                lastName.after(terminalLabel);
-            }
-
             // Update state groups with terminal class and delete link
             updateTerminalStateGroup();
         }
@@ -3938,7 +3905,7 @@
                 const displayHour = hour > 12 ? hour - 12 : hour;
 
                 hourRow.innerHTML = `
-                    <div class="hour-label">${displayHour} ${ampm}</div>
+                    <div class="hour-label">${displayHour}${ampm}</div>
                     <div class="hour-content" data-hour="${hour}"></div>
                 `;
 
@@ -4381,6 +4348,11 @@
 
                     const sg = this.closest('.state-group');
                     if (sg && sg.classList.contains('collapsed')) {
+                        // Don't auto-expand terminal state
+                        const stateId = parseInt(sg.dataset.stateId);
+                        const isTerminal = stateId === getTerminalStateId();
+                        if (isTerminal) return;
+
                         // Auto-expand collapsed state after delay
                         if (!expandTimeout) {
                             expandTimeout = setTimeout(() => {
@@ -4501,6 +4473,11 @@
 
                 const stateGroup = this.closest('.state-group');
                 if (stateGroup && stateGroup.classList.contains('collapsed')) {
+                    // Don't auto-expand terminal state
+                    const stateId = parseInt(stateGroup.dataset.stateId);
+                    const isTerminal = stateId === getTerminalStateId();
+                    if (isTerminal) return;
+
                     // Auto-expand collapsed state after delay
                     if (!expandTimeout) {
                         expandTimeout = setTimeout(() => {
