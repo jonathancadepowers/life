@@ -1298,7 +1298,7 @@
                         <div class="kanban-card-meta">
                             {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                         </div>
-                        {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                        {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                     </div>
                     {% endif %}
                     {% endfor %}
@@ -1332,7 +1332,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -1345,7 +1345,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -1358,7 +1358,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -1380,7 +1380,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -1393,7 +1393,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -1406,7 +1406,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -1428,7 +1428,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -1441,7 +1441,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -1454,7 +1454,7 @@
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
-                            {% if task.critical %}<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>{% endif %}
+                            {% if task.critical %}<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>{% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -2901,7 +2901,7 @@
                 <div class="kanban-card-meta">
                     ${task.context_name ? `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : ''}
                 </div>
-                ${task.critical ? '<i class="bi bi-send-exclamation-fill kanban-card-critical-icon" title="Critical"></i>' : ''}
+                ${task.critical ? '<i class="bi bi-exclamation kanban-card-critical-icon" title="Critical"></i>' : ''}
             `;
             card.addEventListener('click', function() {
                 openKanbanPanel(task.id);
@@ -2932,7 +2932,7 @@
             if (task.critical) {
                 if (!icon) {
                     icon = document.createElement('i');
-                    icon.className = 'bi bi-send-exclamation-fill kanban-card-critical-icon';
+                    icon.className = 'bi bi-exclamation kanban-card-critical-icon';
                     icon.title = 'Critical';
                     card.appendChild(icon);
                 }
