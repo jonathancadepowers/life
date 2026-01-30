@@ -1658,6 +1658,68 @@
             font-weight: 600;
         }
 
+        /* Panel expand button */
+        .panel-expand-btn {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.15s;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+        }
+
+        .panel-expand-btn:hover {
+            color: #495057;
+        }
+
+        .panel.expanded .panel-expand-btn i {
+            transform: rotate(180deg);
+        }
+
+        /* Horizontal expansion states */
+        .panel.expanded {
+            flex: 4;
+        }
+
+        .panel.minimized {
+            flex: 0 0 60px;
+            min-width: 60px;
+        }
+
+        .panel.minimized .panel-content {
+            display: none;
+        }
+
+        .panel.minimized .panel-header {
+            flex-direction: column;
+            padding: 0.75rem 0.5rem;
+            height: 100%;
+        }
+
+        .panel.minimized .panel-header-left {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+        }
+
+        .panel.minimized .panel-collapsed-metrics {
+            display: none;
+        }
+
+        .panel.minimized .panel-expand-btn {
+            margin: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .panel.minimized .panel-collapse-btn {
+            display: none;
+        }
+
         /* Tasks Panel - State Groups */
         .state-group {
             margin-bottom: 1.5rem;
@@ -2094,20 +2156,14 @@
             <label class="filter-option">
                 <input type="checkbox" id="filter-critical">
                 <i class="bi bi-exclamation-circle" style="color: #dc3545;"></i>
-                Critical only
+                Critical
             </label>
         </div>
         <div class="filter-section" id="filter-tags-section">
             <div class="filter-section-title">Filter by Tags</div>
+            <input type="text" id="filter-tags-search" placeholder="Search tags..." style="width: 100%; padding: 0.35rem 0.5rem; margin-bottom: 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; font-size: 0.8rem;">
             <div id="filter-tags-list">
-                {% for tag in tags %}
-                <label class="filter-option">
-                    <input type="checkbox" class="filter-tag-checkbox" data-tag-id="{{ tag.id }}">
-                    <span class="task-tag-pill" style="font-size: 0.75rem;">{{ tag.name }}</span>
-                </label>
-                {% empty %}
-                <div class="filter-no-tags" style="color: #6c757d; font-size: 0.8rem; padding: 0.25rem 0;">No tags</div>
-                {% endfor %}
+                <!-- Tags will be populated by JavaScript -->
             </div>
         </div>
         <button class="filter-clear" id="filter-clear">Clear Filters</button>
@@ -2141,6 +2197,9 @@
                         <span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>
                         {% endfor %}
                     </div>
+                    <span class="panel-expand-btn" id="tasks-expand-btn" title="Expand Tasks">
+                        <i class="bi bi-arrows-angle-expand"></i>
+                    </span>
                     <span class="panel-collapse-btn" id="tasks-collapse-btn" title="Collapse Tasks">
                         <i class="bi bi-chevron-down"></i>
                     </span>
@@ -2219,6 +2278,9 @@
                         <span class="metric-pill">Meetings: <span id="meetings-count">0</span></span>
                         <span class="metric-pill">Time in Meetings: <span id="meetings-time">0h</span></span>
                     </div>
+                    <span class="panel-expand-btn" id="calendar-expand-btn" title="Expand Calendar">
+                        <i class="bi bi-arrows-angle-expand"></i>
+                    </span>
                     <span class="panel-collapse-btn" id="calendar-collapse-btn" title="Collapse Calendar">
                         <i class="bi bi-chevron-down"></i>
                     </span>
@@ -4187,12 +4249,101 @@
         const filterBadge = document.getElementById('filter-badge');
         const filterCritical = document.getElementById('filter-critical');
         const filterClear = document.getElementById('filter-clear');
-        const filterTagCheckboxes = document.querySelectorAll('.filter-tag-checkbox');
+        const filterTagsList = document.getElementById('filter-tags-list');
+        const filterTagsSearch = document.getElementById('filter-tags-search');
 
         let activeFilters = {
             critical: false,
             tags: []  // Array of tag IDs to filter by
         };
+
+        // Get tag counts from taskTagsMap
+        function getTagCounts() {
+            const counts = {};
+            Object.values(taskTagsMap).forEach(tags => {
+                tags.forEach(tag => {
+                    counts[tag.id] = (counts[tag.id] || 0) + 1;
+                });
+            });
+            return counts;
+        }
+
+        // Populate filter tags list (top 5 by count + search)
+        function populateFilterTags(searchTerm = '') {
+            const tagCounts = getTagCounts();
+            const searchLower = searchTerm.toLowerCase();
+
+            // Sort tags by count (descending), then by name
+            const sortedTags = [...tagsList].sort((a, b) => {
+                const countDiff = (tagCounts[b.id] || 0) - (tagCounts[a.id] || 0);
+                if (countDiff !== 0) return countDiff;
+                return a.name.localeCompare(b.name);
+            });
+
+            // Filter tags based on search term
+            let tagsToShow;
+            if (searchTerm) {
+                // Show all matching tags when searching
+                tagsToShow = sortedTags.filter(tag =>
+                    tag.name.toLowerCase().includes(searchLower)
+                );
+            } else {
+                // Show top 5 tags by count
+                tagsToShow = sortedTags.slice(0, 5);
+            }
+
+            // Build HTML
+            filterTagsList.innerHTML = '';
+
+            if (tagsToShow.length === 0) {
+                filterTagsList.innerHTML = '<div style="color: #6c757d; font-size: 0.8rem; padding: 0.25rem 0;">No matching tags</div>';
+                return;
+            }
+
+            tagsToShow.forEach(tag => {
+                const count = tagCounts[tag.id] || 0;
+                const isChecked = activeFilters.tags.includes(tag.id);
+                const label = document.createElement('label');
+                label.className = 'filter-option';
+                label.innerHTML = `
+                    <input type="checkbox" class="filter-tag-checkbox" data-tag-id="${tag.id}" ${isChecked ? 'checked' : ''}>
+                    <span class="task-tag-pill" style="font-size: 0.75rem;">${tag.name}</span>
+                    <span style="color: #6c757d; font-size: 0.7rem; margin-left: auto;">(${count})</span>
+                `;
+                filterTagsList.appendChild(label);
+
+                // Add event listener
+                const checkbox = label.querySelector('.filter-tag-checkbox');
+                checkbox.addEventListener('change', function() {
+                    const tagId = parseInt(this.dataset.tagId);
+                    if (this.checked) {
+                        if (!activeFilters.tags.includes(tagId)) {
+                            activeFilters.tags.push(tagId);
+                        }
+                    } else {
+                        activeFilters.tags = activeFilters.tags.filter(id => id !== tagId);
+                    }
+                    applyFilters();
+                    saveFilterSettings();
+                });
+            });
+
+            // Show hint if more tags exist and not searching
+            if (!searchTerm && sortedTags.length > 5) {
+                const hint = document.createElement('div');
+                hint.style.cssText = 'color: #6c757d; font-size: 0.75rem; padding: 0.25rem 0; text-align: center;';
+                hint.textContent = `+ ${sortedTags.length - 5} more tags (use search)`;
+                filterTagsList.appendChild(hint);
+            }
+        }
+
+        // Search tags
+        filterTagsSearch.addEventListener('input', function() {
+            populateFilterTags(this.value.trim());
+        });
+
+        // Initial population
+        populateFilterTags();
 
         // Toggle filter dropdown
         filterIcon.addEventListener('click', function(e) {
@@ -4216,28 +4367,15 @@
             saveFilterSettings();
         });
 
-        // Handle tag filter changes
-        filterTagCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const tagId = parseInt(this.dataset.tagId);
-                if (this.checked) {
-                    if (!activeFilters.tags.includes(tagId)) {
-                        activeFilters.tags.push(tagId);
-                    }
-                } else {
-                    activeFilters.tags = activeFilters.tags.filter(id => id !== tagId);
-                }
-                applyFilters();
-                saveFilterSettings();
-            });
-        });
+        // Tag filter changes are handled dynamically in populateFilterTags()
 
         // Clear all filters
         filterClear.addEventListener('click', function() {
             activeFilters.critical = false;
             activeFilters.tags = [];
             filterCritical.checked = false;
-            filterTagCheckboxes.forEach(cb => cb.checked = false);
+            filterTagsSearch.value = '';
+            populateFilterTags();  // Repopulate to uncheck all
             applyFilters();
             saveFilterSettings();
         });
@@ -4294,12 +4432,7 @@
                 // Restore tag filters
                 if (saved.tags && saved.tags.length > 0) {
                     activeFilters.tags = saved.tags;
-                    filterTagCheckboxes.forEach(cb => {
-                        const tagId = parseInt(cb.dataset.tagId);
-                        if (saved.tags.includes(tagId)) {
-                            cb.checked = true;
-                        }
-                    });
+                    populateFilterTags();  // Re-populate to reflect saved checked states
                 }
 
                 // Restore group by
@@ -4654,14 +4787,52 @@
         const calendarPanelHeader = document.getElementById('calendar-panel-header');
 
         if (tasksPanelHeader) {
-            tasksPanelHeader.addEventListener('click', function() {
+            tasksPanelHeader.addEventListener('click', function(e) {
+                // Don't toggle collapsed if clicking expand button
+                if (e.target.closest('.panel-expand-btn')) return;
                 tasksPanel.classList.toggle('collapsed');
             });
         }
 
         if (calendarPanelHeader) {
-            calendarPanelHeader.addEventListener('click', function() {
+            calendarPanelHeader.addEventListener('click', function(e) {
+                // Don't toggle collapsed if clicking expand button
+                if (e.target.closest('.panel-expand-btn')) return;
                 calendarPanel.classList.toggle('collapsed');
+            });
+        }
+
+        // Panel expand/minimize (horizontal)
+        const tasksExpandBtn = document.getElementById('tasks-expand-btn');
+        const calendarExpandBtn = document.getElementById('calendar-expand-btn');
+
+        function togglePanelExpand(expandPanel, minimizePanel) {
+            const isExpanded = expandPanel.classList.contains('expanded');
+
+            if (isExpanded) {
+                // Reset to normal
+                expandPanel.classList.remove('expanded');
+                minimizePanel.classList.remove('minimized');
+            } else {
+                // Expand this panel, minimize the other
+                expandPanel.classList.add('expanded');
+                expandPanel.classList.remove('collapsed');
+                minimizePanel.classList.add('minimized');
+                minimizePanel.classList.remove('collapsed');
+            }
+        }
+
+        if (tasksExpandBtn) {
+            tasksExpandBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                togglePanelExpand(tasksPanel, calendarPanel);
+            });
+        }
+
+        if (calendarExpandBtn) {
+            calendarExpandBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                togglePanelExpand(calendarPanel, tasksPanel);
             });
         }
 
