@@ -2217,6 +2217,12 @@
             top: 50%;
         }
 
+        .hour-content.drag-over.drag-blocked::before {
+            background: #fee2e2;
+            border-color: #f87171;
+            opacity: 0.7;
+        }
+
         .state-group-empty {
             color: #adb5bd;
             font-size: 0.8rem;
@@ -5821,7 +5827,9 @@
 
             taskEl.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
-                document.querySelectorAll('.hour-content.drag-over').forEach(el => el.classList.remove('drag-over'));
+                document.querySelectorAll('.hour-content.drag-over').forEach(el => {
+                    el.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
+                });
             });
         }
 
@@ -5982,7 +5990,6 @@
             document.querySelectorAll('.hour-content').forEach(hourContent => {
                 hourContent.addEventListener('dragover', function(e) {
                     e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
                     this.classList.add('drag-over');
 
                     // Determine if in top or bottom half for 30-min preview
@@ -5991,17 +5998,29 @@
                     const isTopHalf = relativeY < rect.height / 2;
                     this.classList.toggle('drag-top', isTopHalf);
                     this.classList.toggle('drag-bottom', !isTopHalf);
+
+                    // Check for overlap and show blocked indicator
+                    const hour = parseInt(this.dataset.hour);
+                    const clampedMinute = isTopHalf ? 0 : 30;
+                    const now = new Date();
+                    const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
+                    const endLocal = new Date(startLocal.getTime() + 30 * 60 * 1000);
+                    const taskId = draggedTaskCard ? draggedTaskCard.dataset.taskId : null;
+
+                    const isBlocked = taskId && hasOverlappingItem(startLocal, endLocal, taskId);
+                    this.classList.toggle('drag-blocked', isBlocked);
+                    e.dataTransfer.dropEffect = isBlocked ? 'none' : 'move';
                 });
 
                 hourContent.addEventListener('dragleave', function(e) {
                     if (!this.contains(e.relatedTarget)) {
-                        this.classList.remove('drag-over', 'drag-top', 'drag-bottom');
+                        this.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
                     }
                 });
 
                 hourContent.addEventListener('drop', async function(e) {
                     e.preventDefault();
-                    this.classList.remove('drag-over', 'drag-top', 'drag-bottom');
+                    this.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
 
                     const taskId = e.dataTransfer.getData('text/plain');
                     if (!taskId) return;
