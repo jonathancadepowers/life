@@ -1670,6 +1670,7 @@
             justify-content: center;
             transition: color 0.15s;
             font-size: 1rem;
+            margin-left: auto;
             margin-right: 0.5rem;
         }
 
@@ -1679,6 +1680,11 @@
 
         .panel.expanded .panel-expand-btn i {
             transform: rotate(180deg);
+        }
+
+        /* Hide vertical collapse button when horizontally expanded */
+        .panel.expanded .panel-collapse-btn {
+            display: none;
         }
 
         /* Horizontal expansion states */
@@ -4828,15 +4834,14 @@
             const isExpanded = expandPanel.classList.contains('expanded');
 
             if (isExpanded) {
-                // Reset to normal
-                expandPanel.classList.remove('expanded');
-                minimizePanel.classList.remove('minimized');
+                // Already expanded - do nothing (one panel must always be expanded)
+                return;
             } else {
                 // Expand this panel, minimize the other
                 expandPanel.classList.add('expanded');
-                expandPanel.classList.remove('collapsed');
+                expandPanel.classList.remove('collapsed', 'minimized');
                 minimizePanel.classList.add('minimized');
-                minimizePanel.classList.remove('collapsed');
+                minimizePanel.classList.remove('collapsed', 'expanded');
             }
         }
 
