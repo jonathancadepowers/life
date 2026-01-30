@@ -2001,6 +2001,7 @@
             color: #155724;
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
+            padding-right: 1.5rem;
             border-radius: 4px;
             cursor: grab;
             border: 1px solid #c3e6cb;
@@ -2009,6 +2010,29 @@
             text-overflow: ellipsis;
             z-index: 2;
             box-sizing: border-box;
+        }
+
+        .calendar-scheduled-task .remove-btn {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #155724;
+            opacity: 0.4;
+            cursor: pointer;
+            padding: 0;
+            font-size: 0.7rem;
+            line-height: 1;
+        }
+
+        .calendar-scheduled-task .remove-btn:hover {
+            opacity: 1;
+        }
+
+        .calendar-scheduled-task.critical .remove-btn {
+            color: #721c24;
         }
 
         .calendar-scheduled-task:hover {
@@ -5282,8 +5306,22 @@
                 taskEl.className = 'calendar-scheduled-task' + (isCritical ? ' critical' : '');
                 taskEl.dataset.taskId = taskId;
                 taskEl.draggable = true;
-                taskEl.textContent = title;
                 taskEl.title = title;
+
+                // Add title text and remove button
+                const titleSpan = document.createElement('span');
+                titleSpan.textContent = title;
+                taskEl.appendChild(titleSpan);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                removeBtn.title = 'Remove from calendar';
+                removeBtn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    await removeFromCalendar(parseInt(taskId));
+                });
+                taskEl.appendChild(removeBtn);
 
                 // Position based on minute within the hour (absolute positioning)
                 const topPercent = (minute / 60) * 100;
