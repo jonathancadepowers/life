@@ -7,14 +7,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import pytz
 
-from .models import Task, TaskContext, TaskState
+from .models import Task, TaskState
 from calendar_events.models import CalendarEvent
 
 
 def task_list(request):
     """Display all tasks."""
     tasks = Task.objects.select_related('state').all()
-    contexts = TaskContext.objects.all()
     states = TaskState.objects.all()
 
     # Get today's calendar events in CST
@@ -51,7 +50,6 @@ def task_list(request):
 
     return render(request, 'todos/task_list.html', {
         'tasks': tasks,
-        'contexts': contexts,
         'states': states,
         'calendar_events': json.dumps(events_data),
     })
@@ -67,9 +65,9 @@ def create_task(request):
         if not title:
             return JsonResponse({'success': False, 'error': 'Title is required'}, status=400)
 
-        # Get Inbox state for new tasks
-        inbox_state = TaskState.objects.filter(name='Inbox').first()
-        task = Task.objects.create(title=title, state=inbox_state)
+        # Get first state by order for new tasks
+        first_state = TaskState.objects.first()
+        task = Task.objects.create(title=title, state=first_state)
         return JsonResponse({
             'success': True,
             'task': {
@@ -135,89 +133,12 @@ def delete_task(request, task_id):
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
 
 
-def list_contexts(request):
-    """List all task contexts."""
-    contexts = TaskContext.objects.all()
-    return JsonResponse({
-        'success': True,
-        'contexts': [{'id': c.id, 'name': c.name, 'color': c.color} for c in contexts]
-    })
-
-
-@require_POST
-def create_context(request):
-    """Create a new task context via AJAX."""
-    try:
-        data = json.loads(request.body)
-        name = data.get('name', '').strip()
-        color = data.get('color', '#6c757d')
-
-        if not name:
-            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
-
-        context, created = TaskContext.objects.get_or_create(
-            name=name,
-            defaults={'color': color}
-        )
-        if not created:
-            return JsonResponse({'success': False, 'error': 'Context already exists'}, status=400)
-
-        return JsonResponse({
-            'success': True,
-            'context': {
-                'id': context.id,
-                'name': context.name,
-                'color': context.color,
-            }
-        })
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
-
-
-@require_http_methods(["PATCH"])
-def update_context(request, context_id):
-    """Update a task context via AJAX."""
-    try:
-        context = TaskContext.objects.get(id=context_id)
-        data = json.loads(request.body)
-
-        if 'name' in data:
-            context.name = data['name'].strip()
-        if 'color' in data:
-            context.color = data['color']
-
-        context.save()
-        return JsonResponse({
-            'success': True,
-            'context': {
-                'id': context.id,
-                'name': context.name,
-                'color': context.color,
-            }
-        })
-    except TaskContext.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Context not found'}, status=404)
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
-
-
-@require_http_methods(["DELETE"])
-def delete_context(request, context_id):
-    """Delete a task context via AJAX."""
-    try:
-        context = TaskContext.objects.get(id=context_id)
-        context.delete()
-        return JsonResponse({'success': True})
-    except TaskContext.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Context not found'}, status=404)
-
-
 def list_states(request):
     """List all task states."""
     states = TaskState.objects.all()
     return JsonResponse({
         'success': True,
-        'states': [{'id': s.id, 'name': s.name, 'is_terminal': s.is_terminal, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon} for s in states]
+        'states': [{'id': s.id, 'name': s.name, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon} for s in states]
     })
 
 
@@ -235,8 +156,8 @@ def create_state(request):
         if TaskState.objects.filter(name=name).exists():
             return JsonResponse({'success': False, 'error': 'State already exists'}, status=400)
 
-        # Set order to be after all non-terminal states but before terminal
-        max_order = TaskState.objects.filter(is_terminal=False).count()
+        # Set order to be at the end
+        max_order = TaskState.objects.count()
         state = TaskState.objects.create(name=name, order=max_order)
 
         return JsonResponse({
@@ -244,7 +165,6 @@ def create_state(request):
             'state': {
                 'id': state.id,
                 'name': state.name,
-                'is_terminal': state.is_terminal,
                 'order': state.order,
                 'bootstrap_icon': state.bootstrap_icon,
             }
@@ -260,27 +180,8 @@ def update_state(request, state_id):
         state = TaskState.objects.get(id=state_id)
         data = json.loads(request.body)
 
-        # Prevent modifying Inbox
-        if state.name == 'Inbox':
-            if 'name' in data and data['name'].strip() != 'Inbox':
-                return JsonResponse({'success': False, 'error': 'Cannot rename Inbox'}, status=400)
-            if 'is_terminal' in data and data['is_terminal']:
-                return JsonResponse({'success': False, 'error': 'Cannot make Inbox terminal'}, status=400)
-
         if 'name' in data:
             state.name = data['name'].strip()
-        if 'is_terminal' in data:
-            if data['is_terminal']:
-                # Check if another state is already terminal
-                existing_terminal = TaskState.objects.filter(is_terminal=True).exclude(id=state_id).first()
-                if existing_terminal:
-                    return JsonResponse({
-                        'success': False,
-                        'error': f'"{existing_terminal.name}" is already marked as terminal. Unmark it first.'
-                    }, status=400)
-                # Terminal state gets highest order
-                state.order = 9999
-            state.is_terminal = data['is_terminal']
         if 'bootstrap_icon' in data:
             state.bootstrap_icon = data['bootstrap_icon'].strip() if data['bootstrap_icon'] else ''
 
@@ -290,7 +191,6 @@ def update_state(request, state_id):
             'state': {
                 'id': state.id,
                 'name': state.name,
-                'is_terminal': state.is_terminal,
                 'order': state.order,
                 'bootstrap_icon': state.bootstrap_icon,
             }
@@ -306,9 +206,6 @@ def delete_state(request, state_id):
     """Delete a task state via AJAX."""
     try:
         state = TaskState.objects.get(id=state_id)
-        # Prevent deleting Inbox
-        if state.name == 'Inbox':
-            return JsonResponse({'success': False, 'error': 'Cannot delete the Inbox state'}, status=400)
         state.delete()
         return JsonResponse({'success': True})
     except TaskState.DoesNotExist:
@@ -322,18 +219,8 @@ def reorder_states(request):
         data = json.loads(request.body)
         order_list = data.get('order', [])  # List of state IDs in new order
 
-        # Reorder, but Inbox always stays at 0
         for index, state_id in enumerate(order_list):
-            state = TaskState.objects.filter(id=state_id, is_terminal=False).first()
-            if state and state.name != 'Inbox':
-                state.order = index + 1  # +1 because Inbox is at 0
-                state.save()
-
-        # Ensure Inbox stays at order 0
-        TaskState.objects.filter(name='Inbox').update(order=0)
-
-        # Ensure terminal state stays at the end
-        TaskState.objects.filter(is_terminal=True).update(order=9999)
+            TaskState.objects.filter(id=state_id).update(order=index)
 
         return JsonResponse({'success': True})
     except json.JSONDecodeError:
