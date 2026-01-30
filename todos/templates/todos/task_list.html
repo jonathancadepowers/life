@@ -274,19 +274,19 @@
         }
 
         .time-slot-btn {
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #6B9080;
+            padding: 0.5rem 1rem;
+            border: none;
             border-radius: 4px;
-            background: white;
-            color: #6B9080;
+            background: #6B9080;
+            color: white;
             font-size: 0.85rem;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .time-slot-btn:hover {
-            background: #6B9080;
-            color: white;
+            background: #5a7d6e;
         }
 
         .slide-panel {
@@ -1116,60 +1116,6 @@
             margin-left: auto;
         }
 
-        /* Inline completed toggle in panel header */
-        .completed-toggle-inline {
-            display: none;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            user-select: none;
-            margin-right: 0.75rem;
-            font-size: 0.7rem;
-            color: #6c757d;
-        }
-
-        .completed-toggle-inline.visible {
-            display: flex;
-        }
-
-        .completed-toggle-inline input[type="checkbox"] {
-            display: none;
-        }
-
-        .toggle-label-inline {
-            white-space: nowrap;
-        }
-
-        .toggle-switch {
-            width: 32px;
-            height: 18px;
-            background: #ccc;
-            border-radius: 9px;
-            position: relative;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            width: 14px;
-            height: 14px;
-            background: white;
-            border-radius: 50%;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.2s;
-        }
-
-        .completed-toggle-inline input:checked + .toggle-switch {
-            background: #0d6efd;
-        }
-
-        .completed-toggle-inline input:checked + .toggle-switch::after {
-            transform: translateX(14px);
-        }
-
         .tasks-panel-wrapper {
             display: flex;
             flex-direction: column;
@@ -1181,10 +1127,6 @@
         .tasks-panel-wrapper.panel-minimized {
             flex: 0 0 60px;
             min-width: 60px;
-        }
-
-        .tasks-panel-wrapper.panel-minimized .completed-toggle-inline {
-            display: none !important;
         }
 
         .state-terminal-checkbox-wrapper.disabled-terminal {
@@ -1695,6 +1637,47 @@
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
+            padding-bottom: 0;
+        }
+
+        /* Tasks search bar */
+        .tasks-search-bar {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #eee;
+            background: #fafafa;
+            gap: 0.5rem;
+        }
+
+        .tasks-search-icon {
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+
+        .tasks-search-bar input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 0.85rem;
+            color: #333;
+            outline: none;
+        }
+
+        .tasks-search-bar input::placeholder {
+            color: #aaa;
+        }
+
+        .tasks-hidden-count {
+            font-size: 0.75rem;
+            color: #999;
+            white-space: nowrap;
+        }
+
+        /* Hide search bar when panel is collapsed or minimized */
+        .panel.collapsed .tasks-search-bar,
+        .panel.minimized .tasks-search-bar {
+            display: none;
         }
 
         .panel-header-vertical {
@@ -2598,6 +2581,13 @@
                 <!-- Tags will be populated by JavaScript -->
             </div>
         </div>
+        <div class="filter-section">
+            <div class="filter-section-title">Completed Tasks</div>
+            <label class="filter-option">
+                <input type="checkbox" id="show-completed-toggle">
+                Show Completed
+            </label>
+        </div>
         <button class="filter-clear" id="filter-clear">Clear Filters</button>
     </div>
 
@@ -2633,11 +2623,6 @@
                             <span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>
                             {% endfor %}
                         </div>
-                        <label class="completed-toggle-inline" id="completed-toggle-inline" onclick="event.stopPropagation();">
-                            <span class="toggle-label-inline" id="completed-toggle-label">Show Completed</span>
-                            <input type="checkbox" id="show-completed-toggle">
-                            <span class="toggle-switch"></span>
-                        </label>
                         <span class="panel-expand-btn" id="tasks-expand-btn" title="Expand Tasks">
                             <i class="bi bi-arrows-angle-expand"></i>
                         </span>
@@ -2705,6 +2690,11 @@
                     </div>
                     <!-- Tags grouping (hidden by default) -->
                     <div id="tags-content" style="display: none;"></div>
+                </div>
+                <div class="tasks-search-bar" id="tasks-search-bar">
+                    <i class="bi bi-search tasks-search-icon"></i>
+                    <input type="text" id="tasks-search-input" placeholder="Search tasks..." autocomplete="off">
+                    <span class="tasks-hidden-count" id="tasks-hidden-count"></span>
                 </div>
             </div>
             </div>
@@ -2899,12 +2889,12 @@
                     <input type="text" class="modal-input" id="event-name-input" placeholder="Event name" style="margin-bottom: 0;">
                 </div>
                 <div>
-                    <label style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.5rem;">Select a time</label>
+                    <label style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.5rem;">Click a time to add</label>
                     <div class="time-slot-buttons" id="time-slot-buttons">
                         <!-- Buttons will be populated dynamically -->
                     </div>
                 </div>
-                <p style="font-size: 0.7rem; color: #999; margin-top: 0.75rem; margin-bottom: 0;">You can adjust the time and duration after adding.</p>
+                <p style="font-size: 0.7rem; color: #999; margin-top: 0.75rem; margin-bottom: 0;">You can adjust the time and duration on the calendar.</p>
             </div>
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" id="add-event-cancel">Cancel</button>
@@ -5028,10 +5018,21 @@
             filterCritical.checked = false;
             filterToday.checked = false;
             filterTagsSearch.value = '';
+            showCompletedTasks = false;
+            document.getElementById('show-completed-toggle').checked = false;
             populateFilterTags();  // Repopulate to uncheck all
             applyFilters();
             saveFilterSettings();
         });
+
+        // Tasks search input
+        const tasksSearchInput = document.getElementById('tasks-search-input');
+        if (tasksSearchInput) {
+            tasksSearchInput.addEventListener('input', function() {
+                searchText = this.value.trim();
+                applyFilters();
+            });
+        }
 
         // ========== Group By Functionality ==========
         let currentGroupBy = 'states';  // 'states' or 'tags'
@@ -5062,7 +5063,6 @@
                 updateCollapsedMetricsForTags();
             }
             updatePanelCounts();
-            updateCompletedToggleVisibility();
         }
 
         // Update collapsed metrics to show states
@@ -5103,23 +5103,10 @@
             tasksCollapsedMetrics.innerHTML = html || '<span class="metric-pill">No tags</span>';
         }
 
-        // Update completed toggle visibility based on group-by mode and panel state
-        function updateCompletedToggleVisibility() {
-            const toggle = document.getElementById('completed-toggle-inline');
-            const tasksPanel = document.getElementById('tasks-panel');
-            const isTagsView = currentGroupBy === 'tags';
-            const isExpanded = !tasksPanel.classList.contains('collapsed');
-
-            if (isTagsView && isExpanded) {
-                toggle.classList.add('visible');
-            } else {
-                toggle.classList.remove('visible');
-            }
-        }
-
-        // Toggle for showing/hiding completed tasks in tag view
+        // Toggle for showing/hiding completed tasks
         document.getElementById('show-completed-toggle').addEventListener('change', function() {
             showCompletedTasks = this.checked;
+            applyFilters();
             if (currentGroupBy === 'tags') {
                 buildTagGroups();
             }
@@ -5486,18 +5473,25 @@
             });
         }
 
+        let searchText = '';
+
         function applyFilters() {
             // Filter both kanban cards and task cards in the new panel layout
             const allCards = document.querySelectorAll('.kanban-card, .task-card');
             let visibleCount = 0;
+            let hiddenByFilters = 0;
+            let totalCards = 0;
 
             allCards.forEach(card => {
+                totalCards++;
                 let show = true;
+                let hiddenByFilter = false;
                 const taskId = parseInt(card.dataset.taskId);
 
                 // Filter by critical
                 if (activeFilters.critical && !card.classList.contains('critical')) {
                     show = false;
+                    hiddenByFilter = true;
                 }
 
                 // Filter by today (only show tasks scheduled for today)
@@ -5505,6 +5499,7 @@
                     const calendarTime = taskCalendarStartTimeMap[taskId];
                     if (!calendarTime || !isScheduledForToday(calendarTime)) {
                         show = false;
+                        hiddenByFilter = true;
                     }
                 }
 
@@ -5515,15 +5510,45 @@
                     const hasMatchingTag = activeFilters.tags.some(tagId => taskTagIds.includes(tagId));
                     if (!hasMatchingTag) {
                         show = false;
+                        hiddenByFilter = true;
+                    }
+                }
+
+                // Filter by completed tasks (terminal state)
+                if (show && !showCompletedTasks) {
+                    const taskStateId = parseInt(card.closest('.state-group, .kanban-column')?.dataset?.stateId);
+                    if (taskStateId === terminalStateId) {
+                        show = false;
+                        hiddenByFilter = true;
+                    }
+                }
+
+                // Filter by search text
+                if (show && searchText) {
+                    const titleEl = card.querySelector('.task-card-title, .kanban-card-title');
+                    const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+                    if (!title.includes(searchText.toLowerCase())) {
+                        show = false;
                     }
                 }
 
                 card.style.display = show ? '' : 'none';
                 if (show) visibleCount++;
+                if (hiddenByFilter) hiddenByFilters++;
             });
 
+            // Update hidden count display
+            const hiddenCountEl = document.getElementById('tasks-hidden-count');
+            if (hiddenCountEl) {
+                if (hiddenByFilters > 0) {
+                    hiddenCountEl.textContent = `${hiddenByFilters} hidden by filters`;
+                } else {
+                    hiddenCountEl.textContent = '';
+                }
+            }
+
             // Update filter badge
-            const filterCount = (activeFilters.critical ? 1 : 0) + (activeFilters.today ? 1 : 0);
+            const filterCount = (activeFilters.critical ? 1 : 0) + (activeFilters.today ? 1 : 0) + activeFilters.tags.length + (!showCompletedTasks ? 1 : 0);
             if (filterCount > 0) {
                 filterBadge.textContent = filterCount;
                 filterBadge.style.display = 'flex';
@@ -5580,7 +5605,6 @@
                 tasksPanelWrapper.classList.toggle('panel-collapsed', isCollapsed);
                 tasksPanelWrapper.classList.toggle('panel-minimized', isMinimized);
             }
-            updateCompletedToggleVisibility();
         }
 
         // Sync vertical collapse/expand between Tasks and Calendar
@@ -5599,9 +5623,8 @@
 
         if (tasksPanelHeader) {
             tasksPanelHeader.addEventListener('click', function(e) {
-                // Don't toggle collapsed if clicking expand button or completed toggle
+                // Don't toggle collapsed if clicking expand button
                 if (e.target.closest('.panel-expand-btn')) return;
-                if (e.target.closest('.completed-toggle-inline')) return;
                 // Don't toggle vertical collapse if panel is horizontally minimized or expanded
                 if (tasksPanel.classList.contains('minimized')) return;
                 if (tasksPanel.classList.contains('expanded')) return;
