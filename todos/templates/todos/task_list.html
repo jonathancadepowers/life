@@ -267,6 +267,28 @@
             background: #5a7d6e;
         }
 
+        .time-slot-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .time-slot-btn {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #6B9080;
+            border-radius: 4px;
+            background: white;
+            color: #6B9080;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .time-slot-btn:hover {
+            background: #6B9080;
+            color: white;
+        }
+
         .slide-panel {
             position: fixed;
             top: 0;
@@ -2877,13 +2899,15 @@
                     <input type="text" class="modal-input" id="event-name-input" placeholder="Event name" style="margin-bottom: 0;">
                 </div>
                 <div>
-                    <label for="event-time-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Time</label>
-                    <input type="time" class="modal-input" id="event-time-input" style="margin-bottom: 0;">
+                    <label style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.5rem;">Select a time</label>
+                    <div class="time-slot-buttons" id="time-slot-buttons">
+                        <!-- Buttons will be populated dynamically -->
+                    </div>
                 </div>
+                <p style="font-size: 0.7rem; color: #999; margin-top: 0.75rem; margin-bottom: 0;">You can adjust the time and duration after adding.</p>
             </div>
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" id="add-event-cancel">Cancel</button>
-                <button class="modal-btn modal-btn-primary" id="add-event-ok">Add</button>
             </div>
         </div>
     </div>
@@ -6040,21 +6064,178 @@
         const addEventBtn = document.getElementById('add-event-btn');
         const addEventModal = document.getElementById('add-event-modal');
         const eventNameInput = document.getElementById('event-name-input');
-        const eventTimeInput = document.getElementById('event-time-input');
-        const addEventOk = document.getElementById('add-event-ok');
+        const timeSlotButtonsContainer = document.getElementById('time-slot-buttons');
         const addEventCancel = document.getElementById('add-event-cancel');
+
+        // Get available hours (top of hour only, 7am-6pm, not occupied)
+        function getAvailableTimeSlots() {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            // Collect all occupied hour ranges for today
+            const occupiedHours = new Set();
+
+            // Check calendar events
+            calendarEvents.forEach(event => {
+                const startDate = new Date(event.start);
+                const endDate = new Date(event.end);
+                if (endDate <= todayStart || startDate >= todayEnd) return;
+                // Mark all hours this event spans
+                for (let h = Math.max(7, startDate.getHours()); h < Math.min(19, endDate.getHours() + (endDate.getMinutes() > 0 ? 1 : 0)); h++) {
+                    occupiedHours.add(h);
+                }
+            });
+
+            // Check time blocks
+            timeBlocks.forEach(block => {
+                const startDate = new Date(block.start);
+                const endDate = new Date(block.end);
+                if (endDate <= todayStart || startDate >= todayEnd) return;
+                for (let h = Math.max(7, startDate.getHours()); h < Math.min(19, endDate.getHours() + (endDate.getMinutes() > 0 ? 1 : 0)); h++) {
+                    occupiedHours.add(h);
+                }
+            });
+
+            // Check scheduled tasks
+            Object.keys(taskCalendarStartTimeMap).forEach(taskId => {
+                const startStr = taskCalendarStartTimeMap[taskId];
+                const endStr = taskCalendarEndTimeMap[taskId];
+                if (!startStr) return;
+                const startDate = new Date(startStr);
+                const endDate = endStr ? new Date(endStr) : new Date(startDate.getTime() + 30 * 60 * 1000);
+                if (endDate <= todayStart || startDate >= todayEnd) return;
+                for (let h = Math.max(7, startDate.getHours()); h < Math.min(19, endDate.getHours() + (endDate.getMinutes() > 0 ? 1 : 0)); h++) {
+                    occupiedHours.add(h);
+                }
+            });
+
+            // Get available hours from 7am to 6pm
+            const availableHours = [];
+            for (let h = 7; h <= 18; h++) {
+                if (!occupiedHours.has(h)) {
+                    availableHours.push(h);
+                }
+            }
+
+            // Select up to 5 slots spread across morning and afternoon
+            const morningHours = availableHours.filter(h => h < 12);
+            const afternoonHours = availableHours.filter(h => h >= 12);
+
+            const selectedSlots = [];
+            // Try to get a balanced mix
+            if (availableHours.length <= 5) {
+                return availableHours;
+            }
+
+            // Pick from morning (up to 2-3) and afternoon (up to 2-3)
+            const morningCount = Math.min(Math.ceil(morningHours.length / 2), 3);
+            const afternoonCount = Math.min(5 - morningCount, afternoonHours.length);
+
+            // Spread morning picks
+            if (morningHours.length > 0 && morningCount > 0) {
+                const step = Math.max(1, Math.floor(morningHours.length / morningCount));
+                for (let i = 0; i < morningCount && i * step < morningHours.length; i++) {
+                    selectedSlots.push(morningHours[i * step]);
+                }
+            }
+
+            // Spread afternoon picks
+            if (afternoonHours.length > 0 && afternoonCount > 0) {
+                const step = Math.max(1, Math.floor(afternoonHours.length / afternoonCount));
+                for (let i = 0; i < afternoonCount && i * step < afternoonHours.length; i++) {
+                    selectedSlots.push(afternoonHours[i * step]);
+                }
+            }
+
+            // If we still need more, fill from remaining
+            while (selectedSlots.length < 5 && selectedSlots.length < availableHours.length) {
+                for (const h of availableHours) {
+                    if (!selectedSlots.includes(h)) {
+                        selectedSlots.push(h);
+                        if (selectedSlots.length >= 5) break;
+                    }
+                }
+            }
+
+            return selectedSlots.sort((a, b) => a - b);
+        }
+
+        function formatHour(hour) {
+            if (hour === 0) return '12am';
+            if (hour === 12) return '12pm';
+            if (hour < 12) return `${hour}am`;
+            return `${hour - 12}pm`;
+        }
+
+        function populateTimeSlotButtons() {
+            const slots = getAvailableTimeSlots();
+            timeSlotButtonsContainer.innerHTML = '';
+
+            if (slots.length === 0) {
+                timeSlotButtonsContainer.innerHTML = '<span style="color: #999; font-size: 0.8rem;">No available time slots</span>';
+                return;
+            }
+
+            slots.forEach(hour => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'time-slot-btn';
+                btn.textContent = formatHour(hour);
+                btn.dataset.hour = hour;
+                btn.addEventListener('click', () => createTimeBlockAtHour(hour));
+                timeSlotButtonsContainer.appendChild(btn);
+            });
+        }
+
+        async function createTimeBlockAtHour(hour) {
+            const name = eventNameInput.value.trim();
+
+            if (!name) {
+                eventNameInput.focus();
+                return;
+            }
+
+            // Create start time in local timezone, then convert to UTC
+            const now = new Date();
+            const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0);
+            const startUTC = startLocal.toISOString();
+
+            try {
+                const response = await fetch('/tasks/api/time-blocks/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        start_time: startUTC
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Add to local array
+                    timeBlocks.push(data.time_block);
+                    // Re-render
+                    renderTimeBlocks();
+                    // Close modal
+                    addEventModal.classList.remove('active');
+                } else {
+                    alert(data.error || 'Failed to create event');
+                }
+            } catch (error) {
+                console.error('Error creating time block:', error);
+                alert('Failed to create event');
+            }
+        }
 
         if (addEventBtn) {
             addEventBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                // Set default time to next hour
-                const now = new Date();
-                const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
-                nextHour.setMinutes(0, 0, 0);
-                const hours = nextHour.getHours().toString().padStart(2, '0');
-                const minutes = nextHour.getMinutes().toString().padStart(2, '0');
-                eventTimeInput.value = `${hours}:${minutes}`;
                 eventNameInput.value = '';
+                populateTimeSlotButtons();
                 addEventModal.classList.add('active');
                 eventNameInput.focus();
             });
@@ -6070,77 +6251,6 @@
             addEventModal.addEventListener('click', function(e) {
                 if (e.target === addEventModal) {
                     addEventModal.classList.remove('active');
-                }
-            });
-        }
-
-        if (addEventOk) {
-            addEventOk.addEventListener('click', async function() {
-                const name = eventNameInput.value.trim();
-                const time = eventTimeInput.value;
-
-                if (!name) {
-                    eventNameInput.focus();
-                    return;
-                }
-
-                if (!time) {
-                    eventTimeInput.focus();
-                    return;
-                }
-
-                // Create start time in local timezone, then convert to UTC
-                const [hours, minutes] = time.split(':').map(Number);
-                const now = new Date();
-                const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-                const startUTC = startLocal.toISOString();
-
-                try {
-                    const response = await fetch('/tasks/api/time-blocks/create/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: JSON.stringify({
-                            name: name,
-                            start_time: startUTC
-                        })
-                    });
-
-                    const data = await response.json();
-                    if (data.success) {
-                        // Add to local array
-                        timeBlocks.push(data.time_block);
-                        // Re-render
-                        renderTimeBlocks();
-                        // Close modal
-                        addEventModal.classList.remove('active');
-                    } else {
-                        alert(data.error || 'Failed to create event');
-                    }
-                } catch (error) {
-                    console.error('Error creating time block:', error);
-                    alert('Failed to create event');
-                }
-            });
-        }
-
-        // Handle Enter key in modal inputs
-        if (eventNameInput) {
-            eventNameInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addEventOk.click();
-                }
-            });
-        }
-
-        if (eventTimeInput) {
-            eventTimeInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addEventOk.click();
                 }
             });
         }
