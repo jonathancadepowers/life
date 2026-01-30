@@ -2195,13 +2195,13 @@
             margin-top: 1.5px;
         }
 
-        /* Drop indicator for calendar - 30 minute preview */
+        /* Drop indicator for calendar - dynamic height based on task duration */
         .hour-content.drag-over::before {
             content: '';
             position: absolute;
             left: 4px;
             right: 4px;
-            height: 50%;
+            height: var(--preview-height, 50%);
             background: #e9ecef;
             border: 2px dashed #6c757d;
             border-radius: 4px;
@@ -5820,6 +5820,7 @@
         function setupScheduledTaskDragEvents(taskEl) {
             taskEl.addEventListener('dragstart', function(e) {
                 this.classList.add('dragging');
+                currentDragTaskId = this.dataset.taskId;
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', this.dataset.taskId);
                 e.dataTransfer.setData('application/x-scheduled-task', 'true');
@@ -5827,8 +5828,10 @@
 
             taskEl.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
+                currentDragTaskId = null;
                 document.querySelectorAll('.hour-content.drag-over').forEach(el => {
                     el.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
+                    el.style.removeProperty('--preview-height');
                 });
             });
         }
@@ -5992,19 +5995,8 @@
                     e.preventDefault();
                     this.classList.add('drag-over');
 
-                    // Determine if in top or bottom half for 30-min preview
-                    const rect = this.getBoundingClientRect();
-                    const relativeY = e.clientY - rect.top;
-                    const isTopHalf = relativeY < rect.height / 2;
-                    this.classList.toggle('drag-top', isTopHalf);
-                    this.classList.toggle('drag-bottom', !isTopHalf);
-
-                    // Check for overlap and show blocked indicator
-                    const hour = parseInt(this.dataset.hour);
-                    const clampedMinute = isTopHalf ? 0 : 30;
-                    const now = new Date();
-                    const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
-                    const taskId = draggedTaskCard ? draggedTaskCard.dataset.taskId : null;
+                    // Use currentDragTaskId which works for both task cards and calendar items
+                    const taskId = currentDragTaskId;
 
                     // Use existing duration if task has one, otherwise 30 minutes
                     let durationMs = 30 * 60 * 1000;
@@ -6017,6 +6009,24 @@
                             durationMs = existingEnd - existingStart;
                         }
                     }
+                    const durationMinutes = durationMs / (60 * 1000);
+
+                    // Calculate preview height as percentage of hour (60px per hour)
+                    const previewHeightPercent = (durationMinutes / 60) * 100;
+                    this.style.setProperty('--preview-height', `${previewHeightPercent}%`);
+
+                    // Determine drop position (top or bottom half of hour)
+                    const rect = this.getBoundingClientRect();
+                    const relativeY = e.clientY - rect.top;
+                    const isTopHalf = relativeY < rect.height / 2;
+                    this.classList.toggle('drag-top', isTopHalf);
+                    this.classList.toggle('drag-bottom', !isTopHalf);
+
+                    // Check for overlap and show blocked indicator
+                    const hour = parseInt(this.dataset.hour);
+                    const clampedMinute = isTopHalf ? 0 : 30;
+                    const now = new Date();
+                    const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
                     const endLocal = new Date(startLocal.getTime() + durationMs);
 
                     const isBlocked = taskId && hasOverlappingItem(startLocal, endLocal, taskId);
@@ -6027,12 +6037,14 @@
                 hourContent.addEventListener('dragleave', function(e) {
                     if (!this.contains(e.relatedTarget)) {
                         this.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
+                        this.style.removeProperty('--preview-height');
                     }
                 });
 
                 hourContent.addEventListener('drop', async function(e) {
                     e.preventDefault();
                     this.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
+                    this.style.removeProperty('--preview-height');
 
                     const taskId = e.dataTransfer.getData('text/plain');
                     if (!taskId) return;
@@ -6254,6 +6266,7 @@
 
         let draggedTaskCard = null;
         let taskDropIndicator = null;
+        let currentDragTaskId = null; // Track dragged task ID for both task cards and calendar items
 
         // Create drop indicator element for task cards
         function createTaskDropIndicator() {
@@ -6281,6 +6294,7 @@
         function setupTaskCardDragEvents(card) {
             card.addEventListener('dragstart', function(e) {
                 draggedTaskCard = this;
+                currentDragTaskId = this.dataset.taskId;
                 this.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', this.dataset.taskId);
@@ -6293,6 +6307,7 @@
                 this.classList.remove('dragging');
                 this.style.opacity = '1';
                 draggedTaskCard = null;
+                currentDragTaskId = null;
                 // Remove all drag-over classes and drop indicator
                 document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
                 if (taskDropIndicator && taskDropIndicator.parentElement) {
