@@ -943,8 +943,7 @@
             color: #999;
             cursor: pointer;
             text-align: right;
-            padding: 0.25rem 0.5rem;
-            margin-bottom: 0.25rem;
+            padding: 0 0.5rem 0.25rem 0;
         }
 
         .delete-completed-link:hover {
@@ -1902,7 +1901,7 @@
     <!-- Sidebar icons -->
     <div class="sidebar-icons">
         <div style="position: relative;">
-            <i class="bi bi-funnel sidebar-icon" id="filter-icon" title="Filter"></i>
+            <i class="bi bi-binoculars-fill sidebar-icon" id="filter-icon" title="Filter"></i>
             <span class="filter-badge" id="filter-badge" style="display: none;">0</span>
         </div>
         <i class="bi bi-gear sidebar-icon" id="settings-gear" title="Settings"></i>
@@ -3553,6 +3552,31 @@
                 }
             }
             updateKanbanCounts();
+
+            // Update task cards in states view
+            const statesTaskCard = document.querySelector(`#states-content .task-card[data-task-id="${task.id}"]`);
+            if (statesTaskCard) {
+                // Update title
+                const titleEl = statesTaskCard.querySelector('.task-card-title');
+                if (titleEl) titleEl.textContent = task.title;
+                // Update critical class
+                statesTaskCard.classList.toggle('critical', task.critical);
+                // Move to correct state group if state changed
+                if (task.state_id) {
+                    const targetBody = document.querySelector(`#states-content .state-group-body[data-state-id="${task.state_id}"]`);
+                    if (targetBody && statesTaskCard.parentElement !== targetBody) {
+                        targetBody.appendChild(statesTaskCard);
+                        updatePanelCounts();
+                    }
+                }
+            }
+
+            // Update task cards in tags view
+            document.querySelectorAll(`#tags-content .task-card[data-task-id="${task.id}"]`).forEach(card => {
+                const titleEl = card.querySelector('.task-card-title');
+                if (titleEl) titleEl.textContent = task.title;
+                card.classList.toggle('critical', task.critical);
+            });
         }
 
         function createKanbanCard(task) {
@@ -4010,13 +4034,8 @@
                 card.dataset.taskId = task.id;
                 card.draggable = true;
 
-                const tagsHtml = task.tags.length > 0
-                    ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
-                    : '';
-
                 card.innerHTML = `
                     <div class="task-card-title">${escapeHtml(task.title)}</div>
-                    ${tagsHtml}
                 `;
 
                 // Setup event handlers
