@@ -48,6 +48,7 @@ class Task(models.Model):
         related_name='tasks'
     )
     order = models.IntegerField(default=0)
+    calendar_time = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

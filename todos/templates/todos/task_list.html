@@ -1960,6 +1960,67 @@
             white-space: nowrap;
         }
 
+        /* Scheduled task indicator (task has calendar_time set) */
+        .task-card.scheduled {
+            background: #f0f9f4;
+            border-color: #c3e6cb;
+        }
+
+        .task-card.scheduled:hover {
+            background: #e8f5ec;
+            border-color: #b1dfbb;
+        }
+
+        .task-card.scheduled.critical {
+            background: linear-gradient(135deg, #f0f9f4 50%, #fff5f5 50%);
+            border-color: #c3e6cb;
+        }
+
+        .task-card.scheduled.critical:hover {
+            background: linear-gradient(135deg, #e8f5ec 50%, #ffecec 50%);
+        }
+
+        /* Scheduled task on calendar */
+        .calendar-scheduled-task {
+            background: #d4edda;
+            color: #155724;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+            cursor: grab;
+            border: 1px solid #c3e6cb;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .calendar-scheduled-task:hover {
+            background: #c3e6cb;
+        }
+
+        .calendar-scheduled-task.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .calendar-scheduled-task.critical {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        .calendar-scheduled-task.critical:hover {
+            background: #f5c6cb;
+        }
+
+        /* Drop indicator for calendar */
+        .hour-content.drag-over {
+            background: #e8f5ec !important;
+            outline: 2px dashed #6B9080;
+            outline-offset: -2px;
+        }
+
         .state-group-empty {
             color: #adb5bd;
             font-size: 0.8rem;
@@ -2244,7 +2305,7 @@
                             <div class="state-group-body" data-state-id="{{ state.id }}">
                                 {% for task in tasks %}
                                 {% if task.state == state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                     <div class="task-card-title">{{ task.title }}</div>
                                     {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                                 </div>
@@ -2268,7 +2329,7 @@
                             <div class="state-group-body" data-state-id="none">
                                 {% for task in tasks %}
                                 {% if not task.state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                                     <div class="task-card-title">{{ task.title }}</div>
                                     {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                                 </div>
@@ -2477,6 +2538,12 @@
         taskTagsMap[{{ task.id }}] = [{% for tag in task.tags.all %}{ id: {{ tag.id }}, name: "{{ tag.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
         {% endfor %}
 
+        // Store task calendar_time for quick lookup (task_id -> ISO string or null)
+        let taskCalendarTimeMap = {};
+        {% for task in tasks %}
+        taskCalendarTimeMap[{{ task.id }}] = {% if task.calendar_time %}"{{ task.calendar_time.isoformat }}"{% else %}null{% endif %};
+        {% endfor %}
+
         // ========== Custom Modal Functions ==========
 
         // Confirm modal - returns a Promise that resolves to true/false
@@ -2661,6 +2728,9 @@
                     document.querySelectorAll(`.kanban-card[data-task-id="${taskId}"], .task-card[data-task-id="${taskId}"]`).forEach(card => card.remove());
                     // Remove from tags map
                     delete taskTagsMap[taskId];
+                    // Remove from calendar time map and re-render calendar
+                    delete taskCalendarTimeMap[taskId];
+                    renderScheduledTasks();
                 } catch (error) {
                     console.error('Error deleting task:', error);
                 }
@@ -2699,11 +2769,14 @@
         function addTaskToKanban(task) {
             // Initialize tags map for the new task
             taskTagsMap[task.id] = task.tags || [];
+            // Initialize calendar time for the new task
+            taskCalendarTimeMap[task.id] = task.calendar_time || null;
 
             // Helper to create a task card
             function createTaskCard(withHighlight) {
                 const card = document.createElement('div');
-                card.className = 'task-card' + (task.critical ? ' critical' : '') + (withHighlight ? ' highlight-new' : '');
+                const isScheduled = !!taskCalendarTimeMap[task.id];
+                card.className = 'task-card' + (task.critical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (withHighlight ? ' highlight-new' : '');
                 card.dataset.taskId = task.id;
                 card.draggable = true;
                 card.innerHTML = `
@@ -2960,6 +3033,9 @@
 
                     // Remove from tags map
                     delete taskTagsMap[taskId];
+                    // Remove from calendar time map and re-render calendar
+                    delete taskCalendarTimeMap[taskId];
+                    renderScheduledTasks();
                 }
             } catch (error) {
                 console.error('Error deleting task:', error);
@@ -4000,6 +4076,7 @@
                 card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
             }
             const isCritical = card ? card.classList.contains('critical') : false;
+            const isScheduled = !!taskCalendarTimeMap[taskId];
             const taskTags = taskTagsMap[taskId] || [];
 
             // Build menu HTML
@@ -4013,6 +4090,12 @@
                     <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
                 </div>
+                ${isScheduled ? `
+                <div class="task-context-menu-item" onclick="removeFromCalendar(${taskId})">
+                    <i class="bi bi-calendar-x"></i>
+                    Remove from Calendar
+                </div>
+                ` : ''}
                 <div class="task-context-menu-divider"></div>
                 <div class="task-context-menu-submenu">
                     <div class="task-context-menu-item">
@@ -4688,7 +4771,8 @@
             const body = group.querySelector('.state-group-body');
             tasks.forEach(task => {
                 const card = document.createElement('div');
-                card.className = 'task-card' + (task.isCritical ? ' critical' : '');
+                const isScheduled = !!taskCalendarTimeMap[task.id];
+                card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '');
                 card.dataset.taskId = task.id;
                 card.draggable = true;
 
@@ -5103,6 +5187,230 @@
                 eventEl.title = `${event.subject}${event.location ? '\n' + event.location : ''}`;
 
                 hourContent.appendChild(eventEl);
+            });
+        }
+
+        // ========== Scheduled Tasks on Calendar ==========
+
+        // Render scheduled tasks on the calendar
+        function renderScheduledTasks() {
+            // Remove existing scheduled task elements
+            document.querySelectorAll('.calendar-scheduled-task').forEach(el => el.remove());
+
+            // Get today's date boundaries in local timezone
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            // Iterate through tasks with calendar_time
+            Object.entries(taskCalendarTimeMap).forEach(([taskId, calendarTime]) => {
+                if (!calendarTime) return;
+
+                const scheduledDate = new Date(calendarTime);
+
+                // Skip tasks not scheduled for today
+                if (scheduledDate < todayStart || scheduledDate >= todayEnd) return;
+
+                const hour = scheduledDate.getHours();
+                const minute = scheduledDate.getMinutes();
+
+                // Skip if outside visible range (7am-6pm)
+                if (hour < 7 || hour > 18) return;
+
+                const hourContent = document.querySelector(`.hour-content[data-hour="${hour}"]`);
+                if (!hourContent) return;
+
+                // Get task info from the task card
+                const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+                if (!taskCard) return;
+
+                const titleEl = taskCard.querySelector('.task-card-title');
+                const title = titleEl ? titleEl.textContent : 'Task';
+                const isCritical = taskCard.classList.contains('critical');
+
+                // Create scheduled task element
+                const taskEl = document.createElement('div');
+                taskEl.className = 'calendar-scheduled-task' + (isCritical ? ' critical' : '');
+                taskEl.dataset.taskId = taskId;
+                taskEl.draggable = true;
+                taskEl.textContent = title;
+                taskEl.title = title;
+
+                // Position based on minute (if needed for multiple tasks)
+                const topPercent = (minute / 60) * 100;
+                taskEl.style.marginTop = minute > 0 ? `${Math.min(topPercent, 50)}%` : '0';
+
+                // Setup drag events for scheduled task
+                setupScheduledTaskDragEvents(taskEl);
+
+                // Click to open task panel
+                taskEl.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openTaskPanel(parseInt(this.dataset.taskId));
+                });
+
+                hourContent.appendChild(taskEl);
+            });
+        }
+
+        // Setup drag events for scheduled tasks on the calendar
+        function setupScheduledTaskDragEvents(taskEl) {
+            taskEl.addEventListener('dragstart', function(e) {
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', this.dataset.taskId);
+                e.dataTransfer.setData('application/x-scheduled-task', 'true');
+            });
+
+            taskEl.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                document.querySelectorAll('.hour-content.drag-over').forEach(el => el.classList.remove('drag-over'));
+            });
+        }
+
+        // Convert local datetime to UTC ISO string
+        function localToUTC(localDate) {
+            return localDate.toISOString();
+        }
+
+        // Update a task's calendar_time on the server
+        async function updateTaskCalendarTime(taskId, calendarTimeUTC) {
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ calendar_time: calendarTimeUTC })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local map
+                    taskCalendarTimeMap[taskId] = calendarTimeUTC;
+
+                    // Update task card scheduled class
+                    updateTaskScheduledClass(taskId);
+
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error updating calendar time:', error);
+            }
+            return false;
+        }
+
+        // Update the scheduled class on a task card
+        function updateTaskScheduledClass(taskId) {
+            const cards = document.querySelectorAll(`.task-card[data-task-id="${taskId}"]`);
+            const isScheduled = !!taskCalendarTimeMap[taskId];
+
+            cards.forEach(card => {
+                card.classList.toggle('scheduled', isScheduled);
+            });
+        }
+
+        // Remove a task from the calendar (via context menu)
+        async function removeFromCalendar(taskId) {
+            closeContextMenu();
+
+            const success = await updateTaskCalendarTime(taskId, null);
+
+            if (success) {
+                renderScheduledTasks();
+            }
+        }
+
+        // Setup drop zones on calendar hour rows
+        function setupCalendarDropZones() {
+            document.querySelectorAll('.hour-content').forEach(hourContent => {
+                hourContent.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    this.classList.add('drag-over');
+                });
+
+                hourContent.addEventListener('dragleave', function(e) {
+                    if (!this.contains(e.relatedTarget)) {
+                        this.classList.remove('drag-over');
+                    }
+                });
+
+                hourContent.addEventListener('drop', async function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    if (!taskId) return;
+
+                    const hour = parseInt(this.dataset.hour);
+
+                    // Calculate minute based on drop position within the hour
+                    const rect = this.getBoundingClientRect();
+                    const relativeY = e.clientY - rect.top;
+                    const percentY = relativeY / rect.height;
+                    // Round to nearest 15 minutes
+                    const minute = Math.round(percentY * 60 / 15) * 15;
+                    const clampedMinute = Math.max(0, Math.min(45, minute));
+
+                    // Create the scheduled time in local timezone, then convert to UTC
+                    const now = new Date();
+                    const scheduledLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
+                    const scheduledUTC = localToUTC(scheduledLocal);
+
+                    // Update on server
+                    const success = await updateTaskCalendarTime(taskId, scheduledUTC);
+
+                    if (success) {
+                        // Re-render scheduled tasks on calendar
+                        renderScheduledTasks();
+                    }
+                });
+            });
+        }
+
+        // Setup task cards to be draggable to calendar and tasks panel as drop target for removing from calendar
+        function setupTaskToCalendarDrag() {
+            // Task cards can already be dragged (setupTaskCardDragEvents handles this)
+            // We just need to make sure the calendar drop zones accept them
+
+            // Also set up the tasks panel as a drop target for removing calendar_time
+            const tasksPanel = document.getElementById('tasks-panel');
+            if (tasksPanel) {
+                tasksPanel.addEventListener('dragover', function(e) {
+                    // Only show drop indicator if dragging a scheduled task from calendar
+                    if (e.dataTransfer.types.includes('application/x-scheduled-task')) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                    }
+                });
+
+                tasksPanel.addEventListener('drop', async function(e) {
+                    // Only handle if dragging a scheduled task from calendar
+                    if (!e.dataTransfer.types.includes('application/x-scheduled-task')) return;
+
+                    e.preventDefault();
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    if (!taskId) return;
+
+                    // Remove calendar_time
+                    const success = await updateTaskCalendarTime(taskId, null);
+
+                    if (success) {
+                        // Re-render scheduled tasks (will remove the element)
+                        renderScheduledTasks();
+                    }
+                });
+            }
+        }
+
+        // Initialize scheduled task indicators on existing cards
+        function initScheduledTaskIndicators() {
+            Object.entries(taskCalendarTimeMap).forEach(([taskId, calendarTime]) => {
+                if (calendarTime) {
+                    updateTaskScheduledClass(taskId);
+                }
             });
         }
 
@@ -5752,6 +6060,10 @@
         generateHourlyCalendar();
         setCalendarDate();
         renderCalendarEvents();
+        setupCalendarDropZones();
+        renderScheduledTasks();
+        initScheduledTaskIndicators();
+        setupTaskToCalendarDrag();
         updatePanelCounts();
         updateCalendarMetrics();
         updateStateTypeLabels();
