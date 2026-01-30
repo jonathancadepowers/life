@@ -1060,14 +1060,25 @@
         }
 
         #completed-toggle-container {
-            position: absolute;
-            bottom: 0.75rem;
-            right: 0.75rem;
+            display: none;
+            justify-content: flex-end;
+            padding: 0.5rem 0.25rem 0;
         }
 
-        .panel.collapsed #completed-toggle-container,
-        .panel.minimized #completed-toggle-container {
-            display: none !important;
+        /* Show toggle only when in tags view AND tasks panel is vertically expanded */
+        .tasks-panel-wrapper.show-completed-toggle #completed-toggle-container {
+            display: flex;
+        }
+
+        .tasks-panel-wrapper.show-completed-toggle.panel-collapsed #completed-toggle-container {
+            display: none;
+        }
+
+        .tasks-panel-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 300px;
         }
 
         .completed-toggle {
@@ -2141,18 +2152,18 @@
         }
 
         .task-context-menu-item.save-tags-btn {
-            background: #0d6efd;
-            color: white;
-            justify-content: center;
-            font-weight: 500;
+            color: #6B9080;
+            border-top: 1px solid #e9ecef;
+            margin-top: 0.25rem;
+            padding-top: 0.6rem;
         }
 
         .task-context-menu-item.save-tags-btn:hover {
-            background: #0b5ed7;
+            background: #f0f7f4;
         }
 
         .task-context-menu-item.save-tags-btn i {
-            color: white;
+            color: #6B9080;
         }
 
         .task-context-menu-divider {
@@ -2269,6 +2280,8 @@
     <!-- Two-Panel Layout -->
     <div class="two-panel-container">
         <div class="panels-wrapper">
+            <!-- Tasks Panel Wrapper (for toggle placement) -->
+            <div class="tasks-panel-wrapper" id="tasks-panel-wrapper">
             <!-- Tasks Panel -->
             <div class="panel tasks-panel collapsed" id="tasks-panel">
                 <div class="panel-header" id="tasks-panel-header" style="cursor: pointer;">
@@ -2341,14 +2354,15 @@
                     <!-- Tags grouping (hidden by default) -->
                     <div id="tags-content" style="display: none;"></div>
                 </div>
-                <!-- Toggle for showing/hiding completed tasks in tag view -->
-                <div id="completed-toggle-container" style="display: none;">
-                    <label class="completed-toggle">
-                        <input type="checkbox" id="show-completed-toggle">
-                        <span class="toggle-slider"></span>
-                        <span class="toggle-label" id="completed-toggle-label">Hiding Completed Tasks</span>
-                    </label>
-                </div>
+            </div>
+            <!-- Toggle for showing/hiding completed tasks in tag view (outside panel) -->
+            <div id="completed-toggle-container">
+                <label class="completed-toggle">
+                    <input type="checkbox" id="show-completed-toggle">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label" id="completed-toggle-label">Hide Completed Tasks</span>
+                </label>
+            </div>
             </div>
 
             <!-- Calendar Panel -->
@@ -4587,16 +4601,16 @@
         function switchGroupBy(groupBy) {
             const statesContent = document.getElementById('states-content');
             const tagsContent = document.getElementById('tags-content');
-            const completedToggleContainer = document.getElementById('completed-toggle-container');
+            const tasksPanelWrapper = document.getElementById('tasks-panel-wrapper');
 
             if (groupBy === 'states') {
                 statesContent.style.display = '';
                 tagsContent.style.display = 'none';
-                completedToggleContainer.style.display = 'none';
+                tasksPanelWrapper.classList.remove('show-completed-toggle');
             } else {
                 statesContent.style.display = 'none';
                 tagsContent.style.display = '';
-                completedToggleContainer.style.display = '';
+                tasksPanelWrapper.classList.add('show-completed-toggle');
                 buildTagGroups();
             }
             updatePanelCounts();
@@ -4605,7 +4619,7 @@
         // Toggle for showing/hiding completed tasks in tag view
         document.getElementById('show-completed-toggle').addEventListener('change', function() {
             showCompletedTasks = this.checked;
-            document.getElementById('completed-toggle-label').textContent = this.checked ? 'Showing Completed Tasks' : 'Hiding Completed Tasks';
+            document.getElementById('completed-toggle-label').textContent = this.checked ? 'Show Completed Tasks' : 'Hide Completed Tasks';
             if (currentGroupBy === 'tags') {
                 buildTagGroups();
             }
@@ -4642,7 +4656,7 @@
                     showCompletedTasks = saved.showCompleted;
                     const toggle = document.getElementById('show-completed-toggle');
                     toggle.checked = saved.showCompleted;
-                    document.getElementById('completed-toggle-label').textContent = saved.showCompleted ? 'Showing Completed Tasks' : 'Hiding Completed Tasks';
+                    document.getElementById('completed-toggle-label').textContent = saved.showCompleted ? 'Show Completed Tasks' : 'Hide Completed Tasks';
                 }
 
                 // Switch to tags view if needed (after showCompleted is set)
@@ -4715,11 +4729,26 @@
 
             sortedTagIds.forEach(tagId => {
                 const group = tagGroups[tagId];
+                // If highlighting a task, put it at the top of each group it belongs to
+                if (highlightTaskId) {
+                    group.tasks.sort((a, b) => {
+                        if (a.id === highlightTaskId) return -1;
+                        if (b.id === highlightTaskId) return 1;
+                        return 0;
+                    });
+                }
                 const groupEl = createTagGroup(tagId, group.name, group.tasks);
                 tagsContent.appendChild(groupEl);
             });
 
-            // Create Untagged group at the bottom
+            // Create Untagged group at the bottom (also sort highlighted task to top)
+            if (highlightTaskId) {
+                untaggedTasks.sort((a, b) => {
+                    if (a.id === highlightTaskId) return -1;
+                    if (b.id === highlightTaskId) return 1;
+                    return 0;
+                });
+            }
             const untaggedGroup = createTagGroup('untagged', 'Untagged', untaggedTasks);
             tagsContent.appendChild(untaggedGroup);
 
@@ -5011,12 +5040,22 @@
         const calendarPanel = document.getElementById('calendar-panel');
         const tasksPanelHeader = document.getElementById('tasks-panel-header');
         const calendarPanelHeader = document.getElementById('calendar-panel-header');
+        const tasksPanelWrapper = document.getElementById('tasks-panel-wrapper');
+
+        // Sync wrapper class with tasks panel collapsed state
+        function updateTasksPanelWrapperState() {
+            if (tasksPanelWrapper) {
+                const isCollapsed = tasksPanel.classList.contains('collapsed');
+                tasksPanelWrapper.classList.toggle('panel-collapsed', isCollapsed);
+            }
+        }
 
         if (tasksPanelHeader) {
             tasksPanelHeader.addEventListener('click', function(e) {
                 // Don't toggle collapsed if clicking expand button
                 if (e.target.closest('.panel-expand-btn')) return;
                 tasksPanel.classList.toggle('collapsed');
+                updateTasksPanelWrapperState();
             });
         }
 
@@ -5053,6 +5092,7 @@
             tasksExpandBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 togglePanelExpand(tasksPanel, calendarPanel);
+                updateTasksPanelWrapperState();
             });
         }
 
@@ -5060,8 +5100,12 @@
             calendarExpandBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 togglePanelExpand(calendarPanel, tasksPanel);
+                updateTasksPanelWrapperState();
             });
         }
+
+        // Initialize wrapper state on page load
+        updateTasksPanelWrapperState();
 
         // State group collapse/expand
         function toggleStateGroup(header) {
