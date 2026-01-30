@@ -1297,22 +1297,15 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: max-height 0.3s ease;
+            transition: height 0.3s ease;
             position: relative;
             flex: 1;
             min-width: 300px;
-        }
-
-        .panel.tasks-panel {
-            max-height: 500px;
-        }
-
-        .panel.calendar-panel {
-            max-height: 870px;
+            height: 870px;
         }
 
         .panel.collapsed {
-            max-height: 48px;
+            height: 48px;
         }
 
         .panel.collapsed .panel-content {
