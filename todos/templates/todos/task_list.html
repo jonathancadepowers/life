@@ -962,14 +962,14 @@
                 </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
-                    <li class="state-item{% if state.is_terminal %} terminal-state{% endif %}{% if state.name == 'Inbox' %} inbox-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" draggable="{% if state.is_terminal or state.name == 'Inbox' %}false{% else %}true{% endif %}">
+                    {% if not state.is_terminal %}
+                    <li class="state-item{% if state.name == 'Inbox' %} inbox-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="false" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" draggable="{% if state.name == 'Inbox' %}false{% else %}true{% endif %}">
                         <div class="state-item-left">
                             <i class="bi bi-grip-vertical state-drag-handle"{% if state.name == 'Inbox' %} style="visibility: hidden;"{% endif %}></i>
                             {% if state.name != 'Inbox' %}
                             <div class="state-terminal-checkbox-wrapper">
                                 <input type="checkbox"
                                        class="state-terminal-checkbox"
-                                       {% if state.is_terminal %}checked{% endif %}
                                        onchange="toggleTerminal({{ state.id }}, this)">
                             </div>
                             {% endif %}
@@ -984,10 +984,30 @@
                         </button>
                         {% endif %}
                     </li>
+                    {% endif %}
                     {% empty %}
                     <li class="state-item" id="no-states" style="color: #6c757d; justify-content: center;">
                         No states yet
                     </li>
+                    {% endfor %}
+                    {% for state in states %}
+                    {% if state.is_terminal %}
+                    <li class="state-item terminal-state" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="true" data-order="9999" data-icon="" draggable="false">
+                        <div class="state-item-left">
+                            <i class="bi bi-grip-vertical state-drag-handle" style="visibility: hidden;"></i>
+                            <div class="state-terminal-checkbox-wrapper">
+                                <input type="checkbox"
+                                       class="state-terminal-checkbox"
+                                       checked
+                                       onchange="toggleTerminal({{ state.id }}, this)">
+                            </div>
+                            <span class="state-name">{{ state.name }}</span>
+                        </div>
+                        <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </li>
+                    {% endif %}
                     {% endfor %}
                 </ul>
             </div>
