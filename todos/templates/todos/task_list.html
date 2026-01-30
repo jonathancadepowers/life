@@ -3277,15 +3277,27 @@
                 const timePeriod = calendarBox.dataset.timePeriod;
                 const sectionNumber = parseInt(this.dataset.section);
 
-                // Add card to calendar section
-                const cardClone = draggedKanbanCard.cloneNode(true);
-                cardClone.draggable = true;
-                cardClone.classList.remove('dragging');
-                cardClone.style.opacity = '1';
-                this.appendChild(cardClone);
+                // Check if card is already in a calendar section
+                const wasInCalendar = draggedKanbanCard.closest('.calendar-section');
 
-                // Setup drag for cloned card
-                setupCalendarCardDrag(cardClone);
+                let cardToAdd;
+                if (wasInCalendar) {
+                    // Move the card from one calendar section to another
+                    cardToAdd = draggedKanbanCard;
+                    cardToAdd.classList.remove('dragging');
+                    cardToAdd.style.opacity = '1';
+                    this.appendChild(cardToAdd);
+                } else {
+                    // Clone the card from kanban board
+                    cardToAdd = draggedKanbanCard.cloneNode(true);
+                    cardToAdd.draggable = true;
+                    cardToAdd.classList.remove('dragging');
+                    cardToAdd.style.opacity = '1';
+                    this.appendChild(cardToAdd);
+
+                    // Setup drag for cloned card
+                    setupCalendarCardDrag(cardToAdd);
+                }
 
                 // Update today field to true with time_period and section_number
                 try {
