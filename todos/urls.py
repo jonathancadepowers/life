@@ -6,6 +6,7 @@ app_name = 'todos'
 urlpatterns = [
     path('', views.task_list, name='task_list'),
     path('api/create/', views.create_task, name='create_task'),
+    path('api/<int:task_id>/', views.get_task, name='get_task'),
     path('api/<int:task_id>/update/', views.update_task, name='update_task'),
     path('api/<int:task_id>/delete/', views.delete_task, name='delete_task'),
     path('api/states/', views.list_states, name='list_states'),

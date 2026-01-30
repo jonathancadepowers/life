@@ -137,6 +137,26 @@ def delete_task(request, task_id):
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
 
 
+def get_task(request, task_id):
+    """Get a task's details via AJAX."""
+    try:
+        task = Task.objects.get(id=task_id)
+        return JsonResponse({
+            'success': True,
+            'task': {
+                'id': task.id,
+                'title': task.title,
+                'details': task.details,
+                'critical': task.critical,
+                'state_id': task.state_id,
+                'state_name': task.state.name if task.state else None,
+                'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
+            }
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+
+
 def list_states(request):
     """List all task states."""
     states = TaskState.objects.all()

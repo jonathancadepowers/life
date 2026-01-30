@@ -7,6 +7,7 @@
     <title>Tasks</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -338,21 +339,103 @@
             font-size: 0.875rem;
             color: #6c757d;
             margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .markdown-hint {
+            font-size: 0.7rem;
+            color: #adb5bd;
+            font-style: italic;
+        }
+
+        .panel-details-container {
+            position: relative;
         }
 
         .panel-details-input {
             width: 100%;
-            min-height: 150px;
+            min-height: 450px;
             border: 1px solid #dee2e6;
             border-radius: 8px;
             padding: 0.75rem;
             font-size: 1rem;
             resize: vertical;
             outline: none;
+            font-family: inherit;
         }
 
         .panel-details-input:focus {
             border-color: #0d6efd;
+        }
+
+        .panel-details-preview {
+            width: 100%;
+            min-height: 450px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 1rem;
+            background: #fafbfc;
+            cursor: text;
+            overflow-y: auto;
+        }
+
+        .panel-details-preview:empty::before {
+            content: 'Add details...';
+            color: #6c757d;
+        }
+
+        .panel-details-preview h1,
+        .panel-details-preview h2,
+        .panel-details-preview h3 {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .panel-details-preview h1 { font-size: 1.5rem; }
+        .panel-details-preview h2 { font-size: 1.25rem; }
+        .panel-details-preview h3 { font-size: 1.1rem; }
+
+        .panel-details-preview p {
+            margin-bottom: 0.5rem;
+        }
+
+        .panel-details-preview ul,
+        .panel-details-preview ol {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+        }
+
+        .panel-details-preview code {
+            background: #e9ecef;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .panel-details-preview pre {
+            background: #e9ecef;
+            padding: 0.75rem;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+
+        .panel-details-preview pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .panel-details-preview blockquote {
+            border-left: 3px solid #dee2e6;
+            padding-left: 0.75rem;
+            margin-left: 0;
+            color: #6c757d;
+        }
+
+        .panel-details-preview a {
+            color: #0d6efd;
         }
 
         .panel-footer {
@@ -955,10 +1038,9 @@
         }
 
         #completed-toggle-container {
-            padding: 0.5rem;
-            text-align: right;
-            border-top: 1px solid #e9ecef;
-            margin-top: 0.5rem;
+            position: absolute;
+            bottom: 0.75rem;
+            right: 0.75rem;
         }
 
         .completed-toggle {
@@ -2063,14 +2145,14 @@
                     </div>
                     <!-- Tags grouping (hidden by default) -->
                     <div id="tags-content" style="display: none;"></div>
-                    <!-- Toggle for showing/hiding completed tasks in tag view -->
-                    <div id="completed-toggle-container" style="display: none;">
-                        <label class="completed-toggle">
-                            <input type="checkbox" id="show-completed-toggle">
-                            <span class="toggle-slider"></span>
-                            <span class="toggle-label" id="completed-toggle-label">Show Completed</span>
-                        </label>
-                    </div>
+                </div>
+                <!-- Toggle for showing/hiding completed tasks in tag view -->
+                <div id="completed-toggle-container" style="display: none;">
+                    <label class="completed-toggle">
+                        <input type="checkbox" id="show-completed-toggle">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label" id="completed-toggle-label">Show Completed</span>
+                    </label>
                 </div>
             </div>
 
@@ -2149,8 +2231,14 @@
         </div>
         <div class="panel-body">
             <textarea class="panel-title-input" id="panel-title" placeholder="Task title" rows="1"></textarea>
-            <div class="panel-details-label">Details</div>
-            <textarea class="panel-details-input" id="panel-details" placeholder="Add details..."></textarea>
+            <div class="panel-details-label">
+                Details
+                <span class="markdown-hint">Markdown supported</span>
+            </div>
+            <div class="panel-details-container">
+                <textarea class="panel-details-input" id="panel-details" placeholder="Add details..."></textarea>
+                <div class="panel-details-preview" id="panel-details-preview" style="display: none;"></div>
+            </div>
         </div>
         <div class="panel-footer">
             <div class="critical-toggle">
@@ -2574,6 +2662,37 @@
             titleEl.style.height = 'auto';
             titleEl.style.height = titleEl.scrollHeight + 'px';
         }
+
+        // Markdown preview handling
+        const detailsTextarea = document.getElementById('panel-details');
+        const detailsPreview = document.getElementById('panel-details-preview');
+
+        function showMarkdownPreview() {
+            const text = detailsTextarea.value.trim();
+            if (text) {
+                detailsPreview.innerHTML = marked.parse(text);
+                detailsTextarea.style.display = 'none';
+                detailsPreview.style.display = 'block';
+            } else {
+                // Keep textarea visible if empty
+                detailsPreview.innerHTML = '';
+                detailsPreview.style.display = 'none';
+                detailsTextarea.style.display = 'block';
+            }
+        }
+
+        function showMarkdownEdit() {
+            detailsPreview.style.display = 'none';
+            detailsTextarea.style.display = 'block';
+            detailsTextarea.focus();
+        }
+
+        detailsTextarea.addEventListener('blur', function() {
+            // Small delay to allow clicking elsewhere
+            setTimeout(showMarkdownPreview, 150);
+        });
+
+        detailsPreview.addEventListener('click', showMarkdownEdit);
 
         // Auto-save on changes
         ['panel-title', 'panel-details', 'panel-critical'].forEach(id => {
@@ -3402,31 +3521,46 @@
             });
         });
 
-        async function openKanbanPanel(taskId) {
+        async function fetchAndOpenPanel(taskId) {
             currentTaskId = taskId;
-            const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
-            const title = card.querySelector('.kanban-card-title').textContent.trim();
 
-            document.getElementById('panel-title').value = title;
-            document.getElementById('panel-details').value = '';
-            document.getElementById('panel-critical').checked = card.classList.contains('critical');
+            // Fetch task details from server
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('panel-title').value = data.task.title;
+                    document.getElementById('panel-details').value = data.task.details || '';
+                    document.getElementById('panel-critical').checked = data.task.critical;
+
+                    // Show markdown preview if there's content
+                    if (data.task.details && data.task.details.trim()) {
+                        detailsPreview.innerHTML = marked.parse(data.task.details);
+                        detailsTextarea.style.display = 'none';
+                        detailsPreview.style.display = 'block';
+                    } else {
+                        detailsPreview.style.display = 'none';
+                        detailsTextarea.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching task:', error);
+            }
 
             document.getElementById('panel-overlay').classList.add('active');
             document.getElementById('slide-panel').classList.add('active');
             setTimeout(autoResizeTitle, 10);
         }
 
+        async function openKanbanPanel(taskId) {
+            await fetchAndOpenPanel(taskId);
+        }
+
         async function openTaskPanel(taskId) {
-            currentTaskId = taskId;
             const card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
             if (!card) return;
-
-            const titleEl = card.querySelector('.task-card-title');
-            const title = titleEl ? titleEl.textContent.trim() : '';
-
-            document.getElementById('panel-title').value = title;
-            document.getElementById('panel-details').value = '';
-            document.getElementById('panel-critical').checked = card.classList.contains('critical');
+            await fetchAndOpenPanel(taskId);
 
             document.getElementById('panel-overlay').classList.add('active');
             document.getElementById('slide-panel').classList.add('active');
