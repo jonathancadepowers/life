@@ -1061,17 +1061,19 @@
 
         #completed-toggle-container {
             display: none;
-            justify-content: flex-end;
-            padding: 0.5rem 0.25rem 0;
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 100;
+            background: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         /* Show toggle only when in tags view AND tasks panel is vertically expanded */
-        .tasks-panel-wrapper.show-completed-toggle #completed-toggle-container {
-            display: flex;
-        }
-
-        .tasks-panel-wrapper.show-completed-toggle.panel-collapsed #completed-toggle-container {
-            display: none;
+        #completed-toggle-container.visible {
+            display: block;
         }
 
         .tasks-panel-wrapper {
@@ -1647,12 +1649,17 @@
             flex-wrap: wrap;
             gap: 0.5rem;
             margin-left: auto;
-            margin-right: 1rem;
+            margin-right: 0.5rem;
             justify-content: flex-end;
         }
 
         .panel.collapsed .panel-collapsed-metrics {
             display: flex;
+        }
+
+        /* Hide expand button when panel is vertically collapsed */
+        .panel.collapsed .panel-expand-btn {
+            display: none;
         }
 
         .metric-pill {
@@ -2384,14 +2391,6 @@
                     <div id="tags-content" style="display: none;"></div>
                 </div>
             </div>
-            <!-- Toggle for showing/hiding completed tasks in tag view (outside panel) -->
-            <div id="completed-toggle-container">
-                <label class="completed-toggle">
-                    <input type="checkbox" id="show-completed-toggle">
-                    <span class="toggle-slider"></span>
-                    <span class="toggle-label" id="completed-toggle-label">Hide Completed Tasks</span>
-                </label>
-            </div>
             </div>
 
             <!-- Calendar Panel -->
@@ -2421,6 +2420,15 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Toggle for showing/hiding completed tasks in tag view (fixed bottom right) -->
+    <div id="completed-toggle-container">
+        <label class="completed-toggle">
+            <input type="checkbox" id="show-completed-toggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label" id="completed-toggle-label">Hide Completed Tasks</span>
+        </label>
     </div>
 
     <!-- Left slide-out Panel for Settings -->
@@ -4630,19 +4638,74 @@
         function switchGroupBy(groupBy) {
             const statesContent = document.getElementById('states-content');
             const tagsContent = document.getElementById('tags-content');
-            const tasksPanelWrapper = document.getElementById('tasks-panel-wrapper');
+            const tasksCollapsedMetrics = document.getElementById('tasks-collapsed-metrics');
 
             if (groupBy === 'states') {
                 statesContent.style.display = '';
                 tagsContent.style.display = 'none';
-                tasksPanelWrapper.classList.remove('show-completed-toggle');
+                // Show state-based metrics in collapsed view
+                updateCollapsedMetricsForStates();
             } else {
                 statesContent.style.display = 'none';
                 tagsContent.style.display = '';
-                tasksPanelWrapper.classList.add('show-completed-toggle');
                 buildTagGroups();
+                // Show tag-based metrics in collapsed view
+                updateCollapsedMetricsForTags();
             }
             updatePanelCounts();
+            updateCompletedToggleVisibility();
+        }
+
+        // Update collapsed metrics to show states
+        function updateCollapsedMetricsForStates() {
+            const tasksCollapsedMetrics = document.getElementById('tasks-collapsed-metrics');
+            // Rebuild with state metrics
+            let html = '';
+            {% for state in states %}
+            html += '<span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>';
+            {% endfor %}
+            tasksCollapsedMetrics.innerHTML = html;
+            updatePanelCounts();
+        }
+
+        // Update collapsed metrics to show top 3 tags
+        function updateCollapsedMetricsForTags() {
+            const tasksCollapsedMetrics = document.getElementById('tasks-collapsed-metrics');
+
+            // Count tasks per tag
+            const tagCounts = {};
+            Object.entries(taskTagsMap).forEach(([taskId, tags]) => {
+                tags.forEach(tag => {
+                    tagCounts[tag.id] = tagCounts[tag.id] || { name: tag.name, count: 0 };
+                    tagCounts[tag.id].count++;
+                });
+            });
+
+            // Sort by count and take top 3
+            const topTags = Object.entries(tagCounts)
+                .sort((a, b) => b[1].count - a[1].count)
+                .slice(0, 3);
+
+            let html = '';
+            topTags.forEach(([tagId, tag]) => {
+                html += `<span class="metric-pill" data-tag-id="${tagId}">${escapeHtml(tag.name)}: <span class="metric-count">${tag.count}</span></span>`;
+            });
+
+            tasksCollapsedMetrics.innerHTML = html || '<span class="metric-pill">No tags</span>';
+        }
+
+        // Update completed toggle visibility based on group-by mode and panel state
+        function updateCompletedToggleVisibility() {
+            const toggle = document.getElementById('completed-toggle-container');
+            const tasksPanel = document.getElementById('tasks-panel');
+            const isTagsView = currentGroupBy === 'tags';
+            const isExpanded = !tasksPanel.classList.contains('collapsed');
+
+            if (isTagsView && isExpanded) {
+                toggle.classList.add('visible');
+            } else {
+                toggle.classList.remove('visible');
+            }
         }
 
         // Toggle for showing/hiding completed tasks in tag view
@@ -5077,6 +5140,7 @@
                 const isCollapsed = tasksPanel.classList.contains('collapsed');
                 tasksPanelWrapper.classList.toggle('panel-collapsed', isCollapsed);
             }
+            updateCompletedToggleVisibility();
         }
 
         if (tasksPanelHeader) {
