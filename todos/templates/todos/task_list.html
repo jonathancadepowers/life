@@ -790,6 +790,12 @@
             gap: 0.5rem;
         }
 
+        .state-item-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .state-drag-handle {
             cursor: grab;
             color: #adb5bd;
@@ -1249,9 +1255,6 @@
                 <div class="state-input-container">
                     <input type="text" id="new-state-input" placeholder="Add new state..." autocomplete="off">
                 </div>
-                <div style="padding: 0.5rem 1.25rem; font-size: 0.75rem; color: #6c757d; line-height: 1.4;">
-                    Drag to reorder. Check to mark as terminal state (always last).
-                </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
                     {% if not state.is_terminal %}
@@ -1265,15 +1268,17 @@
                                        onchange="toggleTerminal({{ state.id }}, this)">
                             </div>
                             <span class="state-name{% if state.name == 'Inbox' %} no-edit{% endif %}" {% if state.name != 'Inbox' %}onclick="editStateName({{ state.id }}, this)"{% endif %}>{{ state.name }}</span>
+                        </div>
+                        <div class="state-item-right">
                             <button class="state-icon-btn" onclick="openIconPicker({{ state.id }}, this)" title="Choose icon">
                                 <i class="bi {% if state.bootstrap_icon %}{{ state.bootstrap_icon }}{% else %}bi-plus-circle-dotted{% endif %}"></i>
                             </button>
+                            {% if state.name != 'Inbox' %}
+                            <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                            {% endif %}
                         </div>
-                        {% if state.name != 'Inbox' %}
-                        <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                        {% endif %}
                     </li>
                     {% endif %}
                     {% empty %}
@@ -1283,7 +1288,7 @@
                     {% endfor %}
                     {% for state in states %}
                     {% if state.is_terminal %}
-                    <li class="state-item terminal-state" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="true" data-order="9999" data-icon="" draggable="false">
+                    <li class="state-item terminal-state" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="true" data-order="9999" data-icon="{{ state.bootstrap_icon }}" draggable="false">
                         <div class="state-item-left">
                             <i class="bi bi-grip-vertical state-drag-handle"></i>
                             <div class="state-terminal-checkbox-wrapper">
@@ -1294,9 +1299,14 @@
                             </div>
                             <span class="state-name" onclick="editStateName({{ state.id }}, this)">{{ state.name }}</span>
                         </div>
-                        <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
+                        <div class="state-item-right">
+                            <button class="state-icon-btn" onclick="openIconPicker({{ state.id }}, this)" title="Choose icon">
+                                <i class="bi {% if state.bootstrap_icon %}{{ state.bootstrap_icon }}{% else %}bi-plus-circle-dotted{% endif %}"></i>
+                            </button>
+                            <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
                     </li>
                     {% endif %}
                     {% endfor %}
@@ -2222,13 +2232,15 @@
                                onchange="toggleTerminal(${state.id}, this)">
                     </div>
                     <span class="state-name" onclick="editStateName(${state.id}, this)">${escapeHtml(state.name)}</span>
+                </div>
+                <div class="state-item-right">
                     <button class="state-icon-btn" onclick="openIconPicker(${state.id}, this)" title="Choose icon">
                         <i class="bi bi-plus-circle-dotted"></i>
                     </button>
+                    <button class="state-delete" onclick="deleteState(${state.id}, this)" title="Delete state">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
                 </div>
-                <button class="state-delete" onclick="deleteState(${state.id}, this)" title="Delete state">
-                    <i class="bi bi-x-lg"></i>
-                </button>
             `;
 
             // Insert before terminal state if exists, otherwise append
