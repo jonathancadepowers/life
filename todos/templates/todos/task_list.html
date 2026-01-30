@@ -3883,6 +3883,32 @@
 
         // ========== Filter Functionality ==========
 
+        // ========== Cookie Helpers ==========
+        function setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(JSON.stringify(value)) + '; expires=' + expires + '; path=/';
+        }
+
+        function getCookie(name) {
+            const value = document.cookie.split('; ').find(row => row.startsWith(name + '='));
+            if (value) {
+                try {
+                    return JSON.parse(decodeURIComponent(value.split('=')[1]));
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        function saveFilterSettings() {
+            setCookie('taskFilters', {
+                critical: activeFilters.critical,
+                tags: activeFilters.tags,
+                groupBy: currentGroupBy
+            });
+        }
+
         const filterIcon = document.getElementById('filter-icon');
         const filterDropdown = document.getElementById('filter-dropdown');
         const filterBadge = document.getElementById('filter-badge');
@@ -3914,6 +3940,7 @@
         filterCritical.addEventListener('change', function() {
             activeFilters.critical = this.checked;
             applyFilters();
+            saveFilterSettings();
         });
 
         // Handle tag filter changes
@@ -3928,6 +3955,7 @@
                     activeFilters.tags = activeFilters.tags.filter(id => id !== tagId);
                 }
                 applyFilters();
+                saveFilterSettings();
             });
         });
 
@@ -3938,6 +3966,7 @@
             filterCritical.checked = false;
             filterTagCheckboxes.forEach(cb => cb.checked = false);
             applyFilters();
+            saveFilterSettings();
         });
 
         // ========== Group By Functionality ==========
@@ -3947,6 +3976,7 @@
             radio.addEventListener('change', function() {
                 currentGroupBy = this.value;
                 switchGroupBy(currentGroupBy);
+                saveFilterSettings();
             });
         });
 
@@ -3964,6 +3994,44 @@
             }
             updatePanelCounts();
         }
+
+        // Load saved filter settings from cookies on page load
+        (function loadFilterSettings() {
+            const saved = getCookie('taskFilters');
+            if (saved) {
+                // Restore critical filter
+                if (saved.critical) {
+                    activeFilters.critical = true;
+                    filterCritical.checked = true;
+                }
+
+                // Restore tag filters
+                if (saved.tags && saved.tags.length > 0) {
+                    activeFilters.tags = saved.tags;
+                    filterTagCheckboxes.forEach(cb => {
+                        const tagId = parseInt(cb.dataset.tagId);
+                        if (saved.tags.includes(tagId)) {
+                            cb.checked = true;
+                        }
+                    });
+                }
+
+                // Restore group by
+                if (saved.groupBy) {
+                    currentGroupBy = saved.groupBy;
+                    const radio = document.querySelector(`input[name="group-by"][value="${saved.groupBy}"]`);
+                    if (radio) {
+                        radio.checked = true;
+                    }
+                    if (saved.groupBy === 'tags') {
+                        switchGroupBy('tags');
+                    }
+                }
+
+                // Apply the restored filters
+                applyFilters();
+            }
+        })();
 
         function buildTagGroups() {
             const tagsContent = document.getElementById('tags-content');
