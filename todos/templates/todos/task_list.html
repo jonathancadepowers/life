@@ -807,8 +807,14 @@
             background: #e9ecef;
         }
 
-        .state-item.drag-over {
+        .state-item.drag-over-top {
             border-top: 2px solid #6B9080;
+            margin-top: -1px;
+        }
+
+        .state-item.drag-over-bottom {
+            border-bottom: 2px solid #6B9080;
+            margin-bottom: -1px;
         }
 
         .state-list.drag-over-bottom {
@@ -2460,7 +2466,7 @@
         function handleDragEnd(e) {
             this.classList.remove('dragging');
             document.querySelectorAll('.state-item').forEach(item => {
-                item.classList.remove('drag-over');
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
             });
             document.getElementById('state-list').classList.remove('drag-over-bottom');
             draggedItem = null;
@@ -2468,40 +2474,49 @@
 
         function handleDragOver(e) {
             e.preventDefault();
-            if (this !== draggedItem) {
-                this.classList.add('drag-over');
+            if (this === draggedItem) return;
+
+            const rect = this.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+
+            // Clear all indicators first
+            document.querySelectorAll('.state-item').forEach(item => {
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+
+            // Show indicator on top or bottom half
+            if (e.clientY < midpoint) {
+                this.classList.add('drag-over-top');
+            } else {
+                this.classList.add('drag-over-bottom');
             }
         }
 
         function handleDragLeave(e) {
-            this.classList.remove('drag-over');
+            this.classList.remove('drag-over-top', 'drag-over-bottom');
         }
 
         function handleDrop(e) {
             e.preventDefault();
-            this.classList.remove('drag-over');
+            this.classList.remove('drag-over-top', 'drag-over-bottom');
 
             if (this === draggedItem) return;
 
             const stateList = document.getElementById('state-list');
-            const items = [...stateList.querySelectorAll('.state-item:not(#no-states)')];
-            const draggedIndex = items.indexOf(draggedItem);
-            const dropIndex = items.indexOf(this);
-            const isLastItem = dropIndex === items.length - 1;
-
-            // Check if dropping on bottom half of item (should insert after)
             const rect = this.getBoundingClientRect();
-            const dropInBottomHalf = e.clientY > rect.top + rect.height / 2;
+            const midpoint = rect.top + rect.height / 2;
+            const dropOnTop = e.clientY < midpoint;
 
-            if (isLastItem && dropInBottomHalf) {
-                // Dropping on bottom half of last item - append to end
-                stateList.appendChild(draggedItem);
-            } else if (dropInBottomHalf) {
-                // Dropping on bottom half - insert after this item
-                this.parentNode.insertBefore(draggedItem, this.nextSibling);
+            if (dropOnTop) {
+                // Insert before this item
+                stateList.insertBefore(draggedItem, this);
             } else {
-                // Dropping on top half - insert before this item
-                this.parentNode.insertBefore(draggedItem, this);
+                // Insert after this item
+                if (this.nextSibling) {
+                    stateList.insertBefore(draggedItem, this.nextSibling);
+                } else {
+                    stateList.appendChild(draggedItem);
+                }
             }
 
             // Save new order
