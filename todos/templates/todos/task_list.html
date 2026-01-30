@@ -4068,15 +4068,17 @@
                 header.addEventListener('dragover', function(e) {
                     if (!draggedTaskCard) return;
                     e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+
+                    // Add visual feedback for both expanded and collapsed headers
+                    this.classList.add('drag-hover');
 
                     const sg = this.closest('.state-group');
                     if (sg && sg.classList.contains('collapsed')) {
-                        this.classList.add('drag-hover');
-
+                        // Auto-expand collapsed state after delay
                         if (!expandTimeout) {
                             expandTimeout = setTimeout(() => {
                                 sg.classList.remove('collapsed');
-                                this.classList.remove('drag-hover');
                             }, 400);
                         }
                     }
@@ -4090,34 +4092,110 @@
                     }
                 });
 
-                header.addEventListener('drop', function(e) {
+                header.addEventListener('drop', async function(e) {
+                    e.preventDefault();
                     this.classList.remove('drag-hover');
                     if (expandTimeout) {
                         clearTimeout(expandTimeout);
                         expandTimeout = null;
                     }
+
+                    if (!draggedTaskCard) return;
+
+                    const stateGroup = this.closest('.state-group');
+                    const body = stateGroup.querySelector('.state-group-body');
+                    if (!body) return;
+
+                    const taskId = parseInt(draggedTaskCard.dataset.taskId);
+                    const newStateId = parseInt(body.dataset.stateId);
+                    const oldStateGroup = draggedTaskCard.closest('.state-group');
+                    const oldBody = oldStateGroup ? oldStateGroup.querySelector('.state-group-body') : null;
+                    const oldStateId = oldBody ? parseInt(oldBody.dataset.stateId) : null;
+                    const changedState = (newStateId !== oldStateId);
+
+                    // Expand the state if collapsed
+                    stateGroup.classList.remove('collapsed');
+
+                    // Move the task card to the top of the body
+                    if (body.firstChild) {
+                        body.insertBefore(draggedTaskCard, body.firstChild);
+                    } else {
+                        body.appendChild(draggedTaskCard);
+                    }
+
+                    updatePanelCounts();
+
+                    // Update task order in the new state
+                    const cardIds = [...body.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+
+                    if (changedState) {
+                        // Update task state in database
+                        try {
+                            await fetch(`/tasks/api/${taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ state_id: newStateId })
+                            });
+                        } catch (error) {
+                            console.error('Error updating task state:', error);
+                        }
+
+                        // Update order in old state
+                        if (oldBody) {
+                            const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                            try {
+                                await fetch('/tasks/api/tasks/reorder/', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: JSON.stringify({ task_ids: oldCardIds })
+                                });
+                            } catch (error) {
+                                console.error('Error updating old state order:', error);
+                            }
+                        }
+                    }
+
+                    // Update order in new state
+                    try {
+                        await fetch('/tasks/api/tasks/reorder/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ task_ids: cardIds })
+                        });
+                    } catch (error) {
+                        console.error('Error reordering tasks:', error);
+                    }
                 });
             }
         }
 
-        // Setup drag-over handlers for collapsed state groups
-        // When dragging over a collapsed state header, expand it
+        // Setup drag-over handlers for state group headers
+        // When dragging over a header, allow dropping to move task into that state
         let expandTimeout = null;
         document.querySelectorAll('.state-group-header').forEach(header => {
             header.addEventListener('dragover', function(e) {
                 if (!draggedTaskCard) return;
                 e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                // Add visual feedback for both expanded and collapsed headers
+                this.classList.add('drag-hover');
 
                 const stateGroup = this.closest('.state-group');
                 if (stateGroup && stateGroup.classList.contains('collapsed')) {
-                    // Add visual feedback
-                    this.classList.add('drag-hover');
-
-                    // Expand after a short delay
+                    // Auto-expand collapsed state after delay
                     if (!expandTimeout) {
                         expandTimeout = setTimeout(() => {
                             stateGroup.classList.remove('collapsed');
-                            this.classList.remove('drag-hover');
                         }, 400);
                     }
                 }
@@ -4131,11 +4209,87 @@
                 }
             });
 
-            header.addEventListener('drop', function(e) {
+            header.addEventListener('drop', async function(e) {
+                e.preventDefault();
                 this.classList.remove('drag-hover');
                 if (expandTimeout) {
                     clearTimeout(expandTimeout);
                     expandTimeout = null;
+                }
+
+                if (!draggedTaskCard) return;
+
+                const stateGroup = this.closest('.state-group');
+                const body = stateGroup.querySelector('.state-group-body');
+                if (!body) return;
+
+                const taskId = parseInt(draggedTaskCard.dataset.taskId);
+                const newStateId = parseInt(body.dataset.stateId);
+                const oldStateGroup = draggedTaskCard.closest('.state-group');
+                const oldBody = oldStateGroup ? oldStateGroup.querySelector('.state-group-body') : null;
+                const oldStateId = oldBody ? parseInt(oldBody.dataset.stateId) : null;
+                const changedState = (newStateId !== oldStateId);
+
+                // Expand the state if collapsed
+                stateGroup.classList.remove('collapsed');
+
+                // Move the task card to the top of the body
+                if (body.firstChild) {
+                    body.insertBefore(draggedTaskCard, body.firstChild);
+                } else {
+                    body.appendChild(draggedTaskCard);
+                }
+
+                updatePanelCounts();
+
+                // Update task order in the new state
+                const cardIds = [...body.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+
+                if (changedState) {
+                    // Update task state in database
+                    try {
+                        await fetch(`/tasks/api/${taskId}/update/`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ state_id: newStateId })
+                        });
+                    } catch (error) {
+                        console.error('Error updating task state:', error);
+                    }
+
+                    // Update order in old state
+                    if (oldBody) {
+                        const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                        try {
+                            await fetch('/tasks/api/tasks/reorder/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ task_ids: oldCardIds })
+                            });
+                        } catch (error) {
+                            console.error('Error updating old state order:', error);
+                        }
+                    }
+                }
+
+                // Update order in new state
+                try {
+                    await fetch('/tasks/api/tasks/reorder/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ task_ids: cardIds })
+                    });
+                } catch (error) {
+                    console.error('Error reordering tasks:', error);
                 }
             });
         });
