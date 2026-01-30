@@ -343,18 +343,36 @@
             font-weight: 500;
             border: none;
             padding: 0.5rem 0;
-            margin-bottom: 1rem;
+            margin-bottom: 0.25rem;
             outline: none;
-            border-bottom: 1px solid transparent;
+            border-bottom: 1px solid #e9ecef;
             resize: none;
             overflow: hidden;
             min-height: 2rem;
             font-family: inherit;
             line-height: 1.4;
+            transition: border-color 0.15s;
+        }
+
+        .panel-title-input:hover {
+            border-bottom-color: #adb5bd;
         }
 
         .panel-title-input:focus {
             border-bottom-color: #0d6efd;
+        }
+
+        .autosave-hint {
+            font-size: 0.7rem;
+            color: #adb5bd;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .autosave-hint i {
+            font-size: 0.65rem;
         }
 
         .panel-details-header {
@@ -367,6 +385,58 @@
         .panel-details-label {
             font-size: 0.875rem;
             color: #6c757d;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .markdown-help-icon {
+            color: #adb5bd;
+            cursor: help;
+            font-size: 0.8rem;
+            position: relative;
+        }
+
+        .markdown-help-icon:hover {
+            color: #6c757d;
+        }
+
+        .markdown-help-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            line-height: 1.5;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .markdown-help-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #333;
+        }
+
+        .markdown-help-icon:hover .markdown-help-tooltip {
+            display: block;
+        }
+
+        .markdown-help-tooltip code {
+            background: rgba(255,255,255,0.15);
+            padding: 0 0.25rem;
+            border-radius: 2px;
+            font-family: monospace;
         }
 
         .markdown-mode-toggle {
@@ -487,9 +557,8 @@
             padding: 1rem 1.25rem;
             border-top: 1px solid #e9ecef;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            gap: 1rem;
         }
 
         .critical-toggle {
@@ -2877,8 +2946,27 @@
         </div>
         <div class="panel-body">
             <textarea class="panel-title-input" id="panel-title" placeholder="Task title" rows="1"></textarea>
+            <div class="autosave-hint">
+                <i class="bi bi-check-circle-fill"></i>
+                Changes saved automatically
+            </div>
             <div class="panel-details-header">
-                <span class="panel-details-label">Details</span>
+                <span class="panel-details-label">
+                    Details
+                    <span class="markdown-help-icon">
+                        <i class="bi bi-question-circle"></i>
+                        <span class="markdown-help-tooltip">
+                            <strong>Markdown Cheatsheet</strong><br>
+                            <code>**bold**</code> → <strong>bold</strong><br>
+                            <code>*italic*</code> → <em>italic</em><br>
+                            <code>[link](url)</code> → link<br>
+                            <code>- item</code> → bullet list<br>
+                            <code>1. item</code> → numbered list<br>
+                            <code>`code`</code> → inline code<br>
+                            <code>## Heading</code> → heading
+                        </span>
+                    </span>
+                </span>
                 <div class="markdown-mode-toggle">
                     <button type="button" class="markdown-mode-btn active" id="markdown-edit-btn">Edit</button>
                     <button type="button" class="markdown-mode-btn" id="markdown-view-btn">View</button>
