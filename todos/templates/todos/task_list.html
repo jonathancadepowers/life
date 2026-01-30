@@ -4866,6 +4866,7 @@
         }
 
         let showCompletedTasks = false;  // Default to hiding completed tasks
+        let searchText = '';  // Current search query for tasks
 
         function saveFilterSettings() {
             setCookie('taskFilters', {
@@ -5472,8 +5473,6 @@
                 buildTagGroups();
             });
         }
-
-        let searchText = '';
 
         function applyFilters() {
             // Filter both kanban cards and task cards in the new panel layout
