@@ -3535,6 +3535,7 @@
                     cardToAdd = draggedKanbanCard;
                     cardToAdd.classList.remove('dragging');
                     cardToAdd.style.opacity = '1';
+                    cardToAdd.style.display = 'flex';
                     contentDiv.appendChild(cardToAdd);
                 } else {
                     // Clone the card from kanban board
@@ -3542,6 +3543,7 @@
                     cardToAdd.draggable = true;
                     cardToAdd.classList.remove('dragging');
                     cardToAdd.style.opacity = '1';
+                    cardToAdd.style.display = 'flex';
                     contentDiv.appendChild(cardToAdd);
 
                     // Setup drag for cloned card
