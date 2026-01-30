@@ -4470,6 +4470,13 @@
 
         function buildTagGroups(highlightTaskId = null) {
             const tagsContent = document.getElementById('tags-content');
+
+            // Remember which groups were expanded before rebuilding
+            const expandedTagIds = [];
+            tagsContent.querySelectorAll('.state-group:not(.collapsed)').forEach(group => {
+                expandedTagIds.push(group.dataset.tagId);
+            });
+
             tagsContent.innerHTML = '';
 
             // Get the terminal state ID to filter completed tasks
@@ -4529,21 +4536,28 @@
             const untaggedGroup = createTagGroup('untagged', 'Untagged', untaggedTasks);
             tagsContent.appendChild(untaggedGroup);
 
+            // Restore previously expanded groups
+            expandedTagIds.forEach(tagId => {
+                const group = tagsContent.querySelector(`.state-group[data-tag-id="${tagId}"]`);
+                if (group) {
+                    group.classList.remove('collapsed');
+                }
+            });
+
             // If highlighting a task, expand its groups and apply visual feedback
             if (highlightTaskId) {
                 const taskCards = tagsContent.querySelectorAll(`.task-card[data-task-id="${highlightTaskId}"]`);
                 taskCards.forEach(card => {
-                    // Expand the parent group
+                    // Expand the parent group (if not already expanded)
                     const group = card.closest('.state-group');
                     if (group) {
                         group.classList.remove('collapsed');
                     }
-                    // Apply yellow highlight that fades
-                    card.style.backgroundColor = '#fff3cd';
-                    card.style.transition = 'background-color 2s ease';
+                    // Apply highlight animation (same as new task highlight)
+                    card.classList.add('highlight-new');
                     setTimeout(() => {
-                        card.style.backgroundColor = '';
-                    }, 100);
+                        card.classList.remove('highlight-new');
+                    }, 4500);
                 });
             }
         }
