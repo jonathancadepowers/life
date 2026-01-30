@@ -3699,6 +3699,9 @@
                 const visibleEndMinutes = Math.min(19 * 60, endMinutes);
                 durationMinutes = visibleEndMinutes - visibleStartMinutes;
 
+                // Minimum 30 minutes to ensure text isn't cut off
+                durationMinutes = Math.max(30, durationMinutes);
+
                 const durationHours = durationMinutes / 60;
                 const heightPx = durationHours * 60; // 60px per hour
 
