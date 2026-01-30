@@ -7777,7 +7777,7 @@
         renderScheduledTasks();
         initScheduledTaskIndicators();
         setupTaskToCalendarDrag();
-        updatePanelCounts();
+        updateCollapsedMetricsForStates();  // Rebuild metrics excluding terminal state
         updateCalendarMetrics();
         updateStateTypeLabels();
 
