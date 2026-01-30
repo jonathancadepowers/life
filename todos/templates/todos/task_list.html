@@ -1121,6 +1121,7 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            background: #f8f9fa;
         }
 
         .calendar-time-label {
@@ -1450,7 +1451,7 @@
                 </div>
                 <div class="calendar-box-body">
                     <div class="calendar-section" data-section="1">
-                        <span class="calendar-time-label">7-9 AM</span>
+                        <span class="calendar-time-label">EARLY</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'morning' and task.section_number == 1 %}
@@ -1466,7 +1467,7 @@
                         </div>
                     </div>
                     <div class="calendar-section" data-section="2">
-                        <span class="calendar-time-label">9-11 AM</span>
+                        <span class="calendar-time-label">MID</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'morning' and task.section_number == 2 %}
@@ -1482,7 +1483,7 @@
                         </div>
                     </div>
                     <div class="calendar-section" data-section="3">
-                        <span class="calendar-time-label">11 AM-12 PM</span>
+                        <span class="calendar-time-label">LATE</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'morning' and task.section_number == 3 %}
@@ -1507,7 +1508,7 @@
                 </div>
                 <div class="calendar-box-body">
                     <div class="calendar-section" data-section="1">
-                        <span class="calendar-time-label">12-2 PM</span>
+                        <span class="calendar-time-label">EARLY</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'afternoon' and task.section_number == 1 %}
@@ -1523,7 +1524,7 @@
                         </div>
                     </div>
                     <div class="calendar-section" data-section="2">
-                        <span class="calendar-time-label">2-4 PM</span>
+                        <span class="calendar-time-label">MID</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'afternoon' and task.section_number == 2 %}
@@ -1539,7 +1540,7 @@
                         </div>
                     </div>
                     <div class="calendar-section" data-section="3">
-                        <span class="calendar-time-label">4-6 PM</span>
+                        <span class="calendar-time-label">LATE</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'afternoon' and task.section_number == 3 %}
@@ -1564,7 +1565,7 @@
                 </div>
                 <div class="calendar-box-body">
                     <div class="calendar-section" data-section="1">
-                        <span class="calendar-time-label">6-8 PM</span>
+                        <span class="calendar-time-label">EARLY</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'evening' and task.section_number == 1 %}
@@ -1580,7 +1581,7 @@
                         </div>
                     </div>
                     <div class="calendar-section" data-section="2">
-                        <span class="calendar-time-label">8-9 PM</span>
+                        <span class="calendar-time-label">MID</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'evening' and task.section_number == 2 %}
@@ -1596,7 +1597,7 @@
                         </div>
                     </div>
                     <div class="calendar-section" data-section="3">
-                        <span class="calendar-time-label">9-10 PM</span>
+                        <span class="calendar-time-label">LATE</span>
                         <div class="calendar-section-content">
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'evening' and task.section_number == 3 %}
