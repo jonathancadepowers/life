@@ -155,6 +155,101 @@
             visibility: visible;
         }
 
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #333;
+        }
+
+        .modal-body {
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 1rem;
+        }
+
+        .modal-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .modal-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .modal-btn-cancel {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #dde0e3;
+        }
+
+        .modal-btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .modal-btn-danger:hover {
+            background: #c82333;
+        }
+
+        .modal-btn-primary {
+            background: #6B9080;
+            color: white;
+        }
+
+        .modal-btn-primary:hover {
+            background: #5a7d6e;
+        }
+
         .slide-panel {
             position: fixed;
             top: 0;
@@ -1924,6 +2019,26 @@
         </div>
     </div>
 
+    <!-- Delete State Modal -->
+    <div class="modal-overlay" id="delete-state-modal">
+        <div class="modal-content">
+            <div class="modal-title" id="delete-state-modal-title">Delete State</div>
+            <div class="modal-body" id="delete-state-modal-body">
+                <!-- Content will be populated dynamically -->
+            </div>
+            <div id="delete-state-modal-select-container" style="display: none;">
+                <select class="modal-select" id="delete-state-move-to">
+                    <!-- Options will be populated dynamically -->
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" onclick="closeDeleteStateModal()">Cancel</button>
+                <button class="modal-btn modal-btn-danger" id="delete-state-confirm-btn" style="display: none;">Delete</button>
+                <button class="modal-btn modal-btn-primary" id="delete-state-ok-btn" style="display: none;" onclick="closeDeleteStateModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         let currentTaskId = null;
@@ -2407,42 +2522,151 @@
             setupDragEvents(li);
         }
 
+        let deleteStateId = null;
+        let deleteStateButton = null;
+
         async function deleteState(stateId, button) {
-            if (!confirm('Delete this state? Tasks with this state will become unassigned.')) return;
+            deleteStateId = stateId;
+            deleteStateButton = button;
 
             try {
-                const response = await fetch(`/tasks/api/states/${stateId}/delete/`, {
-                    method: 'DELETE',
+                // Get state info including task count
+                const response = await fetch(`/tasks/api/states/${stateId}/info/`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || 'Failed to get state info');
+                    return;
+                }
+
+                const { state, total_states } = data;
+                const modal = document.getElementById('delete-state-modal');
+                const modalTitle = document.getElementById('delete-state-modal-title');
+                const modalBody = document.getElementById('delete-state-modal-body');
+                const selectContainer = document.getElementById('delete-state-modal-select-container');
+                const select = document.getElementById('delete-state-move-to');
+                const confirmBtn = document.getElementById('delete-state-confirm-btn');
+                const okBtn = document.getElementById('delete-state-ok-btn');
+
+                // Reset modal state
+                selectContainer.style.display = 'none';
+                confirmBtn.style.display = 'none';
+                okBtn.style.display = 'none';
+
+                // Check if this is the last state
+                if (total_states <= 1) {
+                    modalTitle.textContent = 'Cannot Delete State';
+                    modalBody.textContent = 'You must have at least one state. Create another state before deleting this one.';
+                    okBtn.style.display = 'inline-block';
+                    modal.classList.add('active');
+                    return;
+                }
+
+                // Check if state has tasks
+                if (state.task_count > 0) {
+                    modalTitle.textContent = 'Delete State';
+                    modalBody.innerHTML = `The state "<strong>${escapeHtml(state.name)}</strong>" contains <strong>${state.task_count} task${state.task_count > 1 ? 's' : ''}</strong>. Select a state to move these tasks to:`;
+
+                    // Populate select with other states
+                    select.innerHTML = '';
+                    statesList.filter(s => s.id !== stateId).forEach(s => {
+                        const option = document.createElement('option');
+                        option.value = s.id;
+                        option.textContent = s.name;
+                        select.appendChild(option);
+                    });
+
+                    selectContainer.style.display = 'block';
+                    confirmBtn.style.display = 'inline-block';
+                    confirmBtn.onclick = () => confirmDeleteState(true);
+                } else {
+                    modalTitle.textContent = 'Delete State';
+                    modalBody.innerHTML = `Are you sure you want to delete the state "<strong>${escapeHtml(state.name)}</strong>"?`;
+                    confirmBtn.style.display = 'inline-block';
+                    confirmBtn.onclick = () => confirmDeleteState(false);
+                }
+
+                modal.classList.add('active');
+            } catch (error) {
+                console.error('Error getting state info:', error);
+            }
+        }
+
+        function closeDeleteStateModal() {
+            document.getElementById('delete-state-modal').classList.remove('active');
+            deleteStateId = null;
+            deleteStateButton = null;
+        }
+
+        async function confirmDeleteState(moveTasks) {
+            if (!deleteStateId) return;
+
+            try {
+                const moveToStateId = moveTasks ? document.getElementById('delete-state-move-to').value : null;
+
+                const response = await fetch(`/tasks/api/states/${deleteStateId}/delete/`, {
+                    method: 'POST',
                     headers: {
+                        'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
-                    }
+                    },
+                    body: JSON.stringify({ move_to_state_id: moveToStateId ? parseInt(moveToStateId) : null })
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    // Remove from state list
-                    const stateItem = button.closest('.state-item');
-                    stateItem.remove();
+                    // If tasks were moved, update the UI
+                    if (moveTasks && moveToStateId) {
+                        // Move task cards in the UI
+                        const sourceBody = document.querySelector(`.state-group-body[data-state-id="${deleteStateId}"]`);
+                        const targetBody = document.querySelector(`.state-group-body[data-state-id="${moveToStateId}"]`);
+                        if (sourceBody && targetBody) {
+                            const cards = sourceBody.querySelectorAll('.task-card');
+                            cards.forEach(card => targetBody.appendChild(card));
+                        }
+                    }
+
+                    // Remove from state list in settings panel
+                    if (deleteStateButton) {
+                        const stateItem = deleteStateButton.closest('.state-item');
+                        if (stateItem) stateItem.remove();
+                    }
+
+                    // Remove state group from tasks panel
+                    const stateGroup = document.querySelector(`.state-group[data-state-id="${deleteStateId}"]`);
+                    if (stateGroup) stateGroup.remove();
+
+                    // Remove metric pill
+                    const metricPill = document.querySelector(`.metric-pill[data-state-id="${deleteStateId}"]`);
+                    if (metricPill) metricPill.remove();
 
                     // Update local list
-                    statesList = statesList.filter(s => s.id !== stateId);
+                    statesList = statesList.filter(s => s.id !== deleteStateId);
 
-                    // Update checkboxes in case the terminal state was deleted
-                    updateTerminalCheckboxes();
+                    // Update counts
+                    updateStateCounts();
 
-                    // Check if state list is now empty
-                    const stateList = document.getElementById('state-list');
-                    if (!stateList.querySelector('.state-item')) {
-                        stateList.innerHTML = `
-                            <li class="state-item" id="no-states" style="color: #6c757d; justify-content: center;">
-                                No states yet
-                            </li>
-                        `;
-                    }
+                    closeDeleteStateModal();
+                } else {
+                    alert(data.error || 'Failed to delete state');
                 }
             } catch (error) {
                 console.error('Error deleting state:', error);
             }
+        }
+
+        function updateStateCounts() {
+            document.querySelectorAll('.state-group').forEach(group => {
+                const stateId = group.dataset.stateId;
+                const body = group.querySelector('.state-group-body');
+                const count = body ? body.querySelectorAll('.task-card').length : 0;
+                const countEl = document.getElementById(`panel-count-${stateId}`);
+                if (countEl) countEl.textContent = count;
+
+                // Update metric pill
+                const metricPill = document.querySelector(`.metric-pill[data-state-id="${stateId}"] .metric-count`);
+                if (metricPill) metricPill.textContent = count;
+            });
         }
 
         // ========== Drag and Drop for States ==========

@@ -142,8 +142,26 @@ def list_states(request):
     states = TaskState.objects.all()
     return JsonResponse({
         'success': True,
-        'states': [{'id': s.id, 'name': s.name, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon} for s in states]
+        'states': [{'id': s.id, 'name': s.name, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon, 'task_count': s.tasks.count()} for s in states]
     })
+
+
+def get_state_info(request, state_id):
+    """Get info about a state including task count."""
+    try:
+        state = TaskState.objects.get(id=state_id)
+        total_states = TaskState.objects.count()
+        return JsonResponse({
+            'success': True,
+            'state': {
+                'id': state.id,
+                'name': state.name,
+                'task_count': state.tasks.count(),
+            },
+            'total_states': total_states
+        })
+    except TaskState.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
 
 
 @require_POST
@@ -205,15 +223,37 @@ def update_state(request, state_id):
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 
 
-@require_http_methods(["DELETE"])
+@require_http_methods(["DELETE", "POST"])
 def delete_state(request, state_id):
     """Delete a task state via AJAX."""
     try:
         state = TaskState.objects.get(id=state_id)
+
+        # Check if this is the last state
+        if TaskState.objects.count() <= 1:
+            return JsonResponse({'success': False, 'error': 'Cannot delete the last state'}, status=400)
+
+        # Count tasks in this state
+        task_count = Task.objects.filter(state=state).count()
+
+        # If POST request, handle task migration
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            move_to_state_id = data.get('move_to_state_id')
+
+            if task_count > 0 and move_to_state_id:
+                try:
+                    new_state = TaskState.objects.get(id=move_to_state_id)
+                    Task.objects.filter(state=state).update(state=new_state)
+                except TaskState.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': 'Target state not found'}, status=404)
+
         state.delete()
-        return JsonResponse({'success': True})
+        return JsonResponse({'success': True, 'task_count': task_count})
     except TaskState.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
 
 
 @require_POST
