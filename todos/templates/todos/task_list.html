@@ -660,14 +660,28 @@
             border-top: 2px solid #6B9080;
         }
 
-        .state-item.terminal-state .state-drag-handle {
-            visibility: hidden;
-            cursor: default;
+        .state-item.terminal-state .state-drag-handle,
+        .state-item.inbox-state .state-drag-handle {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
 
         .state-item.terminal-state {
             background: #f8f9fa;
             border-top: 1px dashed #dee2e6;
+        }
+
+        .state-item.inbox-state {
+            background: #f8f9fa;
+        }
+
+        .state-terminal-checkbox-wrapper.disabled-inbox {
+            cursor: not-allowed;
+        }
+
+        .state-terminal-checkbox-wrapper.disabled-inbox .state-terminal-checkbox {
+            cursor: not-allowed;
+            opacity: 0.5;
         }
 
         .state-terminal-checkbox {
@@ -1060,18 +1074,17 @@
                     {% if not state.is_terminal %}
                     <li class="state-item{% if state.name == 'Inbox' %} inbox-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="false" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" draggable="{% if state.name == 'Inbox' %}false{% else %}true{% endif %}">
                         <div class="state-item-left">
-                            <i class="bi bi-grip-vertical state-drag-handle"{% if state.name == 'Inbox' %} style="visibility: hidden;"{% endif %}></i>
-                            {% if state.name != 'Inbox' %}
-                            <div class="state-terminal-checkbox-wrapper">
+                            <i class="bi bi-grip-vertical state-drag-handle"></i>
+                            <div class="state-terminal-checkbox-wrapper{% if state.name == 'Inbox' %} disabled-inbox{% endif %}">
                                 <input type="checkbox"
                                        class="state-terminal-checkbox"
+                                       {% if state.name == 'Inbox' %}disabled{% endif %}
                                        onchange="toggleTerminal({{ state.id }}, this)">
                             </div>
-                            {% endif %}
+                            <span class="state-name">{{ state.name }}</span>
                             <button class="state-icon-btn" onclick="openIconPicker({{ state.id }}, this)" title="Choose icon">
                                 <i class="bi {% if state.bootstrap_icon %}{{ state.bootstrap_icon }}{% else %}bi-plus-circle-dotted{% endif %}"></i>
                             </button>
-                            <span class="state-name">{{ state.name }}</span>
                         </div>
                         {% if state.name != 'Inbox' %}
                         <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
@@ -1089,7 +1102,7 @@
                     {% if state.is_terminal %}
                     <li class="state-item terminal-state" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-is-terminal="true" data-order="9999" data-icon="" draggable="false">
                         <div class="state-item-left">
-                            <i class="bi bi-grip-vertical state-drag-handle" style="visibility: hidden;"></i>
+                            <i class="bi bi-grip-vertical state-drag-handle"></i>
                             <div class="state-terminal-checkbox-wrapper">
                                 <input type="checkbox"
                                        class="state-terminal-checkbox"
@@ -1847,8 +1860,10 @@
             const li = document.createElement('li');
             li.className = 'state-item' + (state.is_terminal ? ' terminal-state' : '');
             li.dataset.stateId = state.id;
+            li.dataset.stateName = state.name;
             li.dataset.isTerminal = state.is_terminal ? 'true' : 'false';
             li.dataset.order = state.order;
+            li.dataset.icon = state.bootstrap_icon || '';
             li.draggable = !state.is_terminal;
             li.innerHTML = `
                 <div class="state-item-left">
@@ -1860,6 +1875,9 @@
                                onchange="toggleTerminal(${state.id}, this)">
                     </div>
                     <span class="state-name">${escapeHtml(state.name)}</span>
+                    <button class="state-icon-btn" onclick="openIconPicker(${state.id}, this)" title="Choose icon">
+                        <i class="bi bi-plus-circle-dotted"></i>
+                    </button>
                 </div>
                 <button class="state-delete" onclick="deleteState(${state.id}, this)" title="Delete state">
                     <i class="bi bi-x-lg"></i>
