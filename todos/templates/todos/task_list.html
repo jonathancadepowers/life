@@ -335,19 +335,42 @@
             border-bottom-color: #0d6efd;
         }
 
+        .panel-details-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
         .panel-details-label {
             font-size: 0.875rem;
             color: #6c757d;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        .markdown-hint {
-            font-size: 0.7rem;
-            color: #adb5bd;
-            font-style: italic;
+        .markdown-mode-toggle {
+            display: flex;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            font-size: 0.75rem;
+        }
+
+        .markdown-mode-btn {
+            padding: 0.25rem 0.5rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #6c757d;
+            transition: all 0.2s;
+        }
+
+        .markdown-mode-btn.active {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .markdown-mode-btn:hover:not(.active) {
+            background: #dee2e6;
         }
 
         .panel-details-container {
@@ -1041,6 +1064,10 @@
             position: absolute;
             bottom: 0.75rem;
             right: 0.75rem;
+        }
+
+        .panel.collapsed #completed-toggle-container {
+            display: none !important;
         }
 
         .completed-toggle {
@@ -2231,12 +2258,15 @@
         </div>
         <div class="panel-body">
             <textarea class="panel-title-input" id="panel-title" placeholder="Task title" rows="1"></textarea>
-            <div class="panel-details-label">
-                Details
-                <span class="markdown-hint">Markdown supported</span>
+            <div class="panel-details-header">
+                <span class="panel-details-label">Details</span>
+                <div class="markdown-mode-toggle">
+                    <button type="button" class="markdown-mode-btn active" id="markdown-edit-btn">Edit</button>
+                    <button type="button" class="markdown-mode-btn" id="markdown-view-btn">View</button>
+                </div>
             </div>
             <div class="panel-details-container">
-                <textarea class="panel-details-input" id="panel-details" placeholder="Add details..."></textarea>
+                <textarea class="panel-details-input" id="panel-details" placeholder="Markdown supported"></textarea>
                 <div class="panel-details-preview" id="panel-details-preview" style="display: none;"></div>
             </div>
         </div>
@@ -2666,32 +2696,43 @@
         // Markdown preview handling
         const detailsTextarea = document.getElementById('panel-details');
         const detailsPreview = document.getElementById('panel-details-preview');
+        const markdownEditBtn = document.getElementById('markdown-edit-btn');
+        const markdownViewBtn = document.getElementById('markdown-view-btn');
 
         function showMarkdownPreview() {
             const text = detailsTextarea.value.trim();
-            if (text) {
-                detailsPreview.innerHTML = marked.parse(text);
-                detailsTextarea.style.display = 'none';
-                detailsPreview.style.display = 'block';
-            } else {
-                // Keep textarea visible if empty
-                detailsPreview.innerHTML = '';
-                detailsPreview.style.display = 'none';
-                detailsTextarea.style.display = 'block';
-            }
+            detailsPreview.innerHTML = text ? marked.parse(text) : '';
+            detailsTextarea.style.display = 'none';
+            detailsPreview.style.display = 'block';
+            markdownEditBtn.classList.remove('active');
+            markdownViewBtn.classList.add('active');
         }
 
         function showMarkdownEdit() {
             detailsPreview.style.display = 'none';
             detailsTextarea.style.display = 'block';
+            markdownEditBtn.classList.add('active');
+            markdownViewBtn.classList.remove('active');
             detailsTextarea.focus();
         }
 
+        // Toggle buttons
+        markdownEditBtn.addEventListener('click', showMarkdownEdit);
+        markdownViewBtn.addEventListener('click', showMarkdownPreview);
+
+        // Clicking into textarea switches to edit mode
+        detailsTextarea.addEventListener('focus', function() {
+            markdownEditBtn.classList.add('active');
+            markdownViewBtn.classList.remove('active');
+        });
+
+        // Clicking outside switches to view mode
         detailsTextarea.addEventListener('blur', function() {
-            // Small delay to allow clicking elsewhere
+            // Small delay to allow clicking the toggle buttons
             setTimeout(showMarkdownPreview, 150);
         });
 
+        // Clicking preview switches to edit mode
         detailsPreview.addEventListener('click', showMarkdownEdit);
 
         // Auto-save on changes
@@ -3534,14 +3575,18 @@
                     document.getElementById('panel-details').value = data.task.details || '';
                     document.getElementById('panel-critical').checked = data.task.critical;
 
-                    // Show markdown preview if there's content
+                    // Show markdown preview if there's content, otherwise show edit mode
                     if (data.task.details && data.task.details.trim()) {
                         detailsPreview.innerHTML = marked.parse(data.task.details);
                         detailsTextarea.style.display = 'none';
                         detailsPreview.style.display = 'block';
+                        markdownEditBtn.classList.remove('active');
+                        markdownViewBtn.classList.add('active');
                     } else {
                         detailsPreview.style.display = 'none';
                         detailsTextarea.style.display = 'block';
+                        markdownEditBtn.classList.add('active');
+                        markdownViewBtn.classList.remove('active');
                     }
                 }
             } catch (error) {
@@ -3561,10 +3606,6 @@
             const card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
             if (!card) return;
             await fetchAndOpenPanel(taskId);
-
-            document.getElementById('panel-overlay').classList.add('active');
-            document.getElementById('slide-panel').classList.add('active');
-            setTimeout(autoResizeTitle, 10);
         }
 
         // Kanban drag and drop
