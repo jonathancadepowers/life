@@ -2153,9 +2153,40 @@
             width: 100%;
         }
 
+        .task-card-drag-handle {
+            color: #bbb;
+            cursor: grab;
+            padding: 0 2px;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            opacity: 0.5;
+            transition: opacity 0.15s;
+        }
+
+        .task-card:hover .task-card-drag-handle {
+            opacity: 1;
+        }
+
+        .task-card-drag-handle:active {
+            cursor: grabbing;
+        }
+
         .task-card-content .task-card-title {
             flex: 1;
             min-width: 0;
+            cursor: text;
+        }
+
+        .task-card-title-input {
+            width: 100%;
+            border: 1px solid #6B9080;
+            border-radius: 2px;
+            font-size: 0.8rem;
+            color: #333;
+            padding: 1px 4px;
+            margin: -2px 0;
+            outline: none;
+            background: white;
         }
 
         /* Scheduled task on calendar - matches Tasks section styling */
@@ -2637,7 +2668,7 @@
                 <!-- Tags will be populated by JavaScript -->
             </div>
         </div>
-        <div class="filter-section">
+        <div class="filter-section" id="filter-completed-section" style="display: none;">
             <div class="filter-section-title">Completed Tasks</div>
             <label class="filter-option">
                 <input type="checkbox" id="show-completed-toggle">
@@ -2705,8 +2736,9 @@
                             <div class="state-group-body" data-state-id="{{ state.id }}">
                                 {% for task in tasks %}
                                 {% if task.state == state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
+                                        <i class="bi bi-grip-vertical task-card-drag-handle" draggable="true"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                                         {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>{% endif %}
@@ -2732,8 +2764,9 @@
                             <div class="state-group-body" data-state-id="none">
                                 {% for task in tasks %}
                                 {% if not task.state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
+                                        <i class="bi bi-grip-vertical task-card-drag-handle" draggable="true"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
                                         {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>{% endif %}
@@ -3224,16 +3257,17 @@
                 const isScheduled = !!taskCalendarStartTimeMap[task.id];
                 card.className = 'task-card' + (task.critical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (withHighlight ? ' highlight-new' : '');
                 card.dataset.taskId = task.id;
-                card.draggable = true;
                 card.innerHTML = `
                     <div class="task-card-content">
+                        <i class="bi bi-grip-vertical task-card-drag-handle" draggable="true"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
                         ${task.critical ? '<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>' : ''}
                     </div>
                 `;
 
-                // Setup drag events and context menu for the new card
+                // Setup drag events on handle and context menu for the new card
                 setupTaskCardDragEvents(card);
+                setupTaskTitleEditing(card);
                 card.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
@@ -5212,29 +5246,37 @@
             const statesContent = document.getElementById('states-content');
             const tagsContent = document.getElementById('tags-content');
             const tasksCollapsedMetrics = document.getElementById('tasks-collapsed-metrics');
+            const completedSection = document.getElementById('filter-completed-section');
 
             if (groupBy === 'states') {
                 statesContent.style.display = '';
                 tagsContent.style.display = 'none';
                 // Show state-based metrics in collapsed view
                 updateCollapsedMetricsForStates();
+                // Hide completed filter (only applies to tags view)
+                if (completedSection) completedSection.style.display = 'none';
             } else {
                 statesContent.style.display = 'none';
                 tagsContent.style.display = '';
                 buildTagGroups();
                 // Show tag-based metrics in collapsed view
                 updateCollapsedMetricsForTags();
+                // Show completed filter (only applies to tags view)
+                if (completedSection) completedSection.style.display = '';
             }
             updatePanelCounts();
         }
 
-        // Update collapsed metrics to show states
+        // Update collapsed metrics to show states (excluding terminal state)
         function updateCollapsedMetricsForStates() {
             const tasksCollapsedMetrics = document.getElementById('tasks-collapsed-metrics');
-            // Rebuild with state metrics
+            const terminalStateId = getTerminalStateId();
+            // Rebuild with state metrics, excluding terminal state
             let html = '';
             {% for state in states %}
-            html += '<span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>';
+            if ({{ state.id }} !== terminalStateId) {
+                html += '<span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>';
+            }
             {% endfor %}
             tasksCollapsedMetrics.innerHTML = html;
             updatePanelCounts();
@@ -5460,7 +5502,6 @@
                 const isToday = isScheduled && isScheduledForToday(calendarTime);
                 card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (task.isCompleted ? ' completed' : '');
                 card.dataset.taskId = task.id;
-                card.draggable = true;
 
                 // Only show tag pills if task has multiple tags
                 const tagsHtml = task.tags.length > 1
@@ -5474,6 +5515,7 @@
 
                 card.innerHTML = `
                     <div class="task-card-content">
+                        <i class="bi bi-grip-vertical task-card-drag-handle" draggable="true"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
                         ${tagsHtml}
                         ${iconsHtml}
@@ -5482,6 +5524,7 @@
 
                 // Setup event handlers
                 setupTaskCardDragEvents(card);
+                setupTaskTitleEditing(card);
                 card.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
@@ -7074,20 +7117,23 @@
 
         // Setup drag events for task cards
         function setupTaskCardDragEvents(card) {
-            card.addEventListener('dragstart', function(e) {
-                draggedTaskCard = this;
-                currentDragTaskId = this.dataset.taskId;
-                this.classList.add('dragging');
+            const handle = card.querySelector('.task-card-drag-handle');
+            if (!handle) return;
+
+            handle.addEventListener('dragstart', function(e) {
+                draggedTaskCard = card;
+                currentDragTaskId = card.dataset.taskId;
+                card.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', this.dataset.taskId);
+                e.dataTransfer.setData('text/plain', card.dataset.taskId);
                 setTimeout(() => {
-                    this.style.opacity = '0.4';
+                    card.style.opacity = '0.4';
                 }, 0);
             });
 
-            card.addEventListener('dragend', function() {
-                this.classList.remove('dragging');
-                this.style.opacity = '1';
+            handle.addEventListener('dragend', function() {
+                card.classList.remove('dragging');
+                card.style.opacity = '1';
                 draggedTaskCard = null;
                 currentDragTaskId = null;
                 // Remove all drag-over classes and drop indicator
@@ -7101,6 +7147,70 @@
             // Right-click to show context menu (only way to open task panel)
             card.addEventListener('contextmenu', function(e) {
                 showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+            });
+        }
+
+        // Setup inline title editing for a task card
+        function setupTaskTitleEditing(card) {
+            const titleEl = card.querySelector('.task-card-title');
+            if (!titleEl) return;
+
+            titleEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (titleEl.querySelector('input')) return; // Already editing
+
+                const taskId = card.dataset.taskId;
+                const currentTitle = titleEl.textContent;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'task-card-title-input';
+                input.value = currentTitle;
+                titleEl.textContent = '';
+                titleEl.appendChild(input);
+                input.focus();
+                input.select();
+
+                async function saveTitle() {
+                    const newTitle = input.value.trim();
+                    if (newTitle && newTitle !== currentTitle) {
+                        try {
+                            const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ title: newTitle })
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                titleEl.textContent = newTitle;
+                                // Update other instances of this task card
+                                document.querySelectorAll(`.task-card[data-task-id="${taskId}"] .task-card-title`).forEach(el => {
+                                    if (el !== titleEl) el.textContent = newTitle;
+                                });
+                            } else {
+                                titleEl.textContent = currentTitle;
+                            }
+                        } catch (error) {
+                            console.error('Error updating title:', error);
+                            titleEl.textContent = currentTitle;
+                        }
+                    } else {
+                        titleEl.textContent = currentTitle;
+                    }
+                }
+
+                input.addEventListener('blur', saveTitle);
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        input.blur();
+                    } else if (e.key === 'Escape') {
+                        titleEl.textContent = currentTitle;
+                    }
+                });
             });
         }
 
@@ -7223,9 +7333,10 @@
             });
         }
 
-        // Initialize drag and drop for existing cards
+        // Initialize drag and drop and title editing for existing cards
         document.querySelectorAll('.task-card').forEach(card => {
             setupTaskCardDragEvents(card);
+            setupTaskTitleEditing(card);
         });
         setupDropZones();
 
