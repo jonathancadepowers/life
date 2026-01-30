@@ -6140,9 +6140,6 @@
 
         // Update task counts in the panel layout
         function updatePanelCounts() {
-            // Check if any filters are active (excluding showCompleted which is not a filter)
-            const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0;
-
             // Update state group counts (in states-content)
             document.querySelectorAll('#states-content .state-group').forEach(group => {
                 const stateId = group.dataset.stateId;
@@ -6157,11 +6154,11 @@
                 const metricPill = document.querySelector(`.panel-collapsed-metrics .metric-pill[data-state-id="${stateId}"] .metric-count`);
                 if (metricPill) metricPill.textContent = visibleCards;
 
-                // Show/hide empty message or hide entire group when filters are active
+                // Show/hide empty message (always hide "No State" group when empty)
                 let emptyMsg = body.querySelector('.state-group-empty');
                 if (visibleCards === 0) {
-                    if (hasActiveFilters || stateId === 'none') {
-                        // Hide group entirely when filters are active and no matching tasks
+                    if (stateId === 'none') {
+                        // Hide "No State" group when empty
                         group.style.display = 'none';
                     } else {
                         group.style.display = '';
@@ -6189,20 +6186,15 @@
                 const countEl = group.querySelector('.state-group-count');
                 if (countEl) countEl.textContent = visibleCards;
 
-                // Show/hide empty message or hide entire group when filters are active
+                // Show empty message when no visible tasks
                 let emptyMsg = body.querySelector('.state-group-empty');
                 if (visibleCards === 0) {
-                    if (hasActiveFilters) {
-                        // Hide group entirely when filters are active and no matching tasks
-                        group.style.display = 'none';
-                    } else {
-                        group.style.display = '';
-                        if (!emptyMsg) {
-                            emptyMsg = document.createElement('div');
-                            emptyMsg.className = 'state-group-empty';
-                            emptyMsg.textContent = 'No tasks';
-                            body.appendChild(emptyMsg);
-                        }
+                    group.style.display = '';
+                    if (!emptyMsg) {
+                        emptyMsg = document.createElement('div');
+                        emptyMsg.className = 'state-group-empty';
+                        emptyMsg.textContent = 'No tasks';
+                        body.appendChild(emptyMsg);
                     }
                 } else {
                     group.style.display = '';
