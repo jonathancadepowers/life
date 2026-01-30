@@ -2061,8 +2061,9 @@
             z-index: 2;
             box-sizing: border-box;
             display: flex;
-            flex-direction: column;
-            gap: 2px;
+            flex-direction: row;
+            align-items: center;
+            gap: 6px;
         }
 
         .calendar-task-content {
@@ -2071,6 +2072,8 @@
             gap: 4px;
             white-space: nowrap;
             overflow: hidden;
+            flex: 1;
+            min-width: 0;
         }
 
         .calendar-task-icon {
@@ -2087,9 +2090,10 @@
 
         .calendar-task-tags {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 2px;
-            overflow: hidden;
+            flex-shrink: 0;
+            margin-left: auto;
         }
 
         .calendar-task-tag {
