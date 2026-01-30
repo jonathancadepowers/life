@@ -1421,13 +1421,19 @@
             justify-content: space-between;
             padding: 0.75rem 1rem;
             cursor: pointer;
-            background: #fafafa;
-            transition: background 0.15s;
+            background: linear-gradient(to bottom, #e9ecef, #dee2e6);
+            border-left: 4px solid #6B9080;
+            transition: all 0.15s;
             user-select: none;
         }
 
         .state-group-header:hover {
-            background: #f0f0f0;
+            background: linear-gradient(to bottom, #dee2e6, #d3d8dd);
+        }
+
+        .state-group.collapsed .state-group-header {
+            background: #f5f5f5;
+            border-left-color: #adb5bd;
         }
 
         .state-group-left {
@@ -1437,14 +1443,16 @@
         }
 
         .state-group-icon {
-            color: #6c757d;
-            font-size: 0.9rem;
+            color: #495057;
+            font-size: 1rem;
         }
 
         .state-group-name {
-            font-weight: 500;
-            font-size: 0.9rem;
-            color: #333;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #2c3e50;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
 
         .state-group-count {
@@ -1457,8 +1465,8 @@
         }
 
         .state-group-toggle {
-            color: #adb5bd;
-            font-size: 0.75rem;
+            color: #6c757d;
+            font-size: 0.875rem;
             transition: transform 0.2s;
         }
 
@@ -1467,8 +1475,9 @@
         }
 
         .state-group-body {
-            padding: 0.5rem;
+            padding: 0.75rem;
             background: white;
+            border-left: 4px solid transparent;
         }
 
         .state-group.collapsed .state-group-body {
