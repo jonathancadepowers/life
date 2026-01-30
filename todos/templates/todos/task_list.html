@@ -1015,7 +1015,10 @@
             cursor: grab;
             transition: box-shadow 0.15s, transform 0.15s;
             position: relative;
-            min-height: 50px;
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .kanban-card:hover {
@@ -1030,8 +1033,11 @@
         .kanban-card-title {
             font-size: 0.9rem;
             color: #212529;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0;
             padding-right: 1.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .kanban-card-critical-icon {
@@ -1039,15 +1045,12 @@
             bottom: 0.25rem;
             right: 0.5rem;
             color: #6c757d;
-            font-size: 1rem;
+            font-size: 2rem;
             opacity: 0.5;
         }
 
         .kanban-card-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+            display: none;
         }
 
         .kanban-card-context {
@@ -1292,7 +1295,7 @@
                     {% for task in tasks %}
                     {% if task.state == state %}
                     <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                        <div class="kanban-card-title">
+                        <div class="kanban-card-title" title="{{ task.title }}">
                             {{ task.title }}
                         </div>
                         <div class="kanban-card-meta">
@@ -1328,7 +1331,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'morning' and task.section_number == 1 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -1341,7 +1344,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'morning' and task.section_number == 2 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -1354,7 +1357,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'morning' and task.section_number == 3 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -1376,7 +1379,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'afternoon' and task.section_number == 1 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -1389,7 +1392,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'afternoon' and task.section_number == 2 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -1402,7 +1405,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'afternoon' and task.section_number == 3 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -1424,7 +1427,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'evening' and task.section_number == 1 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -1437,7 +1440,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'evening' and task.section_number == 2 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -1450,7 +1453,7 @@
                         {% for task in tasks %}
                         {% if task.today and task.time_period == 'evening' and task.section_number == 3 %}
                         <div class="kanban-card{% if task.critical %} critical{% endif %}" data-task-id="{{ task.id }}" data-context-id="{% if task.context %}{{ task.context.id }}{% endif %}" draggable="true">
-                            <div class="kanban-card-title">{{ task.title }}</div>
+                            <div class="kanban-card-title" title="{{ task.title }}">{{ task.title }}</div>
                             <div class="kanban-card-meta">
                                 {% if task.context %}<span class="kanban-card-context" style="background: {{ task.context.color }};">{{ task.context.name }}</span>{% endif %}
                             </div>
@@ -2897,7 +2900,7 @@
             card.dataset.contextId = task.context_id || '';
             card.draggable = true;
             card.innerHTML = `
-                <div class="kanban-card-title">${escapeHtml(task.title)}</div>
+                <div class="kanban-card-title" title="${escapeHtml(task.title)}">${escapeHtml(task.title)}</div>
                 <div class="kanban-card-meta">
                     ${task.context_name ? `<span class="kanban-card-context" style="background: ${task.context_color};">${escapeHtml(task.context_name)}</span>` : ''}
                 </div>
@@ -2918,6 +2921,7 @@
             // Update title
             const title = card.querySelector('.kanban-card-title');
             title.textContent = task.title;
+            title.title = task.title;
 
             // Update meta
             const meta = card.querySelector('.kanban-card-meta');
