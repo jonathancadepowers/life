@@ -933,6 +933,29 @@
             padding-bottom: 8px;
         }
 
+        .state-type-label {
+            font-size: 0.65rem;
+            color: #6B9080;
+            font-style: italic;
+            margin-left: 0.5rem;
+            opacity: 0.8;
+        }
+
+        .delete-completed-link {
+            display: block;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #999;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-top: 1px dashed #eee;
+            margin-top: 0.25rem;
+        }
+
+        .delete-completed-link:hover {
+            color: #dc3545;
+        }
+
         .state-terminal-checkbox-wrapper.disabled-terminal {
             cursor: help;
         }
@@ -2255,6 +2278,106 @@
             });
         }
 
+        // ========== State Type Labels (Inbox/Terminal) ==========
+
+        function updateStateTypeLabels() {
+            // Remove all existing labels
+            document.querySelectorAll('.state-type-label').forEach(el => el.remove());
+
+            const stateItems = document.querySelectorAll('.state-item:not(#no-states)');
+            if (stateItems.length === 0) return;
+
+            // Add inbox label to first state
+            const firstState = stateItems[0];
+            const firstName = firstState.querySelector('.state-name');
+            if (firstName && !firstName.parentElement.querySelector('.state-type-label')) {
+                const inboxLabel = document.createElement('span');
+                inboxLabel.className = 'state-type-label';
+                inboxLabel.textContent = '(inbox)';
+                firstName.after(inboxLabel);
+            }
+
+            // Add terminal label to last state
+            const lastState = stateItems[stateItems.length - 1];
+            const lastName = lastState.querySelector('.state-name');
+            if (lastName && !lastName.parentElement.querySelector('.state-type-label')) {
+                const terminalLabel = document.createElement('span');
+                terminalLabel.className = 'state-type-label';
+                terminalLabel.textContent = '(terminal)';
+                lastName.after(terminalLabel);
+            }
+
+            // Update state groups with terminal class and delete link
+            updateTerminalStateGroup();
+        }
+
+        function getTerminalStateId() {
+            const stateItems = document.querySelectorAll('.state-item:not(#no-states)');
+            if (stateItems.length === 0) return null;
+            return parseInt(stateItems[stateItems.length - 1].dataset.stateId);
+        }
+
+        function updateTerminalStateGroup() {
+            // Remove all existing delete completed links
+            document.querySelectorAll('.delete-completed-link').forEach(el => el.remove());
+            document.querySelectorAll('.state-group').forEach(g => g.classList.remove('terminal-state'));
+
+            const terminalStateId = getTerminalStateId();
+            if (!terminalStateId) return;
+
+            const terminalGroup = document.querySelector(`.state-group[data-state-id="${terminalStateId}"]`);
+            if (terminalGroup) {
+                terminalGroup.classList.add('terminal-state');
+                const body = terminalGroup.querySelector('.state-group-body');
+                if (body) {
+                    const deleteLink = document.createElement('div');
+                    deleteLink.className = 'delete-completed-link';
+                    deleteLink.textContent = 'Delete completed tasks';
+                    deleteLink.onclick = () => deleteCompletedTasks(terminalStateId);
+                    body.after(deleteLink);
+                }
+            }
+        }
+
+        async function deleteCompletedTasks(stateId) {
+            const body = document.querySelector(`.state-group-body[data-state-id="${stateId}"]`);
+            if (!body) return;
+
+            const taskCards = body.querySelectorAll('.task-card');
+            const count = taskCards.length;
+
+            if (count === 0) {
+                await showAlertModal('There are no tasks to delete.', 'No Tasks');
+                return;
+            }
+
+            const confirmed = await showConfirmModal(
+                `Are you sure you want to permanently delete ${count} task${count > 1 ? 's' : ''}?`,
+                'Delete Completed Tasks',
+                'Delete All'
+            );
+
+            if (!confirmed) return;
+
+            // Delete all tasks in the terminal state
+            for (const card of taskCards) {
+                const taskId = parseInt(card.dataset.taskId);
+                try {
+                    await fetch(`/tasks/api/${taskId}/delete/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': csrfToken
+                        }
+                    });
+                    card.remove();
+                } catch (error) {
+                    console.error('Error deleting task:', error);
+                }
+            }
+
+            updatePanelCounts();
+        }
+
         // Add new task on Enter
         document.getElementById('new-task-input').addEventListener('keypress', async function(e) {
             if (e.key === 'Enter' && this.value.trim()) {
@@ -2331,7 +2454,7 @@
             // Remove highlight class after animation completes
             setTimeout(() => {
                 card.classList.remove('highlight-new');
-            }, 1500);
+            }, 4500);
         }
 
         function escapeHtml(text) {
@@ -2804,6 +2927,9 @@
                 pill.innerHTML = `${escapeHtml(state.name)}: <span class="metric-count">0</span>`;
                 metricsContainer.appendChild(pill);
             }
+
+            // Update inbox/terminal labels
+            updateStateTypeLabels();
         }
 
         let deleteStateId = null;
@@ -2929,6 +3055,9 @@
 
                     // Update counts
                     updateStateCounts();
+
+                    // Update inbox/terminal labels
+                    updateStateTypeLabels();
 
                     closeDeleteStateModal();
                 } else {
@@ -3116,6 +3245,9 @@
                             }
                         });
                     }
+
+                    // Update inbox/terminal labels
+                    updateStateTypeLabels();
                 }
             } catch (error) {
                 console.error('Error saving state order:', error);
@@ -4284,8 +4416,11 @@
                     const oldStateId = oldBody ? parseInt(oldBody.dataset.stateId) : null;
                     const changedState = (newStateId !== oldStateId);
 
-                    // Expand the state if collapsed
-                    stateGroup.classList.remove('collapsed');
+                    // Expand the state if collapsed (except for terminal state)
+                    const isTerminalState = newStateId === getTerminalStateId();
+                    if (!isTerminalState) {
+                        stateGroup.classList.remove('collapsed');
+                    }
 
                     // Move the task card to the top of the body
                     if (body.firstChild) {
@@ -4401,8 +4536,11 @@
                 const oldStateId = oldBody ? parseInt(oldBody.dataset.stateId) : null;
                 const changedState = (newStateId !== oldStateId);
 
-                // Expand the state if collapsed
-                stateGroup.classList.remove('collapsed');
+                // Expand the state if collapsed (except for terminal state)
+                const isTerminalState = newStateId === getTerminalStateId();
+                if (!isTerminalState) {
+                    stateGroup.classList.remove('collapsed');
+                }
 
                 // Move the task card to the top of the body
                 if (body.firstChild) {
@@ -4471,6 +4609,7 @@
         renderCalendarEvents();
         updatePanelCounts();
         updateCalendarMetrics();
+        updateStateTypeLabels();
 
         // Subtle icon color animation
         (function() {
