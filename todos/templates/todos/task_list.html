@@ -5392,6 +5392,8 @@
                 // Don't toggle collapsed if clicking expand button or completed toggle
                 if (e.target.closest('.panel-expand-btn')) return;
                 if (e.target.closest('.completed-toggle-inline')) return;
+                // Don't toggle vertical collapse if panel is horizontally minimized
+                if (tasksPanel.classList.contains('minimized')) return;
                 tasksPanel.classList.toggle('collapsed');
                 updateTasksPanelWrapperState();
             });
@@ -5401,6 +5403,8 @@
             calendarPanelHeader.addEventListener('click', function(e) {
                 // Don't toggle collapsed if clicking expand button
                 if (e.target.closest('.panel-expand-btn')) return;
+                // Don't toggle vertical collapse if panel is horizontally minimized
+                if (calendarPanel.classList.contains('minimized')) return;
                 calendarPanel.classList.toggle('collapsed');
             });
         }
