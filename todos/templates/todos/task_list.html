@@ -485,7 +485,6 @@
 
         .critical-toggle label {
             cursor: pointer;
-            color: #dc3545;
             font-weight: 500;
         }
 
@@ -2696,6 +2695,15 @@
             titleEl.style.height = 'auto';
             titleEl.style.height = titleEl.scrollHeight + 'px';
         }
+
+        // Configure marked to open links in new tabs
+        const renderer = new marked.Renderer();
+        const originalLinkRenderer = renderer.link.bind(renderer);
+        renderer.link = function(href, title, text) {
+            const html = originalLinkRenderer(href, title, text);
+            return html.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ');
+        };
+        marked.setOptions({ renderer: renderer });
 
         // Markdown preview handling
         const detailsTextarea = document.getElementById('panel-details');
