@@ -3673,7 +3673,11 @@
                     countDiv.className = 'calendar-task-count';
                     countDiv.textContent = `${taskCount} tasks`;
                     countDiv.dataset.sectionId = section.dataset.section;
-                    countDiv.dataset.timePeriod = section.closest('.calendar-box').dataset.timePeriod;
+
+                    const calendarBox = section.closest('.calendar-box');
+                    if (calendarBox) {
+                        countDiv.dataset.timePeriod = calendarBox.dataset.timePeriod;
+                    }
 
                     countDiv.addEventListener('click', function() {
                         openTimeslotPanel(section);
@@ -3691,9 +3695,16 @@
         function openTimeslotPanel(section) {
             currentTimeslotSection = section;
             const content = section.querySelector('.calendar-section-content');
+            if (!content) return;
+
             const tasks = Array.from(content.querySelectorAll('.kanban-card'));
-            const timeLabel = section.querySelector('.calendar-time-label').textContent;
-            const timePeriod = section.closest('.calendar-box').dataset.timePeriod;
+            const timeLabelEl = section.querySelector('.calendar-time-label');
+            const calendarBox = section.closest('.calendar-box');
+
+            if (!timeLabelEl || !calendarBox) return;
+
+            const timeLabel = timeLabelEl.textContent;
+            const timePeriod = calendarBox.dataset.timePeriod;
 
             // Set panel title
             document.getElementById('timeslot-panel-title').textContent =
