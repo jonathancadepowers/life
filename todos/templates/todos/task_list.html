@@ -1286,8 +1286,8 @@
 
         .panels-wrapper {
             display: flex;
+            flex-direction: column;
             gap: 1rem;
-            height: 870px;
         }
 
         .panel {
@@ -1297,31 +1297,23 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: flex 0.3s ease, min-width 0.3s ease, opacity 0.3s ease;
+            transition: max-height 0.3s ease;
             position: relative;
         }
 
         .panel.tasks-panel {
-            flex: 1;
-            min-width: 300px;
+            max-height: 500px;
         }
 
         .panel.calendar-panel {
-            flex: 1;
-            min-width: 300px;
+            max-height: 870px;
         }
 
         .panel.collapsed {
-            flex: 0 0 48px;
-            min-width: 48px;
-            max-width: 48px;
+            max-height: 48px;
         }
 
         .panel.collapsed .panel-content {
-            display: none;
-        }
-
-        .panel.collapsed .panel-header-title {
             display: none;
         }
 
@@ -1366,11 +1358,7 @@
             color: #495057;
         }
 
-        .panel.tasks-panel.collapsed .panel-collapse-btn {
-            transform: rotate(180deg);
-        }
-
-        .panel.calendar-panel.collapsed .panel-collapse-btn {
+        .panel.collapsed .panel-collapse-btn {
             transform: rotate(180deg);
         }
 
@@ -1380,25 +1368,8 @@
             padding: 1rem;
         }
 
-        /* Collapsed panel vertical text */
         .panel-header-vertical {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            transform: rotate(180deg);
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #495057;
             display: none;
-            position: absolute;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%) rotate(180deg);
-        }
-
-        .panel.collapsed .panel-header-vertical {
-            display: block;
         }
 
         .panel.collapsed .panel-header {
@@ -1787,16 +1758,15 @@
     <div class="two-panel-container">
         <div class="panels-wrapper">
             <!-- Tasks Panel -->
-            <div class="panel tasks-panel" id="tasks-panel">
+            <div class="panel tasks-panel collapsed" id="tasks-panel">
                 <div class="panel-header">
                     <div class="panel-header-left">
                         <span class="panel-header-title">Tasks</span>
                     </div>
                     <button class="panel-collapse-btn" id="tasks-collapse-btn" title="Collapse Tasks">
-                        <i class="bi bi-chevron-left"></i>
+                        <i class="bi bi-chevron-down"></i>
                     </button>
                 </div>
-                <span class="panel-header-vertical">Tasks</span>
                 <div class="panel-content" id="tasks-content">
                     {% for state in states %}
                     {% if not state.is_terminal %}
@@ -1830,16 +1800,15 @@
             </div>
 
             <!-- Calendar Panel -->
-            <div class="panel calendar-panel" id="calendar-panel">
+            <div class="panel calendar-panel collapsed" id="calendar-panel">
                 <div class="panel-header">
-                    <button class="panel-collapse-btn" id="calendar-collapse-btn" title="Collapse Calendar">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
                     <div class="panel-header-left">
                         <span class="panel-header-title">Calendar</span>
                     </div>
+                    <button class="panel-collapse-btn" id="calendar-collapse-btn" title="Collapse Calendar">
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
                 </div>
-                <span class="panel-header-vertical">Calendar</span>
                 <div class="panel-content">
                     <div class="calendar-date-header">
                         <span class="calendar-date-text" id="calendar-date-text">Today</span>
