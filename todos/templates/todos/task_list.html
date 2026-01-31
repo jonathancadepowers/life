@@ -4398,54 +4398,30 @@
 
         // Clicking preview switches to edit mode and positions cursor at click location
         detailsPreview.addEventListener('click', function(e) {
-            const clickX = e.clientX;
-            const clickY = e.clientY;
+            // Get click position relative to preview
+            const previewRect = detailsPreview.getBoundingClientRect();
+            const relativeY = (e.clientY - previewRect.top) / previewRect.height;
 
-            // Switch to edit mode without focusing
+            // Switch to edit mode
             detailsPreview.style.display = 'none';
             detailsTextarea.style.display = 'block';
             markdownEditBtn.classList.add('active');
             markdownViewBtn.classList.remove('active');
 
-            // Use caretRangeFromPoint to position cursor where user clicked
-            requestAnimationFrame(() => {
-                // Try to get caret position from click coordinates
-                if (document.caretRangeFromPoint) {
-                    const range = document.caretRangeFromPoint(clickX, clickY);
-                    if (range && detailsTextarea.contains(range.startContainer) || range.startContainer === detailsTextarea) {
-                        detailsTextarea.focus();
-                        detailsTextarea.setSelectionRange(range.startOffset, range.startOffset);
-                        return;
-                    }
-                }
+            // Position cursor based on relative click position
+            detailsTextarea.focus();
+            const textLength = detailsTextarea.value.length;
 
-                // Fallback: simulate click on textarea at same coordinates
-                const rect = detailsTextarea.getBoundingClientRect();
-                if (clickX >= rect.left && clickX <= rect.right && clickY >= rect.top && clickY <= rect.bottom) {
-                    // Create and dispatch a click event at the same position
-                    const clickEvent = new MouseEvent('mousedown', {
-                        bubbles: true,
-                        cancelable: true,
-                        clientX: clickX,
-                        clientY: clickY
-                    });
-                    detailsTextarea.dispatchEvent(clickEvent);
-                    detailsTextarea.focus();
+            // Map the relative Y position to a character position
+            // This is approximate but gives a reasonable starting point
+            const cursorPos = Math.floor(relativeY * textLength);
+            detailsTextarea.setSelectionRange(cursorPos, cursorPos);
 
-                    // Also dispatch mouseup to complete the click
-                    const mouseupEvent = new MouseEvent('mouseup', {
-                        bubbles: true,
-                        cancelable: true,
-                        clientX: clickX,
-                        clientY: clickY
-                    });
-                    detailsTextarea.dispatchEvent(mouseupEvent);
-                } else {
-                    // Click was outside textarea bounds, just focus at end
-                    detailsTextarea.focus();
-                    detailsTextarea.selectionStart = detailsTextarea.selectionEnd = detailsTextarea.value.length;
-                }
-            });
+            // Scroll to make cursor visible
+            const lineHeight = parseInt(getComputedStyle(detailsTextarea).lineHeight) || 20;
+            const charsPerLine = 60; // Approximate
+            const lineNumber = Math.floor(cursorPos / charsPerLine);
+            detailsTextarea.scrollTop = lineNumber * lineHeight - detailsTextarea.clientHeight / 2;
         });
 
         // Auto-save on changes
@@ -5837,11 +5813,6 @@
                 menuHtml += `<div class="task-context-menu-item" style="color: #999; font-style: italic;">No tags yet</div>`;
             } else {
                 // Add tags section
-                menuHtml += `
-                    <div class="task-context-menu-item" style="color: #6c757d; font-size: 0.75rem; cursor: default; padding: 0.25rem 0.75rem;">
-                        Add tag to all selected
-                    </div>
-                `;
                 tagsList.forEach(tag => {
                     menuHtml += `
                         <div class="task-context-menu-item" onclick="batchAddTag(${tag.id})">
@@ -5852,12 +5823,7 @@
                 });
 
                 // Remove tags section
-                menuHtml += `
-                    <div class="task-context-menu-divider"></div>
-                    <div class="task-context-menu-item" style="color: #6c757d; font-size: 0.75rem; cursor: default; padding: 0.25rem 0.75rem;">
-                        Remove tag from all selected
-                    </div>
-                `;
+                menuHtml += `<div class="task-context-menu-divider"></div>`;
                 tagsList.forEach(tag => {
                     menuHtml += `
                         <div class="task-context-menu-item" onclick="batchRemoveTag(${tag.id})">
@@ -9880,10 +9846,6 @@
                         }
                     }
 
-                    // Clear selection after drop
-                    if (isMultiDrop) {
-                        clearTaskSelection();
-                    }
                 });
             });
         }
@@ -10032,11 +9994,6 @@
                             console.error('Error updating old state order:', error);
                         }
                     }
-
-                    // Clear selection after drop
-                    if (isMultiDrop) {
-                        clearTaskSelection();
-                    }
                 });
             }
 
@@ -10184,11 +10141,6 @@
                         });
                     } catch (error) {
                         console.error('Error reordering tasks:', error);
-                    }
-
-                    // Clear selection after drop
-                    if (isMultiDrop) {
-                        clearTaskSelection();
                     }
                 });
             }
@@ -10341,11 +10293,6 @@
                     });
                 } catch (error) {
                     console.error('Error reordering tasks:', error);
-                }
-
-                // Clear selection after drop
-                if (isMultiDrop) {
-                    clearTaskSelection();
                 }
             });
         });
