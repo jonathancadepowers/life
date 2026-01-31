@@ -97,3 +97,26 @@ class TimeBlock(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TaskDetailTemplate(models.Model):
+    """A reusable template for task details markdown content."""
+
+    name = models.CharField(max_length=100)
+    content = models.TextField()
+    is_default = models.BooleanField(default=False)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        # If this template is being set as default, unset any other defaults
+        if self.is_default:
+            TaskDetailTemplate.objects.filter(is_default=True).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)

@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import pytz
 
-from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule
+from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule, TaskDetailTemplate
 from calendar_events.models import CalendarEvent
 
 
@@ -42,6 +42,7 @@ def task_list(request):
     tasks = Task.objects.select_related('state').prefetch_related('tags', 'schedules').all()
     states = TaskState.objects.all()
     tags = TaskTag.objects.all()
+    detail_templates = TaskDetailTemplate.objects.all()
 
     # Get calendar events for today and nearby (let JS filter by local timezone)
     # Query a wider window to support browsing to past/future dates
@@ -82,12 +83,23 @@ def task_list(request):
             'end': block.end_time.isoformat(),
         })
 
+    # Prepare templates data for JavaScript
+    templates_data = []
+    for template in detail_templates:
+        templates_data.append({
+            'id': template.id,
+            'name': template.name,
+            'content': template.content,
+            'is_default': template.is_default,
+        })
+
     return render(request, 'todos/task_list.html', {
         'tasks': tasks,
         'states': states,
         'tags': tags,
         'calendar_events': json.dumps(events_data),
         'time_blocks': json.dumps(time_blocks_data),
+        'detail_templates': json.dumps(templates_data),
     })
 
 
@@ -654,3 +666,101 @@ def delete_task_schedules(request, task_id):
         })
     except Task.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+
+
+# ========== Task Detail Template Views ==========
+
+def list_templates(request):
+    """List all task detail templates."""
+    templates = TaskDetailTemplate.objects.all()
+    return JsonResponse({
+        'success': True,
+        'templates': [
+            {
+                'id': t.id,
+                'name': t.name,
+                'content': t.content,
+                'is_default': t.is_default,
+                'order': t.order,
+            }
+            for t in templates
+        ]
+    })
+
+
+@require_POST
+def create_template(request):
+    """Create a new task detail template via AJAX."""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        content = data.get('content', '')
+        is_default = data.get('is_default', False)
+
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+
+        # Set order to be at the end
+        max_order = TaskDetailTemplate.objects.count()
+        template = TaskDetailTemplate.objects.create(
+            name=name,
+            content=content,
+            is_default=is_default,
+            order=max_order
+        )
+
+        return JsonResponse({
+            'success': True,
+            'template': {
+                'id': template.id,
+                'name': template.name,
+                'content': template.content,
+                'is_default': template.is_default,
+                'order': template.order,
+            }
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_http_methods(["PATCH"])
+def update_template(request, template_id):
+    """Update a task detail template via AJAX."""
+    try:
+        template = TaskDetailTemplate.objects.get(id=template_id)
+        data = json.loads(request.body)
+
+        if 'name' in data:
+            template.name = data['name'].strip()
+        if 'content' in data:
+            template.content = data['content']
+        if 'is_default' in data:
+            template.is_default = data['is_default']
+
+        template.save()
+
+        return JsonResponse({
+            'success': True,
+            'template': {
+                'id': template.id,
+                'name': template.name,
+                'content': template.content,
+                'is_default': template.is_default,
+                'order': template.order,
+            }
+        })
+    except TaskDetailTemplate.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Template not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_http_methods(["DELETE"])
+def delete_template(request, template_id):
+    """Delete a task detail template via AJAX."""
+    try:
+        template = TaskDetailTemplate.objects.get(id=template_id)
+        template.delete()
+        return JsonResponse({'success': True})
+    except TaskDetailTemplate.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Template not found'}, status=404)

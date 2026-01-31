@@ -271,6 +271,219 @@
             background: #5a7d6e;
         }
 
+        .modal-textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .modal-textarea:focus {
+            outline: none;
+            border-color: #6B9080;
+            box-shadow: 0 0 0 2px rgba(107, 144, 128, 0.2);
+        }
+
+        .template-default-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .template-default-toggle input[type="checkbox"] {
+            accent-color: #6B9080;
+        }
+
+        /* Template list in settings */
+        .template-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .template-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .template-item-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .template-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .template-default-badge {
+            font-size: 0.65rem;
+            background: #6B9080;
+            color: white;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .template-item-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .template-item-btn {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0.2rem;
+            border-radius: 3px;
+            transition: all 0.15s;
+        }
+
+        .template-item-btn:hover {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .template-item-btn.delete:hover {
+            background: #f8d7da;
+            color: #dc3545;
+        }
+
+        .add-template-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            width: 100%;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border: 1px dashed #dee2e6;
+            border-radius: 4px;
+            color: #6c757d;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .add-template-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            color: #333;
+        }
+
+        /* Template dropdown in task panel */
+        .panel-details-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .template-dropdown {
+            position: relative;
+        }
+
+        .template-dropdown-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            color: #495057;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .template-dropdown-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .template-dropdown-btn i:last-child {
+            font-size: 0.6rem;
+            margin-left: 0.15rem;
+        }
+
+        .template-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            min-width: 180px;
+            max-width: 250px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100;
+            margin-top: 2px;
+        }
+
+        .template-dropdown-menu.show {
+            display: block;
+        }
+
+        .template-dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            color: #333;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .template-dropdown-item:hover {
+            background: #f8f9fa;
+        }
+
+        .template-dropdown-item:first-child {
+            border-radius: 3px 3px 0 0;
+        }
+
+        .template-dropdown-item:last-child {
+            border-radius: 0 0 3px 3px;
+        }
+
+        .template-dropdown-item .default-indicator {
+            font-size: 0.65rem;
+            color: #6B9080;
+            font-weight: 500;
+        }
+
+        .template-dropdown-empty {
+            padding: 0.75rem;
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: center;
+        }
+
         .time-slot-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -3041,6 +3254,17 @@
                     {% endfor %}
                 </ul>
             </div>
+
+            <!-- Task Detail Templates Section -->
+            <div class="settings-section">
+                <div class="settings-section-header">Task Detail Templates</div>
+                <div class="template-list" id="template-list">
+                    <!-- Templates will be populated by JavaScript -->
+                </div>
+                <button class="add-template-btn" id="add-template-btn">
+                    <i class="bi bi-plus-lg"></i> Add Template
+                </button>
+            </div>
         </div>
     </div>
 
@@ -3074,9 +3298,21 @@
                         </span>
                     </span>
                 </span>
-                <div class="markdown-mode-toggle">
-                    <button type="button" class="markdown-mode-btn active" id="markdown-edit-btn">Edit</button>
-                    <button type="button" class="markdown-mode-btn" id="markdown-view-btn">View</button>
+                <div class="panel-details-actions">
+                    <div class="template-dropdown" id="template-dropdown">
+                        <button type="button" class="template-dropdown-btn" id="template-dropdown-btn" title="Load template">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <span>Template</span>
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                        <div class="template-dropdown-menu" id="template-dropdown-menu">
+                            <!-- Template options populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="markdown-mode-toggle">
+                        <button type="button" class="markdown-mode-btn active" id="markdown-edit-btn">Edit</button>
+                        <button type="button" class="markdown-mode-btn" id="markdown-view-btn">View</button>
+                    </div>
                 </div>
             </div>
             <div class="panel-details-container">
@@ -3186,6 +3422,31 @@
             </div>
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" id="add-event-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Detail Template Modal -->
+    <div class="modal-overlay" id="template-modal">
+        <div class="modal-content" style="width: 450px;">
+            <div class="modal-title" id="template-modal-title">New Template</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 0.75rem;">
+                    <label for="template-name-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Template Name</label>
+                    <input type="text" class="modal-input" id="template-name-input" placeholder="e.g., Meeting Notes" style="margin-bottom: 0;">
+                </div>
+                <div style="margin-bottom: 0.75rem;">
+                    <label for="template-content-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Content (Markdown)</label>
+                    <textarea class="modal-textarea" id="template-content-input" placeholder="## Overview&#10;&#10;## Action Items&#10;- [ ] &#10;&#10;## Notes" rows="10"></textarea>
+                </div>
+                <div class="template-default-toggle">
+                    <input type="checkbox" id="template-is-default">
+                    <label for="template-is-default">Set as default template</label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="template-modal-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-primary" id="template-modal-save">Save</button>
             </div>
         </div>
     </div>
@@ -6261,6 +6522,9 @@
         // Time blocks from database (UTC ISO timestamps)
         let timeBlocks = {{ time_blocks|safe }};
 
+        // Task detail templates from database
+        let detailTemplates = {{ detail_templates|safe }};
+
         // Render calendar events on the hourly grid (using browser's local timezone)
         function renderCalendarEvents() {
             // Remove existing event elements before re-rendering
@@ -8950,6 +9214,262 @@
                 setTimeout(processCalendarSections, 100);
             });
         });
+
+        // ========== Task Detail Templates ==========
+
+        let editingTemplateId = null;
+
+        // Render templates list in settings panel
+        function renderTemplateList() {
+            const list = document.getElementById('template-list');
+            if (!list) return;
+
+            if (detailTemplates.length === 0) {
+                list.innerHTML = '<div style="color: #6c757d; font-size: 0.8rem; text-align: center; padding: 0.5rem;">No templates yet</div>';
+                return;
+            }
+
+            list.innerHTML = detailTemplates.map(t => `
+                <div class="template-item" data-template-id="${t.id}">
+                    <div class="template-item-left">
+                        <span class="template-item-name">${escapeHtml(t.name)}</span>
+                        ${t.is_default ? '<span class="template-default-badge">Default</span>' : ''}
+                    </div>
+                    <div class="template-item-actions">
+                        <button class="template-item-btn" onclick="editTemplate(${t.id})" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="template-item-btn delete" onclick="deleteTemplate(${t.id})" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render template dropdown in task panel
+        function renderTemplateDropdown() {
+            const menu = document.getElementById('template-dropdown-menu');
+            if (!menu) return;
+
+            if (detailTemplates.length === 0) {
+                menu.innerHTML = '<div class="template-dropdown-empty">No templates available</div>';
+                return;
+            }
+
+            menu.innerHTML = detailTemplates.map(t => `
+                <button class="template-dropdown-item" onclick="loadTemplate(${t.id})">
+                    <span>${escapeHtml(t.name)}</span>
+                    ${t.is_default ? '<span class="default-indicator">Default</span>' : ''}
+                </button>
+            `).join('');
+        }
+
+        // Helper to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Open template modal for creating new template
+        function openNewTemplateModal() {
+            editingTemplateId = null;
+            document.getElementById('template-modal-title').textContent = 'New Template';
+            document.getElementById('template-name-input').value = '';
+            document.getElementById('template-content-input').value = '';
+            document.getElementById('template-is-default').checked = false;
+            document.getElementById('template-modal').classList.add('active');
+            document.getElementById('template-name-input').focus();
+        }
+
+        // Open template modal for editing existing template
+        function editTemplate(templateId) {
+            const template = detailTemplates.find(t => t.id === templateId);
+            if (!template) return;
+
+            editingTemplateId = templateId;
+            document.getElementById('template-modal-title').textContent = 'Edit Template';
+            document.getElementById('template-name-input').value = template.name;
+            document.getElementById('template-content-input').value = template.content;
+            document.getElementById('template-is-default').checked = template.is_default;
+            document.getElementById('template-modal').classList.add('active');
+            document.getElementById('template-name-input').focus();
+        }
+
+        // Close template modal
+        function closeTemplateModal() {
+            document.getElementById('template-modal').classList.remove('active');
+            editingTemplateId = null;
+        }
+
+        // Save template (create or update)
+        async function saveTemplate() {
+            const name = document.getElementById('template-name-input').value.trim();
+            const content = document.getElementById('template-content-input').value;
+            const isDefault = document.getElementById('template-is-default').checked;
+
+            if (!name) {
+                showAlertModal('Please enter a template name.', 'Error');
+                return;
+            }
+
+            try {
+                let response;
+                if (editingTemplateId) {
+                    // Update existing template
+                    response = await fetch(`/tasks/api/templates/${editingTemplateId}/update/`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ name, content, is_default: isDefault })
+                    });
+                } else {
+                    // Create new template
+                    response = await fetch('/tasks/api/templates/create/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ name, content, is_default: isDefault })
+                    });
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    // Refresh templates from server
+                    await refreshTemplates();
+                    closeTemplateModal();
+                } else {
+                    showAlertModal(data.error || 'Failed to save template', 'Error');
+                }
+            } catch (error) {
+                console.error('Error saving template:', error);
+                showAlertModal('Failed to save template', 'Error');
+            }
+        }
+
+        // Delete template
+        async function deleteTemplate(templateId) {
+            const template = detailTemplates.find(t => t.id === templateId);
+            if (!template) return;
+
+            const confirmed = await showConfirmModal(
+                `Are you sure you want to delete the template "${template.name}"?`,
+                'Delete Template'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/tasks/api/templates/${templateId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    await refreshTemplates();
+                } else {
+                    showAlertModal(data.error || 'Failed to delete template', 'Error');
+                }
+            } catch (error) {
+                console.error('Error deleting template:', error);
+                showAlertModal('Failed to delete template', 'Error');
+            }
+        }
+
+        // Refresh templates from server
+        async function refreshTemplates() {
+            try {
+                const response = await fetch('/tasks/api/templates/');
+                const data = await response.json();
+                if (data.success) {
+                    detailTemplates = data.templates;
+                    renderTemplateList();
+                    renderTemplateDropdown();
+                }
+            } catch (error) {
+                console.error('Error refreshing templates:', error);
+            }
+        }
+
+        // Load template into task details
+        async function loadTemplate(templateId) {
+            const template = detailTemplates.find(t => t.id === templateId);
+            if (!template) return;
+
+            const detailsInput = document.getElementById('panel-details');
+            const currentContent = detailsInput.value.trim();
+
+            // Close dropdown
+            document.getElementById('template-dropdown-menu').classList.remove('show');
+
+            // If there's existing content, ask for confirmation
+            if (currentContent) {
+                const confirmed = await showConfirmModal(
+                    'This will replace the current details. Continue?',
+                    'Load Template',
+                    'Replace'
+                );
+                if (!confirmed) return;
+            }
+
+            // Load template content
+            detailsInput.value = template.content;
+
+            // Trigger autosave
+            if (currentTaskId) {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(saveCurrentTask, 500);
+            }
+        }
+
+        // Toggle template dropdown
+        function toggleTemplateDropdown(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('template-dropdown-menu');
+            menu.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('template-dropdown');
+            const menu = document.getElementById('template-dropdown-menu');
+            if (dropdown && menu && !dropdown.contains(e.target)) {
+                menu.classList.remove('show');
+            }
+        });
+
+        // Template modal event listeners
+        document.getElementById('add-template-btn').addEventListener('click', openNewTemplateModal);
+        document.getElementById('template-modal-cancel').addEventListener('click', closeTemplateModal);
+        document.getElementById('template-modal-save').addEventListener('click', saveTemplate);
+        document.getElementById('template-dropdown-btn').addEventListener('click', toggleTemplateDropdown);
+
+        // Close template modal on overlay click
+        document.getElementById('template-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTemplateModal();
+            }
+        });
+
+        // Handle Enter key in template name input
+        document.getElementById('template-name-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('template-content-input').focus();
+            }
+        });
+
+        // Initialize templates on page load
+        renderTemplateList();
+        renderTemplateDropdown();
 
     </script>
 </body>
