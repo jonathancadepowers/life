@@ -5076,10 +5076,13 @@
         async function toggleTaskCritical(taskId) {
             closeContextMenu();
 
-            // Find the card (could be kanban-card or task-card)
+            // Find the card (could be kanban-card, task-card, or calendar-scheduled-task)
             let card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
             let taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
-            const isCritical = (card && card.classList.contains('critical')) || (taskCard && taskCard.classList.contains('critical'));
+            let scheduledTask = document.querySelector(`.calendar-scheduled-task[data-task-id="${taskId}"]`);
+            const isCritical = (card && card.classList.contains('critical')) ||
+                              (taskCard && taskCard.classList.contains('critical')) ||
+                              (scheduledTask && scheduledTask.classList.contains('critical'));
 
             try {
                 const response = await fetch(`/tasks/api/${taskId}/update/`, {
@@ -5103,6 +5106,14 @@
                             taskCard.classList.add('critical');
                         } else {
                             taskCard.classList.remove('critical');
+                        }
+                    }
+                    // Update the calendar scheduled task
+                    if (scheduledTask) {
+                        if (data.task.critical) {
+                            scheduledTask.classList.add('critical');
+                        } else {
+                            scheduledTask.classList.remove('critical');
                         }
                     }
                 }
