@@ -2198,19 +2198,10 @@
 
         .state-name.system-state-name {
             cursor: default;
-            color: #6c757d;
-            font-style: italic;
         }
 
         .state-name.system-state-name:hover {
             background: transparent;
-        }
-
-        .state-item.system-state {
-            background: #f8f9fa;
-            border-top: 1px dashed #dee2e6;
-            margin-top: 0.5rem;
-            padding-top: 0.5rem;
         }
 
         .state-name-input {
@@ -4446,7 +4437,7 @@
                 </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
-                    <li class="state-item{% if state.is_system %} system-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" draggable="{% if state.is_system %}false{% else %}true{% endif %}">
+                    <li class="state-item" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" draggable="{% if state.is_system %}false{% else %}true{% endif %}">
                         <div class="state-item-left">
                             <i class="bi bi-grip-vertical state-drag-handle"{% if state.is_system %} style="visibility: hidden;"{% endif %}></i>
                             <span class="state-name{% if state.is_system %} system-state-name{% endif %}"{% if not state.is_system %} onclick="editStateName({{ state.id }}, this)"{% endif %}>{{ state.name }}</span>
