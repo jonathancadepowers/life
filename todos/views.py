@@ -27,6 +27,7 @@ def serialize_task(task):
         'deadline': task.deadline.isoformat() if task.deadline else None,
         'deadline_dismissed': task.deadline_dismissed,
         'state_changed_at': task.state_changed_at.isoformat() if task.state_changed_at else None,
+        'updated_at': task.updated_at.isoformat() if task.updated_at else None,
         'calendar_start_time': first_schedule.start_time.isoformat() if first_schedule else None,
         'calendar_end_time': first_schedule.end_time.isoformat() if first_schedule else None,
         'schedules': [
@@ -894,12 +895,12 @@ def process_abandoned_tasks(request):
             })
 
         # Find tasks that should be abandoned
-        # Tasks where state_changed_at < (now - X days)
+        # Tasks where updated_at < (now - X days) - any edit resets the timer
         # Excluding: terminal state, already abandoned, no state
         threshold_date = timezone.now() - timedelta(days=abandoned_days)
 
         tasks_to_abandon = Task.objects.filter(
-            state_changed_at__lt=threshold_date
+            updated_at__lt=threshold_date
         ).exclude(
             state=terminal_state  # Not already completed
         ).exclude(

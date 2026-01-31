@@ -4723,10 +4723,10 @@
         };
         {% endfor %}
 
-        // Store task state_changed_at for abandonment calculations
-        let taskStateChangedMap = {};
+        // Store task updated_at for abandonment calculations (any edit resets the timer)
+        let taskUpdatedAtMap = {};
         {% for task in tasks %}
-        taskStateChangedMap[{{ task.id }}] = {% if task.state_changed_at %}"{{ task.state_changed_at|date:'c' }}"{% else %}null{% endif %};
+        taskUpdatedAtMap[{{ task.id }}] = {% if task.updated_at %}"{{ task.updated_at|date:'c' }}"{% else %}null{% endif %};
         {% endfor %}
 
         // Abandoned state tracking
@@ -4989,16 +4989,16 @@
             // Check for near-abandoned tasks (within 3 days of threshold)
             if (autoAbandonEnabled && abandonedDays > 0) {
                 const warningThreshold = abandonedDays - 3;
-                for (const [taskId, stateChangedAt] of Object.entries(taskStateChangedMap)) {
-                    if (!stateChangedAt) continue;
+                for (const [taskId, updatedAt] of Object.entries(taskUpdatedAtMap)) {
+                    if (!updatedAt) continue;
                     if (isTaskInTerminalState(taskId)) continue;
                     if (isTaskInAbandonedState(taskId)) continue;
 
-                    const changedDate = new Date(stateChangedAt);
-                    const daysSinceChange = Math.floor((today - changedDate) / (1000 * 60 * 60 * 24));
+                    const lastEditDate = new Date(updatedAt);
+                    const daysSinceEdit = Math.floor((today - lastEditDate) / (1000 * 60 * 60 * 24));
 
-                    if (daysSinceChange >= warningThreshold && daysSinceChange < abandonedDays) {
-                        const daysUntilAbandoned = abandonedDays - daysSinceChange;
+                    if (daysSinceEdit >= warningThreshold && daysSinceEdit < abandonedDays) {
+                        const daysUntilAbandoned = abandonedDays - daysSinceEdit;
                         const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"], .kanban-card[data-task-id="${taskId}"]`);
                         const title = taskCard ? taskCard.querySelector('.task-card-title, .kanban-card-title')?.textContent : `Task ${taskId}`;
 
@@ -11258,8 +11258,8 @@
                                 });
                                 const data = await response.json();
                                 if (data.success && data.task) {
-                                    // Update local maps with new state_changed_at
-                                    taskStateChangedMap[taskId] = data.task.state_changed_at;
+                                    // Update local maps with new updated_at
+                                    taskUpdatedAtMap[taskId] = data.task.updated_at;
                                     if (taskDeadlinesMap[taskId]) {
                                         taskDeadlinesMap[taskId].state_id = newStateId;
                                     }
@@ -11420,8 +11420,8 @@
                                 });
                                 const data = await response.json();
                                 if (data.success && data.task) {
-                                    // Update local maps with new state_changed_at
-                                    taskStateChangedMap[taskId] = data.task.state_changed_at;
+                                    // Update local maps with new updated_at
+                                    taskUpdatedAtMap[taskId] = data.task.updated_at;
                                     if (taskDeadlinesMap[taskId]) {
                                         taskDeadlinesMap[taskId].state_id = newStateId;
                                     }
@@ -11579,7 +11579,7 @@
                                 });
                                 const data = await response.json();
                                 if (data.success && data.task) {
-                                    taskStateChangedMap[taskId] = data.task.state_changed_at;
+                                    taskUpdatedAtMap[taskId] = data.task.updated_at;
                                     if (taskDeadlinesMap[taskId]) {
                                         taskDeadlinesMap[taskId].state_id = newStateId;
                                     }
@@ -11742,7 +11742,7 @@
                             });
                             const data = await response.json();
                             if (data.success && data.task) {
-                                taskStateChangedMap[taskId] = data.task.state_changed_at;
+                                taskUpdatedAtMap[taskId] = data.task.updated_at;
                                 if (taskDeadlinesMap[taskId]) {
                                     taskDeadlinesMap[taskId].state_id = newStateId;
                                 }
