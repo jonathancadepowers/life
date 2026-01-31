@@ -4410,6 +4410,18 @@
             });
         });
 
+        // Handle Enter key in title field - save immediately without creating line break
+        document.getElementById('panel-title').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                // Trigger immediate save
+                if (saveTimeout) clearTimeout(saveTimeout);
+                saveCurrentTask();
+                // Blur the field to indicate save completed
+                this.blur();
+            }
+        });
+
         async function saveCurrentTask() {
             if (!currentTaskId) return;
 
