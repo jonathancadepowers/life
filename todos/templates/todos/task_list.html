@@ -92,7 +92,7 @@
         }
 
         .task-item:hover {
-            background-color: #f1f3f4;
+            background-color: #f0f7f4;
         }
 
         .task-item.critical .task-title {
@@ -2747,7 +2747,7 @@
 </head>
 <body>
     <!-- Sidebar icons -->
-    <div style="position: fixed !important; top: 1.5rem !important; left: 1.5rem !important; z-index: 10000 !important; display: flex !important; flex-direction: column !important; gap: 0.75rem !important;">
+    <div id="sidebar-icons" style="position: fixed !important; top: 1.5rem !important; left: 1.5rem !important; z-index: 10000 !important; display: flex !important; flex-direction: column !important; gap: 0.75rem !important;">
         <div style="position: relative;">
             <i class="bi bi-binoculars-fill sidebar-icon" id="filter-icon" title="Filter"></i>
             <span class="filter-badge" id="filter-badge" style="display: none;">0</span>
@@ -2926,8 +2926,8 @@
             <div class="panel calendar-panel collapsed" id="calendar-panel">
                 <div class="panel-header" id="calendar-panel-header" style="cursor: pointer;">
                     <div class="panel-header-left">
-                        <i class="bi bi-calendar-heart panel-header-icon"></i>
-                        <span class="panel-header-title">Calendar</span>
+                        <i class="bi bi-brightness-high-fill panel-header-icon"></i>
+                        <span class="panel-header-title">Today</span>
                     </div>
                     <div class="panel-header-right">
                         <div class="panel-collapsed-metrics" id="calendar-collapsed-metrics">
@@ -3715,11 +3715,15 @@
         document.getElementById('settings-gear').addEventListener('click', () => {
             document.getElementById('context-panel-overlay').classList.add('active');
             document.getElementById('context-panel').classList.add('active');
+            // Hide sidebar icons when Settings panel opens
+            document.getElementById('sidebar-icons').style.display = 'none';
         });
 
         function closeContextPanel() {
             document.getElementById('context-panel-overlay').classList.remove('active');
             document.getElementById('context-panel').classList.remove('active');
+            // Show sidebar icons when Settings panel closes
+            document.getElementById('sidebar-icons').style.display = 'flex';
         }
 
         document.getElementById('context-panel-close').addEventListener('click', closeContextPanel);
@@ -5032,6 +5036,42 @@
             }
         }
 
+        async function deleteTag(tagId) {
+            try {
+                const response = await fetch(`/tasks/api/tags/${tagId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Remove from tagsList
+                    tagsList = tagsList.filter(t => t.id !== tagId);
+
+                    // Remove from all tasks in taskTagsMap
+                    Object.keys(taskTagsMap).forEach(taskId => {
+                        taskTagsMap[taskId] = taskTagsMap[taskId].filter(t => t.id !== tagId);
+                        // Update UI for each task
+                        updateTaskCardTags(taskId, taskTagsMap[taskId]);
+                    });
+
+                    // Remove from active filters if present
+                    activeFilters.tags = activeFilters.tags.filter(id => id !== tagId);
+
+                    // Refresh filter tags list
+                    populateFilterTags(filterTagsSearch.value);
+
+                    // Reapply filters
+                    applyFilters();
+                }
+            } catch (error) {
+                console.error('Error deleting tag:', error);
+            }
+        }
+
         async function toggleTaskCritical(taskId) {
             closeContextMenu();
 
@@ -5197,12 +5237,34 @@
                 const isChecked = activeFilters.tags.includes(tag.id);
                 const label = document.createElement('label');
                 label.className = 'filter-option';
+                label.style.position = 'relative';
                 label.innerHTML = `
                     <input type="checkbox" class="filter-tag-checkbox" data-tag-id="${tag.id}" ${isChecked ? 'checked' : ''}>
                     <span class="task-tag-pill" style="font-size: 0.75rem;">${tag.name}</span>
                     <span style="color: #6c757d; font-size: 0.7rem; margin-left: auto;">(${count})</span>
+                    <i class="bi bi-x-circle delete-tag-btn" data-tag-id="${tag.id}" style="margin-left: 0.5rem; cursor: pointer; color: #dc3545; opacity: 0.6; transition: opacity 0.2s;" title="Delete tag"></i>
                 `;
                 filterTagsList.appendChild(label);
+
+                // Add delete button hover effect
+                const deleteBtn = label.querySelector('.delete-tag-btn');
+                deleteBtn.addEventListener('mouseenter', function() {
+                    this.style.opacity = '1';
+                });
+                deleteBtn.addEventListener('mouseleave', function() {
+                    this.style.opacity = '0.6';
+                });
+                deleteBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const tagId = parseInt(this.dataset.tagId);
+                    const tagName = tag.name;
+
+                    const confirmed = await confirm(`Delete tag "${tagName}"? This will remove it from all tasks.`);
+                    if (confirmed) {
+                        await deleteTag(tagId);
+                    }
+                });
 
                 // Add event listener
                 const checkbox = label.querySelector('.filter-tag-checkbox');
@@ -7672,6 +7734,16 @@
             titleEl.addEventListener('click', function(e) {
                 e.stopPropagation();
                 if (titleEl.querySelector('input')) return; // Already editing
+
+                // Only trigger edit if click is within text width + 50px
+                const range = document.createRange();
+                range.selectNodeContents(titleEl);
+                const textWidth = range.getBoundingClientRect().width;
+                const clickX = e.offsetX;
+
+                if (clickX > textWidth + 50) {
+                    return; // Click was outside the editable area
+                }
 
                 const taskId = card.dataset.taskId;
                 const currentTitle = titleEl.textContent;
