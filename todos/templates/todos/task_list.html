@@ -2021,6 +2021,60 @@
             font-size: 0.8rem;
         }
 
+        .settings-section-header .settings-info-icon {
+            position: relative;
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #adb5bd;
+            cursor: help;
+        }
+
+        .settings-section-header .settings-info-icon:hover {
+            color: #6c757d;
+        }
+
+        .settings-info-tooltip {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: #fff;
+            color: #666;
+            padding: 0.5rem 0.65rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: normal;
+            line-height: 1.5;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            border: 1px solid #e9ecef;
+        }
+
+        .settings-info-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            right: 8px;
+            border: 6px solid transparent;
+            border-bottom-color: #e9ecef;
+        }
+
+        .settings-info-tooltip::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            right: 9px;
+            border: 5px solid transparent;
+            border-bottom-color: #fff;
+        }
+
+        .settings-info-icon:hover .settings-info-tooltip {
+            display: block;
+        }
+
         .settings-section {
             border-bottom: 1px solid #f0f0f0;
             padding-bottom: 0.5rem;
@@ -2062,13 +2116,6 @@
         .abandoned-days-input:focus {
             outline: none;
             border-color: #6B9080;
-        }
-
-        .settings-hint {
-            font-size: 0.75rem;
-            color: #6c757d;
-            margin: 0 1rem 0.5rem;
-            font-style: italic;
         }
 
         /* Toast notification */
@@ -4371,7 +4418,12 @@
         <div class="panel-body" style="padding: 0;">
             <!-- States Section -->
             <div class="settings-section">
-                <div class="settings-section-header"><i class="bi bi-collection"></i> States</div>
+                <div class="settings-section-header">
+                    <i class="bi bi-collection"></i> States
+                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                        <span class="settings-info-tooltip">Workflow stages for organizing tasks. Drag to reorder.</span>
+                    </span>
+                </div>
                 <div class="state-input-container">
                     <input type="text" id="new-state-input" placeholder="Add new state..." autocomplete="off">
                 </div>
@@ -4403,7 +4455,12 @@
 
             <!-- Task Detail Templates Section -->
             <div class="settings-section">
-                <div class="settings-section-header"><i class="bi bi-file-earmark-text"></i> Templates</div>
+                <div class="settings-section-header">
+                    <i class="bi bi-file-earmark-text"></i> Templates
+                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                        <span class="settings-info-tooltip">Reusable markdown templates for task details.</span>
+                    </span>
+                </div>
                 <div class="template-list" id="template-list">
                     <!-- Templates will be populated by JavaScript -->
                 </div>
@@ -4414,7 +4471,12 @@
 
             <!-- Auto-Abandon Section -->
             <div class="settings-section">
-                <div class="settings-section-header"><i class="bi bi-archive"></i> Auto-Abandon</div>
+                <div class="settings-section-header">
+                    <i class="bi bi-archive"></i> Auto-Abandon
+                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                        <span class="settings-info-tooltip">Tasks idle for this many days move to Abandoned.</span>
+                    </span>
+                </div>
                 <div class="settings-row">
                     <label class="settings-toggle">
                         <input type="checkbox" id="auto-abandon-enabled" checked>
@@ -4425,7 +4487,6 @@
                     <label for="abandoned-days-input">Days until abandoned:</label>
                     <input type="number" id="abandoned-days-input" min="1" max="365" value="14" class="abandoned-days-input">
                 </div>
-                <p class="settings-hint">Tasks idle for this many days will be moved to Abandoned.</p>
             </div>
         </div>
     </div>
