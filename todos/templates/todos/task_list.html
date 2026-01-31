@@ -627,22 +627,6 @@
             border-bottom-color: #0d6efd;
         }
 
-        .autosave-hint {
-            font-size: 0.7rem;
-            color: #adb5bd;
-            padding: 0.5rem 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            border-bottom: 1px solid #f0f0f0;
-            background: #fafafa;
-        }
-
-        .autosave-hint i {
-            font-size: 0.65rem;
-            color: #6B9080;
-        }
-
         .panel-details-header {
             display: flex;
             align-items: center;
@@ -925,6 +909,209 @@
 
         .delete-btn:hover {
             color: #dc3545;
+        }
+
+        /* Task Panel Sections */
+        .task-panel-section {
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .task-panel-section:last-child {
+            border-bottom: none;
+        }
+
+        .task-panel-section-header {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6B9080;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.65rem 1rem 0.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+        }
+
+        .task-panel-section-header > span {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .task-panel-section-header i {
+            font-size: 0.8rem;
+        }
+
+        .task-panel-section-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .task-panel-section-content {
+            padding: 0 1rem 0.75rem;
+        }
+
+        /* Task Properties Grid */
+        .task-properties-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .task-property-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .task-property-label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: #6c757d;
+            font-size: 0.85rem;
+            min-width: 80px;
+            padding-top: 0.25rem;
+        }
+
+        .task-property-label i {
+            font-size: 0.9rem;
+        }
+
+        .task-property-value {
+            flex: 1;
+        }
+
+        .task-property-tags {
+            padding-top: 0;
+        }
+
+        .task-property-deadline .task-property-value {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        /* Toggle Switch */
+        .task-toggle {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+        }
+
+        .task-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .task-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 22px;
+        }
+
+        .task-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .task-toggle input:checked + .task-toggle-slider {
+            background-color: #dc3545;
+        }
+
+        .task-toggle input:checked + .task-toggle-slider:before {
+            transform: translateX(18px);
+        }
+
+        /* Updated panel title input for new layout */
+        .task-panel-section .panel-title-input {
+            font-size: 1.1rem;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0;
+            background: #fafbfc;
+        }
+
+        .task-panel-section .panel-title-input:focus {
+            background: white;
+            border-color: #6B9080;
+        }
+
+        /* Updated details container for new layout */
+        .task-panel-section .panel-details-container {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            background: #fafbfc;
+            overflow: hidden;
+        }
+
+        .task-panel-section .panel-details-input {
+            border: none;
+            background: transparent;
+            min-height: 150px;
+            padding: 0.75rem;
+        }
+
+        .task-panel-section .panel-details-input:focus {
+            background: white;
+        }
+
+        .task-panel-section .panel-details-preview {
+            padding: 0.75rem;
+            background: white;
+        }
+
+        /* Compact deadline presets */
+        .task-property-deadline .deadline-presets {
+            gap: 0.35rem;
+        }
+
+        .task-property-deadline .deadline-preset-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .task-property-deadline .deadline-custom-row {
+            gap: 0.35rem;
+        }
+
+        .task-property-deadline .deadline-date-input {
+            padding: 0.25rem 0.4rem;
+            font-size: 0.8rem;
+        }
+
+        .task-property-deadline .deadline-clear-btn {
+            padding: 0.25rem 0.4rem;
+            font-size: 0.75rem;
+        }
+
+        /* Compact template button */
+        .task-panel-section .template-dropdown-btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+        }
+
+        .task-panel-section .template-dropdown-btn span,
+        .task-panel-section .template-dropdown-btn .bi-chevron-down {
+            display: none;
         }
 
         /* Empty state */
@@ -3469,6 +3656,16 @@
             margin-top: 1.5px;
         }
 
+        /* Completed tasks in calendar have strikethrough */
+        .calendar-scheduled-task.completed {
+            opacity: 0.6;
+        }
+
+        .calendar-scheduled-task.completed .calendar-task-title {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+
         /* Drop indicator for calendar - dynamic height based on task duration */
         .hour-content.drag-over::before {
             content: '';
@@ -4055,88 +4252,100 @@
     <div class="panel-overlay" id="panel-overlay"></div>
     <div class="slide-panel" id="slide-panel">
         <div class="panel-header">
-            <span style="font-weight: 500;">Edit Task</span>
+            <span><i class="bi bi-pencil-square" style="margin-right: 0.4rem;"></i>Task Details</span>
             <button class="panel-close" id="panel-close">&times;</button>
         </div>
-        <div class="autosave-hint">
-            <i class="bi bi-check-circle-fill"></i>
-            Changes saved automatically
-        </div>
-        <div class="panel-body">
-            <textarea class="panel-title-input" id="panel-title" placeholder="Task title" rows="1"></textarea>
-            <div class="panel-details-header">
-                <span class="panel-details-label">
-                    Details
-                    <span class="markdown-help-icon">
-                        <i class="bi bi-question-circle"></i>
-                        <span class="markdown-help-tooltip">
-                            <strong>Markdown</strong><br>
-                            <code>**text**</code> bold<br>
-                            <code>*text*</code> italic<br>
-                            <code>[text](url)</code> link<br>
-                            <code>- item</code> bullet<br>
-                            <code>1. item</code> numbered<br>
-                            <code>`code`</code> code<br>
-                            <code>## text</code> heading
-                        </span>
-                    </span>
-                </span>
-                <div class="panel-details-actions">
-                    <div class="template-dropdown" id="template-dropdown">
-                        <button type="button" class="template-dropdown-btn" id="template-dropdown-btn" title="Load template">
-                            <i class="bi bi-file-earmark-text"></i>
-                            <span>Template</span>
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                        <div class="template-dropdown-menu" id="template-dropdown-menu">
-                            <!-- Template options populated by JavaScript -->
+        <div class="panel-body" style="padding: 0;">
+            <!-- Title Section -->
+            <div class="task-panel-section">
+                <div class="task-panel-section-header"><i class="bi bi-type"></i> Title</div>
+                <div class="task-panel-section-content">
+                    <textarea class="panel-title-input" id="panel-title" placeholder="Task title" rows="1"></textarea>
+                </div>
+            </div>
+
+            <!-- Details Section -->
+            <div class="task-panel-section">
+                <div class="task-panel-section-header">
+                    <span><i class="bi bi-card-text"></i> Details</span>
+                    <div class="task-panel-section-actions">
+                        <div class="template-dropdown" id="template-dropdown">
+                            <button type="button" class="template-dropdown-btn" id="template-dropdown-btn" title="Load template">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </button>
+                            <div class="template-dropdown-menu" id="template-dropdown-menu">
+                                <!-- Template options populated by JavaScript -->
+                            </div>
+                        </div>
+                        <div class="markdown-mode-toggle">
+                            <button type="button" class="markdown-mode-btn active" id="markdown-edit-btn">Edit</button>
+                            <button type="button" class="markdown-mode-btn" id="markdown-view-btn">View</button>
                         </div>
                     </div>
-                    <div class="markdown-mode-toggle">
-                        <button type="button" class="markdown-mode-btn active" id="markdown-edit-btn">Edit</button>
-                        <button type="button" class="markdown-mode-btn" id="markdown-view-btn">View</button>
+                </div>
+                <div class="task-panel-section-content">
+                    <div class="panel-details-container">
+                        <textarea class="panel-details-input" id="panel-details" placeholder="Markdown supported"></textarea>
+                        <div class="panel-details-preview" id="panel-details-preview" style="display: none;"></div>
                     </div>
                 </div>
             </div>
-            <div class="panel-details-container">
-                <textarea class="panel-details-input" id="panel-details" placeholder="Markdown supported"></textarea>
-                <div class="panel-details-preview" id="panel-details-preview" style="display: none;"></div>
-            </div>
-            <div class="critical-toggle" style="margin-top: 1rem;">
-                <input type="checkbox" id="panel-critical">
-                <label for="panel-critical">Critical</label>
-            </div>
-            <div class="panel-tags-section" style="margin-top: 1rem;">
-                <label style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.5rem;">Tags</label>
-                <div class="panel-tags-container" id="panel-tags-container">
-                    <!-- Tags will be populated by JavaScript -->
-                </div>
-            </div>
-            <!-- Deadline Section -->
-            <div class="panel-deadline-section">
-                <label class="panel-deadline-label">Deadline</label>
-                <div class="panel-deadline-container">
-                    <div class="deadline-presets">
-                        <button type="button" class="deadline-preset-btn" data-preset="tomorrow">Tomorrow</button>
-                        <button type="button" class="deadline-preset-btn" data-preset="next-week">Next Week</button>
-                        <button type="button" class="deadline-preset-btn" data-preset="two-weeks">Two Weeks</button>
+
+            <!-- Properties Section -->
+            <div class="task-panel-section">
+                <div class="task-panel-section-header"><i class="bi bi-sliders"></i> Properties</div>
+                <div class="task-panel-section-content task-properties-grid">
+                    <!-- Critical -->
+                    <div class="task-property-row">
+                        <div class="task-property-label">
+                            <i class="bi bi-exclamation-circle"></i>
+                            <span>Critical</span>
+                        </div>
+                        <div class="task-property-value">
+                            <label class="task-toggle">
+                                <input type="checkbox" id="panel-critical">
+                                <span class="task-toggle-slider"></span>
+                            </label>
+                        </div>
                     </div>
-                    <div class="deadline-custom-row">
-                        <input type="date" class="deadline-date-input" id="panel-deadline-date">
-                        <button type="button" class="deadline-clear-btn" id="panel-deadline-clear" title="Clear deadline">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
+                    <!-- Tags -->
+                    <div class="task-property-row">
+                        <div class="task-property-label">
+                            <i class="bi bi-tags"></i>
+                            <span>Tags</span>
+                        </div>
+                        <div class="task-property-value task-property-tags">
+                            <div class="panel-tags-container" id="panel-tags-container">
+                                <!-- Tags will be populated by JavaScript -->
+                            </div>
+                        </div>
                     </div>
-                    <div id="panel-deadline-status"></div>
+                    <!-- Deadline -->
+                    <div class="task-property-row task-property-deadline">
+                        <div class="task-property-label">
+                            <i class="bi bi-calendar-event"></i>
+                            <span>Deadline</span>
+                        </div>
+                        <div class="task-property-value">
+                            <div class="deadline-presets">
+                                <button type="button" class="deadline-preset-btn" data-preset="tomorrow">Tomorrow</button>
+                                <button type="button" class="deadline-preset-btn" data-preset="next-week">Next Week</button>
+                                <button type="button" class="deadline-preset-btn" data-preset="two-weeks">2 Weeks</button>
+                            </div>
+                            <div class="deadline-custom-row">
+                                <input type="date" class="deadline-date-input" id="panel-deadline-date">
+                                <button type="button" class="deadline-clear-btn" id="panel-deadline-clear" title="Clear deadline">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <div id="panel-deadline-status"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="panel-footer">
             <div class="panel-footer-left">
-                <button class="save-close-btn" id="panel-save-close">
-                    <i class="bi bi-check-lg"></i>
-                    <span>Save</span>
-                </button>
                 <button class="mark-done-btn" id="panel-mark-done">
                     <i class="bi bi-check-circle"></i>
                     <span>Task Complete!</span>
@@ -6407,6 +6616,9 @@
             const isCritical = card ? card.classList.contains('critical') : false;
             const isScheduled = (taskSchedulesMap[taskId] || []).length > 0;
             const taskTags = taskTagsMap[taskId] || [];
+            const terminalStateId = getTerminalStateId();
+            const taskData = taskDeadlinesMap[taskId];
+            const isCompleted = taskData && taskData.state_id === terminalStateId;
 
             // Build menu HTML
             let menuHtml = `
@@ -6415,6 +6627,10 @@
                     Edit Task
                 </div>
                 <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-item" onclick="markTaskComplete(${taskId})">
+                    <i class="bi bi-check-circle${isCompleted ? '-fill' : ''}"></i>
+                    ${isCompleted ? 'Task Completed' : 'Task Complete'}
+                </div>
                 <div class="task-context-menu-item" onclick="toggleTaskCritical(${taskId})">
                     <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
@@ -7253,6 +7469,35 @@
             }
         }
 
+        async function markTaskComplete(taskId) {
+            closeContextMenu();
+
+            const terminalStateId = getTerminalStateId();
+            if (!terminalStateId) return;
+
+            // Check if already in terminal state
+            const taskData = taskDeadlinesMap[taskId];
+            if (taskData && taskData.state_id === terminalStateId) return;
+
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ state_id: terminalStateId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    handleTaskStateChange(data.task);
+                }
+            } catch (error) {
+                console.error('Error marking task complete:', error);
+            }
+        }
+
         async function deleteTaskFromMenu(taskId) {
             closeContextMenu();
             const confirmed = await showConfirmModal('Are you sure you want to delete this task?', 'Delete Task', 'Delete');
@@ -7500,7 +7745,7 @@
             allTasksItem.className = 'saved-view-item' + (currentActiveViewId === null ? ' active' : '');
             allTasksItem.innerHTML = `
                 <span class="view-check"><i class="bi bi-check2"></i></span>
-                <span class="view-name"><i class="bi bi-list-task" style="margin-right: 0.3rem; opacity: 0.7;"></i>All Tasks</span>
+                <span class="view-name"><i class="bi bi-list-task" style="margin-right: 0.3rem; opacity: 0.7;"></i>Show All Tasks</span>
             `;
             allTasksItem.addEventListener('click', (e) => {
                 e.stopPropagation(); // Prevent document click handler from closing dropdown
@@ -8542,6 +8787,10 @@
             calendarPanelHeader.addEventListener('click', function(e) {
                 // Don't toggle collapsed if clicking expand button
                 if (e.target.closest('.panel-expand-btn')) return;
+                // Don't toggle collapsed if clicking Today button or navigation buttons
+                if (e.target.closest('.calendar-today-btn')) return;
+                if (e.target.closest('.calendar-nav-btn')) return;
+                if (e.target.closest('.add-event-btn')) return;
                 // Don't toggle vertical collapse if panel is horizontally minimized or expanded
                 if (calendarPanel.classList.contains('minimized')) return;
                 if (calendarPanel.classList.contains('expanded')) return;
@@ -9284,9 +9533,14 @@
                     const endDate = new Date(schedule.end_time);
                     const durationMinutes = Math.max(15, (endDate - startDate) / (1000 * 60));
 
+                    // Check if task is in terminal (completed) state
+                    const terminalStateId = getTerminalStateId();
+                    const taskDeadlineData = taskDeadlinesMap[taskId];
+                    const isCompleted = taskDeadlineData && taskDeadlineData.state_id === terminalStateId;
+
                     // Create scheduled task element
                     const taskEl = document.createElement('div');
-                    taskEl.className = 'calendar-scheduled-task';
+                    taskEl.className = 'calendar-scheduled-task' + (isCompleted ? ' completed' : '');
                     taskEl.dataset.taskId = taskId;
                     taskEl.dataset.scheduleId = schedule.id;
                     taskEl.draggable = true;
