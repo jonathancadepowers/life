@@ -312,6 +312,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 0.75rem;
             padding: 0.5rem 0.75rem;
             background: #f8f9fa;
             border-radius: 4px;
@@ -327,25 +328,26 @@
         }
 
         .template-item-name {
-            flex: 1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
         .template-default-badge {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             background: #6B9080;
             color: white;
-            padding: 0.1rem 0.35rem;
+            padding: 0.15rem 0.4rem;
             border-radius: 3px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            flex-shrink: 0;
         }
 
         .template-item-actions {
             display: flex;
-            gap: 0.25rem;
+            gap: 0.5rem;
+            flex-shrink: 0;
         }
 
         .template-item-btn {
@@ -353,9 +355,10 @@
             border: none;
             color: #6c757d;
             cursor: pointer;
-            padding: 0.2rem;
+            padding: 0.25rem;
             border-radius: 3px;
             transition: all 0.15s;
+            font-size: 0.9rem;
         }
 
         .template-item-btn:hover {
