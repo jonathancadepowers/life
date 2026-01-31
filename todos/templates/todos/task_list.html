@@ -3150,6 +3150,29 @@
         let currentTaskId = null;
         let saveTimeout = null;
 
+        // Force sidebar icons to stay fixed (CSS fallback)
+        (function() {
+            const sidebarIcons = document.querySelector('.sidebar-icons');
+            if (sidebarIcons) {
+                // Ensure fixed positioning is applied
+                sidebarIcons.style.position = 'fixed';
+                sidebarIcons.style.top = '1.5rem';
+                sidebarIcons.style.left = '1.5rem';
+                sidebarIcons.style.zIndex = '10000';
+
+                // Re-apply on scroll as a safeguard
+                let scrollTimeout;
+                window.addEventListener('scroll', function() {
+                    if (scrollTimeout) clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(function() {
+                        sidebarIcons.style.position = 'fixed';
+                        sidebarIcons.style.top = '1.5rem';
+                        sidebarIcons.style.left = '1.5rem';
+                    }, 10);
+                }, { passive: true });
+            }
+        })();
+
         // Store tags locally for immediate availability
         let tagsList = [
             {% for tag in tags %}
