@@ -5362,19 +5362,11 @@
                         markDoneBtn.querySelector('i').className = 'bi bi-check-circle';
                     }
 
-                    // Show markdown preview if there's content, otherwise show edit mode
-                    if (detailsContent.trim()) {
-                        detailsPreview.innerHTML = marked.parse(detailsContent);
-                        detailsTextarea.style.display = 'none';
-                        detailsPreview.style.display = 'block';
-                        markdownEditBtn.classList.remove('active');
-                        markdownViewBtn.classList.add('active');
-                    } else {
-                        detailsPreview.style.display = 'none';
-                        detailsTextarea.style.display = 'block';
-                        markdownEditBtn.classList.add('active');
-                        markdownViewBtn.classList.remove('active');
-                    }
+                    // Always start in edit mode
+                    detailsPreview.style.display = 'none';
+                    detailsTextarea.style.display = 'block';
+                    markdownEditBtn.classList.add('active');
+                    markdownViewBtn.classList.remove('active');
                 }
             } catch (error) {
                 console.error('Error fetching task:', error);
