@@ -117,25 +117,23 @@
 
         .animated-placeholder .char {
             display: inline-block;
-            transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+            opacity: 1;
+            transition: opacity 0.6s ease-out;
         }
 
-        .animated-placeholder .char.flip-out {
-            transform: rotateX(90deg);
+        .animated-placeholder .char.fade-out {
             opacity: 0;
         }
 
-        .animated-placeholder .char.flip-in {
-            animation: flipIn 0.6s ease-out forwards;
+        .animated-placeholder .char.fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
         }
 
-        @keyframes flipIn {
+        @keyframes fadeIn {
             0% {
-                transform: rotateX(-90deg);
                 opacity: 0;
             }
             100% {
-                transform: rotateX(0);
                 opacity: 1;
             }
         }
@@ -12064,24 +12062,23 @@
             const newChars = newPhrase.split('');
             const maxLen = Math.max(chars.length, newChars.length);
 
-            // Flip out existing chars with staggered delay
+            // Fade out existing chars with staggered delay
             chars.forEach((char, i) => {
                 setTimeout(() => {
-                    char.classList.add('flip-out');
+                    char.classList.add('fade-out');
                 }, i * 80);
             });
 
-            // After all chars flipped out, rebuild with new text
+            // After all chars faded out, rebuild with new text
             setTimeout(() => {
                 animatedPlaceholder.innerHTML = wrapChars(newPhrase);
                 const newCharEls = animatedPlaceholder.querySelectorAll('.char');
 
-                // Flip in new chars with staggered delay
+                // Fade in new chars with staggered delay
                 newCharEls.forEach((char, i) => {
                     char.style.opacity = '0';
-                    char.style.transform = 'rotateX(-90deg)';
                     setTimeout(() => {
-                        char.classList.add('flip-in');
+                        char.classList.add('fade-in');
                     }, i * 80);
                 });
             }, chars.length * 80 + 400);
