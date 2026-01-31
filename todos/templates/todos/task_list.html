@@ -3567,23 +3567,32 @@
                     <input type="text" class="modal-input" id="template-name-input" placeholder="e.g., Meeting Notes" style="margin-bottom: 0;">
                 </div>
                 <div style="margin-bottom: 0.75rem;">
-                    <label for="template-content-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">
-                        Content (Markdown)
-                        <span class="markdown-help-icon">
-                            <i class="bi bi-question-circle"></i>
-                            <span class="markdown-help-tooltip">
-                                <strong>Markdown</strong><br>
-                                <code>**text**</code> bold<br>
-                                <code>*text*</code> italic<br>
-                                <code>[text](url)</code> link<br>
-                                <code>- item</code> bullet<br>
-                                <code>1. item</code> numbered<br>
-                                <code>`code`</code> code<br>
-                                <code>## text</code> heading
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                        <label for="template-content-input" style="font-size: 0.8rem; color: #6c757d; display: flex; align-items: center; gap: 0.25rem;">
+                            Content (Markdown)
+                            <span class="markdown-help-icon">
+                                <i class="bi bi-question-circle"></i>
+                                <span class="markdown-help-tooltip">
+                                    <strong>Markdown</strong><br>
+                                    <code>**text**</code> bold<br>
+                                    <code>*text*</code> italic<br>
+                                    <code>[text](url)</code> link<br>
+                                    <code>- item</code> bullet<br>
+                                    <code>1. item</code> numbered<br>
+                                    <code>`code`</code> code<br>
+                                    <code>## text</code> heading
+                                </span>
                             </span>
-                        </span>
-                    </label>
-                    <textarea class="modal-textarea" id="template-content-input" placeholder="## Overview&#10;&#10;## Action Items&#10;- [ ] &#10;&#10;## Notes" rows="10"></textarea>
+                        </label>
+                        <div class="markdown-mode-toggle">
+                            <button type="button" class="markdown-mode-btn active" id="template-edit-btn">Edit</button>
+                            <button type="button" class="markdown-mode-btn" id="template-view-btn">View</button>
+                        </div>
+                    </div>
+                    <div class="template-content-container">
+                        <textarea class="modal-textarea" id="template-content-input" placeholder="## Overview&#10;&#10;## Action Items&#10;- [ ] &#10;&#10;## Notes" rows="10"></textarea>
+                        <div class="panel-details-preview" id="template-content-preview" style="display: none; min-height: 200px; max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 0.75rem;"></div>
+                    </div>
                 </div>
                 <div class="template-default-toggle">
                     <input type="checkbox" id="template-is-default">
@@ -10109,6 +10118,18 @@
             return div.innerHTML;
         }
 
+        // Reset template modal to edit mode
+        function resetTemplateModalToEdit() {
+            const contentInput = document.getElementById('template-content-input');
+            const contentPreview = document.getElementById('template-content-preview');
+            const editBtn = document.getElementById('template-edit-btn');
+            const viewBtn = document.getElementById('template-view-btn');
+            contentPreview.style.display = 'none';
+            contentInput.style.display = 'block';
+            editBtn.classList.add('active');
+            viewBtn.classList.remove('active');
+        }
+
         // Open template modal for creating new template
         function openNewTemplateModal() {
             editingTemplateId = null;
@@ -10116,6 +10137,7 @@
             document.getElementById('template-name-input').value = '';
             document.getElementById('template-content-input').value = '';
             document.getElementById('template-is-default').checked = false;
+            resetTemplateModalToEdit();
             document.getElementById('template-modal').classList.add('active');
             document.getElementById('template-name-input').focus();
         }
@@ -10130,6 +10152,7 @@
             document.getElementById('template-name-input').value = template.name;
             document.getElementById('template-content-input').value = template.content;
             document.getElementById('template-is-default').checked = template.is_default;
+            resetTemplateModalToEdit();
             document.getElementById('template-modal').classList.add('active');
             document.getElementById('template-name-input').focus();
         }
@@ -10138,6 +10161,7 @@
         function closeTemplateModal() {
             document.getElementById('template-modal').classList.remove('active');
             editingTemplateId = null;
+            resetTemplateModalToEdit();
         }
 
         // Save template (create or update)
@@ -10303,6 +10327,35 @@
                 document.getElementById('template-content-input').focus();
             }
         });
+
+        // Template modal Edit/View toggle
+        const templateContentInput = document.getElementById('template-content-input');
+        const templateContentPreview = document.getElementById('template-content-preview');
+        const templateEditBtn = document.getElementById('template-edit-btn');
+        const templateViewBtn = document.getElementById('template-view-btn');
+
+        function showTemplatePreview() {
+            const text = templateContentInput.value.trim();
+            templateContentPreview.innerHTML = text ? marked.parse(text) : '<span style="color: #6c757d; font-style: italic;">No content to preview</span>';
+            templateContentInput.style.display = 'none';
+            templateContentPreview.style.display = 'block';
+            templateEditBtn.classList.remove('active');
+            templateViewBtn.classList.add('active');
+        }
+
+        function showTemplateEdit() {
+            templateContentPreview.style.display = 'none';
+            templateContentInput.style.display = 'block';
+            templateEditBtn.classList.add('active');
+            templateViewBtn.classList.remove('active');
+            templateContentInput.focus();
+        }
+
+        templateEditBtn.addEventListener('click', showTemplateEdit);
+        templateViewBtn.addEventListener('click', showTemplatePreview);
+
+        // Clicking preview switches to edit mode
+        templateContentPreview.addEventListener('click', showTemplateEdit);
 
         // Initialize templates on page load
         renderTemplateList();
