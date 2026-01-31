@@ -2118,7 +2118,7 @@
             border-color: #6B9080;
         }
 
-        /* Toast notification */
+        /* Toast notification - reusable component */
         .toast-notification {
             position: fixed;
             bottom: 1.5rem;
@@ -2130,23 +2130,44 @@
             font-size: 0.85rem;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 2000;
-            display: flex;
+            display: none;
             align-items: center;
             gap: 0.5rem;
             opacity: 0;
             transform: translateY(10px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: opacity 0.5s ease, transform 0.5s ease;
             max-width: 320px;
         }
 
         .toast-notification.visible {
+            display: flex;
             opacity: 1;
             transform: translateY(0);
         }
 
-        .toast-notification i {
-            color: #fd7e14;
+        .toast-notification.fade-out {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .toast-notification .toast-icon {
             font-size: 1rem;
+        }
+
+        .toast-notification .toast-icon.warning {
+            color: #fd7e14;
+        }
+
+        .toast-notification .toast-icon.success {
+            color: #28a745;
+        }
+
+        .toast-notification .toast-icon.info {
+            color: #17a2b8;
+        }
+
+        .toast-notification .toast-icon.error {
+            color: #dc3545;
         }
 
         /* State list styles */
@@ -4171,9 +4192,9 @@
         </div>
     </div>
 
-    <!-- Toast notification for abandoned tasks -->
+    <!-- Toast notification (reusable) -->
     <div class="toast-notification" id="toast-notification">
-        <i class="bi bi-archive-fill"></i>
+        <i class="toast-icon" id="toast-icon"></i>
         <span id="toast-message"></span>
     </div>
 
@@ -5113,10 +5134,14 @@
                     if (data.abandoned_count > 0) {
                         // Show toast notification
                         const taskWord = data.abandoned_count === 1 ? 'task was' : 'tasks were';
-                        showToast(`${data.abandoned_count} ${taskWord} moved to Abandoned`);
+                        showToast(`${data.abandoned_count} ${taskWord} moved to Abandoned`, {
+                            icon: 'bi-archive-fill',
+                            type: 'warning',
+                            duration: 6000
+                        });
 
                         // Reload to show the UI changes (tasks moved to new state)
-                        setTimeout(() => location.reload(), 2000);
+                        setTimeout(() => location.reload(), 7000);
                     } else {
                         // Just update visibility if no new abandonments
                         updateAbandonedStateVisibility();
@@ -5127,16 +5152,40 @@
             }
         }
 
-        function showToast(message, duration = 4000) {
-            const toast = document.getElementById('toast-notification');
-            const messageEl = document.getElementById('toast-message');
-            if (!toast || !messageEl) return;
+        /**
+         * Show a toast notification
+         * @param {string} message - The message to display
+         * @param {Object} options - Optional configuration
+         * @param {string} options.icon - Bootstrap icon class (e.g., 'bi-archive-fill')
+         * @param {string} options.type - Icon color type: 'warning', 'success', 'info', 'error'
+         * @param {number} options.duration - How long to show the toast in ms (default: 6000)
+         */
+        function showToast(message, options = {}) {
+            const { icon = 'bi-info-circle-fill', type = 'info', duration = 6000 } = options;
 
+            const toast = document.getElementById('toast-notification');
+            const iconEl = document.getElementById('toast-icon');
+            const messageEl = document.getElementById('toast-message');
+            if (!toast || !iconEl || !messageEl) return;
+
+            // Set icon and type
+            iconEl.className = `bi ${icon} toast-icon ${type}`;
             messageEl.textContent = message;
+
+            // Remove any existing fade-out class
+            toast.classList.remove('fade-out');
+
+            // Show toast with fade-in
             toast.classList.add('visible');
 
+            // After duration, start fade-out
             setTimeout(() => {
-                toast.classList.remove('visible');
+                toast.classList.add('fade-out');
+
+                // After fade-out animation completes, hide toast
+                setTimeout(() => {
+                    toast.classList.remove('visible', 'fade-out');
+                }, 500); // Match CSS transition duration
             }, duration);
         }
 
