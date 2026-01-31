@@ -6814,6 +6814,97 @@
 
                 hourContent.appendChild(taskEl);
             });
+
+            // After all tasks are added, detect overlaps and adjust widths
+            adjustOverlappingTasks();
+        }
+
+        // Detect overlapping tasks and adjust their widths to sit side by side
+        function adjustOverlappingTasks() {
+            // Get all hour contents
+            document.querySelectorAll('.hour-content').forEach(hourContent => {
+                const tasks = Array.from(hourContent.querySelectorAll('.calendar-scheduled-task'));
+                if (tasks.length === 0) return;
+
+                // Build task info array with time ranges
+                const taskInfos = tasks.map(taskEl => {
+                    const top = parseFloat(taskEl.style.top) || 0;
+                    const height = parseFloat(taskEl.style.height) || 0;
+                    const bottom = top + height;
+                    return {
+                        element: taskEl,
+                        top,
+                        bottom,
+                        column: 0  // Will be assigned based on overlap detection
+                    };
+                });
+
+                // Sort by start time (top position)
+                taskInfos.sort((a, b) => a.top - b.top);
+
+                // Detect overlaps and assign columns (max 3)
+                const columns = [];  // Array of arrays, each sub-array is a column
+
+                taskInfos.forEach(taskInfo => {
+                    // Find the first column where this task doesn't overlap with any existing task
+                    let assignedColumn = -1;
+                    for (let colIndex = 0; colIndex < 3; colIndex++) {
+                        if (!columns[colIndex]) {
+                            columns[colIndex] = [];
+                        }
+
+                        // Check if task overlaps with any task in this column
+                        const overlaps = columns[colIndex].some(existing => {
+                            return !(taskInfo.top >= existing.bottom || taskInfo.bottom <= existing.top);
+                        });
+
+                        if (!overlaps) {
+                            assignedColumn = colIndex;
+                            break;
+                        }
+                    }
+
+                    // If we found a column (and didn't exceed max 3), assign it
+                    if (assignedColumn !== -1) {
+                        taskInfo.column = assignedColumn;
+                        columns[assignedColumn].push(taskInfo);
+                    } else {
+                        // Max 3 columns reached, put in column 2 (last column)
+                        taskInfo.column = 2;
+                        columns[2].push(taskInfo);
+                    }
+                });
+
+                // Calculate how many columns are actually used
+                const numColumns = Math.min(3, columns.filter(col => col && col.length > 0).length);
+
+                // For each task, determine the max number of overlapping tasks at its time
+                taskInfos.forEach(taskInfo => {
+                    // Find all tasks that overlap with this one
+                    const overlapping = taskInfos.filter(other => {
+                        return !(taskInfo.top >= other.bottom || taskInfo.bottom <= other.top);
+                    });
+
+                    const overlapCount = Math.min(3, overlapping.length);
+                    const columnIndex = taskInfo.column;
+
+                    if (overlapCount > 1) {
+                        // Calculate width and left position
+                        const widthPercent = 100 / overlapCount;
+                        const leftPosition = 4 + (columnIndex * widthPercent * (hourContent.offsetWidth - 8) / 100);
+                        const widthPx = (widthPercent * (hourContent.offsetWidth - 8) / 100) - 4;
+
+                        taskInfo.element.style.left = `${leftPosition}px`;
+                        taskInfo.element.style.width = `${widthPx}px`;
+                        taskInfo.element.style.right = 'auto';
+                    } else {
+                        // Single task, use full width
+                        taskInfo.element.style.left = '4px';
+                        taskInfo.element.style.right = '4px';
+                        taskInfo.element.style.width = 'auto';
+                    }
+                });
+            });
         }
 
         // Handle task resize by dragging top or bottom edge
@@ -6905,6 +6996,9 @@
             document.removeEventListener('mousemove', handleTaskResize);
             document.removeEventListener('mouseup', endTaskResize);
             resizeState = null;
+
+            // Adjust overlapping tasks after resize
+            adjustOverlappingTasks();
         }
 
         // Setup drag events for scheduled tasks on the calendar
@@ -7149,6 +7243,28 @@
             return false;
         }
 
+        // Count how many tasks overlap with the given time range (excluding excludeTaskId)
+        function countOverlappingTasks(newStart, newEnd, excludeTaskId) {
+            let count = 0;
+
+            // Check existing scheduled tasks
+            for (const [taskId, calendarStartTime] of Object.entries(taskCalendarStartTimeMap)) {
+                if (!calendarStartTime) continue;
+                if (taskId === excludeTaskId || taskId === String(excludeTaskId)) continue;
+
+                const taskStart = new Date(calendarStartTime);
+                const calendarEndTime = taskCalendarEndTimeMap[taskId];
+                const taskEnd = calendarEndTime ? new Date(calendarEndTime) : new Date(taskStart.getTime() + 30 * 60 * 1000);
+
+                // Check for overlap: (newStart < taskEnd) && (newEnd > taskStart)
+                if (newStart < taskEnd && newEnd > taskStart) {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
         // Setup drop zones on calendar hour rows
         function setupCalendarDropZones() {
             document.querySelectorAll('.hour-content').forEach(hourContent => {
@@ -7202,7 +7318,15 @@
                     const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
                     const endLocal = new Date(startLocal.getTime() + durationMs);
 
-                    const isBlocked = excludeId && hasOverlappingItem(startLocal, endLocal, excludeId);
+                    // For tasks, allow up to 3 at the same time. For time blocks, don't allow overlap
+                    let isBlocked = false;
+                    if (taskId) {
+                        const overlappingCount = countOverlappingTasks(startLocal, endLocal, excludeId);
+                        isBlocked = overlappingCount >= 3;
+                    } else if (timeBlockId) {
+                        isBlocked = hasOverlappingItem(startLocal, endLocal, excludeId);
+                    }
+
                     this.classList.toggle('drag-blocked', isBlocked);
                     e.dataTransfer.dropEffect = isBlocked ? 'none' : 'move';
                 });
@@ -7276,8 +7400,10 @@
 
                         const endLocal = new Date(startLocal.getTime() + durationMs);
 
-                        // Check for overlapping tasks or events before allowing drop
-                        if (hasOverlappingItem(startLocal, endLocal, taskId)) {
+                        // Check for overlapping tasks - allow up to 3 tasks at same time
+                        const overlappingTaskCount = countOverlappingTasks(startLocal, endLocal, taskId);
+                        if (overlappingTaskCount >= 3) {
+                            // Max 3 tasks allowed at same time
                             return;
                         }
 
