@@ -7372,16 +7372,18 @@
                 tagsContent.appendChild(groupEl);
             });
 
-            // Create Untagged group at the bottom (also sort highlighted task to top)
-            if (highlightTaskId) {
-                untaggedTasks.sort((a, b) => {
-                    if (a.id === highlightTaskId) return -1;
-                    if (b.id === highlightTaskId) return 1;
-                    return 0;
-                });
+            // Create Untagged group at the bottom only if there are untagged tasks
+            if (untaggedTasks.length > 0) {
+                if (highlightTaskId) {
+                    untaggedTasks.sort((a, b) => {
+                        if (a.id === highlightTaskId) return -1;
+                        if (b.id === highlightTaskId) return 1;
+                        return 0;
+                    });
+                }
+                const untaggedGroup = createTagGroup('untagged', 'Untagged', untaggedTasks);
+                tagsContent.appendChild(untaggedGroup);
             }
-            const untaggedGroup = createTagGroup('untagged', 'Untagged', untaggedTasks);
-            tagsContent.appendChild(untaggedGroup);
 
             // Restore previously expanded groups
             expandedTagIds.forEach(tagId => {
