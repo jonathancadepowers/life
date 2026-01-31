@@ -1242,17 +1242,13 @@
 
         .filter-badge {
             position: absolute;
-            top: -4px;
-            right: -4px;
+            top: 0px;
+            right: 0px;
             background: #6B9080;
-            color: white;
-            font-size: 0.65rem;
-            width: 16px;
-            height: 16px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: none;
         }
 
         /* Left slide-out panel for settings */
@@ -3326,7 +3322,7 @@
     <div id="sidebar-icons" style="position: fixed !important; top: 1.5rem !important; left: 1.5rem !important; z-index: 10000 !important; display: flex !important; flex-direction: column !important; gap: 0.75rem !important;">
         <div style="position: relative;">
             <i class="bi bi-binoculars-fill sidebar-icon" id="filter-icon" title="Filter"></i>
-            <span class="filter-badge" id="filter-badge" style="display: none;">0</span>
+            <span class="filter-badge" id="filter-badge"></span>
         </div>
         <i class="bi bi-gear sidebar-icon" id="settings-gear" title="Settings"></i>
     </div>
@@ -7237,11 +7233,10 @@
                 if (show) visibleCount++;
             });
 
-            // Update filter badge (showCompleted only counts in Tags view)
-            const filterCount = (activeFilters.critical ? 1 : 0) + (activeFilters.today ? 1 : 0) + activeFilters.tags.length + (currentGroupBy === 'tags' && !showCompletedTasks ? 1 : 0);
-            if (filterCount > 0) {
-                filterBadge.textContent = filterCount;
-                filterBadge.style.display = 'flex';
+            // Update filter badge - show dot when any filters are active
+            const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0;
+            if (hasActiveFilters) {
+                filterBadge.style.display = 'block';
                 filterIcon.classList.add('active');
             } else {
                 filterBadge.style.display = 'none';
