@@ -7211,7 +7211,40 @@
             return localDate.toISOString();
         }
 
-        // Update a task's calendar times on the server
+        // Create a new TaskSchedule entry for a task
+        async function createTaskSchedule(taskId, startTimeUTC, endTimeUTC) {
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/schedules/create/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        start_time: startTimeUTC,
+                        end_time: endTimeUTC
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // The response includes the updated task with all schedules
+                    // For now, we'll also update the legacy calendar fields for backward compatibility
+                    taskCalendarStartTimeMap[taskId] = startTimeUTC;
+                    taskCalendarEndTimeMap[taskId] = endTimeUTC;
+
+                    // Update task card scheduled class
+                    updateTaskScheduledClass(taskId);
+
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error creating task schedule:', error);
+            }
+            return false;
+        }
+
+        // Update a task's calendar times on the server (legacy - for backward compatibility)
         async function updateTaskCalendarTime(taskId, startTimeUTC, endTimeUTC = undefined) {
             try {
                 const body = { calendar_start_time: startTimeUTC };
@@ -7312,14 +7345,16 @@
             });
         }
 
-        // Remove a task from the calendar (via context menu or remove button)
+        // Remove a task from the calendar for the current day (via context menu or remove button)
         async function removeFromCalendar(taskId) {
             closeContextMenu();
 
+            // For now, also clear the legacy calendar fields for backward compatibility
             const success = await updateTaskCalendarTime(taskId, null, null);
 
             if (success) {
                 renderScheduledTasks();
+                initializeTodayIcons();
             }
         }
 
@@ -7445,8 +7480,7 @@
                     // Check for overlap and show blocked indicator
                     const hour = parseInt(this.dataset.hour);
                     const clampedMinute = isTopHalf ? 0 : 30;
-                    const now = new Date();
-                    const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
+                    const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), hour, clampedMinute);
                     const endLocal = new Date(startLocal.getTime() + durationMs);
 
                     // For tasks, allow up to 3 at the same time. For time blocks, don't allow overlap
@@ -7487,9 +7521,8 @@
                     // Round to nearest 30 minutes (0 or 30)
                     const clampedMinute = percentY < 0.5 ? 0 : 30;
 
-                    // Create the scheduled start time in local timezone
-                    const now = new Date();
-                    const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, clampedMinute);
+                    // Create the scheduled start time in local timezone using currentCalendarDate
+                    const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), hour, clampedMinute);
 
                     if (isTimeBlock) {
                         // Handle time block drop
@@ -7541,9 +7574,10 @@
                         const startUTC = localToUTC(startLocal);
                         const endUTC = localToUTC(endLocal);
 
-                        const success = await updateTaskCalendarTime(taskId, startUTC, endUTC);
+                        const success = await createTaskSchedule(taskId, startUTC, endUTC);
                         if (success) {
                             renderScheduledTasks();
+                            initializeTodayIcons();
                         }
                     }
                 });
