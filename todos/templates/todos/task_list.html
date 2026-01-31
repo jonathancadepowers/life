@@ -117,7 +117,7 @@
 
         .animated-placeholder .char {
             display: inline-block;
-            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+            transition: transform 0.6s ease-out, opacity 0.6s ease-out;
         }
 
         .animated-placeholder .char.flip-out {
@@ -126,7 +126,7 @@
         }
 
         .animated-placeholder .char.flip-in {
-            animation: flipIn 0.4s ease-out forwards;
+            animation: flipIn 0.6s ease-out forwards;
         }
 
         @keyframes flipIn {
@@ -12068,7 +12068,7 @@
             chars.forEach((char, i) => {
                 setTimeout(() => {
                     char.classList.add('flip-out');
-                }, i * 50);
+                }, i * 80);
             });
 
             // After all chars flipped out, rebuild with new text
@@ -12082,9 +12082,9 @@
                     char.style.transform = 'rotateX(-90deg)';
                     setTimeout(() => {
                         char.classList.add('flip-in');
-                    }, i * 50);
+                    }, i * 80);
                 });
-            }, chars.length * 50 + 300);
+            }, chars.length * 80 + 400);
         }
 
         function getRandomPhraseIndex() {
@@ -12098,13 +12098,13 @@
         function cyclePlaceholder() {
             currentPhraseIndex = getRandomPhraseIndex();
             animateToPhrase(placeholderPhrases[currentPhraseIndex]);
-            placeholderTimeout = setTimeout(cyclePlaceholder, 4000);
+            placeholderTimeout = setTimeout(cyclePlaceholder, 6000);
         }
 
         function startPlaceholderCycle() {
-            // Initial text stays for 4 seconds
+            // Initial text stays for 6 seconds
             animatedPlaceholder.innerHTML = wrapChars('Add a new task...');
-            placeholderTimeout = setTimeout(cyclePlaceholder, 4000);
+            placeholderTimeout = setTimeout(cyclePlaceholder, 6000);
         }
 
         function stopPlaceholderCycle() {
