@@ -5294,24 +5294,31 @@
                 <div class="task-context-menu-divider"></div>
                 <div class="task-context-menu-submenu">
                     <div class="task-context-menu-item">
-                        <i class="bi bi-arrow-right-square"></i>
-                        Move to State
+                        <i class="bi bi-tags"></i>
+                        Tags
                         <span class="submenu-arrow"><i class="bi bi-chevron-right"></i></span>
                     </div>
                     <div class="task-context-menu-submenu-content">
             `;
 
-            // Add state options
-            document.querySelectorAll('.state-group').forEach(group => {
-                const stateId = group.dataset.stateId;
-                const stateName = group.querySelector('.state-group-title')?.textContent || 'Unknown';
+            // Add tag options
+            if (tagsList.length === 0) {
+                menuHtml += `<div class="task-context-menu-item" style="color: #999; font-style: italic;">No tags yet</div>`;
+            } else {
                 menuHtml += `
-                    <div class="task-context-menu-item" onclick="batchMoveToState('${stateId}')">
-                        <i class="bi bi-folder"></i>
-                        ${escapeHtml(stateName)}
+                    <div class="task-context-menu-item" style="color: #6c757d; font-size: 0.75rem; cursor: default; padding: 0.25rem 0.75rem;">
+                        Click to add tag to all selected
                     </div>
                 `;
-            });
+                tagsList.forEach(tag => {
+                    menuHtml += `
+                        <div class="task-context-menu-item" onclick="batchAddTag(${tag.id})">
+                            <i class="bi bi-plus-circle"></i>
+                            ${escapeHtml(tag.name)}
+                        </div>
+                    `;
+                });
+            }
 
             menuHtml += `
                     </div>
@@ -5402,38 +5409,36 @@
             clearTaskSelection();
         }
 
-        async function batchMoveToState(stateId) {
+        async function batchAddTag(tagId) {
             const taskIds = Array.from(selectedTaskIds);
-            const newStateId = stateId === 'none' ? null : parseInt(stateId);
 
             for (const taskId of taskIds) {
-                try {
-                    const response = await fetch(`/tasks/api/${taskId}/update/`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: JSON.stringify({ state_id: newStateId })
-                    });
+                // Check if task already has this tag
+                const currentTags = taskTagsMap[taskId] || [];
+                const hasTag = currentTags.some(t => t.id === tagId);
 
-                    const data = await response.json();
-                    if (data.success) {
-                        // Move card to new state group
-                        const card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
-                        if (card) {
-                            const targetGroup = document.querySelector(`.state-group[data-state-id="${stateId}"] .state-group-body`);
-                            if (targetGroup) {
-                                targetGroup.appendChild(card);
-                            }
+                if (!hasTag) {
+                    try {
+                        const response = await fetch(`/tasks/api/${taskId}/tags/add/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ tag_id: tagId })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            taskTagsMap[taskId] = data.task_tags;
+                            updateTaskCardTags(taskId, data.task_tags);
                         }
+                    } catch (error) {
+                        console.error('Error adding tag:', error);
                     }
-                } catch (error) {
-                    console.error('Error moving task:', error);
                 }
             }
 
-            updatePanelCounts();
             closeContextMenu();
             clearTaskSelection();
         }
