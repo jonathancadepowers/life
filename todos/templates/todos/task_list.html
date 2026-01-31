@@ -927,54 +927,85 @@
             top: 1.5rem;
             left: 3.5rem;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            padding: 1rem;
-            min-width: 220px;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+            padding: 0;
+            min-width: 260px;
+            max-width: 280px;
             z-index: 1100;
             display: none;
+            overflow: hidden;
         }
 
         .filter-dropdown.active {
             display: block;
         }
 
+        .filter-dropdown-header {
+            background: linear-gradient(135deg, #6B9080 0%, #5a7a6a 100%);
+            color: white;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-dropdown-body {
+            padding: 0.75rem 1rem;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
         .filter-section {
-            margin-bottom: 1rem;
+            margin-bottom: 0.85rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .filter-section:last-child {
             margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
         }
 
         .filter-section-title {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
-            color: #6c757d;
+            color: #6B9080;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
         }
 
+        .filter-options-row {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
         .filter-option {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.35rem 0;
+            gap: 0.4rem;
+            padding: 0.3rem 0;
             cursor: pointer;
-            font-size: 0.9rem;
-            color: #333;
+            font-size: 0.85rem;
+            color: #495057;
         }
 
         .filter-option:hover {
             color: #6B9080;
         }
 
-        .filter-option input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+        .filter-option input[type="checkbox"],
+        .filter-option input[type="radio"] {
+            width: 14px;
+            height: 14px;
             cursor: pointer;
             accent-color: #6B9080;
+            margin: 0;
         }
 
         .filter-option .context-dot {
@@ -984,25 +1015,80 @@
             flex-shrink: 0;
         }
 
+        .filter-option-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #495057;
+            background: #f8f9fa;
+            border: 1px solid transparent;
+            transition: all 0.15s;
+        }
+
+        .filter-option-inline:hover {
+            border-color: #6B9080;
+            color: #6B9080;
+        }
+
+        .filter-option-inline.checked {
+            background: #e8f0ed;
+            border-color: #6B9080;
+            color: #6B9080;
+        }
+
+        .filter-option-inline input {
+            display: none;
+        }
+
         .filter-clear {
             width: 100%;
             padding: 0.5rem;
-            margin-top: 0.5rem;
-            border: 1px solid #dee2e6;
-            background: white;
-            border-radius: 4px;
+            border: none;
+            background: #f8f9fa;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 0.8rem;
             color: #6c757d;
             transition: all 0.15s;
+            margin-top: 0.5rem;
+        }
+
+        .filter-clear:hover {
+            background: #e9ecef;
+            color: #495057;
         }
 
         /* Saved Views section */
+        .saved-views-section {
+            background: #fafbfc;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0.75rem 1rem;
+        }
+
+        .saved-views-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .saved-views-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6B9080;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         .saved-views-list {
             display: flex;
             flex-direction: column;
-            gap: 0.25rem;
-            max-height: 150px;
+            gap: 0.2rem;
+            max-height: 120px;
             overflow-y: auto;
         }
 
@@ -1010,16 +1096,19 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.35rem 0.5rem;
-            border-radius: 4px;
+            padding: 0.4rem 0.5rem;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 0.85rem;
-            color: #333;
+            font-size: 0.8rem;
+            color: #495057;
             transition: all 0.15s;
+            background: white;
+            border: 1px solid #e9ecef;
         }
 
         .saved-view-item:hover {
-            background: #f8f9fa;
+            background: #e8f0ed;
+            border-color: #6B9080;
             color: #6B9080;
         }
 
@@ -1032,10 +1121,11 @@
 
         .saved-view-item .view-delete {
             opacity: 0;
-            padding: 0.15rem 0.35rem;
+            padding: 0.1rem 0.3rem;
             color: #dc3545;
             cursor: pointer;
             transition: opacity 0.15s;
+            font-size: 0.9rem;
         }
 
         .saved-view-item:hover .view-delete {
@@ -1048,31 +1138,55 @@
 
         .save-view-btn {
             width: 100%;
-            padding: 0.4rem;
+            padding: 0.35rem;
             margin-top: 0.5rem;
-            border: 1px dashed #6B9080;
-            background: transparent;
-            border-radius: 4px;
+            border: 1px dashed #adb5bd;
+            background: white;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 0.8rem;
-            color: #6B9080;
+            font-size: 0.75rem;
+            color: #6c757d;
             transition: all 0.15s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.35rem;
+            gap: 0.3rem;
         }
 
         .save-view-btn:hover {
-            background: #f0f5f3;
-            border-color: #5a7a6a;
+            border-color: #6B9080;
+            color: #6B9080;
+            background: #f8f9fa;
         }
 
         .no-saved-views {
-            color: #6c757d;
-            font-size: 0.8rem;
+            color: #adb5bd;
+            font-size: 0.75rem;
             font-style: italic;
             padding: 0.25rem 0;
+            text-align: center;
+        }
+
+        /* Tags filter */
+        .filter-tags-search {
+            width: 100%;
+            padding: 0.35rem 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            transition: border-color 0.15s;
+        }
+
+        .filter-tags-search:focus {
+            outline: none;
+            border-color: #6B9080;
+        }
+
+        .filter-tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
         }
 
         .filter-clear:hover {
@@ -3123,8 +3237,16 @@
 
     <!-- Filter dropdown -->
     <div class="filter-dropdown" id="filter-dropdown">
-        <div class="filter-section">
-            <div class="filter-section-title">Saved Views</div>
+        <div class="filter-dropdown-header">
+            <i class="bi bi-sliders"></i>
+            Views & Filters
+        </div>
+
+        <!-- Saved Views Section -->
+        <div class="saved-views-section">
+            <div class="saved-views-header">
+                <span class="saved-views-title">Saved Views</span>
+            </div>
             <div class="saved-views-list" id="saved-views-list">
                 <!-- Views will be populated by JavaScript -->
             </div>
@@ -3132,55 +3254,64 @@
                 <i class="bi bi-plus-lg"></i> Save Current View
             </button>
         </div>
-        <div class="filter-section">
-            <div class="filter-section-title">Group By</div>
-            <label class="filter-option">
-                <input type="radio" name="group-by" value="states" id="group-by-states" checked>
-                States
-            </label>
-            <label class="filter-option">
-                <input type="radio" name="group-by" value="tags" id="group-by-tags">
-                Tags
-            </label>
-        </div>
-        <div class="filter-section" id="filter-completed-section" style="display: none;">
-            <div class="filter-section-title">Completed Tasks</div>
-            <label class="filter-option">
-                <input type="checkbox" id="show-completed-toggle">
-                Show Completed
-            </label>
-        </div>
-        <div class="filter-section">
-            <div class="filter-section-title">Priority</div>
-            <label class="filter-option">
-                <input type="checkbox" id="filter-critical">
-                <i class="bi bi-exclamation-circle" style="color: #dc3545;"></i>
-                Critical
-            </label>
-        </div>
-        <div class="filter-section">
-            <div class="filter-section-title">Schedule</div>
-            <label class="filter-option">
-                <input type="checkbox" id="filter-today">
-                <i class="bi bi-brightness-high-fill" style="color: #ffc107;"></i>
-                Today
-            </label>
-        </div>
-        <div class="filter-section" id="filter-tags-section">
-            <div class="filter-section-title">Filter by Tags</div>
-            <input type="text" id="filter-tags-search" placeholder="Search tags..." style="width: 100%; padding: 0.35rem 0.5rem; margin-bottom: 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; font-size: 0.8rem;">
-            <div id="filter-tags-list">
-                <!-- Tags will be populated by JavaScript -->
+
+        <div class="filter-dropdown-body">
+            <!-- Group By -->
+            <div class="filter-section">
+                <div class="filter-section-title">Group By</div>
+                <div class="filter-options-row">
+                    <label class="filter-option-inline" id="group-by-states-label">
+                        <input type="radio" name="group-by" value="states" id="group-by-states" checked>
+                        <i class="bi bi-kanban"></i> States
+                    </label>
+                    <label class="filter-option-inline" id="group-by-tags-label">
+                        <input type="radio" name="group-by" value="tags" id="group-by-tags">
+                        <i class="bi bi-tags"></i> Tags
+                    </label>
+                </div>
             </div>
+
+            <!-- Filters -->
+            <div class="filter-section">
+                <div class="filter-section-title">Show Only</div>
+                <div class="filter-options-row">
+                    <label class="filter-option-inline" id="filter-critical-label">
+                        <input type="checkbox" id="filter-critical">
+                        <i class="bi bi-exclamation-circle" style="color: #dc3545;"></i> Critical
+                    </label>
+                    <label class="filter-option-inline" id="filter-today-label">
+                        <input type="checkbox" id="filter-today">
+                        <i class="bi bi-sun" style="color: #ffc107;"></i> Today
+                    </label>
+                    <label class="filter-option-inline" id="show-completed-label" style="display: none;">
+                        <input type="checkbox" id="show-completed-toggle">
+                        <i class="bi bi-check-circle"></i> Done
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="filter-section" id="filter-tags-section">
+                <div class="filter-section-title">Tags</div>
+                <input type="text" id="filter-tags-search" class="filter-tags-search" placeholder="Search tags...">
+                <div id="filter-tags-list" class="filter-tags-list">
+                    <!-- Tags will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Options -->
+            <div class="filter-section">
+                <div class="filter-section-title">Options</div>
+                <label class="filter-option">
+                    <input type="checkbox" id="hide-rollups-toggle">
+                    Hide Rollups
+                </label>
+            </div>
+
+            <button class="filter-clear" id="filter-clear">
+                <i class="bi bi-x-circle"></i> Clear All Filters
+            </button>
         </div>
-        <div class="filter-section">
-            <div class="filter-section-title">Less Is More</div>
-            <label class="filter-option">
-                <input type="checkbox" id="hide-rollups-toggle">
-                Hide Rollups
-            </label>
-        </div>
-        <button class="filter-clear" id="filter-clear">Clear Filters</button>
     </div>
 
     <div class="container">
@@ -6108,9 +6239,14 @@
             document.getElementById('filter-critical').checked = activeFilters.critical;
             document.getElementById('filter-today').checked = activeFilters.today;
 
+            // Update visual states
+            document.getElementById('filter-critical-label').classList.toggle('checked', activeFilters.critical);
+            document.getElementById('filter-today-label').classList.toggle('checked', activeFilters.today);
+
             // Apply show completed
             showCompletedTasks = settings.show_completed || false;
             document.getElementById('show-completed-toggle').checked = showCompletedTasks;
+            document.getElementById('show-completed-label').classList.toggle('checked', showCompletedTasks);
 
             // Apply hide rollups
             if (document.getElementById('hide-rollups-toggle')) {
@@ -6128,6 +6264,7 @@
 
             applyFilters();
             saveFilterSettings();
+            updateGroupByLabels();
 
             // Close the dropdown after applying
             filterDropdown.classList.remove('active');
@@ -6203,6 +6340,7 @@
         // Handle critical filter change
         filterCritical.addEventListener('change', function() {
             activeFilters.critical = this.checked;
+            document.getElementById('filter-critical-label').classList.toggle('checked', this.checked);
             applyFilters();
             saveFilterSettings();
         });
@@ -6210,9 +6348,29 @@
         const filterToday = document.getElementById('filter-today');
         filterToday.addEventListener('change', function() {
             activeFilters.today = this.checked;
+            document.getElementById('filter-today-label').classList.toggle('checked', this.checked);
             applyFilters();
             saveFilterSettings();
         });
+
+        // Handle show completed toggle
+        document.getElementById('show-completed-toggle').addEventListener('change', function() {
+            showCompletedTasks = this.checked;
+            document.getElementById('show-completed-label').classList.toggle('checked', this.checked);
+            applyFilters();
+            saveFilterSettings();
+        });
+
+        // Update group-by label styling
+        function updateGroupByLabels() {
+            const statesChecked = document.getElementById('group-by-states').checked;
+            document.getElementById('group-by-states-label').classList.toggle('checked', statesChecked);
+            document.getElementById('group-by-tags-label').classList.toggle('checked', !statesChecked);
+        }
+        document.querySelectorAll('input[name="group-by"]').forEach(radio => {
+            radio.addEventListener('change', updateGroupByLabels);
+        });
+        updateGroupByLabels(); // Initial state
 
         // Tag filter changes are handled dynamically in populateFilterTags()
 
@@ -6226,6 +6384,10 @@
             filterTagsSearch.value = '';
             showCompletedTasks = false;
             document.getElementById('show-completed-toggle').checked = false;
+            // Update visual states
+            document.getElementById('filter-critical-label').classList.remove('checked');
+            document.getElementById('filter-today-label').classList.remove('checked');
+            document.getElementById('show-completed-label').classList.remove('checked');
             populateFilterTags();  // Repopulate to uncheck all
             applyFilters();
             saveFilterSettings();
@@ -6357,7 +6519,7 @@
             const statesContent = document.getElementById('states-content');
             const tagsContent = document.getElementById('tags-content');
             const tasksCollapsedMetrics = document.getElementById('tasks-collapsed-metrics');
-            const completedSection = document.getElementById('filter-completed-section');
+            const completedLabel = document.getElementById('show-completed-label');
 
             if (groupBy === 'states') {
                 statesContent.style.display = '';
@@ -6365,7 +6527,7 @@
                 // Show state-based metrics in collapsed view
                 updateCollapsedMetricsForStates();
                 // Hide completed filter (only applies to tags view)
-                if (completedSection) completedSection.style.display = 'none';
+                if (completedLabel) completedLabel.style.display = 'none';
             } else {
                 statesContent.style.display = 'none';
                 tagsContent.style.display = '';
@@ -6373,9 +6535,10 @@
                 // Show tag-based metrics in collapsed view
                 updateCollapsedMetricsForTags();
                 // Show completed filter (only applies to tags view)
-                if (completedSection) completedSection.style.display = '';
+                if (completedLabel) completedLabel.style.display = '';
             }
             updatePanelCounts();
+            updateGroupByLabels();
         }
 
         // Update collapsed metrics to show states (excluding terminal state)
@@ -6444,12 +6607,14 @@
                 if (saved.critical) {
                     activeFilters.critical = true;
                     filterCritical.checked = true;
+                    document.getElementById('filter-critical-label').classList.add('checked');
                 }
 
                 // Restore today filter
                 if (saved.today) {
                     activeFilters.today = true;
                     filterToday.checked = true;
+                    document.getElementById('filter-today-label').classList.add('checked');
                 }
 
                 // Restore tag filters
@@ -6472,6 +6637,7 @@
                     showCompletedTasks = saved.showCompleted;
                     const toggle = document.getElementById('show-completed-toggle');
                     toggle.checked = saved.showCompleted;
+                    document.getElementById('show-completed-label').classList.toggle('checked', saved.showCompleted);
                 }
 
                 // Restore hide rollups toggle
@@ -6486,6 +6652,9 @@
                 if (saved.groupBy === 'tags') {
                     switchGroupBy('tags');
                 }
+
+                // Update group by label styling
+                updateGroupByLabels();
 
                 // Apply the restored filters
                 applyFilters();
