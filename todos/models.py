@@ -61,6 +61,30 @@ class Task(models.Model):
         return self.title
 
 
+class TaskSchedule(models.Model):
+    """A scheduled time slot for a task on the calendar."""
+
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='schedules'
+    )
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['start_time']
+        indexes = [
+            models.Index(fields=['start_time']),
+            models.Index(fields=['task', 'start_time']),
+        ]
+
+    def __str__(self):
+        return f"{self.task.title} - {self.start_time.strftime('%Y-%m-%d %H:%M')}"
+
+
 class TimeBlock(models.Model):
     """A time block event on the calendar."""
 

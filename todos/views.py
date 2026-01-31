@@ -7,13 +7,36 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import pytz
 
-from .models import Task, TaskState, TaskTag, TimeBlock
+from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule
 from calendar_events.models import CalendarEvent
+
+
+def serialize_task(task):
+    """Serialize a task to a dictionary for JSON responses."""
+    return {
+        'id': task.id,
+        'title': task.title,
+        'details': task.details,
+        'critical': task.critical,
+        'state_id': task.state_id,
+        'state_name': task.state.name if task.state else None,
+        'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
+        'calendar_start_time': task.calendar_start_time.isoformat() if task.calendar_start_time else None,
+        'calendar_end_time': task.calendar_end_time.isoformat() if task.calendar_end_time else None,
+        'schedules': [
+            {
+                'id': s.id,
+                'start_time': s.start_time.isoformat(),
+                'end_time': s.end_time.isoformat(),
+            }
+            for s in task.schedules.all()
+        ],
+    }
 
 
 def task_list(request):
     """Display all tasks."""
-    tasks = Task.objects.select_related('state').prefetch_related('tags').all()
+    tasks = Task.objects.select_related('state').prefetch_related('tags', 'schedules').all()
     states = TaskState.objects.all()
     tags = TaskTag.objects.all()
 
@@ -80,17 +103,7 @@ def create_task(request):
         task = Task.objects.create(title=title, state=first_state)
         return JsonResponse({
             'success': True,
-            'task': {
-                'id': task.id,
-                'title': task.title,
-                'details': task.details,
-                'critical': task.critical,
-                'state_id': task.state_id,
-                'state_name': task.state.name if task.state else None,
-                'tags': [],
-                'calendar_start_time': task.calendar_start_time.isoformat() if task.calendar_start_time else None,
-                'calendar_end_time': task.calendar_end_time.isoformat() if task.calendar_end_time else None,
-            }
+            'task': serialize_task(task)
         })
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
@@ -128,17 +141,7 @@ def update_task(request, task_id):
         task.save()
         return JsonResponse({
             'success': True,
-            'task': {
-                'id': task.id,
-                'title': task.title,
-                'details': task.details,
-                'critical': task.critical,
-                'state_id': task.state_id,
-                'state_name': task.state.name if task.state else None,
-                'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
-                'calendar_start_time': task.calendar_start_time.isoformat() if task.calendar_start_time else None,
-                'calendar_end_time': task.calendar_end_time.isoformat() if task.calendar_end_time else None,
-            }
+            'task': serialize_task(task)
         })
     except Task.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
@@ -162,20 +165,10 @@ def delete_task(request, task_id):
 def get_task(request, task_id):
     """Get a task's details via AJAX."""
     try:
-        task = Task.objects.get(id=task_id)
+        task = Task.objects.select_related('state').prefetch_related('tags', 'schedules').get(id=task_id)
         return JsonResponse({
             'success': True,
-            'task': {
-                'id': task.id,
-                'title': task.title,
-                'details': task.details,
-                'critical': task.critical,
-                'state_id': task.state_id,
-                'state_name': task.state.name if task.state else None,
-                'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
-                'calendar_start_time': task.calendar_start_time.isoformat() if task.calendar_start_time else None,
-                'calendar_end_time': task.calendar_end_time.isoformat() if task.calendar_end_time else None,
-            }
+            'task': serialize_task(task)
         })
     except Task.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
@@ -515,3 +508,98 @@ def delete_time_block(request, block_id):
         return JsonResponse({'success': True})
     except TimeBlock.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Time block not found'}, status=404)
+
+
+# ========== Task Schedule Views ==========
+
+@require_POST
+def create_task_schedule(request, task_id):
+    """Create a new schedule for a task via AJAX."""
+    try:
+        task = Task.objects.get(id=task_id)
+        data = json.loads(request.body)
+
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+
+        if not start_time:
+            return JsonResponse({'success': False, 'error': 'Start time is required'}, status=400)
+        if not end_time:
+            return JsonResponse({'success': False, 'error': 'End time is required'}, status=400)
+
+        # Parse times
+        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+
+        schedule = TaskSchedule.objects.create(
+            task=task,
+            start_time=start_dt,
+            end_time=end_dt
+        )
+
+        return JsonResponse({
+            'success': True,
+            'schedule': {
+                'id': schedule.id,
+                'start_time': schedule.start_time.isoformat(),
+                'end_time': schedule.end_time.isoformat(),
+            },
+            'task': serialize_task(task)
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except ValueError as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["PATCH"])
+def update_task_schedule(request, schedule_id):
+    """Update a task schedule via AJAX."""
+    try:
+        schedule = TaskSchedule.objects.select_related('task').get(id=schedule_id)
+        data = json.loads(request.body)
+
+        if 'start_time' in data:
+            if data['start_time']:
+                schedule.start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+            else:
+                return JsonResponse({'success': False, 'error': 'Start time cannot be empty'}, status=400)
+        if 'end_time' in data:
+            if data['end_time']:
+                schedule.end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+            else:
+                return JsonResponse({'success': False, 'error': 'End time cannot be empty'}, status=400)
+
+        schedule.save()
+        return JsonResponse({
+            'success': True,
+            'schedule': {
+                'id': schedule.id,
+                'start_time': schedule.start_time.isoformat(),
+                'end_time': schedule.end_time.isoformat(),
+            },
+            'task': serialize_task(schedule.task)
+        })
+    except TaskSchedule.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Schedule not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except ValueError as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["DELETE"])
+def delete_task_schedule(request, schedule_id):
+    """Delete a task schedule via AJAX."""
+    try:
+        schedule = TaskSchedule.objects.select_related('task').get(id=schedule_id)
+        task = schedule.task
+        schedule.delete()
+        return JsonResponse({
+            'success': True,
+            'task': serialize_task(task)
+        })
+    except TaskSchedule.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Schedule not found'}, status=404)
