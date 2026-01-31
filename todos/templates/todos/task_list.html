@@ -5146,8 +5146,10 @@
                 });
 
                 const data = await response.json();
-                if (data.success && data.abandoned_state_id) {
-                    abandonedStateId = data.abandoned_state_id;
+                if (data.success) {
+                    if (data.abandoned_state_id) {
+                        abandonedStateId = data.abandoned_state_id;
+                    }
 
                     if (data.abandoned_count > 0) {
                         // Show toast notification
@@ -5157,13 +5159,9 @@
                             type: 'warning',
                             duration: 6000
                         });
-
-                        // Reload to show the UI changes (tasks moved to new state)
-                        setTimeout(() => location.reload(), 7000);
-                    } else {
-                        // Just update visibility if no new abandonments
-                        updateAbandonedStateVisibility();
                     }
+
+                    updateAbandonedStateVisibility();
                 }
             } catch (error) {
                 console.error('Error processing abandoned tasks:', error);
