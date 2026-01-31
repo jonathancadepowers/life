@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule, TaskDetailTemplate
+from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule, TaskDetailTemplate, TaskView
 
 
 @admin.register(TaskState)
@@ -44,4 +44,12 @@ class TaskDetailTemplateAdmin(admin.ModelAdmin):
     list_display = ['name', 'is_default', 'order', 'created_at']
     list_filter = ['is_default']
     search_fields = ['name', 'content']
+    ordering = ['order', 'name']
+
+
+@admin.register(TaskView)
+class TaskViewAdmin(admin.ModelAdmin):
+    list_display = ['name', 'is_default', 'order', 'created_at']
+    list_filter = ['is_default']
+    search_fields = ['name']
     ordering = ['order', 'name']

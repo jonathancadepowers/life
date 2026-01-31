@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import pytz
 
-from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule, TaskDetailTemplate
+from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule, TaskDetailTemplate, TaskView
 from calendar_events.models import CalendarEvent
 
 
@@ -93,6 +93,17 @@ def task_list(request):
             'is_default': template.is_default,
         })
 
+    # Prepare saved views data for JavaScript
+    saved_views = TaskView.objects.all()
+    views_data = []
+    for view in saved_views:
+        views_data.append({
+            'id': view.id,
+            'name': view.name,
+            'settings': view.settings,
+            'is_default': view.is_default,
+        })
+
     return render(request, 'todos/task_list.html', {
         'tasks': tasks,
         'states': states,
@@ -100,6 +111,7 @@ def task_list(request):
         'calendar_events': json.dumps(events_data),
         'time_blocks': json.dumps(time_blocks_data),
         'detail_templates': json.dumps(templates_data),
+        'saved_views': json.dumps(views_data),
     })
 
 
@@ -764,3 +776,68 @@ def delete_template(request, template_id):
         return JsonResponse({'success': True})
     except TaskDetailTemplate.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Template not found'}, status=404)
+
+
+# Task Views (saved filter configurations)
+def list_views(request):
+    """List all saved task views."""
+    views = TaskView.objects.all()
+    return JsonResponse({
+        'success': True,
+        'views': [
+            {
+                'id': v.id,
+                'name': v.name,
+                'settings': v.settings,
+                'is_default': v.is_default,
+                'order': v.order,
+            }
+            for v in views
+        ]
+    })
+
+
+@require_POST
+def create_view(request):
+    """Create a new saved task view via AJAX."""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        settings = data.get('settings', {})
+        is_default = data.get('is_default', False)
+
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+
+        # Set order to be at the end
+        max_order = TaskView.objects.count()
+        view = TaskView.objects.create(
+            name=name,
+            settings=settings,
+            is_default=is_default,
+            order=max_order
+        )
+
+        return JsonResponse({
+            'success': True,
+            'view': {
+                'id': view.id,
+                'name': view.name,
+                'settings': view.settings,
+                'is_default': view.is_default,
+                'order': view.order,
+            }
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
+@require_http_methods(["DELETE"])
+def delete_view(request, view_id):
+    """Delete a saved task view via AJAX."""
+    try:
+        view = TaskView.objects.get(id=view_id)
+        view.delete()
+        return JsonResponse({'success': True})
+    except TaskView.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'View not found'}, status=404)

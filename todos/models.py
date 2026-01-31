@@ -120,3 +120,26 @@ class TaskDetailTemplate(models.Model):
         if self.is_default:
             TaskDetailTemplate.objects.filter(is_default=True).exclude(pk=self.pk).update(is_default=False)
         super().save(*args, **kwargs)
+
+
+class TaskView(models.Model):
+    """A saved view configuration for task filtering and grouping."""
+
+    name = models.CharField(max_length=100)
+    settings = models.JSONField(default=dict)  # Stores all filter/group settings
+    is_default = models.BooleanField(default=False)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        # If this view is being set as default, unset any other defaults
+        if self.is_default:
+            TaskView.objects.filter(is_default=True).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)

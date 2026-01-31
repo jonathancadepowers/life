@@ -997,6 +997,84 @@
             transition: all 0.15s;
         }
 
+        /* Saved Views section */
+        .saved-views-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .saved-view-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.35rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #333;
+            transition: all 0.15s;
+        }
+
+        .saved-view-item:hover {
+            background: #f8f9fa;
+            color: #6B9080;
+        }
+
+        .saved-view-item .view-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .saved-view-item .view-delete {
+            opacity: 0;
+            padding: 0.15rem 0.35rem;
+            color: #dc3545;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .saved-view-item:hover .view-delete {
+            opacity: 1;
+        }
+
+        .saved-view-item .view-delete:hover {
+            color: #c82333;
+        }
+
+        .save-view-btn {
+            width: 100%;
+            padding: 0.4rem;
+            margin-top: 0.5rem;
+            border: 1px dashed #6B9080;
+            background: transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #6B9080;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+        }
+
+        .save-view-btn:hover {
+            background: #f0f5f3;
+            border-color: #5a7a6a;
+        }
+
+        .no-saved-views {
+            color: #6c757d;
+            font-size: 0.8rem;
+            font-style: italic;
+            padding: 0.25rem 0;
+        }
+
         .filter-clear:hover {
             background: #f8f9fa;
             border-color: #6B9080;
@@ -3045,6 +3123,15 @@
 
     <!-- Filter dropdown -->
     <div class="filter-dropdown" id="filter-dropdown">
+        <div class="filter-section">
+            <div class="filter-section-title">Saved Views</div>
+            <div class="saved-views-list" id="saved-views-list">
+                <!-- Views will be populated by JavaScript -->
+            </div>
+            <button class="save-view-btn" id="save-view-btn">
+                <i class="bi bi-plus-lg"></i> Save Current View
+            </button>
+        </div>
         <div class="filter-section">
             <div class="filter-section-title">Group By</div>
             <label class="filter-option">
@@ -5945,6 +6032,147 @@
         // Initial population
         populateFilterTags();
 
+        // Saved Views functionality
+        const savedViewsList = document.getElementById('saved-views-list');
+        const saveViewBtn = document.getElementById('save-view-btn');
+
+        function renderSavedViews() {
+            savedViewsList.innerHTML = '';
+            if (savedViews.length === 0) {
+                savedViewsList.innerHTML = '<div class="no-saved-views">No saved views yet</div>';
+                return;
+            }
+            savedViews.forEach(view => {
+                const item = document.createElement('div');
+                item.className = 'saved-view-item';
+                item.innerHTML = `
+                    <span class="view-name">${escapeHtml(view.name)}</span>
+                    <span class="view-delete" data-view-id="${view.id}" title="Delete view">
+                        <i class="bi bi-x"></i>
+                    </span>
+                `;
+                item.querySelector('.view-name').addEventListener('click', () => applyView(view));
+                item.querySelector('.view-delete').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteView(view.id);
+                });
+                savedViewsList.appendChild(item);
+            });
+        }
+
+        function getCurrentViewSettings() {
+            const groupBy = document.querySelector('input[name="group-by"]:checked')?.value || 'states';
+            const checkedTagIds = [];
+            document.querySelectorAll('#filter-tags-list input[type="checkbox"]:checked').forEach(cb => {
+                checkedTagIds.push(parseInt(cb.value));
+            });
+            return {
+                group_by: groupBy,
+                filter_critical: activeFilters.critical || false,
+                filter_today: activeFilters.today || false,
+                filter_tags: checkedTagIds,
+                show_completed: showCompletedTasks || false,
+                hide_rollups: document.getElementById('hide-rollups-toggle')?.checked || false
+            };
+        }
+
+        function applyView(view) {
+            const settings = view.settings;
+
+            // Apply group by
+            if (settings.group_by) {
+                const radio = document.querySelector(`input[name="group-by"][value="${settings.group_by}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change'));
+                }
+            }
+
+            // Apply filters
+            activeFilters.critical = settings.filter_critical || false;
+            activeFilters.today = settings.filter_today || false;
+            activeFilters.tags = settings.filter_tags || [];
+
+            document.getElementById('filter-critical').checked = activeFilters.critical;
+            document.getElementById('filter-today').checked = activeFilters.today;
+
+            // Apply show completed
+            showCompletedTasks = settings.show_completed || false;
+            document.getElementById('show-completed-toggle').checked = showCompletedTasks;
+
+            // Apply hide rollups
+            if (document.getElementById('hide-rollups-toggle')) {
+                document.getElementById('hide-rollups-toggle').checked = settings.hide_rollups || false;
+            }
+
+            // Apply tag filters
+            populateFilterTags();
+            if (settings.filter_tags && settings.filter_tags.length > 0) {
+                settings.filter_tags.forEach(tagId => {
+                    const cb = document.querySelector(`#filter-tags-list input[value="${tagId}"]`);
+                    if (cb) cb.checked = true;
+                });
+            }
+
+            applyFilters();
+            saveFilterSettings();
+
+            // Close the dropdown after applying
+            filterDropdown.classList.remove('active');
+            filterIcon.classList.remove('active');
+        }
+
+        async function saveCurrentView() {
+            const name = prompt('Enter a name for this view:');
+            if (!name || !name.trim()) return;
+
+            const settings = getCurrentViewSettings();
+
+            try {
+                const response = await fetch('/tasks/api/views/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        name: name.trim(),
+                        settings: settings
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    savedViews.push(data.view);
+                    renderSavedViews();
+                }
+            } catch (error) {
+                console.error('Error saving view:', error);
+            }
+        }
+
+        async function deleteView(viewId) {
+            if (!confirm('Delete this saved view?')) return;
+
+            try {
+                const response = await fetch(`/tasks/api/views/${viewId}/delete/`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    savedViews = savedViews.filter(v => v.id !== viewId);
+                    renderSavedViews();
+                }
+            } catch (error) {
+                console.error('Error deleting view:', error);
+            }
+        }
+
+        saveViewBtn.addEventListener('click', saveCurrentView);
+        renderSavedViews();
+
         // Toggle filter dropdown
         filterIcon.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -6821,6 +7049,9 @@
 
         // Task detail templates from database
         let detailTemplates = {{ detail_templates|safe }};
+
+        // Saved views from database
+        let savedViews = {{ saved_views|safe }};
 
         // Render calendar events on the hourly grid (using browser's local timezone)
         function renderCalendarEvents() {

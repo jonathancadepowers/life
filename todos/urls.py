@@ -36,4 +36,8 @@ urlpatterns = [
     path('api/templates/create/', views.create_template, name='create_template'),
     path('api/templates/<int:template_id>/update/', views.update_template, name='update_template'),
     path('api/templates/<int:template_id>/delete/', views.delete_template, name='delete_template'),
+    # Saved views (filter configurations)
+    path('api/views/', views.list_views, name='list_views'),
+    path('api/views/create/', views.create_view, name='create_view'),
+    path('api/views/<int:view_id>/delete/', views.delete_view, name='delete_view'),
 ]
