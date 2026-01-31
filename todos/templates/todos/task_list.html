@@ -2071,6 +2071,37 @@
             font-style: italic;
         }
 
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            background: #495057;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            max-width: 320px;
+        }
+
+        .toast-notification.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-notification i {
+            color: #fd7e14;
+            font-size: 1rem;
+        }
+
         /* State list styles */
         .state-list {
             list-style: none;
@@ -4085,6 +4116,12 @@
         </div>
     </div>
 
+    <!-- Toast notification for abandoned tasks -->
+    <div class="toast-notification" id="toast-notification">
+        <i class="bi bi-archive-fill"></i>
+        <span id="toast-message"></span>
+    </div>
+
     <!-- Filter dropdown -->
     <div class="filter-dropdown" id="filter-dropdown">
         <div class="filter-dropdown-header">
@@ -5004,9 +5041,13 @@
                 if (data.success && data.abandoned_state_id) {
                     abandonedStateId = data.abandoned_state_id;
 
-                    // If tasks were abandoned, reload to show the changes
                     if (data.abandoned_count > 0) {
-                        location.reload();
+                        // Show toast notification
+                        const taskWord = data.abandoned_count === 1 ? 'task was' : 'tasks were';
+                        showToast(`${data.abandoned_count} ${taskWord} moved to Abandoned`);
+
+                        // Reload to show the UI changes (tasks moved to new state)
+                        setTimeout(() => location.reload(), 2000);
                     } else {
                         // Just update visibility if no new abandonments
                         updateAbandonedStateVisibility();
@@ -5015,6 +5056,19 @@
             } catch (error) {
                 console.error('Error processing abandoned tasks:', error);
             }
+        }
+
+        function showToast(message, duration = 4000) {
+            const toast = document.getElementById('toast-notification');
+            const messageEl = document.getElementById('toast-message');
+            if (!toast || !messageEl) return;
+
+            messageEl.textContent = message;
+            toast.classList.add('visible');
+
+            setTimeout(() => {
+                toast.classList.remove('visible');
+            }, duration);
         }
 
         function updateAbandonedStateVisibility() {
