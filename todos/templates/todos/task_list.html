@@ -799,6 +799,31 @@
             align-items: center;
         }
 
+        .panel-footer-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .save-close-btn {
+            background: #6B9080;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: background 0.15s;
+        }
+
+        .save-close-btn:hover {
+            background: #5a7d6e;
+        }
+
         .critical-toggle {
             display: flex;
             align-items: center;
@@ -3328,10 +3353,16 @@
             </div>
         </div>
         <div class="panel-footer">
-            <button class="mark-done-btn" id="panel-mark-done">
-                <i class="bi bi-check-circle"></i>
-                <span>Task Complete!</span>
-            </button>
+            <div class="panel-footer-left">
+                <button class="save-close-btn" id="panel-save-close">
+                    <i class="bi bi-check-lg"></i>
+                    <span>Save</span>
+                </button>
+                <button class="mark-done-btn" id="panel-mark-done">
+                    <i class="bi bi-check-circle"></i>
+                    <span>Task Complete!</span>
+                </button>
+            </div>
             <button class="delete-btn" id="panel-delete" title="Delete task">
                 <i class="bi bi-trash"></i>
             </button>
@@ -3956,6 +3987,14 @@
             const confirmed = await showConfirmModal('Are you sure you want to delete this task?', 'Delete Task', 'Delete');
             if (!confirmed) return;
             await deleteTask(currentTaskId);
+            closePanel();
+        });
+
+        // Save and close button handler
+        document.getElementById('panel-save-close').addEventListener('click', async () => {
+            if (!currentTaskId) return;
+            // Trigger a save (even though auto-save handles it)
+            await saveCurrentTask();
             closePanel();
         });
 
