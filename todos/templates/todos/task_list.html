@@ -1064,14 +1064,21 @@
             padding-top: 0;
         }
 
+        .task-property-deadline {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
         .task-property-deadline .task-property-value {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.5rem;
+            width: 100%;
         }
 
         .task-property-deadline .task-property-label {
-            padding-top: 0.35rem;
+            padding-top: 0;
         }
 
         /* Toggle Switch */
@@ -1490,19 +1497,20 @@
 
         .deadline-presets {
             display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            flex-wrap: nowrap;
+            gap: 0.4rem;
         }
 
         .deadline-preset-btn {
-            padding: 0.35rem 0.75rem;
+            padding: 0.3rem 0.6rem;
             border: 1px solid #dee2e6;
             border-radius: 16px;
             background: white;
             color: #495057;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             cursor: pointer;
             transition: all 0.2s;
+            white-space: nowrap;
         }
 
         .deadline-preset-btn:hover {
@@ -2318,6 +2326,15 @@
 
         .state-delete:hover {
             color: #dc3545;
+        }
+
+        .state-delete.disabled {
+            color: #dee2e6;
+            cursor: not-allowed;
+        }
+
+        .state-delete.disabled:hover {
+            color: #dee2e6;
         }
 
         .state-icon-btn {
@@ -4557,7 +4574,7 @@
                             <button class="state-icon-btn" onclick="openIconPicker({{ state.id }}, this)" title="Choose icon">
                                 <i class="bi {% if state.bootstrap_icon %}{{ state.bootstrap_icon }}{% else %}bi-plus-circle-dotted{% endif %}"></i>
                             </button>
-                            <button class="state-delete" {% if state.is_system %}style="visibility: hidden;"{% else %}onclick="deleteState({{ state.id }}, this)"{% endif %} title="Delete state">
+                            <button class="state-delete{% if state.is_system %} disabled{% endif %}" {% if not state.is_system %}onclick="deleteState({{ state.id }}, this)"{% endif %} title="{% if state.is_system %}System state cannot be deleted{% else %}Delete state{% endif %}">
                                 <i class="bi bi-x-lg"></i>
                             </button>
                         </div>
@@ -7666,12 +7683,19 @@
         }
 
         function closeContextMenu() {
-            const menu = document.getElementById('task-context-menu');
-            if (menu) {
-                menu.remove();
+            // Remove both types of context menus
+            const taskMenu = document.getElementById('task-context-menu');
+            if (taskMenu) {
+                taskMenu.remove();
+            }
+            const groupMenu = document.getElementById('context-menu');
+            if (groupMenu) {
+                groupMenu.remove();
             }
             document.removeEventListener('click', closeContextMenu);
             document.removeEventListener('contextmenu', closeContextMenu);
+            document.removeEventListener('click', closeContextMenuOnClickOutside);
+            document.removeEventListener('contextmenu', closeContextMenuOnClickOutside);
             contextMenuTaskId = null;
         }
 
