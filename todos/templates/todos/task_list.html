@@ -656,13 +656,13 @@
 
         /* Sidebar icons */
         div.sidebar-icons {
-            position: absolute;
-            top: 1.5rem;
-            left: 1.5rem;
+            position: fixed !important;
+            top: 1.5rem !important;
+            left: 1.5rem !important;
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
-            z-index: 10000;
+            z-index: 10000 !important;
         }
 
         .sidebar-icon {
@@ -3149,30 +3149,6 @@
         let currentTaskId = null;
         let saveTimeout = null;
 
-        // Force sidebar icons to stay at viewport top using absolute positioning
-        (function() {
-            const sidebarIcons = document.querySelector('.sidebar-icons');
-            console.log('Sidebar icons element:', sidebarIcons);
-            if (sidebarIcons) {
-                function updatePosition() {
-                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                    sidebarIcons.style.position = 'absolute';
-                    sidebarIcons.style.top = (scrollTop + 24) + 'px'; // 24px = 1.5rem
-                    sidebarIcons.style.left = '1.5rem';
-                    sidebarIcons.style.zIndex = '10000';
-                    console.log('Updated position - scrollTop:', scrollTop, 'new top:', sidebarIcons.style.top);
-                }
-
-                // Initial position
-                updatePosition();
-
-                // Update on scroll
-                window.addEventListener('scroll', updatePosition, { passive: true });
-                console.log('Scroll listener attached');
-            } else {
-                console.error('Sidebar icons element not found!');
-            }
-        })();
 
         // Store tags locally for immediate availability
         let tagsList = [
