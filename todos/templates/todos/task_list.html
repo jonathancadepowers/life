@@ -2355,6 +2355,16 @@
             cursor: grabbing;
         }
 
+        .task-card.selected {
+            background: #d4edda;
+            border-color: #6B9080;
+            box-shadow: 0 0 0 1px #6B9080;
+        }
+
+        .task-card.selected:hover {
+            background: #c3e6cb;
+        }
+
         .task-card.drag-over {
             border-color: #6B9080;
             box-shadow: 0 0 0 1px #6B9080;
@@ -3212,7 +3222,7 @@
                             <span class="metric-pill">Meetings: <span id="meetings-count">0</span></span>
                             <span class="metric-pill">Time in Meetings: <span id="meetings-time">0h</span></span>
                         </div>
-                        <button class="calendar-today-btn" id="calendar-today-btn" title="Jump to Today" style="display: none;">
+                        <button class="calendar-today-btn" id="calendar-today-btn" title="Jump to Today">
                             <i class="bi bi-calendar-check"></i> Today
                         </button>
                         <button class="add-event-btn" id="add-event-btn" title="Block Time">
@@ -5257,6 +5267,213 @@
             document.removeEventListener('click', closeContextMenu);
             document.removeEventListener('contextmenu', closeContextMenu);
             contextMenuTaskId = null;
+        }
+
+        // Multi-select context menu
+        function showMultiSelectContextMenu(e) {
+            e.preventDefault();
+            closeContextMenu();
+
+            const count = selectedTaskIds.size;
+
+            // Build menu HTML for multi-select
+            let menuHtml = `
+                <div class="task-context-menu-item" style="color: #6c757d; font-style: italic; cursor: default;">
+                    <i class="bi bi-check2-square"></i>
+                    ${count} tasks selected
+                </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-item" onclick="batchMarkCritical(true)">
+                    <i class="bi bi-exclamation-circle"></i>
+                    Mark All Critical
+                </div>
+                <div class="task-context-menu-item" onclick="batchMarkCritical(false)">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    Unmark All Critical
+                </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-submenu">
+                    <div class="task-context-menu-item">
+                        <i class="bi bi-arrow-right-square"></i>
+                        Move to State
+                        <span class="submenu-arrow"><i class="bi bi-chevron-right"></i></span>
+                    </div>
+                    <div class="task-context-menu-submenu-content">
+            `;
+
+            // Add state options
+            document.querySelectorAll('.state-group').forEach(group => {
+                const stateId = group.dataset.stateId;
+                const stateName = group.querySelector('.state-group-title')?.textContent || 'Unknown';
+                menuHtml += `
+                    <div class="task-context-menu-item" onclick="batchMoveToState('${stateId}')">
+                        <i class="bi bi-folder"></i>
+                        ${escapeHtml(stateName)}
+                    </div>
+                `;
+            });
+
+            menuHtml += `
+                    </div>
+                </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-item danger" onclick="batchDeleteTasks()">
+                    <i class="bi bi-trash"></i>
+                    Delete ${count} Tasks
+                </div>
+            `;
+
+            const menu = document.createElement('div');
+            menu.className = 'task-context-menu';
+            menu.id = 'task-context-menu';
+            menu.innerHTML = menuHtml;
+
+            document.body.appendChild(menu);
+
+            // Position the menu
+            const menuRect = menu.getBoundingClientRect();
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            setTimeout(() => {
+                document.addEventListener('click', closeContextMenu);
+                document.addEventListener('contextmenu', closeContextMenu);
+            }, 0);
+        }
+
+        // Batch operations
+        async function batchMarkCritical(critical) {
+            const taskIds = Array.from(selectedTaskIds);
+
+            for (const taskId of taskIds) {
+                try {
+                    const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ critical })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update UI
+                        const cards = document.querySelectorAll(`.task-card[data-task-id="${taskId}"], .kanban-card[data-task-id="${taskId}"]`);
+                        cards.forEach(card => {
+                            if (critical) {
+                                card.classList.add('critical');
+                                // Add icon if not present
+                                let icons = card.querySelector('.task-card-icons');
+                                if (!icons) {
+                                    icons = document.createElement('div');
+                                    icons.className = 'task-card-icons';
+                                    card.appendChild(icons);
+                                }
+                                if (!icons.querySelector('.task-critical-icon')) {
+                                    const icon = document.createElement('i');
+                                    icon.className = 'bi bi-exclamation-circle-fill task-critical-icon';
+                                    icon.title = 'Critical Task';
+                                    icons.insertBefore(icon, icons.firstChild);
+                                }
+                            } else {
+                                card.classList.remove('critical');
+                                const icon = card.querySelector('.task-critical-icon');
+                                if (icon) icon.remove();
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error updating task:', error);
+                }
+            }
+
+            closeContextMenu();
+            clearTaskSelection();
+        }
+
+        async function batchMoveToState(stateId) {
+            const taskIds = Array.from(selectedTaskIds);
+            const newStateId = stateId === 'none' ? null : parseInt(stateId);
+
+            for (const taskId of taskIds) {
+                try {
+                    const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ state_id: newStateId })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        // Move card to new state group
+                        const card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+                        if (card) {
+                            const targetGroup = document.querySelector(`.state-group[data-state-id="${stateId}"] .state-group-body`);
+                            if (targetGroup) {
+                                targetGroup.appendChild(card);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error moving task:', error);
+                }
+            }
+
+            updatePanelCounts();
+            closeContextMenu();
+            clearTaskSelection();
+        }
+
+        async function batchDeleteTasks() {
+            const count = selectedTaskIds.size;
+            const confirmed = await showConfirmModal(
+                `Are you sure you want to delete ${count} tasks? This cannot be undone.`,
+                'Delete Tasks',
+                'Delete'
+            );
+
+            if (!confirmed) {
+                closeContextMenu();
+                return;
+            }
+
+            const taskIds = Array.from(selectedTaskIds);
+
+            for (const taskId of taskIds) {
+                try {
+                    await fetch(`/tasks/api/${taskId}/delete/`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRFToken': csrfToken }
+                    });
+
+                    // Remove from UI
+                    document.querySelectorAll(`[data-task-id="${taskId}"]`).forEach(el => el.remove());
+
+                    // Clean up maps
+                    delete taskTagsMap[taskId];
+                    delete taskSchedulesMap[taskId];
+                } catch (error) {
+                    console.error('Error deleting task:', error);
+                }
+            }
+
+            updatePanelCounts();
+            closeContextMenu();
+            clearTaskSelection();
         }
 
         function toggleTagLocally(element, tagId) {
@@ -7861,6 +8078,13 @@
                     e.preventDefault();
                     this.classList.add('drag-over');
 
+                    // Block multi-select drops on calendar
+                    if (e.dataTransfer.types.includes('application/x-multi-task')) {
+                        this.classList.add('drag-blocked');
+                        e.dataTransfer.dropEffect = 'none';
+                        return;
+                    }
+
                     // Check if dragging a task or a time block
                     const taskId = currentDragTaskId;
                     const timeBlockId = currentDragTimeBlockId;
@@ -7947,6 +8171,11 @@
                     e.preventDefault();
                     this.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
                     this.style.removeProperty('--preview-height');
+
+                    // Block multi-select drops on calendar
+                    if (e.dataTransfer.types.includes('application/x-multi-task')) {
+                        return;
+                    }
 
                     const dataId = e.dataTransfer.getData('text/plain');
                     if (!dataId) return;
@@ -8206,9 +8435,88 @@
             document.getElementById('meetings-time').textContent = timeStr;
         }
 
+        // ========== Task Multi-Select ==========
+
+        let selectedTaskIds = new Set();
+        let lastClickedTaskId = null; // For shift-click range selection
+
+        function clearTaskSelection() {
+            selectedTaskIds.clear();
+            document.querySelectorAll('.task-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+            lastClickedTaskId = null;
+        }
+
+        function toggleTaskSelection(taskId, card) {
+            if (selectedTaskIds.has(taskId)) {
+                selectedTaskIds.delete(taskId);
+                card.classList.remove('selected');
+            } else {
+                selectedTaskIds.add(taskId);
+                card.classList.add('selected');
+            }
+            lastClickedTaskId = taskId;
+        }
+
+        function selectTask(taskId, card) {
+            selectedTaskIds.add(taskId);
+            card.classList.add('selected');
+            lastClickedTaskId = taskId;
+        }
+
+        function selectTaskRange(fromId, toId) {
+            // Get all task cards in DOM order
+            const allCards = Array.from(document.querySelectorAll('.task-card'));
+            const fromIndex = allCards.findIndex(c => parseInt(c.dataset.taskId) === fromId);
+            const toIndex = allCards.findIndex(c => parseInt(c.dataset.taskId) === toId);
+
+            if (fromIndex === -1 || toIndex === -1) return;
+
+            const start = Math.min(fromIndex, toIndex);
+            const end = Math.max(fromIndex, toIndex);
+
+            for (let i = start; i <= end; i++) {
+                const card = allCards[i];
+                const taskId = parseInt(card.dataset.taskId);
+                selectedTaskIds.add(taskId);
+                card.classList.add('selected');
+            }
+        }
+
+        function handleTaskCardClick(e, card) {
+            const taskId = parseInt(card.dataset.taskId);
+
+            // Don't handle selection if clicking on buttons or drag handle
+            if (e.target.closest('button') || e.target.closest('.task-card-drag-handle')) {
+                return;
+            }
+
+            if (e.shiftKey && lastClickedTaskId !== null) {
+                // Shift+click: select range
+                e.preventDefault();
+                selectTaskRange(lastClickedTaskId, taskId);
+            } else if (e.metaKey || e.ctrlKey) {
+                // Cmd/Ctrl+click: toggle selection
+                e.preventDefault();
+                toggleTaskSelection(taskId, card);
+            } else {
+                // Regular click: clear selection and select this one (but let double-click through)
+                // We'll handle this in mousedown to not interfere with double-click
+            }
+        }
+
+        // Clear selection when clicking outside task cards
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.task-card') && !e.target.closest('.task-context-menu')) {
+                clearTaskSelection();
+            }
+        });
+
         // ========== Task Card Drag and Drop ==========
 
         let draggedTaskCard = null;
+        let draggedTaskCards = []; // For multi-select drag
         let taskDropIndicator = null;
         let currentDragTaskId = null; // Track dragged task ID for both task cards and calendar items
 
@@ -8239,7 +8547,45 @@
             // Make card draggable
             card.draggable = true;
 
+            // Click handler for selection
+            card.addEventListener('click', function(e) {
+                const taskId = parseInt(this.dataset.taskId);
+
+                // Don't handle if clicking buttons
+                if (e.target.closest('button')) return;
+
+                if (e.shiftKey && lastClickedTaskId !== null) {
+                    // Shift+click: select range
+                    e.preventDefault();
+                    selectTaskRange(lastClickedTaskId, taskId);
+                } else if (e.metaKey || e.ctrlKey) {
+                    // Cmd/Ctrl+click: toggle selection
+                    e.preventDefault();
+                    toggleTaskSelection(taskId, this);
+                }
+                // Regular click without modifier doesn't change selection (allows drag)
+            });
+
             card.addEventListener('dragstart', function(e) {
+                const taskId = parseInt(card.dataset.taskId);
+
+                // If dragging a selected card, drag all selected cards
+                if (selectedTaskIds.has(taskId) && selectedTaskIds.size > 1) {
+                    draggedTaskCards = Array.from(selectedTaskIds).map(id =>
+                        document.querySelector(`.task-card[data-task-id="${id}"]`)
+                    ).filter(c => c);
+                    draggedTaskCards.forEach(c => {
+                        c.classList.add('dragging');
+                        c.style.opacity = '0.4';
+                    });
+                    // Don't allow dropping on calendar for multi-select
+                    e.dataTransfer.setData('application/x-multi-task', 'true');
+                } else {
+                    // Single task drag - clear selection and drag just this one
+                    clearTaskSelection();
+                    draggedTaskCards = [card];
+                }
+
                 draggedTaskCard = card;
                 currentDragTaskId = card.dataset.taskId;
                 card.classList.add('dragging');
@@ -8251,9 +8597,15 @@
             });
 
             card.addEventListener('dragend', function() {
+                // Reset all dragged cards
+                draggedTaskCards.forEach(c => {
+                    c.classList.remove('dragging');
+                    c.style.opacity = '1';
+                });
                 card.classList.remove('dragging');
                 card.style.opacity = '1';
                 draggedTaskCard = null;
+                draggedTaskCards = [];
                 currentDragTaskId = null;
                 // Remove all drag-over classes and drop indicator
                 document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
@@ -8265,13 +8617,23 @@
 
             // Right-click to show context menu
             card.addEventListener('contextmenu', function(e) {
-                showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+                const taskId = parseInt(this.dataset.taskId);
+
+                // If right-clicking on a selected card with multiple selections, show multi-select menu
+                if (selectedTaskIds.has(taskId) && selectedTaskIds.size > 1) {
+                    showMultiSelectContextMenu(e);
+                } else {
+                    // Clear selection and show single-task menu
+                    clearTaskSelection();
+                    showContextMenu(e, taskId, 'openTaskPanel');
+                }
             });
 
             // Double-click to open task panel
             card.addEventListener('dblclick', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                clearTaskSelection();
                 openTaskPanel(parseInt(this.dataset.taskId));
             });
         }
@@ -8316,13 +8678,8 @@
 
                     if (!draggedTaskCard) return;
 
-                    const taskId = parseInt(draggedTaskCard.dataset.taskId);
                     const rawNewStateId = this.dataset.stateId;
                     const newStateId = rawNewStateId === 'none' ? null : parseInt(rawNewStateId);
-                    const oldBody = draggedTaskCard.parentElement;
-                    const rawOldStateId = draggedTaskCard.closest('.state-group').dataset.stateId;
-                    const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
-                    const changedState = (newStateId !== oldStateId);
 
                     // Get drop position
                     const { element, position } = getTaskDropPosition(this, e.clientY);
@@ -8332,11 +8689,34 @@
                         taskDropIndicator.remove();
                     }
 
-                    // Move card to new position
+                    // Handle multi-select drop
+                    const isMultiDrop = draggedTaskCards.length > 1;
+                    const cardsToMove = isMultiDrop ? draggedTaskCards : [draggedTaskCard];
+
+                    // Collect old states for each card
+                    const cardOldStates = cardsToMove.map(card => {
+                        const oldBody = card.parentElement;
+                        const rawOldStateId = card.closest('.state-group').dataset.stateId;
+                        const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
+                        return { card, oldBody, oldStateId, changedState: newStateId !== oldStateId };
+                    });
+
+                    // Move cards to new position (maintain their relative order)
+                    // Sort cards by their current order in the DOM to maintain relative order
+                    const sortedCards = [...cardsToMove].sort((a, b) => {
+                        const aRect = a.getBoundingClientRect();
+                        const bRect = b.getBoundingClientRect();
+                        return aRect.top - bRect.top;
+                    });
+
+                    // Insert cards at the drop position
                     if (position === 'end') {
-                        this.appendChild(draggedTaskCard);
+                        sortedCards.forEach(card => this.appendChild(card));
                     } else if (element) {
-                        element.parentElement.insertBefore(draggedTaskCard, element);
+                        // Insert before the target element
+                        sortedCards.forEach(card => {
+                            element.parentElement.insertBefore(card, element);
+                        });
                     }
 
                     // Update counts
@@ -8345,19 +8725,22 @@
                     // Get new order of all cards in this state
                     const cardIds = [...this.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
 
-                    // If state changed, update state on server
-                    if (changedState) {
-                        try {
-                            await fetch(`/tasks/api/${taskId}/update/`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ state_id: newStateId })
-                            });
-                        } catch (error) {
-                            console.error('Error updating task state:', error);
+                    // Update state on server for each card that changed state
+                    for (const { card, changedState } of cardOldStates) {
+                        if (changedState) {
+                            const taskId = parseInt(card.dataset.taskId);
+                            try {
+                                await fetch(`/tasks/api/${taskId}/update/`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: JSON.stringify({ state_id: newStateId })
+                                });
+                            } catch (error) {
+                                console.error('Error updating task state:', error);
+                            }
                         }
                     }
 
@@ -8375,8 +8758,16 @@
                         console.error('Error updating task order:', error);
                     }
 
-                    // If we moved to a different state, also reorder the old state
-                    if (changedState && oldBody) {
+                    // Collect unique old state bodies that need reordering
+                    const oldBodiesSet = new Set();
+                    for (const { oldBody, changedState } of cardOldStates) {
+                        if (changedState && oldBody && oldBody !== this) {
+                            oldBodiesSet.add(oldBody);
+                        }
+                    }
+
+                    // Reorder each affected old state
+                    for (const oldBody of oldBodiesSet) {
                         const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
                         try {
                             await fetch('/tasks/api/tasks/reorder/', {
@@ -8390,6 +8781,11 @@
                         } catch (error) {
                             console.error('Error updating old state order:', error);
                         }
+                    }
+
+                    // Clear selection after drop
+                    if (isMultiDrop) {
+                        clearTaskSelection();
                     }
                 });
             });
@@ -8442,12 +8838,8 @@
 
                     if (!draggedTaskCard) return;
 
-                    const taskId = parseInt(draggedTaskCard.dataset.taskId);
                     const rawNewStateId = this.dataset.stateId;
                     const newStateId = rawNewStateId === 'none' ? null : parseInt(rawNewStateId);
-                    const rawOldStateId = draggedTaskCard.closest('.state-group').dataset.stateId;
-                    const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
-                    const changedState = (newStateId !== oldStateId);
 
                     const { element, position } = getTaskDropPosition(this, e.clientY);
 
@@ -8455,28 +8847,54 @@
                         taskDropIndicator.remove();
                     }
 
+                    // Handle multi-select drop
+                    const isMultiDrop = draggedTaskCards.length > 1;
+                    const cardsToMove = isMultiDrop ? draggedTaskCards : [draggedTaskCard];
+
+                    // Collect old states for each card
+                    const cardOldStates = cardsToMove.map(card => {
+                        const oldBody = card.parentElement;
+                        const rawOldStateId = card.closest('.state-group').dataset.stateId;
+                        const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
+                        return { card, oldBody, oldStateId, changedState: newStateId !== oldStateId };
+                    });
+
+                    // Sort cards by their current order in the DOM
+                    const sortedCards = [...cardsToMove].sort((a, b) => {
+                        const aRect = a.getBoundingClientRect();
+                        const bRect = b.getBoundingClientRect();
+                        return aRect.top - bRect.top;
+                    });
+
+                    // Insert cards at the drop position
                     if (position === 'end') {
-                        this.appendChild(draggedTaskCard);
+                        sortedCards.forEach(card => this.appendChild(card));
                     } else if (element) {
-                        element.parentElement.insertBefore(draggedTaskCard, element);
+                        sortedCards.forEach(card => {
+                            element.parentElement.insertBefore(card, element);
+                        });
                     }
 
                     updatePanelCounts();
 
                     const cardIds = [...this.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
 
-                    if (changedState) {
-                        try {
-                            await fetch(`/tasks/api/${taskId}/update/`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ state_id: newStateId })
-                            });
-                        } catch (error) {
-                            console.error('Error updating task state:', error);
+                    // Update state on server for each card that changed state
+                    for (const { card, changedState } of cardOldStates) {
+                        if (changedState) {
+                            const taskId = parseInt(card.dataset.taskId);
+                            try {
+                                await fetch(`/tasks/api/${taskId}/update/`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: JSON.stringify({ state_id: newStateId })
+                                });
+                            } catch (error) {
+                                console.error('Error updating task state:', error);
+                            }
                         }
                     }
 
@@ -8491,6 +8909,36 @@
                         });
                     } catch (error) {
                         console.error('Error reordering tasks:', error);
+                    }
+
+                    // Collect unique old state bodies that need reordering
+                    const oldBodiesSet = new Set();
+                    for (const { oldBody, changedState } of cardOldStates) {
+                        if (changedState && oldBody && oldBody !== this) {
+                            oldBodiesSet.add(oldBody);
+                        }
+                    }
+
+                    // Reorder each affected old state
+                    for (const oldBody of oldBodiesSet) {
+                        const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                        try {
+                            await fetch('/tasks/api/tasks/reorder/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ task_ids: oldCardIds })
+                            });
+                        } catch (error) {
+                            console.error('Error updating old state order:', error);
+                        }
+                    }
+
+                    // Clear selection after drop
+                    if (isMultiDrop) {
+                        clearTaskSelection();
                     }
                 });
             }
@@ -8542,12 +8990,19 @@
                     const body = stateGroup.querySelector('.state-group-body');
                     if (!body) return;
 
-                    const taskId = parseInt(draggedTaskCard.dataset.taskId);
                     const newStateId = parseInt(body.dataset.stateId);
-                    const oldStateGroup = draggedTaskCard.closest('.state-group');
-                    const oldBody = oldStateGroup ? oldStateGroup.querySelector('.state-group-body') : null;
-                    const oldStateId = oldBody ? parseInt(oldBody.dataset.stateId) : null;
-                    const changedState = (newStateId !== oldStateId);
+
+                    // Handle multi-select drop
+                    const isMultiDrop = draggedTaskCards.length > 1;
+                    const cardsToMove = isMultiDrop ? draggedTaskCards : [draggedTaskCard];
+
+                    // Collect old states for each card
+                    const cardOldStates = cardsToMove.map(card => {
+                        const oldStateGroup = card.closest('.state-group');
+                        const oldBody = oldStateGroup ? oldStateGroup.querySelector('.state-group-body') : null;
+                        const oldStateId = oldBody ? parseInt(oldBody.dataset.stateId) : null;
+                        return { card, oldBody, oldStateId, changedState: newStateId !== oldStateId };
+                    });
 
                     // Expand the state if collapsed (except for terminal state)
                     const isTerminalState = newStateId === getTerminalStateId();
@@ -8555,48 +9010,68 @@
                         stateGroup.classList.remove('collapsed');
                     }
 
-                    // Move the task card to the top of the body
-                    if (body.firstChild) {
-                        body.insertBefore(draggedTaskCard, body.firstChild);
-                    } else {
-                        body.appendChild(draggedTaskCard);
-                    }
+                    // Sort cards by their current order in the DOM
+                    const sortedCards = [...cardsToMove].sort((a, b) => {
+                        const aRect = a.getBoundingClientRect();
+                        const bRect = b.getBoundingClientRect();
+                        return aRect.top - bRect.top;
+                    });
+
+                    // Move the task cards to the top of the body
+                    sortedCards.reverse().forEach(card => {
+                        if (body.firstChild) {
+                            body.insertBefore(card, body.firstChild);
+                        } else {
+                            body.appendChild(card);
+                        }
+                    });
 
                     updatePanelCounts();
 
                     // Update task order in the new state
                     const cardIds = [...body.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
 
-                    if (changedState) {
-                        // Update task state in database
-                        try {
-                            await fetch(`/tasks/api/${taskId}/update/`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ state_id: newStateId })
-                            });
-                        } catch (error) {
-                            console.error('Error updating task state:', error);
-                        }
-
-                        // Update order in old state
-                        if (oldBody) {
-                            const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                    // Update state on server for each card that changed state
+                    for (const { card, changedState } of cardOldStates) {
+                        if (changedState) {
+                            const taskId = parseInt(card.dataset.taskId);
                             try {
-                                await fetch('/tasks/api/tasks/reorder/', {
-                                    method: 'POST',
+                                await fetch(`/tasks/api/${taskId}/update/`, {
+                                    method: 'PATCH',
                                     headers: {
                                         'Content-Type': 'application/json',
                                         'X-CSRFToken': csrfToken
                                     },
-                                    body: JSON.stringify({ task_ids: oldCardIds })
+                                    body: JSON.stringify({ state_id: newStateId })
                                 });
                             } catch (error) {
-                                console.error('Error updating old state order:', error);
+                                console.error('Error updating task state:', error);
                             }
+                        }
+                    }
+
+                    // Collect unique old state bodies that need reordering
+                    const oldBodiesSet = new Set();
+                    for (const { oldBody, changedState } of cardOldStates) {
+                        if (changedState && oldBody && oldBody !== body) {
+                            oldBodiesSet.add(oldBody);
+                        }
+                    }
+
+                    // Reorder each affected old state
+                    for (const oldBody of oldBodiesSet) {
+                        const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                        try {
+                            await fetch('/tasks/api/tasks/reorder/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ task_ids: oldCardIds })
+                            });
+                        } catch (error) {
+                            console.error('Error updating old state order:', error);
                         }
                     }
 
@@ -8612,6 +9087,11 @@
                         });
                     } catch (error) {
                         console.error('Error reordering tasks:', error);
+                    }
+
+                    // Clear selection after drop
+                    if (isMultiDrop) {
+                        clearTaskSelection();
                     }
                 });
             }
@@ -8667,12 +9147,19 @@
                 const body = stateGroup.querySelector('.state-group-body');
                 if (!body) return;
 
-                const taskId = parseInt(draggedTaskCard.dataset.taskId);
                 const newStateId = parseInt(body.dataset.stateId);
-                const oldStateGroup = draggedTaskCard.closest('.state-group');
-                const oldBody = oldStateGroup ? oldStateGroup.querySelector('.state-group-body') : null;
-                const oldStateId = oldBody ? parseInt(oldBody.dataset.stateId) : null;
-                const changedState = (newStateId !== oldStateId);
+
+                // Handle multi-select drop
+                const isMultiDrop = draggedTaskCards.length > 1;
+                const cardsToMove = isMultiDrop ? draggedTaskCards : [draggedTaskCard];
+
+                // Collect old states for each card
+                const cardOldStates = cardsToMove.map(card => {
+                    const oldStateGroup = card.closest('.state-group');
+                    const oldBody = oldStateGroup ? oldStateGroup.querySelector('.state-group-body') : null;
+                    const oldStateId = oldBody ? parseInt(oldBody.dataset.stateId) : null;
+                    return { card, oldBody, oldStateId, changedState: newStateId !== oldStateId };
+                });
 
                 // Expand the state if collapsed (except for terminal state)
                 const isTerminalState = newStateId === getTerminalStateId();
@@ -8680,48 +9167,68 @@
                     stateGroup.classList.remove('collapsed');
                 }
 
-                // Move the task card to the top of the body
-                if (body.firstChild) {
-                    body.insertBefore(draggedTaskCard, body.firstChild);
-                } else {
-                    body.appendChild(draggedTaskCard);
-                }
+                // Sort cards by their current order in the DOM
+                const sortedCards = [...cardsToMove].sort((a, b) => {
+                    const aRect = a.getBoundingClientRect();
+                    const bRect = b.getBoundingClientRect();
+                    return aRect.top - bRect.top;
+                });
+
+                // Move the task cards to the top of the body
+                sortedCards.reverse().forEach(card => {
+                    if (body.firstChild) {
+                        body.insertBefore(card, body.firstChild);
+                    } else {
+                        body.appendChild(card);
+                    }
+                });
 
                 updatePanelCounts();
 
                 // Update task order in the new state
                 const cardIds = [...body.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
 
-                if (changedState) {
-                    // Update task state in database
-                    try {
-                        await fetch(`/tasks/api/${taskId}/update/`, {
-                            method: 'PATCH',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken
-                            },
-                            body: JSON.stringify({ state_id: newStateId })
-                        });
-                    } catch (error) {
-                        console.error('Error updating task state:', error);
-                    }
-
-                    // Update order in old state
-                    if (oldBody) {
-                        const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                // Update state on server for each card that changed state
+                for (const { card, changedState } of cardOldStates) {
+                    if (changedState) {
+                        const taskId = parseInt(card.dataset.taskId);
                         try {
-                            await fetch('/tasks/api/tasks/reorder/', {
-                                method: 'POST',
+                            await fetch(`/tasks/api/${taskId}/update/`, {
+                                method: 'PATCH',
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'X-CSRFToken': csrfToken
                                 },
-                                body: JSON.stringify({ task_ids: oldCardIds })
+                                body: JSON.stringify({ state_id: newStateId })
                             });
                         } catch (error) {
-                            console.error('Error updating old state order:', error);
+                            console.error('Error updating task state:', error);
                         }
+                    }
+                }
+
+                // Collect unique old state bodies that need reordering
+                const oldBodiesSet = new Set();
+                for (const { oldBody, changedState } of cardOldStates) {
+                    if (changedState && oldBody && oldBody !== body) {
+                        oldBodiesSet.add(oldBody);
+                    }
+                }
+
+                // Reorder each affected old state
+                for (const oldBody of oldBodiesSet) {
+                    const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                    try {
+                        await fetch('/tasks/api/tasks/reorder/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ task_ids: oldCardIds })
+                        });
+                    } catch (error) {
+                        console.error('Error updating old state order:', error);
                     }
                 }
 
@@ -8737,6 +9244,11 @@
                     });
                 } catch (error) {
                     console.error('Error reordering tasks:', error);
+                }
+
+                // Clear selection after drop
+                if (isMultiDrop) {
+                    clearTaskSelection();
                 }
             });
         });
