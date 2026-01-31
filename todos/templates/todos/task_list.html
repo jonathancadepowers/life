@@ -2130,24 +2130,21 @@
             font-size: 0.85rem;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 2000;
-            display: none;
+            display: flex;
             align-items: center;
             gap: 0.5rem;
             opacity: 0;
+            visibility: hidden;
             transform: translateY(10px);
-            transition: opacity 0.5s ease, transform 0.5s ease;
+            transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s linear 0.5s;
             max-width: 320px;
         }
 
         .toast-notification.visible {
-            display: flex;
             opacity: 1;
+            visibility: visible;
             transform: translateY(0);
-        }
-
-        .toast-notification.fade-out {
-            opacity: 0;
-            transform: translateY(10px);
+            transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s linear 0s;
         }
 
         .toast-notification .toast-icon {
@@ -5133,8 +5130,8 @@
 
                     if (data.abandoned_count > 0) {
                         // Show toast notification
-                        const taskWord = data.abandoned_count === 1 ? 'task was' : 'tasks were';
-                        showToast(`${data.abandoned_count} ${taskWord} moved to Abandoned`, {
+                        const taskWord = data.abandoned_count === 1 ? 'Task' : 'Tasks';
+                        showToast(`${data.abandoned_count} ${taskWord} Abandoned`, {
                             icon: 'bi-archive-fill',
                             type: 'warning',
                             duration: 6000
@@ -5172,20 +5169,12 @@
             iconEl.className = `bi ${icon} toast-icon ${type}`;
             messageEl.textContent = message;
 
-            // Remove any existing fade-out class
-            toast.classList.remove('fade-out');
-
             // Show toast with fade-in
             toast.classList.add('visible');
 
-            // After duration, start fade-out
+            // After duration, fade out by removing visible class
             setTimeout(() => {
-                toast.classList.add('fade-out');
-
-                // After fade-out animation completes, hide toast
-                setTimeout(() => {
-                    toast.classList.remove('visible', 'fade-out');
-                }, 500); // Match CSS transition duration
+                toast.classList.remove('visible');
             }, duration);
         }
 
