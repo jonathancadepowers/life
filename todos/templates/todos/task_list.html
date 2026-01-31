@@ -6224,7 +6224,7 @@
                 untaggedLabel.style.position = 'relative';
                 untaggedLabel.innerHTML = `
                     <input type="checkbox" class="filter-tag-checkbox" data-tag-id="untagged" ${isUntaggedChecked ? 'checked' : ''}>
-                    <span style="font-size: 0.75rem; color: #6c757d; font-style: italic;"><i class="bi bi-tag" style="opacity: 0.5;"></i> Untagged</span>
+                    <span class="task-tag-pill" style="font-size: 0.75rem;">Untagged</span>
                     <span style="color: #6c757d; font-size: 0.7rem; margin-left: auto;">(${untaggedCount})</span>
                 `;
                 filterTagsList.appendChild(untaggedLabel);
@@ -6827,9 +6827,9 @@
                     document.getElementById('filter-today-label').classList.add('checked');
                 }
 
-                // Restore tag filters
+                // Restore tag filters (filter out any null/undefined values from old data)
                 if (saved.tags && saved.tags.length > 0) {
-                    activeFilters.tags = saved.tags;
+                    activeFilters.tags = saved.tags.filter(id => id != null);
                     populateFilterTags();  // Re-populate to reflect saved checked states
                 }
 
