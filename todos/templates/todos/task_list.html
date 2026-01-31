@@ -5104,8 +5104,30 @@
                     if (taskCard) {
                         if (data.task.critical) {
                             taskCard.classList.add('critical');
+                            // Add critical icon if not present
+                            let iconsDiv = taskCard.querySelector('.task-card-icons');
+                            if (!iconsDiv) {
+                                iconsDiv = document.createElement('div');
+                                iconsDiv.className = 'task-card-icons';
+                                taskCard.querySelector('.task-card-header').appendChild(iconsDiv);
+                            }
+                            if (!iconsDiv.querySelector('.task-critical-icon')) {
+                                const icon = document.createElement('i');
+                                icon.className = 'bi bi-exclamation-circle-fill task-critical-icon';
+                                iconsDiv.appendChild(icon);
+                            }
                         } else {
                             taskCard.classList.remove('critical');
+                            // Remove critical icon
+                            const criticalIcon = taskCard.querySelector('.task-critical-icon');
+                            if (criticalIcon) {
+                                criticalIcon.remove();
+                                // Remove icons div if empty
+                                const iconsDiv = taskCard.querySelector('.task-card-icons');
+                                if (iconsDiv && iconsDiv.children.length === 0) {
+                                    iconsDiv.remove();
+                                }
+                            }
                         }
                     }
                     // Update the calendar scheduled task
