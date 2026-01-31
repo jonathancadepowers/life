@@ -6572,6 +6572,13 @@
                 if (titleEl) titleEl.textContent = task.title;
                 card.classList.toggle('critical', task.critical);
             });
+
+            // Update calendar scheduled tasks - add/remove completed class
+            const terminalStateId = getTerminalStateId();
+            const isCompleted = task.state_id === terminalStateId;
+            document.querySelectorAll(`.calendar-scheduled-task[data-task-id="${task.id}"]`).forEach(calTask => {
+                calTask.classList.toggle('completed', isCompleted);
+            });
         }
 
         function createKanbanCard(task) {
@@ -7010,6 +7017,9 @@
 
         async function batchDeleteTasks() {
             const count = selectedTaskIds.size;
+            // Copy taskIds BEFORE showing modal - modal cleanup can trigger clearTaskSelection
+            const taskIds = Array.from(selectedTaskIds);
+
             const confirmed = await showConfirmModal(
                 `Are you sure you want to delete ${count} tasks? This cannot be undone.`,
                 'Delete Tasks',
@@ -7020,8 +7030,6 @@
                 closeContextMenu();
                 return;
             }
-
-            const taskIds = Array.from(selectedTaskIds);
 
             for (const taskId of taskIds) {
                 try {
@@ -11957,14 +11965,14 @@
 
             if (detailTemplates.length === 0) {
                 menu.innerHTML = `
-                    <div class="template-dropdown-header">Load a template into Details</div>
+                    <div class="template-dropdown-header">Load Template</div>
                     <div class="template-dropdown-empty">No templates available</div>
                 `;
                 return;
             }
 
             menu.innerHTML = `
-                <div class="template-dropdown-header">Load a template into Details</div>
+                <div class="template-dropdown-header">Load Template</div>
                 ${detailTemplates.map(t => `
                     <button class="template-dropdown-item" onclick="loadTemplate(${t.id})">
                         <span>${escapeHtml(t.name)}</span>
