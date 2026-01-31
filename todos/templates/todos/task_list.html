@@ -94,6 +94,52 @@
             color: #adb5bd;
         }
 
+        .task-input-container {
+            position: relative;
+        }
+
+        .animated-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            font-size: 1.5rem;
+            color: #adb5bd;
+            pointer-events: none;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .animated-placeholder.hidden {
+            display: none;
+        }
+
+        .animated-placeholder .char {
+            display: inline-block;
+            transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+        }
+
+        .animated-placeholder .char.flip-out {
+            transform: rotateX(90deg);
+            opacity: 0;
+        }
+
+        .animated-placeholder .char.flip-in {
+            animation: flipIn 0.15s ease-out forwards;
+        }
+
+        @keyframes flipIn {
+            0% {
+                transform: rotateX(-90deg);
+                opacity: 0;
+            }
+            100% {
+                transform: rotateX(0);
+                opacity: 1;
+            }
+        }
+
         /* Task List */
         .task-list {
             list-style: none;
@@ -967,7 +1013,7 @@
             display: flex;
             align-items: flex-start;
             gap: 1rem;
-            padding: 0.875rem 0;
+            padding: 1.1rem 0;
             border-bottom: 1px solid #f0f0f0;
         }
 
@@ -4067,8 +4113,9 @@
         <div class="task-input-container">
             <input type="text"
                    id="new-task-input"
-                   placeholder="Add a new task..."
+                   placeholder=""
                    autocomplete="off">
+            <div class="animated-placeholder" id="animated-placeholder">Add a new task...</div>
         </div>
     </div>
 
@@ -7988,6 +8035,8 @@
         // Toggle filter dropdown
         filterIcon.addEventListener('click', function(e) {
             e.stopPropagation();
+            // Close deadline dropdown if open
+            closeDeadlineDropdown();
             filterDropdown.classList.toggle('active');
             filterIcon.classList.toggle('active', filterDropdown.classList.contains('active'));
         });
@@ -8814,6 +8863,72 @@
                 toggleBothPanelsCollapsed();
             });
         }
+
+        // Right-click context menu for Tasks panel
+        function expandAllStateGroups() {
+            document.querySelectorAll('#states-content .state-group.collapsed').forEach(group => {
+                group.classList.remove('collapsed');
+            });
+            closeTasksPanelContextMenu();
+        }
+
+        function collapseAllStateGroups() {
+            document.querySelectorAll('#states-content .state-group:not(.collapsed)').forEach(group => {
+                group.classList.add('collapsed');
+            });
+            closeTasksPanelContextMenu();
+        }
+
+        function closeTasksPanelContextMenu() {
+            const menu = document.getElementById('tasks-panel-context-menu');
+            if (menu) menu.remove();
+        }
+
+        tasksPanel.addEventListener('contextmenu', function(e) {
+            // Only show on the panel body, not on task cards
+            if (e.target.closest('.task-card') || e.target.closest('.kanban-card')) return;
+
+            e.preventDefault();
+            closeTasksPanelContextMenu();
+            closeContextMenu(); // Close any task context menu
+
+            const menuHtml = `
+                <div class="task-context-menu-item" onclick="expandAllStateGroups()">
+                    <i class="bi bi-arrows-expand"></i>
+                    Expand All States
+                </div>
+                <div class="task-context-menu-item" onclick="collapseAllStateGroups()">
+                    <i class="bi bi-arrows-collapse"></i>
+                    Collapse All States
+                </div>
+            `;
+
+            const menu = document.createElement('div');
+            menu.className = 'task-context-menu';
+            menu.id = 'tasks-panel-context-menu';
+            menu.innerHTML = menuHtml;
+            document.body.appendChild(menu);
+
+            // Position the menu
+            const menuRect = menu.getBoundingClientRect();
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            // Close on click outside
+            setTimeout(() => {
+                document.addEventListener('click', closeTasksPanelContextMenu, { once: true });
+            }, 0);
+        });
 
         if (calendarPanelHeader) {
             calendarPanelHeader.addEventListener('click', function(e) {
@@ -11915,6 +12030,110 @@
         // Process calendar sections on page load
         processCalendarSections();
 
+        // ========== Animated Placeholder (Train Board Effect) ==========
+        const placeholderPhrases = [
+            "Go on then…",
+            "What's the damage?",
+            "Confess…",
+            "Avoiding something?",
+            "Well?",
+            "What's haunting you?",
+            "Spit it out…",
+            "Unburden yourself…",
+            "Running from something?",
+            "What are you putting off?",
+            "It won't matter in a year",
+            "Busy yourself…",
+            "Does it matter? Maybe…",
+            "The day demands something…"
+        ];
+
+        const animatedPlaceholder = document.getElementById('animated-placeholder');
+        const newTaskInput = document.getElementById('new-task-input');
+        let currentPhraseIndex = -1; // Start with initial text
+        let placeholderTimeout = null;
+
+        function wrapChars(text) {
+            return text.split('').map(char =>
+                char === ' ' ? '<span class="char">&nbsp;</span>' : `<span class="char">${char}</span>`
+            ).join('');
+        }
+
+        function animateToPhrase(newPhrase) {
+            const chars = animatedPlaceholder.querySelectorAll('.char');
+            const newChars = newPhrase.split('');
+            const maxLen = Math.max(chars.length, newChars.length);
+
+            // Flip out existing chars with staggered delay
+            chars.forEach((char, i) => {
+                setTimeout(() => {
+                    char.classList.add('flip-out');
+                }, i * 20);
+            });
+
+            // After all chars flipped out, rebuild with new text
+            setTimeout(() => {
+                animatedPlaceholder.innerHTML = wrapChars(newPhrase);
+                const newCharEls = animatedPlaceholder.querySelectorAll('.char');
+
+                // Flip in new chars with staggered delay
+                newCharEls.forEach((char, i) => {
+                    char.style.opacity = '0';
+                    char.style.transform = 'rotateX(-90deg)';
+                    setTimeout(() => {
+                        char.classList.add('flip-in');
+                    }, i * 20);
+                });
+            }, chars.length * 20 + 100);
+        }
+
+        function getRandomPhraseIndex() {
+            let newIndex;
+            do {
+                newIndex = Math.floor(Math.random() * placeholderPhrases.length);
+            } while (newIndex === currentPhraseIndex && placeholderPhrases.length > 1);
+            return newIndex;
+        }
+
+        function cyclePlaceholder() {
+            currentPhraseIndex = getRandomPhraseIndex();
+            animateToPhrase(placeholderPhrases[currentPhraseIndex]);
+            placeholderTimeout = setTimeout(cyclePlaceholder, 4000);
+        }
+
+        function startPlaceholderCycle() {
+            // Initial text stays for 4 seconds
+            animatedPlaceholder.innerHTML = wrapChars('Add a new task...');
+            placeholderTimeout = setTimeout(cyclePlaceholder, 4000);
+        }
+
+        function stopPlaceholderCycle() {
+            if (placeholderTimeout) {
+                clearTimeout(placeholderTimeout);
+                placeholderTimeout = null;
+            }
+        }
+
+        // Show/hide placeholder based on input state
+        newTaskInput.addEventListener('input', function() {
+            if (this.value) {
+                animatedPlaceholder.classList.add('hidden');
+                stopPlaceholderCycle();
+            } else {
+                animatedPlaceholder.classList.remove('hidden');
+                startPlaceholderCycle();
+            }
+        });
+
+        newTaskInput.addEventListener('focus', function() {
+            if (!this.value) {
+                // Keep showing but could optionally pause animation
+            }
+        });
+
+        // Start the animation cycle
+        startPlaceholderCycle();
+
         // Initialize calendar date text
         updateCalendarDateText();
 
@@ -11977,7 +12196,6 @@
                 ${detailTemplates.map(t => `
                     <button class="template-dropdown-item" onclick="loadTemplate(${t.id})">
                         <span>${escapeHtml(t.name)}</span>
-                        ${t.is_default ? '<span class="default-indicator">Default</span>' : ''}
                     </button>
                 `).join('')}
             `;
