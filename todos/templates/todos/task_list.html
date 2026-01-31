@@ -4031,6 +4031,7 @@
                     modal.classList.remove('active');
                     cancelBtn.removeEventListener('click', handleCancel);
                     confirmBtn.removeEventListener('click', handleConfirm);
+                    document.removeEventListener('keydown', handleKeydown);
                 };
 
                 const handleCancel = () => {
@@ -4043,10 +4044,22 @@
                     resolve(true);
                 };
 
+                const handleKeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleConfirm();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        handleCancel();
+                    }
+                };
+
                 cancelBtn.addEventListener('click', handleCancel);
                 confirmBtn.addEventListener('click', handleConfirm);
+                document.addEventListener('keydown', handleKeydown);
 
                 modal.classList.add('active');
+                confirmBtn.focus();
             });
         }
 
@@ -4061,14 +4074,28 @@
                 titleEl.textContent = title;
                 bodyEl.textContent = message;
 
-                const handleOk = () => {
+                const cleanup = () => {
                     modal.classList.remove('active');
                     okBtn.removeEventListener('click', handleOk);
+                    document.removeEventListener('keydown', handleKeydown);
+                };
+
+                const handleOk = () => {
+                    cleanup();
                     resolve();
                 };
 
+                const handleKeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                        e.preventDefault();
+                        handleOk();
+                    }
+                };
+
                 okBtn.addEventListener('click', handleOk);
+                document.addEventListener('keydown', handleKeydown);
                 modal.classList.add('active');
+                okBtn.focus();
             });
         }
 
@@ -4091,7 +4118,7 @@
                     modal.classList.remove('active');
                     cancelBtn.removeEventListener('click', handleCancel);
                     okBtn.removeEventListener('click', handleOk);
-                    inputEl.removeEventListener('keypress', handleKeypress);
+                    inputEl.removeEventListener('keydown', handleKeydown);
                 };
 
                 const handleCancel = () => {
@@ -4105,15 +4132,19 @@
                     resolve(value);
                 };
 
-                const handleKeypress = (e) => {
+                const handleKeydown = (e) => {
                     if (e.key === 'Enter') {
+                        e.preventDefault();
                         handleOk();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        handleCancel();
                     }
                 };
 
                 cancelBtn.addEventListener('click', handleCancel);
                 okBtn.addEventListener('click', handleOk);
-                inputEl.addEventListener('keypress', handleKeypress);
+                inputEl.addEventListener('keydown', handleKeydown);
 
                 modal.classList.add('active');
                 setTimeout(() => inputEl.focus(), 100);
@@ -4619,6 +4650,28 @@
 
         document.getElementById('context-panel-close').addEventListener('click', closeContextPanel);
         document.getElementById('context-panel-overlay').addEventListener('click', closeContextPanel);
+
+        // Global Escape key handler for slide-out panels
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                // Don't handle if a modal is active (modals handle their own Escape)
+                const activeModal = document.querySelector('.modal-overlay.active');
+                if (activeModal) return;
+
+                // Check if any slide-out panel is open and close it
+                const taskPanel = document.getElementById('slide-panel');
+                const contextPanel = document.getElementById('context-panel');
+                const timeslotPanel = document.getElementById('timeslot-panel');
+
+                if (taskPanel && taskPanel.classList.contains('active')) {
+                    closePanel();
+                } else if (contextPanel && contextPanel.classList.contains('active')) {
+                    closeContextPanel();
+                } else if (timeslotPanel && timeslotPanel.classList.contains('active')) {
+                    closeTimeslotPanel();
+                }
+            }
+        });
 
         // Edit state name inline
         function editStateName(stateId, spanElement) {
