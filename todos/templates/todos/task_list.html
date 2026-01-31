@@ -8714,6 +8714,52 @@
         document.getElementById('timeslot-panel-close').addEventListener('click', closeTimeslotPanel);
         document.getElementById('timeslot-panel-overlay').addEventListener('click', closeTimeslotPanel);
 
+        // Initialize sun icons for tasks scheduled for today on page load
+        function initializeTodayIcons() {
+            document.querySelectorAll('.task-card').forEach(card => {
+                const taskId = card.dataset.taskId;
+                const calendarTime = taskCalendarStartTimeMap[taskId];
+
+                if (calendarTime && isScheduledForToday(calendarTime)) {
+                    // Add sun icon if not already present
+                    const existingIcon = card.querySelector('.task-card-today-icon');
+                    if (!existingIcon) {
+                        let iconsDiv = card.querySelector('.task-card-icons');
+                        if (!iconsDiv) {
+                            iconsDiv = document.createElement('div');
+                            iconsDiv.className = 'task-card-icons';
+                            card.querySelector('.task-card-content').appendChild(iconsDiv);
+                        }
+
+                        const todayIcon = document.createElement('i');
+                        todayIcon.className = 'bi bi-brightness-high-fill task-card-today-icon';
+
+                        // Insert at the beginning (before critical icon)
+                        const criticalIcon = iconsDiv.querySelector('.task-critical-icon');
+                        if (criticalIcon) {
+                            iconsDiv.insertBefore(todayIcon, criticalIcon);
+                        } else {
+                            iconsDiv.appendChild(todayIcon);
+                        }
+                    }
+                } else {
+                    // Remove sun icon if task is not scheduled for today
+                    const todayIcon = card.querySelector('.task-card-today-icon');
+                    if (todayIcon) {
+                        todayIcon.remove();
+                        // Clean up empty icons div
+                        const iconsDiv = card.querySelector('.task-card-icons');
+                        if (iconsDiv && iconsDiv.children.length === 0) {
+                            iconsDiv.remove();
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize today icons on page load
+        initializeTodayIcons();
+
         // Process calendar sections on page load
         processCalendarSections();
 
