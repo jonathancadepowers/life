@@ -6299,6 +6299,7 @@
         function startTimeBlockResize(e, blockEl, blockId, startDate, endDate, edge) {
             const block = timeBlocks.find(b => b.id === blockId);
             if (!block) return;
+            console.log('startTimeBlockResize called', { edge, blockId, clientY: e.clientY });
 
             timeBlockResizeState = {
                 blockEl,
@@ -6310,6 +6311,7 @@
                 startY: e.clientY,
                 edge: edge // 'top' or 'bottom'
             };
+            console.log('timeBlockResizeState set', { initialTop: timeBlockResizeState.initialTop, initialHeight: timeBlockResizeState.initialHeight });
 
             blockEl.classList.add('resizing');
             document.addEventListener('mousemove', handleTimeBlockResize);
@@ -6323,6 +6325,7 @@
             const deltaY = e.clientY - startY;
             const hourHeight = 60; // pixels per hour
             const deltaPercent = (deltaY / hourHeight) * 100;
+            console.log('handleTimeBlockResize', { deltaY, deltaPercent, edge, initialTop, initialHeight });
 
             // Snap to 30-minute increments (50% of an hour)
             const snapTo30Min = (percent) => Math.round(percent / 50) * 50;
@@ -6818,6 +6821,7 @@
 
         function startTaskResize(e, taskEl, taskId, startDate, durationMinutes, edge) {
             const hourContent = taskEl.closest('.hour-content');
+            console.log('startTaskResize called', { edge, taskId, clientY: e.clientY });
 
             resizeState = {
                 taskEl,
@@ -6828,6 +6832,7 @@
                 startY: e.clientY,
                 edge: edge // 'top' or 'bottom'
             };
+            console.log('resizeState set', { initialTop: resizeState.initialTop, initialHeight: resizeState.initialHeight, startY: resizeState.startY });
 
             document.addEventListener('mousemove', handleTaskResize);
             document.addEventListener('mouseup', endTaskResize);
@@ -6841,6 +6846,7 @@
             const deltaY = e.clientY - startY;
             const hourHeight = 60; // pixels per hour
             const deltaPercent = (deltaY / hourHeight) * 100;
+            console.log('handleTaskResize', { deltaY, deltaPercent, edge, initialTop, initialHeight });
 
             // Snap to 30-minute increments (50% of an hour)
             const snapTo30Min = (percent) => Math.round(percent / 50) * 50;
