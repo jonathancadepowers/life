@@ -6330,7 +6330,10 @@
                 <span class="view-check"><i class="bi bi-check2"></i></span>
                 <span class="view-name"><i class="bi bi-list-task" style="margin-right: 0.3rem; opacity: 0.7;"></i>All Tasks</span>
             `;
-            allTasksItem.addEventListener('click', () => clearViewAndFilters());
+            allTasksItem.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent document click handler from closing dropdown
+                clearViewAndFilters();
+            });
             savedViewsList.appendChild(allTasksItem);
 
             // Show saved views
@@ -6344,7 +6347,10 @@
                         <i class="bi bi-x"></i>
                     </span>
                 `;
-                item.querySelector('.view-name').addEventListener('click', () => applyView(view));
+                item.querySelector('.view-name').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent document click handler from closing dropdown
+                    applyView(view);
+                });
                 item.querySelector('.view-delete').addEventListener('click', (e) => {
                     e.stopPropagation();
                     deleteView(view.id);
@@ -6579,7 +6585,8 @@
         // Tag filter changes are handled dynamically in populateFilterTags()
 
         // Clear all filters - reset to "All Tasks" view
-        filterClear.addEventListener('click', function() {
+        filterClear.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent document click handler from closing dropdown
             // Clear search field as well
             filterTagsSearch.value = '';
             // Use the same function that "All Tasks" uses
