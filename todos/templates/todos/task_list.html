@@ -4754,8 +4754,26 @@
 
                 if (data.success) {
                     document.getElementById('panel-title').value = data.task.title;
-                    document.getElementById('panel-details').value = data.task.details || '';
                     document.getElementById('panel-critical').checked = data.task.critical;
+
+                    // If task has no details, auto-populate with default template
+                    let detailsContent = data.task.details || '';
+                    if (!detailsContent.trim()) {
+                        const defaultTemplate = detailTemplates.find(t => t.is_default);
+                        if (defaultTemplate) {
+                            detailsContent = defaultTemplate.content;
+                            // Auto-save the template content to the task
+                            fetch(`/tasks/api/${taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({ details: detailsContent })
+                            });
+                        }
+                    }
+                    document.getElementById('panel-details').value = detailsContent;
 
                     // Update "Mark as done" button state
                     const markDoneBtn = document.getElementById('panel-mark-done');
@@ -4774,8 +4792,8 @@
                     }
 
                     // Show markdown preview if there's content, otherwise show edit mode
-                    if (data.task.details && data.task.details.trim()) {
-                        detailsPreview.innerHTML = marked.parse(data.task.details);
+                    if (detailsContent.trim()) {
+                        detailsPreview.innerHTML = marked.parse(detailsContent);
                         detailsTextarea.style.display = 'none';
                         detailsPreview.style.display = 'block';
                         markdownEditBtn.classList.remove('active');
