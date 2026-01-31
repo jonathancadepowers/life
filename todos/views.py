@@ -212,7 +212,7 @@ def list_states(request):
     states = TaskState.objects.all()
     return JsonResponse({
         'success': True,
-        'states': [{'id': s.id, 'name': s.name, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon, 'is_system': s.is_system, 'task_count': s.tasks.count()} for s in states]
+        'states': [{'id': s.id, 'name': s.name, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon, 'is_system': s.is_system, 'is_terminal': s.is_terminal, 'task_count': s.tasks.count()} for s in states]
     })
 
 
@@ -276,6 +276,11 @@ def update_state(request, state_id):
             state.name = data['name'].strip()
         if 'bootstrap_icon' in data:
             state.bootstrap_icon = data['bootstrap_icon'].strip() if data['bootstrap_icon'] else ''
+        if 'is_terminal' in data:
+            # System states cannot be terminal
+            if state.is_system and data['is_terminal']:
+                return JsonResponse({'success': False, 'error': 'System states cannot be set as terminal'}, status=400)
+            state.is_terminal = data['is_terminal']
 
         state.save()
         return JsonResponse({
@@ -285,6 +290,7 @@ def update_state(request, state_id):
                 'name': state.name,
                 'order': state.order,
                 'bootstrap_icon': state.bootstrap_icon,
+                'is_terminal': state.is_terminal,
             }
         })
     except TaskState.DoesNotExist:

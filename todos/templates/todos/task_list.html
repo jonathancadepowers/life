@@ -258,6 +258,23 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
+        .modal-content-wide {
+            max-width: 500px;
+        }
+
+        .warnings-modal-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .warnings-modal-list .deadline-task-item {
+            cursor: pointer;
+        }
+
+        .warnings-modal-list .deadline-task-item:hover {
+            background: #e9ecef;
+        }
+
         .modal-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -1324,6 +1341,10 @@
             gap: 0.5rem;
         }
 
+        .deadline-section-title.critical {
+            color: #dc3545;
+        }
+
         .deadline-section-title.overdue {
             color: #dc3545;
         }
@@ -1334,6 +1355,38 @@
 
         .deadline-section-title.near-abandoned {
             color: #fd7e14;
+        }
+
+        .deadline-section-title .settings-info-icon {
+            position: relative;
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #adb5bd;
+            cursor: help;
+        }
+
+        .deadline-section-title .settings-info-icon:hover {
+            color: #6c757d;
+        }
+
+        .deadline-task-item.critical-item {
+            border-left: 3px solid #dc3545;
+        }
+
+        .deadline-show-more {
+            font-size: 0.8rem;
+            color: #6B9080;
+            cursor: pointer;
+            padding: 0.4rem 0.5rem;
+            text-align: center;
+            background: #f0f4f2;
+            border-radius: 5px;
+            transition: background 0.15s;
+        }
+
+        .deadline-show-more:hover {
+            background: #e5eae7;
+            color: #5a7a6d;
         }
 
         .deadline-task-item.near-abandoned {
@@ -1570,12 +1623,29 @@
         }
 
         .filter-section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
             font-size: 0.7rem;
             font-weight: 600;
             color: #6B9080;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
+        }
+
+        .filter-section-title .settings-info-icon,
+        .saved-views-header .settings-info-icon {
+            position: relative;
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #adb5bd;
+            cursor: help;
+        }
+
+        .filter-section-title .settings-info-icon:hover,
+        .saved-views-header .settings-info-icon:hover {
+            color: #6c757d;
         }
 
         .filter-options-row {
@@ -1828,29 +1898,26 @@
             display: none;
         }
 
-        /* Left slide-out panel for settings */
-        .context-panel {
+        /* Settings popup (dropdown style) */
+        .settings-dropdown {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            max-width: 300px;
-            height: 100%;
+            top: 1.5rem;
+            left: 3.5rem;
             background: white;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            z-index: 1001;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+            padding: 0;
+            min-width: 280px;
+            max-width: 320px;
+            z-index: 1100;
+            display: none;
         }
 
-        .context-panel.active {
-            transform: translateX(0);
+        .settings-dropdown.active {
+            display: block;
         }
 
-        .context-panel .panel-header {
+        .settings-dropdown-header {
             background: linear-gradient(135deg, #6B9080 0%, #5a7a6a 100%);
             color: white;
             padding: 0.75rem 1rem;
@@ -1858,27 +1925,13 @@
             font-size: 0.9rem;
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: 0.5rem;
-            border-bottom: none;
+            border-radius: 10px 10px 0 0;
         }
 
-        .context-panel .panel-header .panel-close {
-            color: white;
-            opacity: 0.8;
-            font-size: 1.25rem;
-            padding: 0;
-            width: 24px;
-            height: 24px;
-        }
-
-        .context-panel .panel-header .panel-close:hover {
-            opacity: 1;
-            background: rgba(255,255,255,0.1);
-        }
-
-        .context-panel .panel-body {
-            flex: 1;
+        .settings-dropdown-body {
+            padding: 0.75rem 0;
+            max-height: 70vh;
             overflow-y: auto;
         }
 
@@ -2037,7 +2090,7 @@
             display: none;
             position: absolute;
             top: calc(100% + 8px);
-            right: 0;
+            left: 0;
             background: #fff;
             color: #666;
             padding: 0.5rem 0.65rem;
@@ -2048,7 +2101,7 @@
             letter-spacing: normal;
             line-height: 1.5;
             white-space: nowrap;
-            z-index: 1000;
+            z-index: 2000;
             box-shadow: 0 2px 8px rgba(0,0,0,0.12);
             border: 1px solid #e9ecef;
         }
@@ -2057,7 +2110,7 @@
             content: '';
             position: absolute;
             bottom: 100%;
-            right: 8px;
+            left: 4px;
             border: 6px solid transparent;
             border-bottom-color: #e9ecef;
         }
@@ -2066,7 +2119,7 @@
             content: '';
             position: absolute;
             bottom: 100%;
-            right: 9px;
+            left: 5px;
             border: 5px solid transparent;
             border-bottom-color: #fff;
         }
@@ -2077,11 +2130,13 @@
 
         .settings-section {
             border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 0.5rem;
+            padding-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
 
         .settings-section:last-child {
             border-bottom: none;
+            margin-bottom: 0;
         }
 
         .settings-row {
@@ -2231,6 +2286,28 @@
             width: 90px;
         }
 
+        .state-terminal-btn {
+            background: none;
+            border: none;
+            color: #adb5bd;
+            cursor: pointer;
+            padding: 0.2rem;
+            font-size: 0.85rem;
+            transition: color 0.15s;
+        }
+
+        .state-terminal-btn:hover {
+            color: #6B9080;
+        }
+
+        .state-terminal-btn.active {
+            color: #6B9080;
+        }
+
+        .state-item.terminal-state {
+            background: #f0f7f4;
+        }
+
         .state-delete {
             background: none;
             border: none;
@@ -2238,12 +2315,7 @@
             cursor: pointer;
             padding: 0.2rem;
             font-size: 0.85rem;
-            opacity: 0;
-            transition: opacity 0.15s, color 0.15s;
-        }
-
-        .state-item:hover .state-delete {
-            opacity: 1;
+            transition: color 0.15s;
         }
 
         .state-delete:hover {
@@ -2515,8 +2587,9 @@
                 max-width: 100%;
             }
 
-            .context-panel {
-                max-width: 100%;
+            .settings-dropdown {
+                left: 1rem;
+                max-width: calc(100% - 2rem);
             }
 
             .settings-gear {
@@ -4206,6 +4279,9 @@
         <div class="saved-views-section">
             <div class="saved-views-header">
                 <span class="saved-views-title">Saved Views</span>
+                <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                    <span class="settings-info-tooltip">Save your current filter setup for quick access.</span>
+                </span>
             </div>
             <div class="saved-views-list" id="saved-views-list">
                 <!-- Views will be populated by JavaScript -->
@@ -4218,7 +4294,11 @@
         <div class="filter-dropdown-body">
             <!-- Group By -->
             <div class="filter-section">
-                <div class="filter-section-title">Group By</div>
+                <div class="filter-section-title">Group By
+                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                        <span class="settings-info-tooltip">Choose how tasks are organized in the panel.</span>
+                    </span>
+                </div>
                 <div class="filter-options-row">
                     <label class="filter-option-inline" id="group-by-states-label">
                         <input type="radio" name="group-by" value="states" id="group-by-states" checked>
@@ -4233,7 +4313,11 @@
 
             <!-- Filters -->
             <div class="filter-section">
-                <div class="filter-section-title">Show Only</div>
+                <div class="filter-section-title">Show Only
+                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                        <span class="settings-info-tooltip">Filter to show only matching tasks.</span>
+                    </span>
+                </div>
                 <div class="filter-options-row">
                     <label class="filter-option-inline" id="filter-critical-label">
                         <input type="checkbox" id="filter-critical">
@@ -4248,7 +4332,11 @@
 
             <!-- Tags -->
             <div class="filter-section" id="filter-tags-section">
-                <div class="filter-section-title">Tags</div>
+                <div class="filter-section-title">Tags
+                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                        <span class="settings-info-tooltip">Show tasks with selected tags.</span>
+                    </span>
+                </div>
                 <input type="text" id="filter-tags-search" class="filter-tags-search" placeholder="Search tags...">
                 <div id="filter-tags-list" class="filter-tags-list">
                     <!-- Tags will be populated by JavaScript -->
@@ -4257,7 +4345,11 @@
 
             <!-- Options -->
             <div class="filter-section">
-                <div class="filter-section-title">Options</div>
+                <div class="filter-section-title">Options
+                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                        <span class="settings-info-tooltip">Additional display options for the task view.</span>
+                    </span>
+                </div>
                 <label class="filter-option" id="show-completed-label" style="display: none;">
                     <input type="checkbox" id="show-completed-toggle">
                     Include Completed
@@ -4319,7 +4411,7 @@
                     <!-- States grouping (default) -->
                     <div id="states-content">
                         {% for state in states %}
-                        <div class="state-group collapsed" data-state-id="{{ state.id }}" data-is-system="{{ state.is_system|yesno:'true,false' }}"{% if state.is_system %} style="display: none;"{% endif %}>
+                        <div class="state-group collapsed" data-state-id="{{ state.id }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}"{% if state.is_system %} style="display: none;"{% endif %}>
                             <div class="state-group-header" onclick="toggleStateGroup(this)">
                                 <div class="state-group-left">
                                     {% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }} state-group-icon"></i>{% endif %}
@@ -4433,15 +4525,13 @@
         </div>
     </div>
 
-    <!-- Toggle for showing/hiding completed tasks in tag view (fixed bottom right) -->
-    <!-- Left slide-out Panel for Settings -->
-    <div class="panel-overlay" id="context-panel-overlay"></div>
-    <div class="context-panel" id="context-panel">
-        <div class="panel-header">
-            <span><i class="bi bi-gear" style="margin-right: 0.4rem;"></i>Settings</span>
-            <button class="panel-close" id="context-panel-close">&times;</button>
+    <!-- Settings popup -->
+    <div class="settings-dropdown" id="settings-dropdown">
+        <div class="settings-dropdown-header">
+            <i class="bi bi-gear"></i>
+            Settings
         </div>
-        <div class="panel-body" style="padding: 0;">
+        <div class="settings-dropdown-body">
             <!-- States Section -->
             <div class="settings-section">
                 <div class="settings-section-header">
@@ -4455,12 +4545,17 @@
                 </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
-                    <li class="state-item" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" draggable="{% if state.is_system %}false{% else %}true{% endif %}">
+                    <li class="state-item{% if state.is_terminal %} terminal-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" draggable="{% if state.is_system %}false{% else %}true{% endif %}">
                         <div class="state-item-left">
                             <i class="bi bi-grip-vertical state-drag-handle"{% if state.is_system %} style="visibility: hidden;"{% endif %}></i>
                             <span class="state-name{% if state.is_system %} system-state-name{% endif %}"{% if not state.is_system %} onclick="editStateName({{ state.id }}, this)"{% endif %}>{{ state.name }}</span>
                         </div>
                         <div class="state-item-right">
+                            {% if not state.is_system %}
+                            <button class="state-terminal-btn{% if state.is_terminal %} active{% endif %}" onclick="toggleTerminalState({{ state.id }}, this)" title="{% if state.is_terminal %}Terminal state (completed){% else %}Set as terminal state{% endif %}">
+                                <i class="bi bi-check-circle{% if state.is_terminal %}-fill{% endif %}"></i>
+                            </button>
+                            {% endif %}
                             <button class="state-icon-btn" onclick="openIconPicker({{ state.id }}, this)" title="Choose icon">
                                 <i class="bi {% if state.bootstrap_icon %}{{ state.bootstrap_icon }}{% else %}bi-plus-circle-dotted{% endif %}"></i>
                             </button>
@@ -4698,6 +4793,17 @@
         </div>
     </div>
 
+    <!-- Custom Content Modal -->
+    <div class="modal-overlay" id="custom-modal">
+        <div class="modal-content modal-content-wide">
+            <div class="modal-title" id="custom-modal-title">Title</div>
+            <div class="modal-body" id="custom-modal-body"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" id="custom-modal-close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Block Time Modal -->
     <div class="modal-overlay" id="add-event-modal">
         <div class="modal-content">
@@ -4800,13 +4906,14 @@
         ];
         {% endfor %}
 
-        // Store task deadlines for quick lookup (task_id -> {deadline, deadline_dismissed, state_id})
+        // Store task deadlines for quick lookup (task_id -> {deadline, deadline_dismissed, state_id, critical})
         let taskDeadlinesMap = {};
         {% for task in tasks %}
         taskDeadlinesMap[{{ task.id }}] = {
             deadline: {% if task.deadline %}"{{ task.deadline|date:'Y-m-d' }}"{% else %}null{% endif %},
             deadline_dismissed: {{ task.deadline_dismissed|yesno:"true,false" }},
-            state_id: {{ task.state_id|default:"null" }}
+            state_id: {{ task.state_id|default:"null" }},
+            critical: {{ task.critical|yesno:"true,false" }}
         };
         {% endfor %}
 
@@ -4915,6 +5022,55 @@
                 modal.classList.add('active');
                 okBtn.focus();
             });
+        }
+
+        // Custom modal - displays HTML content
+        function showCustomModal(content, title = 'Info', buttonText = 'Close', isHtml = false) {
+            const modal = document.getElementById('custom-modal');
+            const titleEl = document.getElementById('custom-modal-title');
+            const bodyEl = document.getElementById('custom-modal-body');
+            const closeBtn = document.getElementById('custom-modal-close');
+
+            titleEl.textContent = title;
+            if (isHtml) {
+                bodyEl.innerHTML = content;
+            } else {
+                bodyEl.textContent = content;
+            }
+            if (buttonText) {
+                closeBtn.textContent = buttonText;
+                closeBtn.style.display = '';
+            } else {
+                closeBtn.style.display = 'none';
+            }
+
+            const cleanup = () => {
+                modal.classList.remove('active');
+                closeBtn.removeEventListener('click', handleClose);
+                document.removeEventListener('keydown', handleKeydown);
+            };
+
+            const handleClose = () => {
+                cleanup();
+            };
+
+            const handleKeydown = (e) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleClose();
+                }
+            };
+
+            closeBtn.addEventListener('click', handleClose);
+            document.addEventListener('keydown', handleKeydown);
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            const customModal = document.getElementById('custom-modal');
+            if (customModal.classList.contains('active')) {
+                customModal.classList.remove('active');
+            }
         }
 
         // Prompt modal - returns a Promise that resolves to the input value or null if cancelled
@@ -5038,38 +5194,49 @@
         }
 
         function getDeadlineWarnings() {
+            const critical = [];
             const overdue = [];
             const dueSoon = [];
             const nearAbandoned = [];
             const today = getToday();
 
-            // Check deadline warnings
+            // Check deadline warnings and critical tasks
             for (const [taskId, data] of Object.entries(taskDeadlinesMap)) {
-                if (!data.deadline) continue;
                 if (isTaskInTerminalState(taskId)) continue;
                 if (isTaskInAbandonedState(taskId)) continue;
-
-                const deadline = new Date(data.deadline + 'T00:00:00');
-                deadline.setHours(0, 0, 0, 0);
-
-                const diffTime = deadline.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                 const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"], .kanban-card[data-task-id="${taskId}"]`);
                 const title = taskCard ? taskCard.querySelector('.task-card-title, .kanban-card-title')?.textContent : `Task ${taskId}`;
 
-                const taskInfo = {
-                    id: parseInt(taskId),
-                    title: title || `Task ${taskId}`,
-                    deadline: data.deadline,
-                    dismissed: data.deadline_dismissed,
-                    days: diffDays
-                };
+                // Collect critical tasks
+                if (data.critical) {
+                    critical.push({
+                        id: parseInt(taskId),
+                        title: title || `Task ${taskId}`
+                    });
+                }
 
-                if (diffDays < 0) {
-                    overdue.push(taskInfo);
-                } else if (diffDays <= 1) {
-                    dueSoon.push(taskInfo);
+                // Check deadlines
+                if (data.deadline) {
+                    const deadline = new Date(data.deadline + 'T00:00:00');
+                    deadline.setHours(0, 0, 0, 0);
+
+                    const diffTime = deadline.getTime() - today.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    const taskInfo = {
+                        id: parseInt(taskId),
+                        title: title || `Task ${taskId}`,
+                        deadline: data.deadline,
+                        dismissed: data.deadline_dismissed,
+                        days: diffDays
+                    };
+
+                    if (diffDays < 0) {
+                        overdue.push(taskInfo);
+                    } else if (diffDays <= 1) {
+                        dueSoon.push(taskInfo);
+                    }
                 }
             }
 
@@ -5098,11 +5265,13 @@
                 }
             }
 
+            // Sort by title alphabetically for critical, by days for others
+            critical.sort((a, b) => a.title.localeCompare(b.title));
             overdue.sort((a, b) => a.days - b.days);
             dueSoon.sort((a, b) => a.days - b.days);
             nearAbandoned.sort((a, b) => a.days - b.days);
 
-            return { overdue, dueSoon, nearAbandoned };
+            return { critical, overdue, dueSoon, nearAbandoned };
         }
 
         function isTaskInAbandonedState(taskId) {
@@ -5218,7 +5387,7 @@
             const body = document.getElementById('deadline-dropdown-body');
             const warnings = getDeadlineWarnings();
 
-            if (warnings.overdue.length === 0 && warnings.dueSoon.length === 0 && warnings.nearAbandoned.length === 0) {
+            if (warnings.critical.length === 0 && warnings.overdue.length === 0 && warnings.dueSoon.length === 0 && warnings.nearAbandoned.length === 0) {
                 body.innerHTML = `
                     <div class="deadline-empty-state">
                         <i class="bi bi-check-circle"></i>
@@ -5229,39 +5398,80 @@
             }
 
             let html = '';
+            const LIMIT = 5;
+
+            // Store warnings globally for modal access
+            window.currentWarnings = warnings;
+
+            // Critical tasks first
+            if (warnings.critical.length > 0) {
+                const displayTasks = warnings.critical.slice(0, LIMIT);
+                const remaining = warnings.critical.length - LIMIT;
+                html += `
+                    <div class="deadline-section">
+                        <div class="deadline-section-title critical">
+                            <i class="bi bi-exclamation-circle-fill"></i>
+                            Critical (${warnings.critical.length})
+                            <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                                <span class="settings-info-tooltip">Tasks marked as critical priority.</span>
+                            </span>
+                        </div>
+                        ${displayTasks.map(task => renderCriticalTaskItem(task)).join('')}
+                        ${remaining > 0 ? `<div class="deadline-show-more" data-type="critical">${remaining} more...</div>` : ''}
+                    </div>
+                `;
+            }
 
             if (warnings.overdue.length > 0) {
+                const displayTasks = warnings.overdue.slice(0, LIMIT);
+                const remaining = warnings.overdue.length - LIMIT;
                 html += `
                     <div class="deadline-section">
                         <div class="deadline-section-title overdue">
                             <i class="bi bi-exclamation-circle-fill"></i>
                             Overdue (${warnings.overdue.length})
+                            <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                                <span class="settings-info-tooltip">Tasks past their deadline.</span>
+                            </span>
                         </div>
-                        ${warnings.overdue.map(task => renderDeadlineTaskItem(task, 'overdue')).join('')}
+                        ${displayTasks.map(task => renderDeadlineTaskItem(task, 'overdue')).join('')}
+                        ${remaining > 0 ? `<div class="deadline-show-more" data-type="overdue">${remaining} more...</div>` : ''}
                     </div>
                 `;
             }
 
             if (warnings.dueSoon.length > 0) {
+                const displayTasks = warnings.dueSoon.slice(0, LIMIT);
+                const remaining = warnings.dueSoon.length - LIMIT;
                 html += `
                     <div class="deadline-section">
                         <div class="deadline-section-title due-soon">
                             <i class="bi bi-clock-fill"></i>
                             Due Soon (${warnings.dueSoon.length})
+                            <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                                <span class="settings-info-tooltip">Tasks due within the next 3 days.</span>
+                            </span>
                         </div>
-                        ${warnings.dueSoon.map(task => renderDeadlineTaskItem(task, 'due-soon')).join('')}
+                        ${displayTasks.map(task => renderDeadlineTaskItem(task, 'due-soon')).join('')}
+                        ${remaining > 0 ? `<div class="deadline-show-more" data-type="dueSoon">${remaining} more...</div>` : ''}
                     </div>
                 `;
             }
 
             if (warnings.nearAbandoned.length > 0) {
+                const displayTasks = warnings.nearAbandoned.slice(0, LIMIT);
+                const remaining = warnings.nearAbandoned.length - LIMIT;
                 html += `
                     <div class="deadline-section">
                         <div class="deadline-section-title near-abandoned">
                             <i class="bi bi-archive-fill"></i>
                             Near Abandoned (${warnings.nearAbandoned.length})
+                            <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
+                                <span class="settings-info-tooltip">Tasks within 3 days of being auto-abandoned.</span>
+                            </span>
                         </div>
-                        ${warnings.nearAbandoned.map(task => renderNearAbandonedItem(task)).join('')}
+                        ${displayTasks.map(task => renderNearAbandonedItem(task)).join('')}
+                        ${remaining > 0 ? `<div class="deadline-show-more" data-type="nearAbandoned">${remaining} more...</div>` : ''}
                     </div>
                 `;
             }
@@ -5287,6 +5497,66 @@
                 });
             });
 
+            // Show more links
+            body.querySelectorAll('.deadline-show-more').forEach(el => {
+                el.addEventListener('click', () => {
+                    const type = el.dataset.type;
+                    showAllWarningsModal(type);
+                });
+            });
+
+        }
+
+        function showAllWarningsModal(type) {
+            const warnings = window.currentWarnings;
+            if (!warnings) return;
+
+            const typeConfig = {
+                critical: { title: 'Critical Tasks', tasks: warnings.critical, renderer: renderCriticalTaskItem },
+                overdue: { title: 'Overdue Tasks', tasks: warnings.overdue, renderer: (t) => renderDeadlineTaskItem(t, 'overdue') },
+                dueSoon: { title: 'Due Soon Tasks', tasks: warnings.dueSoon, renderer: (t) => renderDeadlineTaskItem(t, 'due-soon') },
+                nearAbandoned: { title: 'Near Abandoned Tasks', tasks: warnings.nearAbandoned, renderer: renderNearAbandonedItem }
+            };
+
+            const config = typeConfig[type];
+            if (!config || !config.tasks.length) return;
+
+            // Close the deadline dropdown
+            closeDeadlineDropdown();
+
+            // Create modal content
+            const tasksHtml = config.tasks.map(config.renderer).join('');
+
+            showCustomModal(
+                `<div class="warnings-modal-list">${tasksHtml}</div>`,
+                config.title,
+                null,
+                true  // isHtml
+            );
+
+            // Add click listeners to the tasks in the modal
+            setTimeout(() => {
+                const modalBody = document.querySelector('.modal-container .modal-body');
+                if (modalBody) {
+                    modalBody.querySelectorAll('.deadline-task-info').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const taskId = el.closest('.deadline-task-item').dataset.taskId;
+                            closeModal();
+                            fetchAndOpenPanel(taskId);
+                        });
+                    });
+                }
+            }, 50);
+        }
+
+        function renderCriticalTaskItem(task) {
+            return `
+                <div class="deadline-task-item critical-item" data-task-id="${task.id}">
+                    <div class="deadline-task-info">
+                        <div class="deadline-task-title">${escapeHtml(task.title)}</div>
+                    </div>
+                </div>
+            `;
         }
 
         function renderNearAbandonedItem(task) {
@@ -5361,7 +5631,12 @@
         }
 
         function getTerminalStateId() {
-            // Get all non-system state items (exclude Abandoned and other system states)
+            // First check for explicitly marked terminal state
+            const terminalItem = document.querySelector('.state-item[data-is-terminal="true"]');
+            if (terminalItem) {
+                return parseInt(terminalItem.dataset.stateId);
+            }
+            // Fallback: Get last non-system state item (exclude Abandoned and other system states)
             const stateItems = document.querySelectorAll('.state-item:not(#no-states):not([data-is-system="true"])');
             if (stateItems.length === 0) return null;
             return parseInt(stateItems[stateItems.length - 1].dataset.stateId);
@@ -5380,15 +5655,19 @@
                 terminalGroup.classList.add('terminal-state');
                 const body = terminalGroup.querySelector('.state-group-body');
                 if (body) {
-                    const deleteLink = document.createElement('div');
-                    deleteLink.className = 'delete-completed-link';
-                    deleteLink.textContent = 'Delete Completed Tasks';
-                    deleteLink.onclick = (e) => {
-                        e.stopPropagation();
-                        deleteCompletedTasks(terminalStateId);
-                    };
-                    // Insert at the beginning of the body
-                    body.insertBefore(deleteLink, body.firstChild);
+                    // Only show delete link if there are tasks in the terminal state
+                    const taskCards = body.querySelectorAll('.task-card');
+                    if (taskCards.length > 0) {
+                        const deleteLink = document.createElement('div');
+                        deleteLink.className = 'delete-completed-link';
+                        deleteLink.textContent = 'Delete Completed Tasks';
+                        deleteLink.onclick = (e) => {
+                            e.stopPropagation();
+                            deleteCompletedTasks(terminalStateId);
+                        };
+                        // Insert at the beginning of the body
+                        body.insertBefore(deleteLink, body.firstChild);
+                    }
                 }
             }
         }
@@ -5480,7 +5759,8 @@
             taskDeadlinesMap[task.id] = {
                 deadline: task.deadline || null,
                 deadline_dismissed: task.deadline_dismissed || false,
-                state_id: task.state_id
+                state_id: task.state_id,
+                critical: task.critical || false
             };
 
             // Helper to create a task card
@@ -5846,7 +6126,8 @@
                     taskDeadlinesMap[taskId] = {
                         deadline: deadline,
                         deadline_dismissed: false,
-                        state_id: data.task.state_id
+                        state_id: data.task.state_id,
+                        critical: data.task.critical || false
                     };
                     updateDeadlineWarningIcon();
                     handleTaskStateChange(data.task);
@@ -5933,42 +6214,60 @@
             }
         }
 
-        // ========== Context Panel ==========
+        // ========== Settings Dropdown ==========
 
-        // Open context panel
-        document.getElementById('settings-gear').addEventListener('click', () => {
-            document.getElementById('context-panel-overlay').classList.add('active');
-            document.getElementById('context-panel').classList.add('active');
-            // Hide sidebar icons when Settings panel opens
-            document.getElementById('sidebar-icons').style.display = 'none';
+        // Toggle settings dropdown
+        document.getElementById('settings-gear').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('settings-dropdown');
+            const isActive = dropdown.classList.contains('active');
+
+            // Close other dropdowns first
+            closeFilterDropdown();
+            closeDeadlineDropdown();
+
+            if (isActive) {
+                closeSettingsDropdown();
+            } else {
+                dropdown.classList.add('active');
+            }
         });
 
-        function closeContextPanel() {
-            document.getElementById('context-panel-overlay').classList.remove('active');
-            document.getElementById('context-panel').classList.remove('active');
-            // Show sidebar icons when Settings panel closes
-            document.getElementById('sidebar-icons').style.display = 'flex';
+        function closeSettingsDropdown() {
+            document.getElementById('settings-dropdown').classList.remove('active');
         }
 
-        document.getElementById('context-panel-close').addEventListener('click', closeContextPanel);
-        document.getElementById('context-panel-overlay').addEventListener('click', closeContextPanel);
+        // Close settings dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('settings-dropdown');
+            const gear = document.getElementById('settings-gear');
+            if (dropdown.classList.contains('active') &&
+                !dropdown.contains(e.target) &&
+                !gear.contains(e.target)) {
+                closeSettingsDropdown();
+            }
+        });
 
-        // Global Escape key handler for slide-out panels
+        // Global Escape key handler for slide-out panels and dropdowns
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 // Don't handle if a modal is active (modals handle their own Escape)
                 const activeModal = document.querySelector('.modal-overlay.active');
                 if (activeModal) return;
 
+                // Close dropdowns first
+                const settingsDropdown = document.getElementById('settings-dropdown');
+                if (settingsDropdown && settingsDropdown.classList.contains('active')) {
+                    closeSettingsDropdown();
+                    return;
+                }
+
                 // Check if any slide-out panel is open and close it
                 const taskPanel = document.getElementById('slide-panel');
-                const contextPanel = document.getElementById('context-panel');
                 const timeslotPanel = document.getElementById('timeslot-panel');
 
                 if (taskPanel && taskPanel.classList.contains('active')) {
                     closePanel();
-                } else if (contextPanel && contextPanel.classList.contains('active')) {
-                    closeContextPanel();
                 } else if (timeslotPanel && timeslotPanel.classList.contains('active')) {
                     closeTimeslotPanel();
                 }
@@ -6321,6 +6620,70 @@
 
             // Update inbox/terminal labels
             updateStateTypeLabels();
+        }
+
+        async function toggleTerminalState(stateId, button) {
+            // Toggle the terminal state for a given state
+            const stateItem = button.closest('.state-item');
+            const isCurrentlyTerminal = stateItem.dataset.isTerminal === 'true';
+
+            // If already terminal, don't allow un-setting (must have one terminal state)
+            if (isCurrentlyTerminal) {
+                showToast('At least one state must be marked as terminal', {
+                    duration: 3000,
+                    icon: 'bi-info-circle'
+                });
+                return;
+            }
+
+            try {
+                const response = await fetch(`/tasks/api/states/${stateId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ is_terminal: true })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update all state items - remove terminal from others
+                    document.querySelectorAll('.state-item').forEach(item => {
+                        item.classList.remove('terminal-state');
+                        item.dataset.isTerminal = 'false';
+                        const termBtn = item.querySelector('.state-terminal-btn');
+                        if (termBtn) {
+                            termBtn.classList.remove('active');
+                            termBtn.title = 'Set as terminal state';
+                            termBtn.querySelector('i').className = 'bi bi-check-circle';
+                        }
+                    });
+
+                    // Set the new terminal state
+                    stateItem.classList.add('terminal-state');
+                    stateItem.dataset.isTerminal = 'true';
+                    button.classList.add('active');
+                    button.title = 'Terminal state (completed)';
+                    button.querySelector('i').className = 'bi bi-check-circle-fill';
+
+                    // Refresh UI
+                    updateTerminalStateGroup();
+                    updateStateTypeLabels();
+                    renderDeadlineDropdown();
+                    updateDeadlineWarningIcon();
+
+                    showToast(`"${stateItem.dataset.stateName}" set as terminal state`, {
+                        duration: 2000,
+                        icon: 'bi-check-circle'
+                    });
+                } else {
+                    showAlertModal(data.error || 'Failed to update state', 'Error');
+                }
+            } catch (error) {
+                console.error('Error updating terminal state:', error);
+                showAlertModal('Failed to update state', 'Error');
+            }
         }
 
         let deleteStateId = null;
@@ -6737,7 +7100,8 @@
                     taskDeadlinesMap[taskId] = {
                         deadline: data.task.deadline,
                         deadline_dismissed: data.task.deadline_dismissed,
-                        state_id: data.task.state_id
+                        state_id: data.task.state_id,
+                        critical: data.task.critical || false
                     };
                 }
             } catch (error) {
@@ -6934,6 +7298,9 @@
                 }
                 if (task.deadline_dismissed !== undefined) {
                     taskDeadlinesMap[task.id].deadline_dismissed = task.deadline_dismissed;
+                }
+                if (task.critical !== undefined) {
+                    taskDeadlinesMap[task.id].critical = task.critical;
                 }
             }
 
@@ -8953,6 +9320,16 @@
             // Also setup drag-drop for the header (for dropping on collapsed groups)
             const header = group.querySelector('.state-group-header');
             setupTagGroupHeaderDragDrop(header, group, tagId, tagName);
+
+            // Right-click to select all tasks in the tag group
+            header.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                // Expand the group if collapsed so tasks are visible
+                if (group.classList.contains('collapsed')) {
+                    group.classList.remove('collapsed');
+                }
+                selectAllTasksInGroup(group);
+            });
 
             return group;
         }
@@ -11117,6 +11494,27 @@
             }
         }
 
+        function selectAllTasksInGroup(groupElement) {
+            // Clear existing selection first
+            clearTaskSelection();
+
+            // Select all visible task cards in the group
+            const taskCards = groupElement.querySelectorAll('.task-card');
+            taskCards.forEach(card => {
+                const taskId = parseInt(card.dataset.taskId);
+                selectedTaskIds.add(taskId);
+                card.classList.add('selected');
+            });
+
+            // Show toast if tasks were selected
+            if (selectedTaskIds.size > 0) {
+                showToast(`${selectedTaskIds.size} task${selectedTaskIds.size > 1 ? 's' : ''} selected`, {
+                    duration: 2000,
+                    icon: 'bi-check-circle'
+                });
+            }
+        }
+
         function handleTaskCardClick(e, card) {
             const taskId = parseInt(card.dataset.taskId);
 
@@ -11911,6 +12309,19 @@
                     console.error('Error reordering tasks:', error);
                 }
             });
+
+            // Right-click to select all tasks in the state group
+            header.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                const stateGroup = this.closest('.state-group');
+                if (stateGroup) {
+                    // Expand the group if collapsed so tasks are visible
+                    if (stateGroup.classList.contains('collapsed')) {
+                        stateGroup.classList.remove('collapsed');
+                    }
+                    selectAllTasksInGroup(stateGroup);
+                }
+            });
         });
 
         // Initialize two-panel layout
@@ -12510,7 +12921,7 @@
             "Unburden yourself…",
             "Running from something?",
             "What are you putting off?",
-            "It won't matter in a year",
+            "It won't matter in a year…",
             "Busy yourself…",
             "Does it matter? Maybe…",
             "The day demands something…"

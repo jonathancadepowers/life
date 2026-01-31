@@ -8,6 +8,7 @@ class TaskState(models.Model):
     order = models.IntegerField(default=0)
     bootstrap_icon = models.CharField(max_length=50, blank=True, default='')  # e.g., 'bi-inbox'
     is_system = models.BooleanField(default=False)  # System states like 'Abandoned' can't be deleted/reordered
+    is_terminal = models.BooleanField(default=False)  # Terminal state marks tasks as "completed"
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -15,6 +16,12 @@ class TaskState(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        # If this state is being set as terminal, unset any other terminal states
+        if self.is_terminal:
+            TaskState.objects.filter(is_terminal=True).exclude(pk=self.pk).update(is_terminal=False)
+        super().save(*args, **kwargs)
 
 
 class TaskTag(models.Model):
