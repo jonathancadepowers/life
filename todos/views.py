@@ -24,6 +24,8 @@ def serialize_task(task):
         'state_id': task.state_id,
         'state_name': task.state.name if task.state else None,
         'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
+        'deadline': task.deadline.isoformat() if task.deadline else None,
+        'deadline_dismissed': task.deadline_dismissed,
         'calendar_start_time': first_schedule.start_time.isoformat() if first_schedule else None,
         'calendar_end_time': first_schedule.end_time.isoformat() if first_schedule else None,
         'schedules': [
@@ -154,6 +156,14 @@ def update_task(request, task_id):
                 task.state = TaskState.objects.get(id=data['state_id'])
             else:
                 task.state = None
+        if 'deadline' in data:
+            if data['deadline']:
+                from datetime import date
+                task.deadline = date.fromisoformat(data['deadline'])
+            else:
+                task.deadline = None
+        if 'deadline_dismissed' in data:
+            task.deadline_dismissed = data['deadline_dismissed']
 
         task.save()
         return JsonResponse({

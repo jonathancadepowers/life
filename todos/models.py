@@ -48,6 +48,8 @@ class Task(models.Model):
         related_name='tasks'
     )
     order = models.IntegerField(default=0)
+    deadline = models.DateField(null=True, blank=True)
+    deadline_dismissed = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
