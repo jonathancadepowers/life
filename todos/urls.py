@@ -40,4 +40,6 @@ urlpatterns = [
     path('api/views/', views.list_views, name='list_views'),
     path('api/views/create/', views.create_view, name='create_view'),
     path('api/views/<int:view_id>/delete/', views.delete_view, name='delete_view'),
+    # Abandoned tasks
+    path('api/process-abandoned/', views.process_abandoned_tasks, name='process_abandoned'),
 ]

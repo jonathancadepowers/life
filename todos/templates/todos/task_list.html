@@ -1255,6 +1255,19 @@
             }
         }
 
+        .deadline-warning-icon.has-near-abandoned {
+            animation: fadeToOrange 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeToOrange {
+            0%, 100% {
+                color: #adb5bd;
+            }
+            50% {
+                color: #fd7e14;
+            }
+        }
+
         /* Deadline Warning Dropdown */
         .deadline-dropdown {
             position: fixed;
@@ -1317,6 +1330,14 @@
 
         .deadline-section-title.due-soon {
             color: #e6a000;
+        }
+
+        .deadline-section-title.near-abandoned {
+            color: #fd7e14;
+        }
+
+        .deadline-task-item.near-abandoned {
+            border-left: 3px solid #fd7e14;
         }
 
         .deadline-task-item {
@@ -2007,6 +2028,47 @@
 
         .settings-section:last-child {
             border-bottom: none;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .settings-toggle input[type="checkbox"] {
+            accent-color: #6B9080;
+            width: 16px;
+            height: 16px;
+        }
+
+        .abandoned-days-input {
+            width: 60px;
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .abandoned-days-input:focus {
+            outline: none;
+            border-color: #6B9080;
+        }
+
+        .settings-hint {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin: 0 1rem 0.5rem;
+            font-style: italic;
         }
 
         /* State list styles */
@@ -4147,7 +4209,7 @@
                     <!-- States grouping (default) -->
                     <div id="states-content">
                         {% for state in states %}
-                        <div class="state-group collapsed" data-state-id="{{ state.id }}">
+                        <div class="state-group collapsed" data-state-id="{{ state.id }}" data-is-system="{{ state.is_system|yesno:'true,false' }}"{% if state.is_system %} style="display: none;"{% endif %}>
                             <div class="state-group-header" onclick="toggleStateGroup(this)">
                                 <div class="state-group-left">
                                     {% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }} state-group-icon"></i>{% endif %}
@@ -4278,18 +4340,20 @@
                 </div>
                 <ul class="state-list" id="state-list">
                     {% for state in states %}
-                    <li class="state-item" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" draggable="true">
+                    <li class="state-item" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" draggable="{% if state.is_system %}false{% else %}true{% endif %}"{% if state.is_system %} style="display: none;"{% endif %}>
                         <div class="state-item-left">
-                            <i class="bi bi-grip-vertical state-drag-handle"></i>
-                            <span class="state-name" onclick="editStateName({{ state.id }}, this)">{{ state.name }}</span>
+                            <i class="bi bi-grip-vertical state-drag-handle"{% if state.is_system %} style="visibility: hidden;"{% endif %}></i>
+                            <span class="state-name"{% if not state.is_system %} onclick="editStateName({{ state.id }}, this)"{% endif %}>{{ state.name }}</span>
                         </div>
                         <div class="state-item-right">
+                            {% if not state.is_system %}
                             <button class="state-icon-btn" onclick="openIconPicker({{ state.id }}, this)" title="Choose icon">
                                 <i class="bi {% if state.bootstrap_icon %}{{ state.bootstrap_icon }}{% else %}bi-plus-circle-dotted{% endif %}"></i>
                             </button>
                             <button class="state-delete" onclick="deleteState({{ state.id }}, this)" title="Delete state">
                                 <i class="bi bi-x-lg"></i>
                             </button>
+                            {% endif %}
                         </div>
                     </li>
                     {% empty %}
@@ -4309,6 +4373,22 @@
                 <button class="add-template-btn" id="add-template-btn">
                     <i class="bi bi-plus-lg"></i> Add Template
                 </button>
+            </div>
+
+            <!-- Auto-Abandon Section -->
+            <div class="settings-section">
+                <div class="settings-section-header"><i class="bi bi-archive"></i> Auto-Abandon</div>
+                <div class="settings-row">
+                    <label class="settings-toggle">
+                        <input type="checkbox" id="auto-abandon-enabled" checked>
+                        <span>Enable auto-abandon</span>
+                    </label>
+                </div>
+                <div class="settings-row" id="abandoned-days-row">
+                    <label for="abandoned-days-input">Days until abandoned:</label>
+                    <input type="number" id="abandoned-days-input" min="1" max="365" value="14" class="abandoned-days-input">
+                </div>
+                <p class="settings-hint">Tasks idle for this many days will be moved to Abandoned.</p>
             </div>
         </div>
     </div>
@@ -4606,6 +4686,17 @@
         };
         {% endfor %}
 
+        // Store task state_changed_at for abandonment calculations
+        let taskStateChangedMap = {};
+        {% for task in tasks %}
+        taskStateChangedMap[{{ task.id }}] = {% if task.state_changed_at %}"{{ task.state_changed_at|date:'c' }}"{% else %}null{% endif %};
+        {% endfor %}
+
+        // Abandoned state tracking
+        let abandonedStateId = null;
+        let abandonedDays = 14;  // Default, will be loaded from cookie
+        let autoAbandonEnabled = true;  // Default, will be loaded from cookie
+
         // Saved views from database
         let savedViews = {{ saved_views|safe }};
         let currentActiveViewId = null; // null means "All Tasks" (no view applied)
@@ -4825,11 +4916,14 @@
         function getDeadlineWarnings() {
             const overdue = [];
             const dueSoon = [];
+            const nearAbandoned = [];
             const today = getToday();
 
+            // Check deadline warnings
             for (const [taskId, data] of Object.entries(taskDeadlinesMap)) {
                 if (!data.deadline) continue;
                 if (isTaskInTerminalState(taskId)) continue;
+                if (isTaskInAbandonedState(taskId)) continue;
 
                 const deadline = new Date(data.deadline + 'T00:00:00');
                 deadline.setHours(0, 0, 0, 0);
@@ -4855,10 +4949,91 @@
                 }
             }
 
+            // Check for near-abandoned tasks (within 3 days of threshold)
+            if (autoAbandonEnabled && abandonedDays > 0) {
+                const warningThreshold = abandonedDays - 3;
+                for (const [taskId, stateChangedAt] of Object.entries(taskStateChangedMap)) {
+                    if (!stateChangedAt) continue;
+                    if (isTaskInTerminalState(taskId)) continue;
+                    if (isTaskInAbandonedState(taskId)) continue;
+
+                    const changedDate = new Date(stateChangedAt);
+                    const daysSinceChange = Math.floor((today - changedDate) / (1000 * 60 * 60 * 24));
+
+                    if (daysSinceChange >= warningThreshold && daysSinceChange < abandonedDays) {
+                        const daysUntilAbandoned = abandonedDays - daysSinceChange;
+                        const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"], .kanban-card[data-task-id="${taskId}"]`);
+                        const title = taskCard ? taskCard.querySelector('.task-card-title, .kanban-card-title')?.textContent : `Task ${taskId}`;
+
+                        nearAbandoned.push({
+                            id: parseInt(taskId),
+                            title: title || `Task ${taskId}`,
+                            days: daysUntilAbandoned
+                        });
+                    }
+                }
+            }
+
             overdue.sort((a, b) => a.days - b.days);
             dueSoon.sort((a, b) => a.days - b.days);
+            nearAbandoned.sort((a, b) => a.days - b.days);
 
-            return { overdue, dueSoon };
+            return { overdue, dueSoon, nearAbandoned };
+        }
+
+        function isTaskInAbandonedState(taskId) {
+            if (!abandonedStateId) return false;
+            const taskData = taskDeadlinesMap[taskId];
+            return taskData && taskData.state_id === abandonedStateId;
+        }
+
+        async function processAbandonedTasks() {
+            if (!autoAbandonEnabled || abandonedDays <= 0) return;
+
+            try {
+                const response = await fetch('/tasks/api/process-abandoned/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ abandoned_days: abandonedDays })
+                });
+
+                const data = await response.json();
+                if (data.success && data.abandoned_state_id) {
+                    abandonedStateId = data.abandoned_state_id;
+
+                    // If tasks were abandoned, reload to show the changes
+                    if (data.abandoned_count > 0) {
+                        location.reload();
+                    } else {
+                        // Just update visibility if no new abandonments
+                        updateAbandonedStateVisibility();
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing abandoned tasks:', error);
+            }
+        }
+
+        function updateAbandonedStateVisibility() {
+            if (!abandonedStateId) return;
+
+            // Hide/show abandoned state group based on task count
+            const abandonedGroup = document.querySelector(`.state-group[data-state-id="${abandonedStateId}"]`);
+            if (abandonedGroup) {
+                const taskCount = abandonedGroup.querySelectorAll('.task-card').length;
+                abandonedGroup.style.display = taskCount > 0 ? '' : 'none';
+            }
+
+            // Also hide/show in settings state list
+            const stateItem = document.querySelector(`.state-item[data-state-id="${abandonedStateId}"]`);
+            if (stateItem) {
+                const taskCount = document.querySelectorAll(`.task-card[data-state-id="${abandonedStateId}"]`).length ||
+                                  (abandonedGroup ? abandonedGroup.querySelectorAll('.task-card').length : 0);
+                stateItem.style.display = taskCount > 0 ? '' : 'none';
+            }
         }
 
         function updateDeadlineWarningIcon() {
@@ -4868,13 +5043,16 @@
             const warnings = getDeadlineWarnings();
             const hasOverdue = warnings.overdue.some(t => !t.dismissed);
             const hasDueSoon = warnings.dueSoon.some(t => !t.dismissed);
+            const hasNearAbandoned = warnings.nearAbandoned.length > 0;
 
-            icon.classList.remove('has-warnings', 'has-overdue');
+            icon.classList.remove('has-warnings', 'has-overdue', 'has-near-abandoned');
 
             if (hasOverdue) {
                 icon.classList.add('has-overdue');
             } else if (hasDueSoon) {
                 icon.classList.add('has-warnings');
+            } else if (hasNearAbandoned) {
+                icon.classList.add('has-near-abandoned');
             }
         }
 
@@ -4882,7 +5060,7 @@
             const body = document.getElementById('deadline-dropdown-body');
             const warnings = getDeadlineWarnings();
 
-            if (warnings.overdue.length === 0 && warnings.dueSoon.length === 0) {
+            if (warnings.overdue.length === 0 && warnings.dueSoon.length === 0 && warnings.nearAbandoned.length === 0) {
                 body.innerHTML = `
                     <div class="deadline-empty-state">
                         <i class="bi bi-check-circle"></i>
@@ -4918,6 +5096,18 @@
                 `;
             }
 
+            if (warnings.nearAbandoned.length > 0) {
+                html += `
+                    <div class="deadline-section">
+                        <div class="deadline-section-title near-abandoned">
+                            <i class="bi bi-archive-fill"></i>
+                            Near Abandoned (${warnings.nearAbandoned.length})
+                        </div>
+                        ${warnings.nearAbandoned.map(task => renderNearAbandonedItem(task)).join('')}
+                    </div>
+                `;
+            }
+
             body.innerHTML = html;
 
             body.querySelectorAll('.deadline-task-info').forEach(el => {
@@ -4937,6 +5127,18 @@
                     await updateTaskDeadlineDismiss(taskId, !currentlyDismissed);
                 });
             });
+        }
+
+        function renderNearAbandonedItem(task) {
+            const daysText = task.days === 1 ? '1 day' : `${task.days} days`;
+            return `
+                <div class="deadline-task-item near-abandoned" data-task-id="${task.id}">
+                    <div class="deadline-task-info">
+                        <div class="deadline-task-title">${escapeHtml(task.title)}</div>
+                        <div class="deadline-task-date">${daysText} until abandoned</div>
+                    </div>
+                </div>
+            `;
         }
 
         function renderDeadlineTaskItem(task, type) {
@@ -4998,7 +5200,8 @@
         }
 
         function getTerminalStateId() {
-            const stateItems = document.querySelectorAll('.state-item:not(#no-states)');
+            // Get all non-system state items (exclude Abandoned and other system states)
+            const stateItems = document.querySelectorAll('.state-item:not(#no-states):not([data-is-system="true"])');
             if (stateItems.length === 0) return null;
             return parseInt(stateItems[stateItems.length - 1].dataset.stateId);
         }
@@ -7625,7 +7828,9 @@
                 tags: activeFilters.tags,
                 groupBy: currentGroupBy,
                 showCompleted: showCompletedTasks,
-                hideRollups: hideRollups
+                hideRollups: hideRollups,
+                abandonedDays: abandonedDays,
+                autoAbandonEnabled: autoAbandonEnabled
             });
         }
 
@@ -8373,6 +8578,21 @@
                     updateRollupsVisibility();
                 }
 
+                // Load abandoned settings
+                if (saved.abandonedDays !== undefined) {
+                    abandonedDays = saved.abandonedDays;
+                    const input = document.getElementById('abandoned-days-input');
+                    if (input) input.value = abandonedDays;
+                }
+                if (saved.autoAbandonEnabled !== undefined) {
+                    autoAbandonEnabled = saved.autoAbandonEnabled;
+                    const toggle = document.getElementById('auto-abandon-enabled');
+                    if (toggle) toggle.checked = autoAbandonEnabled;
+                    // Update visibility of days input based on enabled state
+                    const daysRow = document.getElementById('abandoned-days-row');
+                    if (daysRow) daysRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
+                }
+
                 // Switch to tags view if needed (after showCompleted is set)
                 if (saved.groupBy === 'tags') {
                     switchGroupBy('tags');
@@ -8416,6 +8636,11 @@
 
                 // Skip completed tasks if showCompletedTasks is false
                 if (!showCompletedTasks && isCompleted) {
+                    return;
+                }
+
+                // Skip abandoned tasks (they don't appear in tag groups)
+                if (abandonedStateId && taskStateId === abandonedStateId) {
                     return;
                 }
 
@@ -10969,7 +11194,7 @@
                         if (changedState) {
                             const taskId = parseInt(card.dataset.taskId);
                             try {
-                                await fetch(`/tasks/api/${taskId}/update/`, {
+                                const response = await fetch(`/tasks/api/${taskId}/update/`, {
                                     method: 'PATCH',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -10977,11 +11202,23 @@
                                     },
                                     body: JSON.stringify({ state_id: newStateId })
                                 });
+                                const data = await response.json();
+                                if (data.success && data.task) {
+                                    // Update local maps with new state_changed_at
+                                    taskStateChangedMap[taskId] = data.task.state_changed_at;
+                                    if (taskDeadlinesMap[taskId]) {
+                                        taskDeadlinesMap[taskId].state_id = newStateId;
+                                    }
+                                }
                             } catch (error) {
                                 console.error('Error updating task state:', error);
                             }
                         }
                     }
+
+                    // Update abandoned state visibility and warnings
+                    updateAbandonedStateVisibility();
+                    updateDeadlineWarningIcon();
 
                     // Always update order (for both same-state reorder and cross-state moves)
                     try {
@@ -11119,7 +11356,7 @@
                         if (changedState) {
                             const taskId = parseInt(card.dataset.taskId);
                             try {
-                                await fetch(`/tasks/api/${taskId}/update/`, {
+                                const response = await fetch(`/tasks/api/${taskId}/update/`, {
                                     method: 'PATCH',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -11127,11 +11364,23 @@
                                     },
                                     body: JSON.stringify({ state_id: newStateId })
                                 });
+                                const data = await response.json();
+                                if (data.success && data.task) {
+                                    // Update local maps with new state_changed_at
+                                    taskStateChangedMap[taskId] = data.task.state_changed_at;
+                                    if (taskDeadlinesMap[taskId]) {
+                                        taskDeadlinesMap[taskId].state_id = newStateId;
+                                    }
+                                }
                             } catch (error) {
                                 console.error('Error updating task state:', error);
                             }
                         }
                     }
+
+                    // Update abandoned state visibility and warnings
+                    updateAbandonedStateVisibility();
+                    updateDeadlineWarningIcon();
 
                     try {
                         await fetch('/tasks/api/tasks/reorder/', {
@@ -11266,7 +11515,7 @@
                         if (changedState) {
                             const taskId = parseInt(card.dataset.taskId);
                             try {
-                                await fetch(`/tasks/api/${taskId}/update/`, {
+                                const response = await fetch(`/tasks/api/${taskId}/update/`, {
                                     method: 'PATCH',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -11274,11 +11523,22 @@
                                     },
                                     body: JSON.stringify({ state_id: newStateId })
                                 });
+                                const data = await response.json();
+                                if (data.success && data.task) {
+                                    taskStateChangedMap[taskId] = data.task.state_changed_at;
+                                    if (taskDeadlinesMap[taskId]) {
+                                        taskDeadlinesMap[taskId].state_id = newStateId;
+                                    }
+                                }
                             } catch (error) {
                                 console.error('Error updating task state:', error);
                             }
                         }
                     }
+
+                    // Update abandoned state visibility and warnings
+                    updateAbandonedStateVisibility();
+                    updateDeadlineWarningIcon();
 
                     // Collect unique old state bodies that need reordering
                     const oldBodiesSet = new Set();
@@ -11418,7 +11678,7 @@
                     if (changedState) {
                         const taskId = parseInt(card.dataset.taskId);
                         try {
-                            await fetch(`/tasks/api/${taskId}/update/`, {
+                            const response = await fetch(`/tasks/api/${taskId}/update/`, {
                                 method: 'PATCH',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -11426,11 +11686,22 @@
                                 },
                                 body: JSON.stringify({ state_id: newStateId })
                             });
+                            const data = await response.json();
+                            if (data.success && data.task) {
+                                taskStateChangedMap[taskId] = data.task.state_changed_at;
+                                if (taskDeadlinesMap[taskId]) {
+                                    taskDeadlinesMap[taskId].state_id = newStateId;
+                                }
+                            }
                         } catch (error) {
                             console.error('Error updating task state:', error);
                         }
                     }
                 }
+
+                // Update abandoned state visibility and warnings
+                updateAbandonedStateVisibility();
+                updateDeadlineWarningIcon();
 
                 // Collect unique old state bodies that need reordering
                 const oldBodiesSet = new Set();
@@ -12024,6 +12295,36 @@
 
         // Initialize deadline warning icon on page load
         updateDeadlineWarningIcon();
+
+        // Process abandoned tasks on page load (if enabled)
+        processAbandonedTasks();
+
+        // Set up abandoned settings event listeners
+        const autoAbandonToggle = document.getElementById('auto-abandon-enabled');
+        const abandonedDaysInput = document.getElementById('abandoned-days-input');
+        const abandonedDaysRow = document.getElementById('abandoned-days-row');
+
+        if (autoAbandonToggle) {
+            autoAbandonToggle.addEventListener('change', function() {
+                autoAbandonEnabled = this.checked;
+                if (abandonedDaysRow) {
+                    abandonedDaysRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
+                }
+                saveFilterSettings();
+                updateDeadlineWarningIcon();
+            });
+        }
+
+        if (abandonedDaysInput) {
+            abandonedDaysInput.addEventListener('change', function() {
+                abandonedDays = parseInt(this.value) || 14;
+                if (abandonedDays < 1) abandonedDays = 1;
+                if (abandonedDays > 365) abandonedDays = 365;
+                this.value = abandonedDays;
+                saveFilterSettings();
+                updateDeadlineWarningIcon();
+            });
+        }
 
         // Process calendar sections on page load
         processCalendarSections();

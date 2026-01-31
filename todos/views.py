@@ -26,6 +26,7 @@ def serialize_task(task):
         'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
         'deadline': task.deadline.isoformat() if task.deadline else None,
         'deadline_dismissed': task.deadline_dismissed,
+        'state_changed_at': task.state_changed_at.isoformat() if task.state_changed_at else None,
         'calendar_start_time': first_schedule.start_time.isoformat() if first_schedule else None,
         'calendar_end_time': first_schedule.end_time.isoformat() if first_schedule else None,
         'schedules': [
@@ -152,8 +153,12 @@ def update_task(request, task_id):
         if 'critical' in data:
             task.critical = data['critical']
         if 'state_id' in data:
-            if data['state_id']:
-                task.state = TaskState.objects.get(id=data['state_id'])
+            new_state_id = data['state_id']
+            old_state_id = task.state_id
+            if new_state_id != old_state_id:  # State actually changed
+                task.state_changed_at = timezone.now()
+            if new_state_id:
+                task.state = TaskState.objects.get(id=new_state_id)
             else:
                 task.state = None
         if 'deadline' in data:
@@ -206,7 +211,7 @@ def list_states(request):
     states = TaskState.objects.all()
     return JsonResponse({
         'success': True,
-        'states': [{'id': s.id, 'name': s.name, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon, 'task_count': s.tasks.count()} for s in states]
+        'states': [{'id': s.id, 'name': s.name, 'order': s.order, 'bootstrap_icon': s.bootstrap_icon, 'is_system': s.is_system, 'task_count': s.tasks.count()} for s in states]
     })
 
 
@@ -292,6 +297,10 @@ def delete_state(request, state_id):
     """Delete a task state via AJAX."""
     try:
         state = TaskState.objects.get(id=state_id)
+
+        # Cannot delete system states (like Abandoned)
+        if state.is_system:
+            return JsonResponse({'success': False, 'error': 'Cannot delete system state'}, status=400)
 
         # Check if this is the last state
         if TaskState.objects.count() <= 1:
@@ -851,3 +860,68 @@ def delete_view(request, view_id):
         return JsonResponse({'success': True})
     except TaskView.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'View not found'}, status=404)
+
+
+# ========== Abandoned Tasks ==========
+
+@require_POST
+def process_abandoned_tasks(request):
+    """Process tasks that should be marked as abandoned based on time threshold."""
+    try:
+        data = json.loads(request.body)
+        abandoned_days = data.get('abandoned_days', 14)
+
+        # Get or create the Abandoned state (system state)
+        abandoned_state, created = TaskState.objects.get_or_create(
+            name='Abandoned',
+            defaults={
+                'order': 999,  # Very high to ensure it's always last
+                'bootstrap_icon': 'bi-archive',
+                'is_system': True
+            }
+        )
+
+        # Find terminal state (last non-system state by order)
+        terminal_state = TaskState.objects.filter(
+            is_system=False
+        ).order_by('-order').first()
+
+        if not terminal_state:
+            return JsonResponse({
+                'success': True,
+                'abandoned_count': 0,
+                'abandoned_state_id': abandoned_state.id if abandoned_state.tasks.exists() else None
+            })
+
+        # Find tasks that should be abandoned
+        # Tasks where state_changed_at < (now - X days)
+        # Excluding: terminal state, already abandoned, no state
+        threshold_date = timezone.now() - timedelta(days=abandoned_days)
+
+        tasks_to_abandon = Task.objects.filter(
+            state_changed_at__lt=threshold_date
+        ).exclude(
+            state=terminal_state  # Not already completed
+        ).exclude(
+            state=abandoned_state  # Not already abandoned
+        ).exclude(
+            state__isnull=True  # Has a state
+        )
+
+        # Move them to abandoned state
+        count = tasks_to_abandon.count()
+        if count > 0:
+            tasks_to_abandon.update(
+                state=abandoned_state,
+                state_changed_at=timezone.now()
+            )
+
+        return JsonResponse({
+            'success': True,
+            'abandoned_count': count,
+            'abandoned_state_id': abandoned_state.id if abandoned_state.tasks.exists() else None
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
