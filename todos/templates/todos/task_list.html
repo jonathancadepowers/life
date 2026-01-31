@@ -3627,6 +3627,9 @@
         ];
         {% endfor %}
 
+        // Saved views from database
+        let savedViews = {{ saved_views|safe }};
+
         // Current calendar date being displayed (defaults to today)
         let currentCalendarDate = new Date();
         // Set to start of day
@@ -7049,9 +7052,6 @@
 
         // Task detail templates from database
         let detailTemplates = {{ detail_templates|safe }};
-
-        // Saved views from database
-        let savedViews = {{ saved_views|safe }};
 
         // Render calendar events on the hourly grid (using browser's local timezone)
         function renderCalendarEvents() {
