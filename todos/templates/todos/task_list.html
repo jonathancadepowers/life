@@ -7227,6 +7227,13 @@
                     showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
                 });
 
+                // Double-click to open task panel
+                taskEl.addEventListener('dblclick', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTaskPanel(parseInt(this.dataset.taskId));
+                });
+
                 hourContent.appendChild(taskEl);
                 });
             });
@@ -8181,9 +8188,16 @@
                 taskDropIndicator = null;
             });
 
-            // Right-click to show context menu (only way to open task panel)
+            // Right-click to show context menu
             card.addEventListener('contextmenu', function(e) {
                 showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+            });
+
+            // Double-click to open task panel
+            card.addEventListener('dblclick', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openTaskPanel(parseInt(this.dataset.taskId));
             });
         }
 
