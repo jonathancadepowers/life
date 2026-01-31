@@ -9582,7 +9582,7 @@
 
         // Clear selection when clicking outside task cards
         document.addEventListener('click', function(e) {
-            if (!e.target.closest('.task-card') && !e.target.closest('.task-context-menu')) {
+            if (!e.target.closest('.task-card') && !e.target.closest('.task-context-menu') && !e.target.closest('.modal-overlay')) {
                 clearTaskSelection();
             }
         });
