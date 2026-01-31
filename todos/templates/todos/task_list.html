@@ -1312,6 +1312,22 @@
             overflow-y: auto;
         }
 
+        /* Tooltips in deadline dropdown should appear to the LEFT since icons are at right edge */
+        .deadline-dropdown .settings-info-tooltip {
+            left: auto;
+            right: 0;
+        }
+
+        .deadline-dropdown .settings-info-tooltip::before {
+            left: auto;
+            right: 4px;
+        }
+
+        .deadline-dropdown .settings-info-tooltip::after {
+            left: auto;
+            right: 5px;
+        }
+
         .deadline-section {
             margin-bottom: 1rem;
         }
