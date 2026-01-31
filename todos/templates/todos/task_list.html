@@ -3436,7 +3436,22 @@
                     <input type="text" class="modal-input" id="template-name-input" placeholder="e.g., Meeting Notes" style="margin-bottom: 0;">
                 </div>
                 <div style="margin-bottom: 0.75rem;">
-                    <label for="template-content-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Content (Markdown)</label>
+                    <label for="template-content-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">
+                        Content (Markdown)
+                        <span class="markdown-help-icon">
+                            <i class="bi bi-question-circle"></i>
+                            <span class="markdown-help-tooltip">
+                                <strong>Markdown</strong><br>
+                                <code>**text**</code> bold<br>
+                                <code>*text*</code> italic<br>
+                                <code>[text](url)</code> link<br>
+                                <code>- item</code> bullet<br>
+                                <code>1. item</code> numbered<br>
+                                <code>`code`</code> code<br>
+                                <code>## text</code> heading
+                            </span>
+                        </span>
+                    </label>
                     <textarea class="modal-textarea" id="template-content-input" placeholder="## Overview&#10;&#10;## Action Items&#10;- [ ] &#10;&#10;## Notes" rows="10"></textarea>
                 </div>
                 <div class="template-default-toggle">
