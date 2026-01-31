@@ -3192,15 +3192,15 @@
         taskTagsMap[{{ task.id }}] = [{% for tag in task.tags.all %}{ id: {{ tag.id }}, name: "{{ tag.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
         {% endfor %}
 
-        // Store task calendar start/end times for quick lookup (task_id -> ISO string or null)
-        // Now using TaskSchedule data instead of legacy Task fields
-        let taskCalendarStartTimeMap = {};
-        let taskCalendarEndTimeMap = {};
+        // Store all task schedules for quick lookup (task_id -> array of {id, start_time, end_time})
+        // Supports multiple schedules per task (task can appear on multiple days)
+        let taskSchedulesMap = {};
         {% for task in tasks %}
-        {% with schedule=task.schedules.first %}
-        taskCalendarStartTimeMap[{{ task.id }}] = {% if schedule %}"{{ schedule.start_time.isoformat }}"{% else %}null{% endif %};
-        taskCalendarEndTimeMap[{{ task.id }}] = {% if schedule %}"{{ schedule.end_time.isoformat }}"{% else %}null{% endif %};
-        {% endwith %}
+        taskSchedulesMap[{{ task.id }}] = [
+            {% for schedule in task.schedules.all %}
+            { id: {{ schedule.id }}, start_time: "{{ schedule.start_time.isoformat }}", end_time: "{{ schedule.end_time.isoformat }}" }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
         {% endfor %}
 
         // Current calendar date being displayed (defaults to today)
@@ -3392,8 +3392,8 @@
                     document.querySelectorAll(`.kanban-card[data-task-id="${taskId}"], .task-card[data-task-id="${taskId}"]`).forEach(card => card.remove());
                     // Remove from tags map
                     delete taskTagsMap[taskId];
-                    // Remove from calendar time map and re-render calendar
-                    delete taskCalendarStartTimeMap[taskId];
+                    // Remove from schedules map and re-render calendar
+                    delete taskSchedulesMap[taskId];
                     renderScheduledTasks();
                 } catch (error) {
                     console.error('Error deleting task:', error);
@@ -3433,14 +3433,13 @@
         function addTaskToKanban(task) {
             // Initialize tags map for the new task
             taskTagsMap[task.id] = task.tags || [];
-            // Initialize calendar times for the new task
-            taskCalendarStartTimeMap[task.id] = task.calendar_start_time || null;
-            taskCalendarEndTimeMap[task.id] = task.calendar_end_time || null;
+            // Initialize schedules for the new task
+            taskSchedulesMap[task.id] = task.schedules || [];
 
             // Helper to create a task card
             function createTaskCard(withHighlight) {
                 const card = document.createElement('div');
-                const isScheduled = !!taskCalendarStartTimeMap[task.id];
+                const isScheduled = (taskSchedulesMap[task.id] || []).length > 0;
                 card.className = 'task-card' + (task.critical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (withHighlight ? ' highlight-new' : '');
                 card.dataset.taskId = task.id;
                 card.innerHTML = `
@@ -3736,8 +3735,8 @@
 
                     // Remove from tags map
                     delete taskTagsMap[taskId];
-                    // Remove from calendar time map and re-render calendar
-                    delete taskCalendarStartTimeMap[taskId];
+                    // Remove from schedules map and re-render calendar
+                    delete taskSchedulesMap[taskId];
                     renderScheduledTasks();
                 }
             } catch (error) {
@@ -4799,7 +4798,7 @@
                 card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
             }
             const isCritical = card ? card.classList.contains('critical') : false;
-            const isScheduled = !!taskCalendarStartTimeMap[taskId];
+            const isScheduled = (taskSchedulesMap[taskId] || []).length > 0;
             const taskTags = taskTagsMap[taskId] || [];
 
             // Build menu HTML
@@ -5806,9 +5805,9 @@
             const body = group.querySelector('.state-group-body');
             tasks.forEach(task => {
                 const card = document.createElement('div');
-                const calendarTime = taskCalendarStartTimeMap[task.id];
-                const isScheduled = !!calendarTime;
-                const isToday = isScheduled && isScheduledForToday(calendarTime);
+                const schedules = taskSchedulesMap[task.id] || [];
+                const isScheduled = schedules.length > 0;
+                const isToday = isScheduled && schedules.some(s => isScheduledForToday(s.start_time));
                 card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (task.isCompleted ? ' completed' : '');
                 card.dataset.taskId = task.id;
 
@@ -6004,8 +6003,9 @@
 
                 // Filter by today (only show tasks scheduled for today)
                 if (show && activeFilters.today) {
-                    const calendarTime = taskCalendarStartTimeMap[taskId];
-                    if (!calendarTime || !isScheduledForToday(calendarTime)) {
+                    const schedules = taskSchedulesMap[taskId] || [];
+                    const hasScheduleToday = schedules.some(s => isScheduledForToday(s.start_time));
+                    if (!hasScheduleToday) {
                         show = false;
                     }
                 }
@@ -6499,12 +6499,12 @@
             const hourContent = blockEl.parentElement;
             const baseHour = parseInt(hourContent.dataset.hour);
 
-            // Calculate new start and end times
-            const now = new Date();
+            // Calculate new start and end times using currentCalendarDate (not today)
+            const calDate = new Date(currentCalendarDate);
             const startMinutes = (topPercent / 100) * 60;
             const durationMinutes = (heightPercent / 100) * 60;
 
-            const newStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), baseHour, startMinutes);
+            const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), baseHour, startMinutes);
             const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
 
             const startTimeUTC = newStartDate.toISOString();
@@ -6670,16 +6670,16 @@
             });
 
             // Check scheduled tasks
-            Object.keys(taskCalendarStartTimeMap).forEach(taskId => {
-                const startStr = taskCalendarStartTimeMap[taskId];
-                const endStr = taskCalendarEndTimeMap[taskId];
-                if (!startStr) return;
-                const startDate = new Date(startStr);
-                const endDate = endStr ? new Date(endStr) : new Date(startDate.getTime() + 30 * 60 * 1000);
-                if (endDate <= todayStart || startDate >= todayEnd) return;
-                for (let h = Math.max(7, startDate.getHours()); h < Math.min(19, endDate.getHours() + (endDate.getMinutes() > 0 ? 1 : 0)); h++) {
-                    occupiedHours.add(h);
-                }
+            Object.entries(taskSchedulesMap).forEach(([taskId, schedules]) => {
+                if (!schedules || schedules.length === 0) return;
+                schedules.forEach(schedule => {
+                    const startDate = new Date(schedule.start_time);
+                    const endDate = new Date(schedule.end_time);
+                    if (endDate <= todayStart || startDate >= todayEnd) return;
+                    for (let h = Math.max(7, startDate.getHours()); h < Math.min(19, endDate.getHours() + (endDate.getMinutes() > 0 ? 1 : 0)); h++) {
+                        occupiedHours.add(h);
+                    }
+                });
             });
 
             // Get available hours from 7am to 6pm
@@ -6838,93 +6838,92 @@
             const todayStart = new Date(currentCalendarDate);
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-            // Iterate through tasks with schedule times
-            Object.entries(taskCalendarStartTimeMap).forEach(([taskId, calendarStartTime]) => {
-                if (!calendarStartTime) return;
+            // Iterate through all tasks and their schedules
+            Object.entries(taskSchedulesMap).forEach(([taskId, schedules]) => {
+                if (!schedules || schedules.length === 0) return;
 
-                const startDate = new Date(calendarStartTime);
+                // Check each schedule for this task
+                schedules.forEach(schedule => {
+                    const startDate = new Date(schedule.start_time);
 
-                // Skip tasks not scheduled for today
-                if (startDate < todayStart || startDate >= todayEnd) return;
+                    // Skip schedules not for current calendar date
+                    if (startDate < todayStart || startDate >= todayEnd) return;
 
-                const hour = startDate.getHours();
-                const minute = startDate.getMinutes();
+                    const hour = startDate.getHours();
+                    const minute = startDate.getMinutes();
 
-                // Skip if outside visible range (7am-6pm)
-                if (hour < 7 || hour > 18) return;
+                    // Skip if outside visible range (7am-6pm)
+                    if (hour < 7 || hour > 18) return;
 
-                const hourContent = document.querySelector(`.hour-content[data-hour="${hour}"]`);
-                if (!hourContent) return;
+                    const hourContent = document.querySelector(`.hour-content[data-hour="${hour}"]`);
+                    if (!hourContent) return;
 
-                // Get task info from the task card
-                const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
-                if (!taskCard) return;
+                    // Get task info from the task card
+                    const taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+                    if (!taskCard) return;
 
-                const titleEl = taskCard.querySelector('.task-card-title');
-                const title = titleEl ? titleEl.textContent : 'Task';
+                    const titleEl = taskCard.querySelector('.task-card-title');
+                    const title = titleEl ? titleEl.textContent : 'Task';
 
-                // Calculate duration in minutes (default to 30 if no end time)
-                let durationMinutes = 30;
-                const calendarEndTime = taskCalendarEndTimeMap[taskId];
-                if (calendarEndTime) {
-                    const endDate = new Date(calendarEndTime);
-                    durationMinutes = Math.max(15, (endDate - startDate) / (1000 * 60));
-                }
+                    // Calculate duration in minutes
+                    const endDate = new Date(schedule.end_time);
+                    const durationMinutes = Math.max(15, (endDate - startDate) / (1000 * 60));
 
-                // Create scheduled task element
-                const taskEl = document.createElement('div');
-                taskEl.className = 'calendar-scheduled-task';
-                taskEl.dataset.taskId = taskId;
-                taskEl.draggable = true;
-                taskEl.title = title;
+                    // Create scheduled task element
+                    const taskEl = document.createElement('div');
+                    taskEl.className = 'calendar-scheduled-task';
+                    taskEl.dataset.taskId = taskId;
+                    taskEl.dataset.scheduleId = schedule.id;
+                    taskEl.draggable = true;
+                    taskEl.title = title;
 
-                // Create content wrapper
-                const contentWrapper = document.createElement('div');
-                contentWrapper.className = 'calendar-task-content';
+                    // Create content wrapper
+                    const contentWrapper = document.createElement('div');
+                    contentWrapper.className = 'calendar-task-content';
 
-                // Add task icon
-                const taskIcon = document.createElement('i');
-                taskIcon.className = 'bi bi-check2-circle calendar-task-icon';
-                contentWrapper.appendChild(taskIcon);
+                    // Add task icon
+                    const taskIcon = document.createElement('i');
+                    taskIcon.className = 'bi bi-check2-circle calendar-task-icon';
+                    contentWrapper.appendChild(taskIcon);
 
-                // Add title text
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'calendar-task-title';
-                titleSpan.textContent = title;
-                contentWrapper.appendChild(titleSpan);
+                    // Add title text
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'calendar-task-title';
+                    titleSpan.textContent = title;
+                    contentWrapper.appendChild(titleSpan);
 
-                taskEl.appendChild(contentWrapper);
+                    taskEl.appendChild(contentWrapper);
 
-                // Add remove button
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-btn';
-                removeBtn.innerHTML = '<i class="bi bi-x"></i>';
-                removeBtn.title = 'Remove from calendar';
-                removeBtn.addEventListener('click', async function(e) {
-                    e.stopPropagation();
-                    await removeFromCalendar(parseInt(taskId));
-                });
-                taskEl.appendChild(removeBtn);
+                    // Add remove button (removes this specific schedule)
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                    removeBtn.title = 'Remove from calendar';
+                    removeBtn.addEventListener('click', async function(e) {
+                        e.stopPropagation();
+                        await removeScheduleFromCalendar(schedule.id, parseInt(taskId));
+                    });
+                    taskEl.appendChild(removeBtn);
 
-                // Add top resize handle
-                const resizeHandleTop = document.createElement('div');
-                resizeHandleTop.className = 'calendar-task-resize-handle-top';
-                resizeHandleTop.addEventListener('mousedown', function(e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    startTaskResize(e, taskEl, taskId, startDate, durationMinutes, 'top');
-                });
-                taskEl.appendChild(resizeHandleTop);
+                    // Add top resize handle
+                    const resizeHandleTop = document.createElement('div');
+                    resizeHandleTop.className = 'calendar-task-resize-handle-top';
+                    resizeHandleTop.addEventListener('mousedown', function(e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        startTaskResize(e, taskEl, taskId, schedule.id, startDate, durationMinutes, 'top');
+                    });
+                    taskEl.appendChild(resizeHandleTop);
 
-                // Add bottom resize handle
-                const resizeHandle = document.createElement('div');
-                resizeHandle.className = 'calendar-task-resize-handle';
-                resizeHandle.addEventListener('mousedown', function(e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    startTaskResize(e, taskEl, taskId, startDate, durationMinutes, 'bottom');
-                });
-                taskEl.appendChild(resizeHandle);
+                    // Add bottom resize handle
+                    const resizeHandle = document.createElement('div');
+                    resizeHandle.className = 'calendar-task-resize-handle';
+                    resizeHandle.addEventListener('mousedown', function(e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        startTaskResize(e, taskEl, taskId, schedule.id, startDate, durationMinutes, 'bottom');
+                    });
+                    taskEl.appendChild(resizeHandle);
 
                 // Position based on minute within the hour (absolute positioning)
                 const topPercent = (minute / 60) * 100;
@@ -6946,6 +6945,7 @@
                 });
 
                 hourContent.appendChild(taskEl);
+                });
             });
 
             // After all tasks are added, detect overlaps and adjust widths
@@ -7043,12 +7043,13 @@
         // Handle task resize by dragging top or bottom edge
         let resizeState = null;
 
-        function startTaskResize(e, taskEl, taskId, startDate, durationMinutes, edge) {
+        function startTaskResize(e, taskEl, taskId, scheduleId, startDate, durationMinutes, edge) {
             const hourContent = taskEl.closest('.hour-content');
 
             resizeState = {
                 taskEl,
                 taskId,
+                scheduleId,
                 startDate: new Date(startDate),
                 initialTop: parseFloat(taskEl.style.top) || 0,
                 initialHeight: parseFloat(taskEl.style.height) || 50,
@@ -7095,7 +7096,7 @@
         async function endTaskResize() {
             if (!resizeState) return;
 
-            const { taskEl, taskId, startDate, edge } = resizeState;
+            const { taskEl, taskId, scheduleId, startDate, edge } = resizeState;
             const heightPercent = parseFloat(taskEl.style.height) || 50;
             const topPercent = parseFloat(taskEl.style.top) || 0;
 
@@ -7105,23 +7106,19 @@
             const hourContent = taskEl.parentElement;
             const baseHour = parseInt(hourContent.dataset.hour);
 
-            // Calculate new start and end times
-            const now = new Date();
+            // Calculate new start and end times using currentCalendarDate (not today)
+            const calDate = new Date(currentCalendarDate);
             const startMinutes = (topPercent / 100) * 60;
             const durationMinutes = (heightPercent / 100) * 60;
 
-            const newStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), baseHour, startMinutes);
+            const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), baseHour, startMinutes);
             const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
 
             const startTimeUTC = localToUTC(newStartDate);
             const endTimeUTC = localToUTC(newEndDate);
 
-            // Update on server - update both times if top edge was moved
-            if (edge === 'top') {
-                await updateTaskScheduleTime(taskId, startTimeUTC, endTimeUTC);
-            } else {
-                await updateTaskScheduleEndTime(taskId, endTimeUTC);
-            }
+            // Update on server using specific schedule ID
+            await updateScheduleById(scheduleId, taskId, edge === 'top' ? startTimeUTC : null, endTimeUTC);
 
             document.removeEventListener('mousemove', handleTaskResize);
             document.removeEventListener('mouseup', endTaskResize);
@@ -7227,10 +7224,10 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    // The response includes the updated task with all schedules
-                    // For now, we'll also update the legacy calendar fields for backward compatibility
-                    taskCalendarStartTimeMap[taskId] = startTimeUTC;
-                    taskCalendarEndTimeMap[taskId] = endTimeUTC;
+                    // Update local taskSchedulesMap from response
+                    if (data.task && data.task.schedules) {
+                        taskSchedulesMap[taskId] = data.task.schedules;
+                    }
 
                     // Update task card scheduled class
                     updateTaskScheduledClass(taskId);
@@ -7243,18 +7240,18 @@
             return false;
         }
 
-        // Update a task's schedule times on the server (updates first schedule)
-        async function updateTaskScheduleTime(taskId, startTimeUTC, endTimeUTC = undefined) {
+        // Update a specific schedule by its ID
+        async function updateScheduleById(scheduleId, taskId, startTimeUTC, endTimeUTC) {
             try {
                 const body = {};
-                if (startTimeUTC !== undefined) {
+                if (startTimeUTC) {
                     body.start_time = startTimeUTC;
                 }
-                if (endTimeUTC !== undefined) {
+                if (endTimeUTC) {
                     body.end_time = endTimeUTC;
                 }
 
-                const response = await fetch(`/tasks/api/${taskId}/schedules/update/`, {
+                const response = await fetch(`/tasks/api/schedules/${scheduleId}/update/`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -7265,12 +7262,9 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    // Update local maps from response
-                    if (data.task.calendar_start_time) {
-                        taskCalendarStartTimeMap[taskId] = data.task.calendar_start_time;
-                    }
-                    if (data.task.calendar_end_time) {
-                        taskCalendarEndTimeMap[taskId] = data.task.calendar_end_time;
+                    // Update local taskSchedulesMap from response
+                    if (data.task && data.task.schedules) {
+                        taskSchedulesMap[taskId] = data.task.schedules;
                     }
 
                     // Update task card scheduled class
@@ -7279,43 +7273,46 @@
                     return true;
                 }
             } catch (error) {
-                console.error('Error updating schedule time:', error);
+                console.error('Error updating schedule:', error);
             }
             return false;
         }
 
-        // Update only the end time of a task's schedule
-        async function updateTaskScheduleEndTime(taskId, endTimeUTC) {
+        // Remove a specific schedule from calendar (delete one schedule)
+        async function removeScheduleFromCalendar(scheduleId, taskId) {
             try {
-                const response = await fetch(`/tasks/api/${taskId}/schedules/update/`, {
-                    method: 'PATCH',
+                const response = await fetch(`/tasks/api/schedules/${scheduleId}/delete/`, {
+                    method: 'DELETE',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({ end_time: endTimeUTC })
+                    }
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    // Update local map from response
-                    if (data.task.calendar_end_time) {
-                        taskCalendarEndTimeMap[taskId] = data.task.calendar_end_time;
+                    // Update local taskSchedulesMap - remove this schedule
+                    if (taskSchedulesMap[taskId]) {
+                        taskSchedulesMap[taskId] = taskSchedulesMap[taskId].filter(s => s.id !== scheduleId);
                     }
-                    return true;
+
+                    // Update task card scheduled class
+                    updateTaskScheduledClass(taskId);
+
+                    renderScheduledTasks();
+                    initializeTodayIcons();
                 }
             } catch (error) {
-                console.error('Error updating schedule end time:', error);
+                console.error('Error removing schedule from calendar:', error);
             }
-            return false;
         }
 
         // Update the scheduled class on a task card
         function updateTaskScheduledClass(taskId) {
             const cards = document.querySelectorAll(`.task-card[data-task-id="${taskId}"]`);
-            const calendarTime = taskCalendarStartTimeMap[taskId];
-            const isScheduled = !!calendarTime;
-            const isToday = isScheduled && isScheduledForToday(calendarTime);
+            const schedules = taskSchedulesMap[taskId] || [];
+            const isScheduled = schedules.length > 0;
+            // Check if any schedule is for today
+            const isToday = isScheduled && schedules.some(s => isScheduledForToday(s.start_time));
 
             cards.forEach(card => {
                 card.classList.toggle('scheduled', isScheduled);
@@ -7350,7 +7347,7 @@
             });
         }
 
-        // Remove a task from the calendar (delete all schedules via API)
+        // Remove all schedules for a task from the calendar (via context menu)
         async function removeFromCalendar(taskId) {
             closeContextMenu();
 
@@ -7364,9 +7361,8 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    // Clear local maps
-                    delete taskCalendarStartTimeMap[taskId];
-                    delete taskCalendarEndTimeMap[taskId];
+                    // Clear local schedules
+                    taskSchedulesMap[taskId] = [];
 
                     // Update task card scheduled class
                     updateTaskScheduledClass(taskId);
@@ -7380,19 +7376,23 @@
         }
 
         // Check if there's an overlapping task or event at the given time
-        function hasOverlappingItem(newStart, newEnd, excludeTaskId) {
+        function hasOverlappingItem(newStart, newEnd, excludeTaskId, excludeScheduleId = null) {
             // Check existing scheduled tasks
-            for (const [taskId, calendarStartTime] of Object.entries(taskCalendarStartTimeMap)) {
-                if (!calendarStartTime) continue;
+            for (const [taskId, schedules] of Object.entries(taskSchedulesMap)) {
+                if (!schedules || schedules.length === 0) continue;
                 if (taskId === excludeTaskId || taskId === String(excludeTaskId)) continue;
 
-                const taskStart = new Date(calendarStartTime);
-                const calendarEndTime = taskCalendarEndTimeMap[taskId];
-                const taskEnd = calendarEndTime ? new Date(calendarEndTime) : new Date(taskStart.getTime() + 30 * 60 * 1000);
+                for (const schedule of schedules) {
+                    // Skip the schedule being moved/resized
+                    if (excludeScheduleId && schedule.id === excludeScheduleId) continue;
 
-                // Check for overlap: (newStart < taskEnd) && (newEnd > taskStart)
-                if (newStart < taskEnd && newEnd > taskStart) {
-                    return true;
+                    const taskStart = new Date(schedule.start_time);
+                    const taskEnd = new Date(schedule.end_time);
+
+                    // Check for overlap: (newStart < taskEnd) && (newEnd > taskStart)
+                    if (newStart < taskEnd && newEnd > taskStart) {
+                        return true;
+                    }
                 }
             }
 
@@ -7431,21 +7431,25 @@
         }
 
         // Count how many tasks overlap with the given time range (excluding excludeTaskId)
-        function countOverlappingTasks(newStart, newEnd, excludeTaskId) {
+        function countOverlappingTasks(newStart, newEnd, excludeTaskId, excludeScheduleId = null) {
             let count = 0;
 
             // Check existing scheduled tasks
-            for (const [taskId, calendarStartTime] of Object.entries(taskCalendarStartTimeMap)) {
-                if (!calendarStartTime) continue;
+            for (const [taskId, schedules] of Object.entries(taskSchedulesMap)) {
+                if (!schedules || schedules.length === 0) continue;
                 if (taskId === excludeTaskId || taskId === String(excludeTaskId)) continue;
 
-                const taskStart = new Date(calendarStartTime);
-                const calendarEndTime = taskCalendarEndTimeMap[taskId];
-                const taskEnd = calendarEndTime ? new Date(calendarEndTime) : new Date(taskStart.getTime() + 30 * 60 * 1000);
+                for (const schedule of schedules) {
+                    // Skip the schedule being moved/resized
+                    if (excludeScheduleId && schedule.id === excludeScheduleId) continue;
 
-                // Check for overlap: (newStart < taskEnd) && (newEnd > taskStart)
-                if (newStart < taskEnd && newEnd > taskStart) {
-                    count++;
+                    const taskStart = new Date(schedule.start_time);
+                    const taskEnd = new Date(schedule.end_time);
+
+                    // Check for overlap: (newStart < taskEnd) && (newEnd > taskStart)
+                    if (newStart < taskEnd && newEnd > taskStart) {
+                        count++;
+                    }
                 }
             }
 
@@ -7469,11 +7473,11 @@
 
                     if (taskId) {
                         excludeId = taskId;
-                        const existingStartTime = taskCalendarStartTimeMap[taskId];
-                        const existingEndTime = taskCalendarEndTimeMap[taskId];
-                        if (existingStartTime && existingEndTime) {
-                            const existingStart = new Date(existingStartTime);
-                            const existingEnd = new Date(existingEndTime);
+                        // Get duration from first schedule for this task
+                        const schedules = taskSchedulesMap[taskId] || [];
+                        if (schedules.length > 0) {
+                            const existingStart = new Date(schedules[0].start_time);
+                            const existingEnd = new Date(schedules[0].end_time);
                             durationMs = existingEnd - existingStart;
                         }
                     } else if (timeBlockId) {
@@ -7573,13 +7577,12 @@
                         // Handle task drop
                         const taskId = dataId;
 
-                        // Preserve existing duration if task already has one, otherwise default to 30 minutes
+                        // Preserve existing duration from first schedule, otherwise default to 30 minutes
                         let durationMs = 30 * 60 * 1000; // 30 minutes default
-                        const existingStartTime = taskCalendarStartTimeMap[taskId];
-                        const existingEndTime = taskCalendarEndTimeMap[taskId];
-                        if (existingStartTime && existingEndTime) {
-                            const existingStart = new Date(existingStartTime);
-                            const existingEnd = new Date(existingEndTime);
+                        const schedules = taskSchedulesMap[taskId] || [];
+                        if (schedules.length > 0) {
+                            const existingStart = new Date(schedules[0].start_time);
+                            const existingEnd = new Date(schedules[0].end_time);
                             durationMs = existingEnd - existingStart;
                         }
 
@@ -7637,8 +7640,8 @@
 
         // Initialize scheduled task indicators on existing cards
         function initScheduledTaskIndicators() {
-            Object.entries(taskCalendarStartTimeMap).forEach(([taskId, calendarTime]) => {
-                if (calendarTime) {
+            Object.entries(taskSchedulesMap).forEach(([taskId, schedules]) => {
+                if (schedules && schedules.length > 0) {
                     updateTaskScheduledClass(taskId);
                 }
             });
@@ -8798,9 +8801,10 @@
         function initializeTodayIcons() {
             document.querySelectorAll('.task-card').forEach(card => {
                 const taskId = card.dataset.taskId;
-                const calendarTime = taskCalendarStartTimeMap[taskId];
+                const schedules = taskSchedulesMap[taskId] || [];
+                const hasScheduleToday = schedules.some(s => isScheduledForToday(s.start_time));
 
-                if (calendarTime && isScheduledForToday(calendarTime)) {
+                if (hasScheduleToday) {
                     // Add sun icon if not already present
                     const existingIcon = card.querySelector('.task-card-today-icon');
                     if (!existingIcon) {
