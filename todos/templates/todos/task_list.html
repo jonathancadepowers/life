@@ -8839,10 +8839,38 @@
         // Re-render all calendar content for the current date
         function refreshCalendar() {
             updateCalendarDateText();
+            updateNavigationButtons();
             renderCalendarEvents();
             renderTimeBlocks();
             renderScheduledTasks();
             initializeTodayIcons();
+        }
+
+        // Check if we can navigate forward (max 4 days from today)
+        function canNavigateForward() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const maxDate = new Date(today);
+            maxDate.setDate(maxDate.getDate() + 4);
+
+            const nextDate = new Date(currentCalendarDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+
+            return nextDate <= maxDate;
+        }
+
+        // Update navigation button states
+        function updateNavigationButtons() {
+            const nextBtn = document.getElementById('calendar-next-day');
+            if (canNavigateForward()) {
+                nextBtn.disabled = false;
+                nextBtn.style.opacity = '1';
+                nextBtn.style.cursor = 'pointer';
+            } else {
+                nextBtn.disabled = true;
+                nextBtn.style.opacity = '0.4';
+                nextBtn.style.cursor = 'not-allowed';
+            }
         }
 
         // Navigate to previous day
@@ -8853,6 +8881,7 @@
 
         // Navigate to next day
         function navigateToNextDay() {
+            if (!canNavigateForward()) return;
             currentCalendarDate.setDate(currentCalendarDate.getDate() + 1);
             refreshCalendar();
         }
@@ -8860,6 +8889,9 @@
         // Add event listeners for navigation buttons
         document.getElementById('calendar-prev-day').addEventListener('click', navigateToPreviousDay);
         document.getElementById('calendar-next-day').addEventListener('click', navigateToNextDay);
+
+        // Initialize navigation button states
+        updateNavigationButtons();
 
         // Initialize today icons on page load
         initializeTodayIcons();
