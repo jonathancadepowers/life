@@ -4396,8 +4396,57 @@
             setTimeout(showMarkdownPreview, 150);
         });
 
-        // Clicking preview switches to edit mode
-        detailsPreview.addEventListener('click', showMarkdownEdit);
+        // Clicking preview switches to edit mode and positions cursor at click location
+        detailsPreview.addEventListener('click', function(e) {
+            const clickX = e.clientX;
+            const clickY = e.clientY;
+
+            // Switch to edit mode without focusing
+            detailsPreview.style.display = 'none';
+            detailsTextarea.style.display = 'block';
+            markdownEditBtn.classList.add('active');
+            markdownViewBtn.classList.remove('active');
+
+            // Use caretRangeFromPoint to position cursor where user clicked
+            requestAnimationFrame(() => {
+                // Try to get caret position from click coordinates
+                if (document.caretRangeFromPoint) {
+                    const range = document.caretRangeFromPoint(clickX, clickY);
+                    if (range && detailsTextarea.contains(range.startContainer) || range.startContainer === detailsTextarea) {
+                        detailsTextarea.focus();
+                        detailsTextarea.setSelectionRange(range.startOffset, range.startOffset);
+                        return;
+                    }
+                }
+
+                // Fallback: simulate click on textarea at same coordinates
+                const rect = detailsTextarea.getBoundingClientRect();
+                if (clickX >= rect.left && clickX <= rect.right && clickY >= rect.top && clickY <= rect.bottom) {
+                    // Create and dispatch a click event at the same position
+                    const clickEvent = new MouseEvent('mousedown', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: clickX,
+                        clientY: clickY
+                    });
+                    detailsTextarea.dispatchEvent(clickEvent);
+                    detailsTextarea.focus();
+
+                    // Also dispatch mouseup to complete the click
+                    const mouseupEvent = new MouseEvent('mouseup', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: clickX,
+                        clientY: clickY
+                    });
+                    detailsTextarea.dispatchEvent(mouseupEvent);
+                } else {
+                    // Click was outside textarea bounds, just focus at end
+                    detailsTextarea.focus();
+                    detailsTextarea.selectionStart = detailsTextarea.selectionEnd = detailsTextarea.value.length;
+                }
+            });
+        });
 
         // Auto-save on changes
         ['panel-title', 'panel-details', 'panel-critical'].forEach(id => {
