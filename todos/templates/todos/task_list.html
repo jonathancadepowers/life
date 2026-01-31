@@ -2602,6 +2602,31 @@
             font-size: 1rem;
         }
 
+        .calendar-today-btn {
+            position: absolute;
+            right: 8px;
+            padding: 4px 10px;
+            border: 1px solid #dee2e6;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .calendar-today-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .calendar-today-btn i {
+            font-size: 0.8rem;
+        }
+
         .hourly-grid {
             flex: 1;
             overflow-y: auto;
@@ -2976,6 +3001,9 @@
                         <span class="calendar-date-text" id="calendar-date-text">Today</span>
                         <button class="calendar-nav-btn" id="calendar-next-day" title="Next Day">
                             <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="calendar-today-btn" id="calendar-today-btn" title="Jump to Today" style="display: none;">
+                            <i class="bi bi-calendar-check"></i> Today
                         </button>
                     </div>
                     <div class="hourly-grid" id="hourly-grid">
@@ -7379,6 +7407,39 @@
             }
         }
 
+        // Check if there's an overlapping calendar event or time block (but NOT tasks)
+        function hasEventOrTimeBlockOverlap(newStart, newEnd) {
+            // Check calendar events
+            if (calendarEvents && calendarEvents.length > 0) {
+                for (const event of calendarEvents) {
+                    if (event.is_all_day) continue;
+
+                    const eventStart = new Date(event.start);
+                    const eventEnd = new Date(event.end);
+
+                    // Check for overlap
+                    if (newStart < eventEnd && newEnd > eventStart) {
+                        return true;
+                    }
+                }
+            }
+
+            // Check time blocks
+            if (timeBlocks && timeBlocks.length > 0) {
+                for (const block of timeBlocks) {
+                    const blockStart = new Date(block.start);
+                    const blockEnd = new Date(block.end);
+
+                    // Check for overlap
+                    if (newStart < blockEnd && newEnd > blockStart) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         // Check if there's an overlapping task or event at the given time
         function hasOverlappingItem(newStart, newEnd, excludeTaskId, excludeScheduleId = null) {
             // Check existing scheduled tasks
@@ -7512,11 +7573,17 @@
                     const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), hour, clampedMinute);
                     const endLocal = new Date(startLocal.getTime() + durationMs);
 
-                    // For tasks, allow up to 3 at the same time. For time blocks, don't allow overlap
+                    // For tasks, block if overlapping event/time block OR more than 3 tasks
+                    // For time blocks, don't allow any overlap
                     let isBlocked = false;
                     if (taskId) {
-                        const overlappingCount = countOverlappingTasks(startLocal, endLocal, excludeId);
-                        isBlocked = overlappingCount >= 3;
+                        // Tasks can't be dropped on events or time blocks
+                        if (hasEventOrTimeBlockOverlap(startLocal, endLocal)) {
+                            isBlocked = true;
+                        } else {
+                            const overlappingCount = countOverlappingTasks(startLocal, endLocal, excludeId);
+                            isBlocked = overlappingCount >= 3;
+                        }
                     } else if (timeBlockId) {
                         isBlocked = hasOverlappingItem(startLocal, endLocal, excludeId);
                     }
@@ -7582,18 +7649,37 @@
                         const taskId = dataId;
                         const schedules = taskSchedulesMap[taskId] || [];
 
-                        // Preserve existing duration from first schedule, otherwise default to 30 minutes
+                        // Check if task already has a schedule on the current calendar day
+                        const todayStart = new Date(currentCalendarDate);
+                        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+                        const existingScheduleOnCurrentDay = schedules.find(s => {
+                            const scheduleStart = new Date(s.start_time);
+                            return scheduleStart >= todayStart && scheduleStart < todayEnd;
+                        });
+
+                        // Preserve existing duration from schedule on current day, or first schedule, or default to 30 minutes
                         let durationMs = 30 * 60 * 1000; // 30 minutes default
                         let existingScheduleId = null;
 
-                        if (schedules.length > 0) {
+                        if (existingScheduleOnCurrentDay) {
+                            const existingStart = new Date(existingScheduleOnCurrentDay.start_time);
+                            const existingEnd = new Date(existingScheduleOnCurrentDay.end_time);
+                            durationMs = existingEnd - existingStart;
+                            existingScheduleId = existingScheduleOnCurrentDay.id;
+                        } else if (schedules.length > 0) {
+                            // Use duration from first schedule for new drops
                             const existingStart = new Date(schedules[0].start_time);
                             const existingEnd = new Date(schedules[0].end_time);
                             durationMs = existingEnd - existingStart;
-                            existingScheduleId = schedules[0].id;
                         }
 
                         const endLocal = new Date(startLocal.getTime() + durationMs);
+
+                        // Block drop if it overlaps with a time block or calendar event
+                        if (hasEventOrTimeBlockOverlap(startLocal, endLocal)) {
+                            // Can't drop on time blocks or events
+                            return;
+                        }
 
                         // Check for overlapping tasks - allow up to 3 tasks at same time
                         const overlappingTaskCount = countOverlappingTasks(startLocal, endLocal, taskId, existingScheduleId);
@@ -7606,8 +7692,8 @@
                         const endUTC = localToUTC(endLocal);
 
                         let success;
-                        // Check if this is a scheduled task being moved (has existing schedule)
-                        if (e.dataTransfer.types.includes('application/x-scheduled-task') && existingScheduleId) {
+                        // If task already has a schedule on this day, update it (move); otherwise create new
+                        if (existingScheduleId) {
                             // Update the existing schedule (move it)
                             success = await updateScheduleById(existingScheduleId, taskId, startUTC, endUTC);
                         } else {
@@ -8862,17 +8948,29 @@
         // Update the calendar date text display
         function updateCalendarDateText() {
             const dateText = document.getElementById('calendar-date-text');
+            const todayBtn = document.getElementById('calendar-today-btn');
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             // Check if currentCalendarDate is today
-            if (currentCalendarDate.getTime() === today.getTime()) {
+            const isToday = currentCalendarDate.getTime() === today.getTime();
+            if (isToday) {
                 dateText.textContent = 'Today';
+                todayBtn.style.display = 'none';
             } else {
                 // Format as "Mon, Jan 15"
                 const options = { weekday: 'short', month: 'short', day: 'numeric' };
                 dateText.textContent = currentCalendarDate.toLocaleDateString('en-US', options);
+                todayBtn.style.display = 'flex';
             }
+        }
+
+        // Jump to today
+        function goToToday() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            currentCalendarDate = today;
+            refreshCalendar();
         }
 
         // Re-render all calendar content for the current date
@@ -8928,6 +9026,7 @@
         // Add event listeners for navigation buttons
         document.getElementById('calendar-prev-day').addEventListener('click', navigateToPreviousDay);
         document.getElementById('calendar-next-day').addEventListener('click', navigateToNextDay);
+        document.getElementById('calendar-today-btn').addEventListener('click', goToToday);
 
         // Initialize navigation button states
         updateNavigationButtons();
