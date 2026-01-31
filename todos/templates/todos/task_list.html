@@ -3379,10 +3379,6 @@
                         <input type="checkbox" id="filter-today">
                         <i class="bi bi-sun" style="color: #ffc107;"></i> Today
                     </label>
-                    <label class="filter-option-inline" id="show-completed-label" style="display: none;">
-                        <input type="checkbox" id="show-completed-toggle">
-                        <i class="bi bi-check-circle"></i> Done
-                    </label>
                 </div>
             </div>
 
@@ -3398,6 +3394,10 @@
             <!-- Options -->
             <div class="filter-section">
                 <div class="filter-section-title">Options</div>
+                <label class="filter-option" id="show-completed-label" style="display: none;">
+                    <input type="checkbox" id="show-completed-toggle">
+                    Include Completed
+                </label>
                 <label class="filter-option">
                     <input type="checkbox" id="hide-rollups-toggle">
                     Hide Rollups
@@ -6173,6 +6173,20 @@
             return counts;
         }
 
+        // Get count of tasks with no tags
+        function getUntaggedCount() {
+            let count = 0;
+            // Count tasks that have no tags or empty tags array
+            document.querySelectorAll('.kanban-card, .task-card').forEach(card => {
+                const taskId = parseInt(card.dataset.taskId);
+                const tags = taskTagsMap[taskId] || [];
+                if (tags.length === 0) {
+                    count++;
+                }
+            });
+            return count;
+        }
+
         // Populate filter tags list (top 5 by count + search)
         function populateFilterTags(searchTerm = '') {
             const tagCounts = getTagCounts();
@@ -6200,7 +6214,37 @@
             // Build HTML
             filterTagsList.innerHTML = '';
 
-            if (tagsToShow.length === 0) {
+            // Always show "Untagged" option first (unless searching and it doesn't match)
+            const showUntagged = !searchTerm || 'untagged'.includes(searchLower);
+            if (showUntagged) {
+                const untaggedCount = getUntaggedCount();
+                const isUntaggedChecked = activeFilters.tags.includes('untagged');
+                const untaggedLabel = document.createElement('label');
+                untaggedLabel.className = 'filter-option';
+                untaggedLabel.style.position = 'relative';
+                untaggedLabel.innerHTML = `
+                    <input type="checkbox" class="filter-tag-checkbox" data-tag-id="untagged" ${isUntaggedChecked ? 'checked' : ''}>
+                    <span style="font-size: 0.75rem; color: #6c757d; font-style: italic;"><i class="bi bi-tag" style="opacity: 0.5;"></i> Untagged</span>
+                    <span style="color: #6c757d; font-size: 0.7rem; margin-left: auto;">(${untaggedCount})</span>
+                `;
+                filterTagsList.appendChild(untaggedLabel);
+
+                // Add event listener for untagged checkbox
+                const untaggedCheckbox = untaggedLabel.querySelector('.filter-tag-checkbox');
+                untaggedCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        if (!activeFilters.tags.includes('untagged')) {
+                            activeFilters.tags.push('untagged');
+                        }
+                    } else {
+                        activeFilters.tags = activeFilters.tags.filter(id => id !== 'untagged');
+                    }
+                    applyFilters();
+                    saveFilterSettings();
+                });
+            }
+
+            if (tagsToShow.length === 0 && !showUntagged) {
                 filterTagsList.innerHTML = '<div style="color: #6c757d; font-size: 0.8rem; padding: 0.25rem 0;">No matching tags</div>';
                 return;
             }
@@ -6325,7 +6369,7 @@
             // Reset show completed
             showCompletedTasks = false;
             document.getElementById('show-completed-toggle').checked = false;
-            document.getElementById('show-completed-label').classList.remove('checked');
+            // show-completed is now a regular checkbox
 
             // Reset hide rollups
             if (document.getElementById('hide-rollups-toggle')) {
@@ -6356,9 +6400,14 @@
             const groupBy = document.querySelector('input[name="group-by"]:checked')?.value || 'states';
             const checkedTagIds = [];
             document.querySelectorAll('#filter-tags-list input[type="checkbox"]:checked').forEach(cb => {
-                const tagId = parseInt(cb.value);
-                if (!isNaN(tagId)) {
-                    checkedTagIds.push(tagId);
+                const tagIdStr = cb.dataset.tagId;
+                if (tagIdStr === 'untagged') {
+                    checkedTagIds.push('untagged');
+                } else {
+                    const tagId = parseInt(tagIdStr);
+                    if (!isNaN(tagId)) {
+                        checkedTagIds.push(tagId);
+                    }
                 }
             });
             return {
@@ -6402,7 +6451,7 @@
             // Apply show completed
             showCompletedTasks = settings.show_completed || false;
             document.getElementById('show-completed-toggle').checked = showCompletedTasks;
-            document.getElementById('show-completed-label').classList.toggle('checked', showCompletedTasks);
+            // show-completed is now a regular checkbox, no pill styling
 
             // Apply hide rollups
             if (document.getElementById('hide-rollups-toggle')) {
@@ -6413,7 +6462,7 @@
             populateFilterTags();
             if (settings.filter_tags && settings.filter_tags.length > 0) {
                 settings.filter_tags.forEach(tagId => {
-                    const cb = document.querySelector(`#filter-tags-list input[value="${tagId}"]`);
+                    const cb = document.querySelector(`#filter-tags-list input[data-tag-id="${tagId}"]`);
                     if (cb) cb.checked = true;
                 });
             }
@@ -6517,7 +6566,7 @@
         // Handle show completed toggle
         document.getElementById('show-completed-toggle').addEventListener('change', function() {
             showCompletedTasks = this.checked;
-            document.getElementById('show-completed-label').classList.toggle('checked', this.checked);
+            // show-completed is now a regular checkbox
             applyFilters();
             saveFilterSettings();
         });
@@ -6548,7 +6597,7 @@
             // Update visual states
             document.getElementById('filter-critical-label').classList.remove('checked');
             document.getElementById('filter-today-label').classList.remove('checked');
-            document.getElementById('show-completed-label').classList.remove('checked');
+            // show-completed is now a regular checkbox
             populateFilterTags();  // Repopulate to uncheck all
             applyFilters();
             saveFilterSettings();
@@ -6798,7 +6847,6 @@
                     showCompletedTasks = saved.showCompleted;
                     const toggle = document.getElementById('show-completed-toggle');
                     toggle.checked = saved.showCompleted;
-                    document.getElementById('show-completed-label').classList.toggle('checked', saved.showCompleted);
                 }
 
                 // Restore hide rollups toggle
@@ -7157,12 +7205,23 @@
                     }
                 }
 
-                // Filter by tags (task must have at least one of the selected tags)
+                // Filter by tags (task must have at least one of the selected tags, or be untagged if 'untagged' is selected)
                 if (show && activeFilters.tags.length > 0) {
                     const taskTags = taskTagsMap[taskId] || [];
                     const taskTagIds = taskTags.map(t => t.id);
-                    const hasMatchingTag = activeFilters.tags.some(tagId => taskTagIds.includes(tagId));
-                    if (!hasMatchingTag) {
+                    const includeUntagged = activeFilters.tags.includes('untagged');
+                    const regularTagFilters = activeFilters.tags.filter(t => t !== 'untagged');
+
+                    let matches = false;
+                    // Check if task matches any regular tag filters
+                    if (regularTagFilters.length > 0 && regularTagFilters.some(tagId => taskTagIds.includes(tagId))) {
+                        matches = true;
+                    }
+                    // Check if task is untagged and untagged filter is selected
+                    if (includeUntagged && taskTags.length === 0) {
+                        matches = true;
+                    }
+                    if (!matches) {
                         show = false;
                     }
                 }
