@@ -6332,12 +6332,13 @@
                 // Dragging top edge - adjust both top position and height
                 const rawTop = initialTop + deltaPercent;
                 const snappedTop = snapTo30Min(rawTop);
-                const topChange = snappedTop - initialTop;
+                const clampedTop = Math.max(0, snappedTop); // Clamp to hour boundary
+                const topChange = clampedTop - initialTop; // Use clamped value for height calc
                 const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
 
                 // Don't allow top to go past the bottom
                 if (newHeight >= 50) {
-                    blockEl.style.top = `${Math.max(0, snappedTop)}%`;
+                    blockEl.style.top = `${clampedTop}%`;
                     blockEl.style.height = `${newHeight}%`;
                 }
             }
@@ -6849,12 +6850,13 @@
                 // Dragging top edge - adjust both top position and height
                 const rawTop = initialTop + deltaPercent;
                 const snappedTop = snapTo30Min(rawTop);
-                const topChange = snappedTop - initialTop;
+                const clampedTop = Math.max(0, snappedTop); // Clamp to hour boundary
+                const topChange = clampedTop - initialTop; // Use clamped value for height calc
                 const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
 
                 // Don't allow top to go past the bottom
                 if (newHeight >= 50) {
-                    taskEl.style.top = `${Math.max(0, snappedTop)}%`;
+                    taskEl.style.top = `${clampedTop}%`;
                     taskEl.style.height = `${newHeight}%`;
                 }
             }
