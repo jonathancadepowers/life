@@ -656,7 +656,7 @@
 
         /* Sidebar icons */
         div.sidebar-icons {
-            position: fixed;
+            position: absolute;
             top: 1.5rem;
             left: 1.5rem;
             display: flex;
@@ -3149,26 +3149,23 @@
         let currentTaskId = null;
         let saveTimeout = null;
 
-        // Force sidebar icons to stay fixed (CSS fallback)
+        // Force sidebar icons to stay at viewport top using absolute positioning
         (function() {
             const sidebarIcons = document.querySelector('.sidebar-icons');
             if (sidebarIcons) {
-                // Ensure fixed positioning is applied
-                sidebarIcons.style.position = 'fixed';
-                sidebarIcons.style.top = '1.5rem';
-                sidebarIcons.style.left = '1.5rem';
-                sidebarIcons.style.zIndex = '10000';
+                function updatePosition() {
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    sidebarIcons.style.position = 'absolute';
+                    sidebarIcons.style.top = (scrollTop + 24) + 'px'; // 24px = 1.5rem
+                    sidebarIcons.style.left = '1.5rem';
+                    sidebarIcons.style.zIndex = '10000';
+                }
 
-                // Re-apply on scroll as a safeguard
-                let scrollTimeout;
-                window.addEventListener('scroll', function() {
-                    if (scrollTimeout) clearTimeout(scrollTimeout);
-                    scrollTimeout = setTimeout(function() {
-                        sidebarIcons.style.position = 'fixed';
-                        sidebarIcons.style.top = '1.5rem';
-                        sidebarIcons.style.left = '1.5rem';
-                    }, 10);
-                }, { passive: true });
+                // Initial position
+                updatePosition();
+
+                // Update on scroll
+                window.addEventListener('scroll', updatePosition, { passive: true });
             }
         })();
 
