@@ -6474,7 +6474,7 @@
         }
 
         async function saveCurrentView() {
-            const name = prompt('Enter a name for this view:');
+            const name = await showPromptModal('Enter a name for this view:', 'Save View', 'View name');
             if (!name || !name.trim()) return;
 
             const settings = getCurrentViewSettings();
@@ -6495,7 +6495,8 @@
                 const data = await response.json();
                 if (data.success) {
                     savedViews.push(data.view);
-                    renderSavedViews();
+                    // Auto-apply the newly created view
+                    applyView(data.view);
                 }
             } catch (error) {
                 console.error('Error saving view:', error);
@@ -6503,7 +6504,10 @@
         }
 
         async function deleteView(viewId) {
-            if (!confirm('Delete this saved view?')) return;
+            const view = savedViews.find(v => v.id === viewId);
+            const viewName = view ? view.name : 'this view';
+            const confirmed = await showConfirmModal(`Delete "${viewName}"?`, 'Delete View', 'Delete');
+            if (!confirmed) return;
 
             try {
                 const response = await fetch(`/tasks/api/views/${viewId}/delete/`, {
@@ -10658,6 +10662,11 @@
 
             // Load template content
             detailsInput.value = template.content;
+
+            // Update the preview if it's visible (view mode is active)
+            if (markdownViewBtn.classList.contains('active')) {
+                showMarkdownPreview();
+            }
 
             // Trigger autosave
             if (currentTaskId) {
