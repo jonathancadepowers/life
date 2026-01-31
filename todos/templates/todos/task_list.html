@@ -5623,6 +5623,17 @@
             document.getElementById('deadline-dropdown').classList.remove('active');
         }
 
+        function closeFilterDropdown() {
+            const filterDropdown = document.getElementById('filter-dropdown');
+            const filterIcon = document.getElementById('filter-icon');
+            if (filterDropdown) {
+                filterDropdown.classList.remove('active');
+            }
+            if (filterIcon) {
+                filterIcon.classList.remove('active');
+            }
+        }
+
         // ========== Terminal State Management ==========
 
         function updateStateTypeLabels() {
