@@ -7494,46 +7494,52 @@
                 this.classList.remove('drag-over');
                 if (!draggedTaskCard) return;
 
-                const taskId = parseInt(draggedTaskCard.dataset.taskId);
-                const currentTags = taskTagsMap[taskId] || [];
+                // Get all task IDs to process (batch or single)
+                const taskIds = draggedTaskCards.length > 0
+                    ? draggedTaskCards.map(c => parseInt(c.dataset.taskId))
+                    : [parseInt(draggedTaskCard.dataset.taskId)];
 
-                if (tagId === 'untagged') {
-                    // Dropping into Untagged - remove all tags
-                    for (const tag of currentTags) {
-                        try {
-                            await fetch(`/tasks/api/${taskId}/tags/remove/`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ tag_id: tag.id })
-                            });
-                        } catch (error) {
-                            console.error('Error removing tag:', error);
-                        }
-                    }
-                    taskTagsMap[taskId] = [];
-                } else {
-                    // Dropping into a tag group - add this tag if not already present
-                    const numericTagId = parseInt(tagId);
-                    const hasTag = currentTags.some(t => t.id === numericTagId);
-                    if (!hasTag) {
-                        try {
-                            const response = await fetch(`/tasks/api/${taskId}/tags/add/`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ tag_id: numericTagId })
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                                taskTagsMap[taskId] = data.task_tags;
+                for (const taskId of taskIds) {
+                    const currentTags = taskTagsMap[taskId] || [];
+
+                    if (tagId === 'untagged') {
+                        // Dropping into Untagged - remove all tags
+                        for (const tag of currentTags) {
+                            try {
+                                await fetch(`/tasks/api/${taskId}/tags/remove/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: JSON.stringify({ tag_id: tag.id })
+                                });
+                            } catch (error) {
+                                console.error('Error removing tag:', error);
                             }
-                        } catch (error) {
-                            console.error('Error adding tag:', error);
+                        }
+                        taskTagsMap[taskId] = [];
+                    } else {
+                        // Dropping into a tag group - add this tag if not already present
+                        const numericTagId = parseInt(tagId);
+                        const hasTag = currentTags.some(t => t.id === numericTagId);
+                        if (!hasTag) {
+                            try {
+                                const response = await fetch(`/tasks/api/${taskId}/tags/add/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: JSON.stringify({ tag_id: numericTagId })
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                    taskTagsMap[taskId] = data.task_tags;
+                                }
+                            } catch (error) {
+                                console.error('Error adding tag:', error);
+                            }
                         }
                     }
                 }
@@ -7563,46 +7569,52 @@
                 this.classList.remove('drag-over');
                 if (!draggedTaskCard) return;
 
-                const taskId = parseInt(draggedTaskCard.dataset.taskId);
-                const currentTags = taskTagsMap[taskId] || [];
+                // Get all task IDs to process (batch or single)
+                const taskIds = draggedTaskCards.length > 0
+                    ? draggedTaskCards.map(c => parseInt(c.dataset.taskId))
+                    : [parseInt(draggedTaskCard.dataset.taskId)];
 
-                if (tagId === 'untagged') {
-                    // Dropping into Untagged - remove all tags
-                    for (const tag of currentTags) {
-                        try {
-                            await fetch(`/tasks/api/${taskId}/tags/remove/`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ tag_id: tag.id })
-                            });
-                        } catch (error) {
-                            console.error('Error removing tag:', error);
-                        }
-                    }
-                    taskTagsMap[taskId] = [];
-                } else {
-                    // Dropping into a tag group - add this tag if not already present
-                    const numericTagId = parseInt(tagId);
-                    const hasTag = currentTags.some(t => t.id === numericTagId);
-                    if (!hasTag) {
-                        try {
-                            const response = await fetch(`/tasks/api/${taskId}/tags/add/`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ tag_id: numericTagId })
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                                taskTagsMap[taskId] = data.task_tags;
+                for (const taskId of taskIds) {
+                    const currentTags = taskTagsMap[taskId] || [];
+
+                    if (tagId === 'untagged') {
+                        // Dropping into Untagged - remove all tags
+                        for (const tag of currentTags) {
+                            try {
+                                await fetch(`/tasks/api/${taskId}/tags/remove/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: JSON.stringify({ tag_id: tag.id })
+                                });
+                            } catch (error) {
+                                console.error('Error removing tag:', error);
                             }
-                        } catch (error) {
-                            console.error('Error adding tag:', error);
+                        }
+                        taskTagsMap[taskId] = [];
+                    } else {
+                        // Dropping into a tag group - add this tag if not already present
+                        const numericTagId = parseInt(tagId);
+                        const hasTag = currentTags.some(t => t.id === numericTagId);
+                        if (!hasTag) {
+                            try {
+                                const response = await fetch(`/tasks/api/${taskId}/tags/add/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: JSON.stringify({ tag_id: numericTagId })
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                    taskTagsMap[taskId] = data.task_tags;
+                                }
+                            } catch (error) {
+                                console.error('Error adding tag:', error);
+                            }
                         }
                     }
                 }
