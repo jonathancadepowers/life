@@ -117,7 +117,7 @@
 
         .animated-placeholder .char {
             display: inline-block;
-            transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
         }
 
         .animated-placeholder .char.flip-out {
@@ -126,7 +126,7 @@
         }
 
         .animated-placeholder .char.flip-in {
-            animation: flipIn 0.15s ease-out forwards;
+            animation: flipIn 0.4s ease-out forwards;
         }
 
         @keyframes flipIn {
@@ -12068,7 +12068,7 @@
             chars.forEach((char, i) => {
                 setTimeout(() => {
                     char.classList.add('flip-out');
-                }, i * 20);
+                }, i * 50);
             });
 
             // After all chars flipped out, rebuild with new text
@@ -12082,9 +12082,9 @@
                     char.style.transform = 'rotateX(-90deg)';
                     setTimeout(() => {
                         char.classList.add('flip-in');
-                    }, i * 20);
+                    }, i * 50);
                 });
-            }, chars.length * 20 + 100);
+            }, chars.length * 50 + 300);
         }
 
         function getRandomPhraseIndex() {
