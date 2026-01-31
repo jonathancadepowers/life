@@ -6390,10 +6390,7 @@
             saveFilterSettings();
             updateGroupByLabels();
             renderSavedViews();
-
-            // Close the dropdown
-            filterDropdown.classList.remove('active');
-            filterIcon.classList.remove('active');
+            // Keep dropdown open so user can see the reset state
         }
 
         function getCurrentViewSettings() {
@@ -6471,10 +6468,7 @@
             saveFilterSettings();
             updateGroupByLabels();
             renderSavedViews(); // Re-render to show active state
-
-            // Close the dropdown after applying
-            filterDropdown.classList.remove('active');
-            filterIcon.classList.remove('active');
+            // Keep dropdown open so user can see what settings were applied
         }
 
         async function saveCurrentView() {
@@ -6584,23 +6578,12 @@
 
         // Tag filter changes are handled dynamically in populateFilterTags()
 
-        // Clear all filters
+        // Clear all filters - reset to "All Tasks" view
         filterClear.addEventListener('click', function() {
-            activeFilters.critical = false;
-            activeFilters.today = false;
-            activeFilters.tags = [];
-            filterCritical.checked = false;
-            filterToday.checked = false;
+            // Clear search field as well
             filterTagsSearch.value = '';
-            showCompletedTasks = false;
-            document.getElementById('show-completed-toggle').checked = false;
-            // Update visual states
-            document.getElementById('filter-critical-label').classList.remove('checked');
-            document.getElementById('filter-today-label').classList.remove('checked');
-            // show-completed is now a regular checkbox
-            populateFilterTags();  // Repopulate to uncheck all
-            applyFilters();
-            saveFilterSettings();
+            // Use the same function that "All Tasks" uses
+            clearViewAndFilters();
         });
 
         // Tasks search functionality
