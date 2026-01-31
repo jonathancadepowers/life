@@ -1158,6 +1158,32 @@
             color: #c82333;
         }
 
+        .saved-view-item.active {
+            background: #e8f0ed;
+            border-color: #6B9080;
+            color: #6B9080;
+            font-weight: 500;
+        }
+
+        .saved-view-item .view-check {
+            display: none;
+            color: #6B9080;
+            margin-right: 0.35rem;
+            font-size: 0.75rem;
+        }
+
+        .saved-view-item.active .view-check {
+            display: inline;
+        }
+
+        .no-saved-views {
+            font-size: 0.75rem;
+            color: #999;
+            text-align: center;
+            padding: 0.4rem;
+            font-style: italic;
+        }
+
         .save-view-btn {
             width: 100%;
             padding: 0.35rem;
@@ -3842,6 +3868,7 @@
 
         // Saved views from database
         let savedViews = {{ saved_views|safe }};
+        let currentActiveViewId = null; // null means "All Tasks" (no view applied)
 
         // Current calendar date being displayed (defaults to today)
         let currentCalendarDate = new Date();
@@ -6254,14 +6281,23 @@
 
         function renderSavedViews() {
             savedViewsList.innerHTML = '';
-            if (savedViews.length === 0) {
-                savedViewsList.innerHTML = '<div class="no-saved-views">No saved views yet</div>';
-                return;
-            }
+
+            // Always show "All Tasks" option first
+            const allTasksItem = document.createElement('div');
+            allTasksItem.className = 'saved-view-item' + (currentActiveViewId === null ? ' active' : '');
+            allTasksItem.innerHTML = `
+                <span class="view-check"><i class="bi bi-check2"></i></span>
+                <span class="view-name"><i class="bi bi-list-task" style="margin-right: 0.3rem; opacity: 0.7;"></i>All Tasks</span>
+            `;
+            allTasksItem.addEventListener('click', () => clearViewAndFilters());
+            savedViewsList.appendChild(allTasksItem);
+
+            // Show saved views
             savedViews.forEach(view => {
                 const item = document.createElement('div');
-                item.className = 'saved-view-item';
+                item.className = 'saved-view-item' + (currentActiveViewId === view.id ? ' active' : '');
                 item.innerHTML = `
+                    <span class="view-check"><i class="bi bi-check2"></i></span>
                     <span class="view-name">${escapeHtml(view.name)}</span>
                     <span class="view-delete" data-view-id="${view.id}" title="Delete view">
                         <i class="bi bi-x"></i>
@@ -6274,6 +6310,49 @@
                 });
                 savedViewsList.appendChild(item);
             });
+        }
+
+        function clearViewAndFilters() {
+            currentActiveViewId = null;
+
+            // Reset all filters to defaults
+            activeFilters.critical = false;
+            activeFilters.today = false;
+            activeFilters.tags = [];
+
+            document.getElementById('filter-critical').checked = false;
+            document.getElementById('filter-today').checked = false;
+            document.getElementById('filter-critical-label').classList.remove('checked');
+            document.getElementById('filter-today-label').classList.remove('checked');
+
+            // Reset show completed
+            showCompletedTasks = false;
+            document.getElementById('show-completed-toggle').checked = false;
+            document.getElementById('show-completed-label').classList.remove('checked');
+
+            // Reset hide rollups
+            if (document.getElementById('hide-rollups-toggle')) {
+                document.getElementById('hide-rollups-toggle').checked = false;
+            }
+
+            // Reset group by to states
+            const statesRadio = document.querySelector('input[name="group-by"][value="states"]');
+            if (statesRadio) {
+                statesRadio.checked = true;
+                statesRadio.dispatchEvent(new Event('change'));
+            }
+
+            // Clear tag filters
+            populateFilterTags();
+
+            applyFilters();
+            saveFilterSettings();
+            updateGroupByLabels();
+            renderSavedViews();
+
+            // Close the dropdown
+            filterDropdown.classList.remove('active');
+            filterIcon.classList.remove('active');
         }
 
         function getCurrentViewSettings() {
@@ -6293,6 +6372,9 @@
         }
 
         function applyView(view) {
+            // Set this view as active
+            currentActiveViewId = view.id;
+
             const settings = view.settings;
 
             // Apply group by
@@ -6338,6 +6420,7 @@
             applyFilters();
             saveFilterSettings();
             updateGroupByLabels();
+            renderSavedViews(); // Re-render to show active state
 
             // Close the dropdown after applying
             filterDropdown.classList.remove('active');
@@ -6385,6 +6468,10 @@
                 const data = await response.json();
                 if (data.success) {
                     savedViews = savedViews.filter(v => v.id !== viewId);
+                    // If we deleted the active view, reset to All Tasks
+                    if (currentActiveViewId === viewId) {
+                        currentActiveViewId = null;
+                    }
                     renderSavedViews();
                 }
             } catch (error) {
