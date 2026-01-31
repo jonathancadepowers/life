@@ -2092,7 +2092,7 @@
             border-radius: 4px;
             padding: 0.4rem 0.6rem;
             margin-bottom: 0.7rem;
-            cursor: pointer;
+            cursor: grab;
             transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
             display: flex;
             align-items: center;
@@ -2247,7 +2247,6 @@
 
         .task-card-drag-handle {
             color: #bbb;
-            cursor: grab;
             padding: 0 2px;
             font-size: 0.75rem;
             flex-shrink: 0;
@@ -2259,26 +2258,13 @@
             opacity: 1;
         }
 
-        .task-card-drag-handle:active {
-            cursor: grabbing;
-        }
-
         .task-card-content .task-card-title {
             flex: 1;
             min-width: 0;
-            cursor: text;
         }
 
-        .task-card-title-input {
-            width: 100%;
-            border: 1px solid #6B9080;
-            border-radius: 2px;
-            font-size: 0.8rem;
-            color: #333;
-            padding: 1px 4px;
-            margin: -2px 0;
-            outline: none;
-            background: white;
+        .task-card:active {
+            cursor: grabbing;
         }
 
         /* Scheduled task on calendar - matches Tasks section styling */
@@ -2602,29 +2588,32 @@
             font-size: 1rem;
         }
 
+        /* Today button - matches Block Time button style */
         .calendar-today-btn {
-            position: absolute;
-            right: 8px;
-            padding: 4px 10px;
-            border: 1px solid #dee2e6;
+            display: none;
             background: #f8f9fa;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75rem;
+            border: 1px solid #dee2e6;
             color: #495057;
-            display: flex;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
             align-items: center;
-            gap: 4px;
-            transition: all 0.15s ease;
+            gap: 0.25rem;
+            margin-right: 0.5rem;
+            transition: all 0.15s;
         }
 
         .calendar-today-btn:hover {
             background: #e9ecef;
-            border-color: #adb5bd;
+            border-color: #ced4da;
         }
 
-        .calendar-today-btn i {
-            font-size: 0.8rem;
+        /* Show when panel is expanded AND not viewing today (controlled by JS) */
+        .calendar-panel.expanded .calendar-today-btn.visible,
+        .calendar-panel:not(.collapsed):not(.minimized) .calendar-today-btn.visible {
+            display: flex;
         }
 
         .hourly-grid {
@@ -2919,7 +2908,7 @@
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>{% endif %}
+                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i></div>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -2947,7 +2936,7 @@
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>{% endif %}
+                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i></div>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -2982,6 +2971,9 @@
                             <span class="metric-pill">Meetings: <span id="meetings-count">0</span></span>
                             <span class="metric-pill">Time in Meetings: <span id="meetings-time">0h</span></span>
                         </div>
+                        <button class="calendar-today-btn" id="calendar-today-btn" title="Jump to Today" style="display: none;">
+                            <i class="bi bi-calendar-check"></i> Today
+                        </button>
                         <button class="add-event-btn" id="add-event-btn" title="Block Time">
                             <i class="bi bi-plus-lg"></i> Block Time
                         </button>
@@ -3001,9 +2993,6 @@
                         <span class="calendar-date-text" id="calendar-date-text">Today</span>
                         <button class="calendar-nav-btn" id="calendar-next-day" title="Next Day">
                             <i class="bi bi-chevron-right"></i>
-                        </button>
-                        <button class="calendar-today-btn" id="calendar-today-btn" title="Jump to Today" style="display: none;">
-                            <i class="bi bi-calendar-check"></i> Today
                         </button>
                     </div>
                     <div class="hourly-grid" id="hourly-grid">
@@ -3474,13 +3463,12 @@
                     <div class="task-card-content">
                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
-                        ${task.critical ? '<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon"></i></div>' : ''}
+                        ${task.critical ? '<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i></div>' : ''}
                     </div>
                 `;
 
-                // Setup drag events on handle and context menu for the new card
+                // Setup drag events and context menu for the new card
                 setupTaskCardDragEvents(card);
-                setupTaskTitleEditing(card);
                 card.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
@@ -5848,8 +5836,8 @@
                     ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
                     : '';
 
-                const todayIconHtml = isToday ? '<i class="bi bi-brightness-high-fill task-card-today-icon"></i>' : '';
-                const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon"></i>' : '';
+                const todayIconHtml = isToday ? '<i class="bi bi-brightness-high-fill task-card-today-icon" title="Scheduled for Today"></i>' : '';
+                const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i>' : '';
                 const hasIcons = isToday || task.isCritical;
                 const iconsHtml = hasIcons ? `<div class="task-card-icons">${todayIconHtml}${criticalIconHtml}</div>` : '';
 
@@ -5864,7 +5852,6 @@
 
                 // Setup event handlers
                 setupTaskCardDragEvents(card);
-                setupTaskTitleEditing(card);
                 card.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
@@ -7538,13 +7525,24 @@
 
                     if (taskId) {
                         excludeId = taskId;
-                        // Get duration from first schedule for this task
-                        const schedules = taskSchedulesMap[taskId] || [];
-                        if (schedules.length > 0) {
-                            const existingStart = new Date(schedules[0].start_time);
-                            const existingEnd = new Date(schedules[0].end_time);
-                            durationMs = existingEnd - existingStart;
+                        // Only preserve duration if dragging from calendar (moving existing schedule on current day)
+                        // When dragging from task panel, always use 30 minutes
+                        if (e.dataTransfer.types.includes('application/x-scheduled-task')) {
+                            // Get duration from schedule on current day only
+                            const todayStart = new Date(currentCalendarDate);
+                            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+                            const schedules = taskSchedulesMap[taskId] || [];
+                            const scheduleOnCurrentDay = schedules.find(s => {
+                                const scheduleStart = new Date(s.start_time);
+                                return scheduleStart >= todayStart && scheduleStart < todayEnd;
+                            });
+                            if (scheduleOnCurrentDay) {
+                                const existingStart = new Date(scheduleOnCurrentDay.start_time);
+                                const existingEnd = new Date(scheduleOnCurrentDay.end_time);
+                                durationMs = existingEnd - existingStart;
+                            }
                         }
+                        // If not from calendar, durationMs stays at 30 minutes default
                     } else if (timeBlockId) {
                         excludeId = 'timeblock-' + timeBlockId;
                         const block = timeBlocks.find(b => b.id === parseInt(timeBlockId));
@@ -7657,21 +7655,18 @@
                             return scheduleStart >= todayStart && scheduleStart < todayEnd;
                         });
 
-                        // Preserve existing duration from schedule on current day, or first schedule, or default to 30 minutes
+                        // Always use 30 minutes for new drops, preserve duration only when moving existing schedule
                         let durationMs = 30 * 60 * 1000; // 30 minutes default
                         let existingScheduleId = null;
 
                         if (existingScheduleOnCurrentDay) {
+                            // Moving existing schedule - preserve its duration
                             const existingStart = new Date(existingScheduleOnCurrentDay.start_time);
                             const existingEnd = new Date(existingScheduleOnCurrentDay.end_time);
                             durationMs = existingEnd - existingStart;
                             existingScheduleId = existingScheduleOnCurrentDay.id;
-                        } else if (schedules.length > 0) {
-                            // Use duration from first schedule for new drops
-                            const existingStart = new Date(schedules[0].start_time);
-                            const existingEnd = new Date(schedules[0].end_time);
-                            durationMs = existingEnd - existingStart;
                         }
+                        // For new drops from task panel, durationMs stays at 30 minutes
 
                         const endLocal = new Date(startLocal.getTime() + durationMs);
 
@@ -7893,28 +7888,12 @@
             return { element: null, position: 'end' };
         }
 
-        // Track if mousedown was on a drag handle
-        let dragStartedFromHandle = false;
-
         // Setup drag events for task cards
         function setupTaskCardDragEvents(card) {
-            const handle = card.querySelector('.task-card-drag-handle');
-
             // Make card draggable
             card.draggable = true;
 
-            // Track mousedown to know if drag started from handle
-            card.addEventListener('mousedown', function(e) {
-                dragStartedFromHandle = handle && (e.target === handle || handle.contains(e.target));
-            });
-
             card.addEventListener('dragstart', function(e) {
-                // Only allow drag if started from the handle
-                if (!dragStartedFromHandle) {
-                    e.preventDefault();
-                    return;
-                }
-
                 draggedTaskCard = card;
                 currentDragTaskId = card.dataset.taskId;
                 card.classList.add('dragging');
@@ -7930,7 +7909,6 @@
                 card.style.opacity = '1';
                 draggedTaskCard = null;
                 currentDragTaskId = null;
-                dragStartedFromHandle = false;
                 // Remove all drag-over classes and drop indicator
                 document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
                 if (taskDropIndicator && taskDropIndicator.parentElement) {
@@ -7942,80 +7920,6 @@
             // Right-click to show context menu (only way to open task panel)
             card.addEventListener('contextmenu', function(e) {
                 showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
-            });
-        }
-
-        // Setup inline title editing for a task card
-        function setupTaskTitleEditing(card) {
-            const titleEl = card.querySelector('.task-card-title');
-            if (!titleEl) return;
-
-            titleEl.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (titleEl.querySelector('input')) return; // Already editing
-
-                // Only trigger edit if click is within text width + 50px
-                const range = document.createRange();
-                range.selectNodeContents(titleEl);
-                const textWidth = range.getBoundingClientRect().width;
-                const clickX = e.offsetX;
-
-                if (clickX > textWidth + 50) {
-                    return; // Click was outside the editable area
-                }
-
-                const taskId = card.dataset.taskId;
-                const currentTitle = titleEl.textContent;
-
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'task-card-title-input';
-                input.value = currentTitle;
-                titleEl.textContent = '';
-                titleEl.appendChild(input);
-                input.focus();
-                input.select();
-
-                async function saveTitle() {
-                    const newTitle = input.value.trim();
-                    if (newTitle && newTitle !== currentTitle) {
-                        try {
-                            const response = await fetch(`/tasks/api/${taskId}/update/`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ title: newTitle })
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                                titleEl.textContent = newTitle;
-                                // Update other instances of this task card
-                                document.querySelectorAll(`.task-card[data-task-id="${taskId}"] .task-card-title`).forEach(el => {
-                                    if (el !== titleEl) el.textContent = newTitle;
-                                });
-                            } else {
-                                titleEl.textContent = currentTitle;
-                            }
-                        } catch (error) {
-                            console.error('Error updating title:', error);
-                            titleEl.textContent = currentTitle;
-                        }
-                    } else {
-                        titleEl.textContent = currentTitle;
-                    }
-                }
-
-                input.addEventListener('blur', saveTitle);
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        input.blur();
-                    } else if (e.key === 'Escape') {
-                        titleEl.textContent = currentTitle;
-                    }
-                });
             });
         }
 
@@ -8138,10 +8042,9 @@
             });
         }
 
-        // Initialize drag and drop and title editing for existing cards
+        // Initialize drag and drop for existing cards
         document.querySelectorAll('.task-card').forEach(card => {
             setupTaskCardDragEvents(card);
-            setupTaskTitleEditing(card);
         });
         setupDropZones();
 
@@ -8956,12 +8859,12 @@
             const isToday = currentCalendarDate.getTime() === today.getTime();
             if (isToday) {
                 dateText.textContent = 'Today';
-                todayBtn.style.display = 'none';
+                todayBtn.classList.remove('visible');
             } else {
                 // Format as "Mon, Jan 15"
                 const options = { weekday: 'short', month: 'short', day: 'numeric' };
                 dateText.textContent = currentCalendarDate.toLocaleDateString('en-US', options);
-                todayBtn.style.display = 'flex';
+                todayBtn.classList.add('visible');
             }
         }
 
