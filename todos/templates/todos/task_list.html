@@ -5836,19 +5836,45 @@
             if (tagsList.length === 0) {
                 menuHtml += `<div class="task-context-menu-item" style="color: #999; font-style: italic;">No tags yet</div>`;
             } else {
+                // Add tags section
                 menuHtml += `
                     <div class="task-context-menu-item" style="color: #6c757d; font-size: 0.75rem; cursor: default; padding: 0.25rem 0.75rem;">
-                        Click to add tag to all selected
+                        Add tag to all selected
                     </div>
                 `;
                 tagsList.forEach(tag => {
                     menuHtml += `
                         <div class="task-context-menu-item" onclick="batchAddTag(${tag.id})">
-                            <i class="bi bi-plus-circle"></i>
+                            <i class="bi bi-plus-circle" style="color: #6B9080;"></i>
                             ${escapeHtml(tag.name)}
                         </div>
                     `;
                 });
+
+                // Remove tags section
+                menuHtml += `
+                    <div class="task-context-menu-divider"></div>
+                    <div class="task-context-menu-item" style="color: #6c757d; font-size: 0.75rem; cursor: default; padding: 0.25rem 0.75rem;">
+                        Remove tag from all selected
+                    </div>
+                `;
+                tagsList.forEach(tag => {
+                    menuHtml += `
+                        <div class="task-context-menu-item" onclick="batchRemoveTag(${tag.id})">
+                            <i class="bi bi-dash-circle" style="color: #dc3545;"></i>
+                            ${escapeHtml(tag.name)}
+                        </div>
+                    `;
+                });
+
+                // Remove all tags option
+                menuHtml += `
+                    <div class="task-context-menu-divider"></div>
+                    <div class="task-context-menu-item" onclick="batchRemoveAllTags()">
+                        <i class="bi bi-x-circle" style="color: #dc3545;"></i>
+                        Remove all tags
+                    </div>
+                `;
             }
 
             menuHtml += `
@@ -5968,6 +5994,75 @@
                         console.error('Error adding tag:', error);
                     }
                 }
+            }
+
+            closeContextMenu();
+            clearTaskSelection();
+        }
+
+        async function batchRemoveTag(tagId) {
+            const taskIds = Array.from(selectedTaskIds);
+
+            for (const taskId of taskIds) {
+                // Check if task has this tag
+                const currentTags = taskTagsMap[taskId] || [];
+                const hasTag = currentTags.some(t => t.id === tagId);
+
+                if (hasTag) {
+                    try {
+                        const response = await fetch(`/tasks/api/${taskId}/tags/remove/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ tag_id: tagId })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            taskTagsMap[taskId] = data.task_tags;
+                            updateTaskCardTags(taskId, data.task_tags);
+                        }
+                    } catch (error) {
+                        console.error('Error removing tag:', error);
+                    }
+                }
+            }
+
+            closeContextMenu();
+            clearTaskSelection();
+        }
+
+        async function batchRemoveAllTags() {
+            const taskIds = Array.from(selectedTaskIds);
+
+            for (const taskId of taskIds) {
+                const currentTags = taskTagsMap[taskId] || [];
+
+                // Remove each tag from the task
+                for (const tag of currentTags) {
+                    try {
+                        const response = await fetch(`/tasks/api/${taskId}/tags/remove/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ tag_id: tag.id })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            taskTagsMap[taskId] = data.task_tags;
+                        }
+                    } catch (error) {
+                        console.error('Error removing tag:', error);
+                    }
+                }
+
+                // Update UI after all tags removed
+                updateTaskCardTags(taskId, []);
             }
 
             closeContextMenu();
