@@ -6263,7 +6263,7 @@
                 resizeHandleTop.addEventListener('mousedown', function(e) {
                     e.stopPropagation();
                     e.preventDefault();
-                    startTimeBlockResize(blockEl, block.id, startDate, endDate, 'top');
+                    startTimeBlockResize(e, blockEl, block.id, startDate, endDate, 'top');
                 });
                 blockEl.appendChild(resizeHandleTop);
 
@@ -6273,7 +6273,7 @@
                 resizeHandle.addEventListener('mousedown', function(e) {
                     e.stopPropagation();
                     e.preventDefault();
-                    startTimeBlockResize(blockEl, block.id, startDate, endDate, 'bottom');
+                    startTimeBlockResize(e, blockEl, block.id, startDate, endDate, 'bottom');
                 });
                 blockEl.appendChild(resizeHandle);
 
@@ -6292,7 +6292,7 @@
         }
 
         // Start resizing a time block
-        function startTimeBlockResize(blockEl, blockId, startDate, endDate, edge) {
+        function startTimeBlockResize(e, blockEl, blockId, startDate, endDate, edge) {
             const block = timeBlocks.find(b => b.id === blockId);
             if (!block) return;
 
@@ -6303,7 +6303,7 @@
                 endDate: new Date(endDate),
                 initialTop: parseFloat(blockEl.style.top) || 0,
                 initialHeight: parseFloat(blockEl.style.height) || 50,
-                startY: event.clientY,
+                startY: e.clientY,
                 edge: edge // 'top' or 'bottom'
             };
 
@@ -6772,7 +6772,7 @@
                 resizeHandleTop.addEventListener('mousedown', function(e) {
                     e.stopPropagation();
                     e.preventDefault();
-                    startTaskResize(taskEl, taskId, startDate, durationMinutes, 'top');
+                    startTaskResize(e, taskEl, taskId, startDate, durationMinutes, 'top');
                 });
                 taskEl.appendChild(resizeHandleTop);
 
@@ -6782,7 +6782,7 @@
                 resizeHandle.addEventListener('mousedown', function(e) {
                     e.stopPropagation();
                     e.preventDefault();
-                    startTaskResize(taskEl, taskId, startDate, durationMinutes, 'bottom');
+                    startTaskResize(e, taskEl, taskId, startDate, durationMinutes, 'bottom');
                 });
                 taskEl.appendChild(resizeHandle);
 
@@ -6812,7 +6812,7 @@
         // Handle task resize by dragging top or bottom edge
         let resizeState = null;
 
-        function startTaskResize(taskEl, taskId, startDate, durationMinutes, edge) {
+        function startTaskResize(e, taskEl, taskId, startDate, durationMinutes, edge) {
             const hourContent = taskEl.closest('.hour-content');
 
             resizeState = {
@@ -6821,7 +6821,7 @@
                 startDate: new Date(startDate),
                 initialTop: parseFloat(taskEl.style.top) || 0,
                 initialHeight: parseFloat(taskEl.style.height) || 50,
-                startY: event.clientY,
+                startY: e.clientY,
                 edge: edge // 'top' or 'bottom'
             };
 
