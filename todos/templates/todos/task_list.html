@@ -971,7 +971,7 @@
             color: #adb5bd;
             cursor: pointer;
             font-size: 1.25rem;
-            transition: color 0.2s, text-shadow 0.3s;
+            transition: color 0.2s;
         }
 
         .deadline-warning-icon:hover {
@@ -979,44 +979,28 @@
         }
 
         .deadline-warning-icon.has-warnings {
-            color: #ffc107;
+            animation: fadeToYellow 2s ease-in-out infinite;
         }
 
         .deadline-warning-icon.has-overdue {
-            color: #dc3545;
+            animation: fadeToRed 2s ease-in-out infinite;
         }
 
-        .deadline-warning-icon.glow-overdue {
-            animation: glowOverdue 2s ease-in-out infinite;
-        }
-
-        @keyframes glowOverdue {
+        @keyframes fadeToRed {
             0%, 100% {
-                text-shadow: 0 0 5px rgba(220, 53, 69, 0.4),
-                             0 0 10px rgba(220, 53, 69, 0.3),
-                             0 0 15px rgba(220, 53, 69, 0.2);
+                color: #adb5bd;
             }
             50% {
-                text-shadow: 0 0 10px rgba(220, 53, 69, 0.8),
-                             0 0 20px rgba(220, 53, 69, 0.6),
-                             0 0 30px rgba(220, 53, 69, 0.4);
+                color: #dc3545;
             }
         }
 
-        .deadline-warning-icon.glow-warning {
-            animation: glowWarning 2s ease-in-out infinite;
-        }
-
-        @keyframes glowWarning {
+        @keyframes fadeToYellow {
             0%, 100% {
-                text-shadow: 0 0 5px rgba(255, 193, 7, 0.4),
-                             0 0 10px rgba(255, 193, 7, 0.3),
-                             0 0 15px rgba(255, 193, 7, 0.2);
+                color: #adb5bd;
             }
             50% {
-                text-shadow: 0 0 10px rgba(255, 193, 7, 0.8),
-                             0 0 20px rgba(255, 193, 7, 0.6),
-                             0 0 30px rgba(255, 193, 7, 0.4);
+                color: #ffc107;
             }
         }
 
@@ -1041,7 +1025,7 @@
         }
 
         .deadline-dropdown-header {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            background: linear-gradient(135deg, #6B9080 0%, #5a7a6a 100%);
             color: white;
             padding: 0.75rem 1rem;
             font-weight: 600;
@@ -1049,11 +1033,6 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-        }
-
-        .deadline-dropdown-header.warning-only {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: #212529;
         }
 
         .deadline-dropdown-body {
@@ -1146,15 +1125,6 @@
 
         .deadline-dismiss-btn.dismissed {
             color: #28a745;
-        }
-
-        .deadline-dropdown-note {
-            font-size: 0.7rem;
-            color: #6c757d;
-            padding: 0.5rem 0;
-            border-top: 1px solid #e9ecef;
-            margin-top: 0.75rem;
-            font-style: italic;
         }
 
         .deadline-empty-state {
@@ -3772,7 +3742,7 @@
     <div id="sidebar-icons" style="position: fixed !important; top: 1.5rem !important; left: 1.5rem !important; z-index: 10000 !important; display: flex !important; flex-direction: column !important; gap: 0.75rem !important;">
         <!-- Deadline warning icon -->
         <div style="position: relative;">
-            <i class="bi bi-exclamation-triangle-fill deadline-warning-icon" id="deadline-warning-icon" title="Deadline Warnings"></i>
+            <i class="bi bi-exclamation-triangle-fill deadline-warning-icon" id="deadline-warning-icon" title="Things to Worry About"></i>
         </div>
         <div style="position: relative;">
             <i class="bi bi-binoculars-fill sidebar-icon" id="filter-icon" title="Filter"></i>
@@ -3785,7 +3755,7 @@
     <div class="deadline-dropdown" id="deadline-dropdown">
         <div class="deadline-dropdown-header" id="deadline-dropdown-header">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            Deadline Warnings
+            Things to Worry About
         </div>
         <div class="deadline-dropdown-body" id="deadline-dropdown-body">
             <!-- Content populated by JavaScript -->
@@ -4620,39 +4590,28 @@
             const warnings = getDeadlineWarnings();
             const hasOverdue = warnings.overdue.some(t => !t.dismissed);
             const hasDueSoon = warnings.dueSoon.some(t => !t.dismissed);
-            const hasAnyWarnings = warnings.overdue.length > 0 || warnings.dueSoon.length > 0;
 
-            icon.classList.remove('has-warnings', 'has-overdue', 'glow-overdue', 'glow-warning');
+            icon.classList.remove('has-warnings', 'has-overdue');
 
             if (hasOverdue) {
-                icon.classList.add('has-overdue', 'glow-overdue');
+                icon.classList.add('has-overdue');
             } else if (hasDueSoon) {
-                icon.classList.add('has-warnings', 'glow-warning');
-            } else if (hasAnyWarnings) {
                 icon.classList.add('has-warnings');
             }
         }
 
         function renderDeadlineDropdown() {
             const body = document.getElementById('deadline-dropdown-body');
-            const header = document.getElementById('deadline-dropdown-header');
             const warnings = getDeadlineWarnings();
 
             if (warnings.overdue.length === 0 && warnings.dueSoon.length === 0) {
                 body.innerHTML = `
                     <div class="deadline-empty-state">
                         <i class="bi bi-check-circle"></i>
-                        <div>No upcoming deadlines</div>
+                        <div>Nothing to worry about</div>
                     </div>
                 `;
-                header.classList.remove('warning-only');
                 return;
-            }
-
-            if (warnings.overdue.length > 0) {
-                header.classList.remove('warning-only');
-            } else {
-                header.classList.add('warning-only');
             }
 
             let html = '';
@@ -4681,13 +4640,6 @@
                 `;
             }
 
-            html += `
-                <div class="deadline-dropdown-note">
-                    <i class="bi bi-info-circle"></i>
-                    Dismissed tasks still appear but don't trigger the warning glow.
-                </div>
-            `;
-
             body.innerHTML = html;
 
             body.querySelectorAll('.deadline-task-info').forEach(el => {
@@ -4714,16 +4666,16 @@
                 ? `${Math.abs(task.days)} day${Math.abs(task.days) !== 1 ? 's' : ''} overdue`
                 : task.days === 0
                     ? 'Due today'
-                    : 'Due tomorrow';
+                    : `${task.days} day${task.days !== 1 ? 's' : ''} until due`;
 
             const dismissIcon = task.dismissed ? 'bi-bell-slash-fill' : 'bi-bell-slash';
-            const dismissTitle = task.dismissed ? 'Enable warning' : 'Dismiss warning';
+            const dismissTitle = task.dismissed ? 'Enable warnings' : 'Silence future warnings';
 
             return `
                 <div class="deadline-task-item ${task.dismissed ? 'dismissed' : ''}" data-task-id="${task.id}">
                     <div class="deadline-task-info">
                         <div class="deadline-task-title">${escapeHtml(task.title)}</div>
-                        <div class="deadline-task-date">${statusText} - ${formatDateDisplay(task.deadline)}</div>
+                        <div class="deadline-task-date">${statusText}</div>
                     </div>
                     <button class="deadline-dismiss-btn ${task.dismissed ? 'dismissed' : ''}" title="${dismissTitle}">
                         <i class="bi ${dismissIcon}"></i>
