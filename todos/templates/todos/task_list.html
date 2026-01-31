@@ -1369,9 +1369,7 @@
             color: #6c757d;
         }
 
-        .deadline-task-item.critical-item {
-            border-left: 3px solid #6f42c1;  /* Purple for critical */
-        }
+        /* Critical items use same styling as other task items */
 
         .deadline-show-more {
             font-size: 0.8rem;
@@ -5559,7 +5557,7 @@
 
         function renderCriticalTaskItem(task) {
             return `
-                <div class="deadline-task-item critical-item" data-task-id="${task.id}">
+                <div class="deadline-task-item" data-task-id="${task.id}">
                     <div class="deadline-task-info">
                         <div class="deadline-task-title">${escapeHtml(task.title)}</div>
                     </div>
