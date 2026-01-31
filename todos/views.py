@@ -41,10 +41,10 @@ def task_list(request):
     tags = TaskTag.objects.all()
 
     # Get calendar events for today and nearby (let JS filter by local timezone)
-    # Query a 48-hour window to handle all timezone edge cases
+    # Query a wider window to support browsing to past/future dates
     now_utc = datetime.now(pytz.UTC)
-    query_start = now_utc - timedelta(hours=24)
-    query_end = now_utc + timedelta(hours=48)
+    query_start = now_utc - timedelta(days=7)  # 7 days back for browsing history
+    query_end = now_utc + timedelta(days=7)    # 7 days forward for planning
 
     # Query events that overlap with this window
     calendar_events = CalendarEvent.objects.filter(
@@ -64,7 +64,7 @@ def task_list(request):
             'is_all_day': event.is_all_day,
         })
 
-    # Query time blocks that overlap with this window
+    # Query time blocks that overlap with this window (same 7-day range)
     time_blocks = TimeBlock.objects.filter(
         start_time__lt=query_end,
         end_time__gt=query_start
