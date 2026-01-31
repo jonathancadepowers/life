@@ -12098,13 +12098,13 @@
         function cyclePlaceholder() {
             currentPhraseIndex = getRandomPhraseIndex();
             animateToPhrase(placeholderPhrases[currentPhraseIndex]);
-            placeholderTimeout = setTimeout(cyclePlaceholder, 6000);
+            placeholderTimeout = setTimeout(cyclePlaceholder, 10000);
         }
 
         function startPlaceholderCycle() {
-            // Initial text stays for 6 seconds
+            // Initial text stays for 10 seconds
             animatedPlaceholder.innerHTML = wrapChars('Add a new task...');
-            placeholderTimeout = setTimeout(cyclePlaceholder, 6000);
+            placeholderTimeout = setTimeout(cyclePlaceholder, 10000);
         }
 
         function stopPlaceholderCycle() {
