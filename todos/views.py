@@ -537,6 +537,11 @@ def create_task_schedule(request, task_id):
             end_time=end_dt
         )
 
+        # Also update the Task's legacy calendar fields for backward compatibility
+        task.calendar_start_time = start_dt
+        task.calendar_end_time = end_dt
+        task.save(update_fields=['calendar_start_time', 'calendar_end_time'])
+
         return JsonResponse({
             'success': True,
             'schedule': {
@@ -573,6 +578,13 @@ def update_task_schedule(request, schedule_id):
                 return JsonResponse({'success': False, 'error': 'End time cannot be empty'}, status=400)
 
         schedule.save()
+
+        # Also update the Task's legacy calendar fields for backward compatibility
+        task = schedule.task
+        task.calendar_start_time = schedule.start_time
+        task.calendar_end_time = schedule.end_time
+        task.save(update_fields=['calendar_start_time', 'calendar_end_time'])
+
         return JsonResponse({
             'success': True,
             'schedule': {
@@ -580,7 +592,7 @@ def update_task_schedule(request, schedule_id):
                 'start_time': schedule.start_time.isoformat(),
                 'end_time': schedule.end_time.isoformat(),
             },
-            'task': serialize_task(schedule.task)
+            'task': serialize_task(task)
         })
     except TaskSchedule.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Schedule not found'}, status=404)
@@ -597,6 +609,12 @@ def delete_task_schedule(request, schedule_id):
         schedule = TaskSchedule.objects.select_related('task').get(id=schedule_id)
         task = schedule.task
         schedule.delete()
+
+        # Clear the Task's legacy calendar fields for backward compatibility
+        task.calendar_start_time = None
+        task.calendar_end_time = None
+        task.save(update_fields=['calendar_start_time', 'calendar_end_time'])
+
         return JsonResponse({
             'success': True,
             'task': serialize_task(task)
