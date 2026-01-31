@@ -6356,7 +6356,10 @@
             const groupBy = document.querySelector('input[name="group-by"]:checked')?.value || 'states';
             const checkedTagIds = [];
             document.querySelectorAll('#filter-tags-list input[type="checkbox"]:checked').forEach(cb => {
-                checkedTagIds.push(parseInt(cb.value));
+                const tagId = parseInt(cb.value);
+                if (!isNaN(tagId)) {
+                    checkedTagIds.push(tagId);
+                }
             });
             return {
                 group_by: groupBy,
@@ -6386,7 +6389,8 @@
             // Apply filters
             activeFilters.critical = settings.filter_critical || false;
             activeFilters.today = settings.filter_today || false;
-            activeFilters.tags = settings.filter_tags || [];
+            // Filter out any null/undefined values that may have been saved
+            activeFilters.tags = (settings.filter_tags || []).filter(id => id != null);
 
             document.getElementById('filter-critical').checked = activeFilters.critical;
             document.getElementById('filter-today').checked = activeFilters.today;
