@@ -4318,6 +4318,10 @@
                             tagsCard.classList.remove('highlight-new');
                         }, 4500);
                     }
+                } else {
+                    // Untagged group doesn't exist yet (no tasks existed before)
+                    // Rebuild tag groups to create it with the new task
+                    buildTagGroups(task.id);
                 }
             }
 
