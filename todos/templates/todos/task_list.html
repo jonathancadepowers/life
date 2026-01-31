@@ -2889,7 +2889,7 @@
                             <div class="state-group-body" data-state-id="{{ state.id }}">
                                 {% for task in tasks %}
                                 {% if task.state == state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
@@ -2917,7 +2917,7 @@
                             <div class="state-group-body" data-state-id="none">
                                 {% for task in tasks %}
                                 {% if not task.state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.calendar_start_time %} scheduled{% endif %}" data-task-id="{{ task.id }}">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
@@ -3192,13 +3192,15 @@
         taskTagsMap[{{ task.id }}] = [{% for tag in task.tags.all %}{ id: {{ tag.id }}, name: "{{ tag.name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}];
         {% endfor %}
 
-        // Store task calendar_start_time for quick lookup (task_id -> ISO string or null)
-        // Store task calendar start/end times for quick lookup
+        // Store task calendar start/end times for quick lookup (task_id -> ISO string or null)
+        // Now using TaskSchedule data instead of legacy Task fields
         let taskCalendarStartTimeMap = {};
         let taskCalendarEndTimeMap = {};
         {% for task in tasks %}
-        taskCalendarStartTimeMap[{{ task.id }}] = {% if task.calendar_start_time %}"{{ task.calendar_start_time.isoformat }}"{% else %}null{% endif %};
-        taskCalendarEndTimeMap[{{ task.id }}] = {% if task.calendar_end_time %}"{{ task.calendar_end_time.isoformat }}"{% else %}null{% endif %};
+        {% with schedule=task.schedules.first %}
+        taskCalendarStartTimeMap[{{ task.id }}] = {% if schedule %}"{{ schedule.start_time.isoformat }}"{% else %}null{% endif %};
+        taskCalendarEndTimeMap[{{ task.id }}] = {% if schedule %}"{{ schedule.end_time.isoformat }}"{% else %}null{% endif %};
+        {% endwith %}
         {% endfor %}
 
         // Current calendar date being displayed (defaults to today)
@@ -6836,7 +6838,7 @@
             const todayStart = new Date(currentCalendarDate);
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-            // Iterate through tasks with calendar_start_time
+            // Iterate through tasks with schedule times
             Object.entries(taskCalendarStartTimeMap).forEach(([taskId, calendarStartTime]) => {
                 if (!calendarStartTime) return;
 
@@ -7116,9 +7118,9 @@
 
             // Update on server - update both times if top edge was moved
             if (edge === 'top') {
-                await updateTaskCalendarTime(taskId, startTimeUTC, endTimeUTC);
+                await updateTaskScheduleTime(taskId, startTimeUTC, endTimeUTC);
             } else {
-                await updateTaskCalendarEndTime(taskId, endTimeUTC);
+                await updateTaskScheduleEndTime(taskId, endTimeUTC);
             }
 
             document.removeEventListener('mousemove', handleTaskResize);
@@ -7241,16 +7243,18 @@
             return false;
         }
 
-        // Update a task's calendar times on the server (legacy - for backward compatibility)
-        async function updateTaskCalendarTime(taskId, startTimeUTC, endTimeUTC = undefined) {
+        // Update a task's schedule times on the server (updates first schedule)
+        async function updateTaskScheduleTime(taskId, startTimeUTC, endTimeUTC = undefined) {
             try {
-                const body = { calendar_start_time: startTimeUTC };
-                // If endTimeUTC is explicitly provided (including null), include it
+                const body = {};
+                if (startTimeUTC !== undefined) {
+                    body.start_time = startTimeUTC;
+                }
                 if (endTimeUTC !== undefined) {
-                    body.calendar_end_time = endTimeUTC;
+                    body.end_time = endTimeUTC;
                 }
 
-                const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                const response = await fetch(`/tasks/api/${taskId}/schedules/update/`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -7261,10 +7265,12 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    // Update local maps
-                    taskCalendarStartTimeMap[taskId] = startTimeUTC;
-                    if (endTimeUTC !== undefined) {
-                        taskCalendarEndTimeMap[taskId] = endTimeUTC;
+                    // Update local maps from response
+                    if (data.task.calendar_start_time) {
+                        taskCalendarStartTimeMap[taskId] = data.task.calendar_start_time;
+                    }
+                    if (data.task.calendar_end_time) {
+                        taskCalendarEndTimeMap[taskId] = data.task.calendar_end_time;
                     }
 
                     // Update task card scheduled class
@@ -7273,31 +7279,33 @@
                     return true;
                 }
             } catch (error) {
-                console.error('Error updating calendar time:', error);
+                console.error('Error updating schedule time:', error);
             }
             return false;
         }
 
-        // Update only the end time of a task
-        async function updateTaskCalendarEndTime(taskId, endTimeUTC) {
+        // Update only the end time of a task's schedule
+        async function updateTaskScheduleEndTime(taskId, endTimeUTC) {
             try {
-                const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                const response = await fetch(`/tasks/api/${taskId}/schedules/update/`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ calendar_end_time: endTimeUTC })
+                    body: JSON.stringify({ end_time: endTimeUTC })
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    // Update local map
-                    taskCalendarEndTimeMap[taskId] = endTimeUTC;
+                    // Update local map from response
+                    if (data.task.calendar_end_time) {
+                        taskCalendarEndTimeMap[taskId] = data.task.calendar_end_time;
+                    }
                     return true;
                 }
             } catch (error) {
-                console.error('Error updating calendar end time:', error);
+                console.error('Error updating schedule end time:', error);
             }
             return false;
         }
@@ -7342,16 +7350,32 @@
             });
         }
 
-        // Remove a task from the calendar for the current day (via context menu or remove button)
+        // Remove a task from the calendar (delete all schedules via API)
         async function removeFromCalendar(taskId) {
             closeContextMenu();
 
-            // For now, also clear the legacy calendar fields for backward compatibility
-            const success = await updateTaskCalendarTime(taskId, null, null);
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/schedules/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
 
-            if (success) {
-                renderScheduledTasks();
-                initializeTodayIcons();
+                const data = await response.json();
+                if (data.success) {
+                    // Clear local maps
+                    delete taskCalendarStartTimeMap[taskId];
+                    delete taskCalendarEndTimeMap[taskId];
+
+                    // Update task card scheduled class
+                    updateTaskScheduledClass(taskId);
+
+                    renderScheduledTasks();
+                    initializeTodayIcons();
+                }
+            } catch (error) {
+                console.error('Error removing task from calendar:', error);
             }
         }
 
@@ -7605,13 +7629,8 @@
                     const taskId = e.dataTransfer.getData('text/plain');
                     if (!taskId) return;
 
-                    // Remove calendar times (both start and end)
-                    const success = await updateTaskCalendarTime(taskId, null, null);
-
-                    if (success) {
-                        // Re-render scheduled tasks (will remove the element)
-                        renderScheduledTasks();
-                    }
+                    // Remove from calendar by deleting all schedules
+                    await removeFromCalendar(taskId);
                 });
             }
         }

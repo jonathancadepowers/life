@@ -13,6 +13,9 @@ from calendar_events.models import CalendarEvent
 
 def serialize_task(task):
     """Serialize a task to a dictionary for JSON responses."""
+    schedules = list(task.schedules.all())
+    # For backward compatibility, derive calendar times from first schedule
+    first_schedule = schedules[0] if schedules else None
     return {
         'id': task.id,
         'title': task.title,
@@ -21,15 +24,15 @@ def serialize_task(task):
         'state_id': task.state_id,
         'state_name': task.state.name if task.state else None,
         'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
-        'calendar_start_time': task.calendar_start_time.isoformat() if task.calendar_start_time else None,
-        'calendar_end_time': task.calendar_end_time.isoformat() if task.calendar_end_time else None,
+        'calendar_start_time': first_schedule.start_time.isoformat() if first_schedule else None,
+        'calendar_end_time': first_schedule.end_time.isoformat() if first_schedule else None,
         'schedules': [
             {
                 'id': s.id,
                 'start_time': s.start_time.isoformat(),
                 'end_time': s.end_time.isoformat(),
             }
-            for s in task.schedules.all()
+            for s in schedules
         ],
     }
 
@@ -127,16 +130,6 @@ def update_task(request, task_id):
                 task.state = TaskState.objects.get(id=data['state_id'])
             else:
                 task.state = None
-        if 'calendar_start_time' in data:
-            if data['calendar_start_time']:
-                task.calendar_start_time = datetime.fromisoformat(data['calendar_start_time'].replace('Z', '+00:00'))
-            else:
-                task.calendar_start_time = None
-        if 'calendar_end_time' in data:
-            if data['calendar_end_time']:
-                task.calendar_end_time = datetime.fromisoformat(data['calendar_end_time'].replace('Z', '+00:00'))
-            else:
-                task.calendar_end_time = None
 
         task.save()
         return JsonResponse({
@@ -537,10 +530,46 @@ def create_task_schedule(request, task_id):
             end_time=end_dt
         )
 
-        # Also update the Task's legacy calendar fields for backward compatibility
-        task.calendar_start_time = start_dt
-        task.calendar_end_time = end_dt
-        task.save(update_fields=['calendar_start_time', 'calendar_end_time'])
+        return JsonResponse({
+            'success': True,
+            'schedule': {
+                'id': schedule.id,
+                'start_time': schedule.start_time.isoformat(),
+                'end_time': schedule.end_time.isoformat(),
+            },
+            'task': serialize_task(task)
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except ValueError as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["PATCH"])
+def update_task_first_schedule(request, task_id):
+    """Update the first schedule for a task via AJAX (convenience endpoint for frontend)."""
+    try:
+        task = Task.objects.prefetch_related('schedules').get(id=task_id)
+        schedule = task.schedules.first()
+        if not schedule:
+            return JsonResponse({'success': False, 'error': 'No schedule found for this task'}, status=404)
+
+        data = json.loads(request.body)
+
+        if 'start_time' in data:
+            if data['start_time']:
+                schedule.start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+            else:
+                return JsonResponse({'success': False, 'error': 'Start time cannot be empty'}, status=400)
+        if 'end_time' in data:
+            if data['end_time']:
+                schedule.end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+            else:
+                return JsonResponse({'success': False, 'error': 'End time cannot be empty'}, status=400)
+
+        schedule.save()
 
         return JsonResponse({
             'success': True,
@@ -579,12 +608,6 @@ def update_task_schedule(request, schedule_id):
 
         schedule.save()
 
-        # Also update the Task's legacy calendar fields for backward compatibility
-        task = schedule.task
-        task.calendar_start_time = schedule.start_time
-        task.calendar_end_time = schedule.end_time
-        task.save(update_fields=['calendar_start_time', 'calendar_end_time'])
-
         return JsonResponse({
             'success': True,
             'schedule': {
@@ -592,7 +615,7 @@ def update_task_schedule(request, schedule_id):
                 'start_time': schedule.start_time.isoformat(),
                 'end_time': schedule.end_time.isoformat(),
             },
-            'task': serialize_task(task)
+            'task': serialize_task(schedule.task)
         })
     except TaskSchedule.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Schedule not found'}, status=404)
@@ -610,14 +633,24 @@ def delete_task_schedule(request, schedule_id):
         task = schedule.task
         schedule.delete()
 
-        # Clear the Task's legacy calendar fields for backward compatibility
-        task.calendar_start_time = None
-        task.calendar_end_time = None
-        task.save(update_fields=['calendar_start_time', 'calendar_end_time'])
-
         return JsonResponse({
             'success': True,
             'task': serialize_task(task)
         })
     except TaskSchedule.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Schedule not found'}, status=404)
+
+
+@require_http_methods(["DELETE"])
+def delete_task_schedules(request, task_id):
+    """Delete all schedules for a task via AJAX."""
+    try:
+        task = Task.objects.prefetch_related('schedules').get(id=task_id)
+        task.schedules.all().delete()
+
+        return JsonResponse({
+            'success': True,
+            'task': serialize_task(task)
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
