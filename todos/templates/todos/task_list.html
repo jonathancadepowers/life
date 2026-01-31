@@ -5092,7 +5092,8 @@
                         nearAbandoned.push({
                             id: parseInt(taskId),
                             title: title || `Task ${taskId}`,
-                            days: daysUntilAbandoned
+                            days: daysUntilAbandoned,
+                            dismissed: isNearAbandonedDismissed(taskId, updatedAt)
                         });
                     }
                 }
@@ -5109,6 +5110,26 @@
             if (!abandonedStateId) return false;
             const taskData = taskDeadlinesMap[taskId];
             return taskData && taskData.state_id === abandonedStateId;
+        }
+
+        // Near-abandoned dismiss functions using localStorage
+        // The key includes updatedAt so dismissal resets when task is edited
+        function getNearAbandonedDismissKey(taskId, updatedAt) {
+            return `near_abandoned_dismissed_${taskId}_${updatedAt}`;
+        }
+
+        function isNearAbandonedDismissed(taskId, updatedAt) {
+            const key = getNearAbandonedDismissKey(taskId, updatedAt);
+            return localStorage.getItem(key) === 'true';
+        }
+
+        function setNearAbandonedDismissed(taskId, updatedAt, dismissed) {
+            const key = getNearAbandonedDismissKey(taskId, updatedAt);
+            if (dismissed) {
+                localStorage.setItem(key, 'true');
+            } else {
+                localStorage.removeItem(key);
+            }
         }
 
         async function processAbandonedTasks() {
@@ -5204,7 +5225,7 @@
             const warnings = getDeadlineWarnings();
             const hasOverdue = warnings.overdue.some(t => !t.dismissed);
             const hasDueSoon = warnings.dueSoon.some(t => !t.dismissed);
-            const hasNearAbandoned = warnings.nearAbandoned.length > 0;
+            const hasNearAbandoned = warnings.nearAbandoned.some(t => !t.dismissed);
 
             icon.classList.remove('has-warnings', 'has-overdue', 'has-near-abandoned');
 
@@ -5279,7 +5300,8 @@
                 });
             });
 
-            body.querySelectorAll('.deadline-dismiss-btn').forEach(btn => {
+            // Deadline dismiss buttons (stored in DB)
+            body.querySelectorAll('.deadline-dismiss-btn:not(.near-abandon-dismiss)').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const item = btn.closest('.deadline-task-item');
@@ -5288,16 +5310,36 @@
                     await updateTaskDeadlineDismiss(taskId, !currentlyDismissed);
                 });
             });
+
+            // Near-abandoned dismiss buttons (stored in localStorage)
+            body.querySelectorAll('.near-abandon-dismiss').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const item = btn.closest('.deadline-task-item');
+                    const taskId = parseInt(item.dataset.taskId);
+                    const updatedAt = taskUpdatedAtMap[taskId];
+                    const currentlyDismissed = isNearAbandonedDismissed(taskId, updatedAt);
+                    setNearAbandonedDismissed(taskId, updatedAt, !currentlyDismissed);
+                    renderDeadlineDropdown();
+                    updateDeadlineWarningIcon();
+                });
+            });
         }
 
         function renderNearAbandonedItem(task) {
             const daysText = task.days === 1 ? '1 day' : `${task.days} days`;
+            const dismissIcon = task.dismissed ? 'bi-bell-slash-fill' : 'bi-bell-slash';
+            const dismissTitle = task.dismissed ? 'Enable warnings' : 'Silence this warning';
+
             return `
-                <div class="deadline-task-item near-abandoned" data-task-id="${task.id}">
+                <div class="deadline-task-item near-abandoned ${task.dismissed ? 'dismissed' : ''}" data-task-id="${task.id}">
                     <div class="deadline-task-info">
                         <div class="deadline-task-title">${escapeHtml(task.title)}</div>
                         <div class="deadline-task-date">${daysText} until abandoned</div>
                     </div>
+                    <button class="deadline-dismiss-btn near-abandon-dismiss ${task.dismissed ? 'dismissed' : ''}" title="${dismissTitle}">
+                        <i class="bi ${dismissIcon}"></i>
+                    </button>
                 </div>
             `;
         }
