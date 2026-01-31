@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Tasks</title>
+    <script>
+        // Read cookie immediately to prevent flash of rollup metrics
+        (function() {
+            try {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.indexOf('taskFilterSettings=') === 0) {
+                        var value = decodeURIComponent(cookie.substring('taskFilterSettings='.length));
+                        var settings = JSON.parse(value);
+                        if (settings.hideRollups) {
+                            document.documentElement.classList.add('hide-rollups-initial');
+                        }
+                        break;
+                    }
+                }
+            } catch(e) {}
+        })();
+    </script>
+    <style>
+        /* Hide rollups immediately if setting is enabled (prevents flash) */
+        .hide-rollups-initial .panel-collapsed-metrics { display: none; }
+    </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -6136,6 +6159,8 @@
         function updateRollupsVisibility() {
             const tasksMetrics = document.getElementById('tasks-collapsed-metrics');
             const calendarMetrics = document.getElementById('calendar-collapsed-metrics');
+            // Remove the initial-hide class (used to prevent flash on page load)
+            document.documentElement.classList.remove('hide-rollups-initial');
             if (tasksMetrics) {
                 tasksMetrics.style.display = hideRollups ? 'none' : '';
             }
