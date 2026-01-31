@@ -2788,6 +2788,121 @@
             white-space: nowrap;
         }
 
+        /* Panel tags section */
+        .panel-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            align-items: center;
+        }
+
+        .panel-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .panel-tag .remove-tag {
+            cursor: pointer;
+            opacity: 0.6;
+            font-size: 0.7rem;
+            line-height: 1;
+        }
+
+        .panel-tag .remove-tag:hover {
+            opacity: 1;
+            color: #dc3545;
+        }
+
+        .panel-tag-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            background: transparent;
+            border: 1px dashed #adb5bd;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .panel-tag-add:hover {
+            border-color: #6B9080;
+            color: #6B9080;
+            background: rgba(107, 144, 128, 0.05);
+        }
+
+        .panel-tag-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .panel-tag-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 0.25rem;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 180px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1100;
+            display: none;
+        }
+
+        .panel-tag-dropdown-menu.show {
+            display: block;
+        }
+
+        .panel-tag-dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            background: none;
+            text-align: left;
+            font-size: 0.85rem;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .panel-tag-dropdown-item:hover {
+            background: #f0f7f4;
+        }
+
+        .panel-tag-dropdown-item.checked {
+            background: #e8f5e9;
+        }
+
+        .panel-tag-dropdown-item.checked::before {
+            content: '✓ ';
+            color: #6B9080;
+        }
+
+        .panel-tag-dropdown-item.new-tag {
+            border-top: 1px solid #eee;
+            color: #6B9080;
+        }
+
+        .panel-tag-search {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
         /* Scheduled task indicator - no background change, only sun icon shows scheduling */
 
         .task-card-today-icon {
@@ -3693,6 +3808,12 @@
             <div class="critical-toggle" style="margin-top: 1rem;">
                 <input type="checkbox" id="panel-critical">
                 <label for="panel-critical">Critical</label>
+            </div>
+            <div class="panel-tags-section" style="margin-top: 1rem;">
+                <label style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.5rem;">Tags</label>
+                <div class="panel-tags-container" id="panel-tags-container">
+                    <!-- Tags will be populated by JavaScript -->
+                </div>
             </div>
         </div>
         <div class="panel-footer">
@@ -5222,6 +5343,9 @@
                 console.error('Error fetching task:', error);
             }
 
+            // Render panel tags
+            renderPanelTags(taskId);
+
             document.getElementById('panel-overlay').classList.add('active');
             document.getElementById('slide-panel').classList.add('active');
             setTimeout(autoResizeTitle, 10);
@@ -6028,6 +6152,175 @@
                 }
             } catch (error) {
                 console.error('Error deleting tag:', error);
+            }
+        }
+
+        // Panel tags functionality
+        function renderPanelTags(taskId) {
+            const container = document.getElementById('panel-tags-container');
+            if (!container) return;
+
+            const taskTags = taskTagsMap[taskId] || [];
+
+            container.innerHTML = '';
+
+            // Render existing tags with remove button
+            taskTags.forEach(tag => {
+                const tagEl = document.createElement('span');
+                tagEl.className = 'panel-tag';
+                tagEl.innerHTML = `
+                    ${escapeHtml(tag.name)}
+                    <span class="remove-tag" data-tag-id="${tag.id}" title="Remove tag">
+                        <i class="bi bi-x"></i>
+                    </span>
+                `;
+                tagEl.querySelector('.remove-tag').addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await togglePanelTag(taskId, tag.id, true);
+                });
+                container.appendChild(tagEl);
+            });
+
+            // Add tag dropdown
+            const dropdown = document.createElement('div');
+            dropdown.className = 'panel-tag-dropdown';
+            dropdown.innerHTML = `
+                <button class="panel-tag-add" id="panel-tag-add-btn">
+                    <i class="bi bi-plus"></i> Add tag
+                </button>
+                <div class="panel-tag-dropdown-menu" id="panel-tag-dropdown-menu">
+                    <input type="text" class="panel-tag-search" id="panel-tag-search" placeholder="Search or create...">
+                    <div id="panel-tag-options"></div>
+                </div>
+            `;
+            container.appendChild(dropdown);
+
+            // Set up dropdown events
+            const addBtn = dropdown.querySelector('#panel-tag-add-btn');
+            const menu = dropdown.querySelector('#panel-tag-dropdown-menu');
+            const searchInput = dropdown.querySelector('#panel-tag-search');
+            const optionsContainer = dropdown.querySelector('#panel-tag-options');
+
+            addBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menu.classList.toggle('show');
+                if (menu.classList.contains('show')) {
+                    searchInput.value = '';
+                    renderPanelTagOptions(taskId, '', optionsContainer);
+                    searchInput.focus();
+                }
+            });
+
+            searchInput.addEventListener('input', () => {
+                renderPanelTagOptions(taskId, searchInput.value, optionsContainer);
+            });
+
+            searchInput.addEventListener('click', (e) => e.stopPropagation());
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function closePanelTagDropdown(e) {
+                if (!dropdown.contains(e.target)) {
+                    menu.classList.remove('show');
+                }
+            });
+        }
+
+        function renderPanelTagOptions(taskId, searchTerm, container) {
+            const taskTags = taskTagsMap[taskId] || [];
+            const taskTagIds = taskTags.map(t => t.id);
+            const searchLower = searchTerm.toLowerCase().trim();
+
+            container.innerHTML = '';
+
+            // Filter tags based on search
+            const filteredTags = tagsList.filter(tag =>
+                tag.name.toLowerCase().includes(searchLower)
+            );
+
+            // Render tag options
+            filteredTags.forEach(tag => {
+                const hasTag = taskTagIds.includes(tag.id);
+                const item = document.createElement('button');
+                item.className = 'panel-tag-dropdown-item' + (hasTag ? ' checked' : '');
+                item.textContent = tag.name;
+                item.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await togglePanelTag(taskId, tag.id, hasTag);
+                });
+                container.appendChild(item);
+            });
+
+            // Add "Create new tag" option if search doesn't match exactly
+            const exactMatch = tagsList.some(t => t.name.toLowerCase() === searchLower);
+            if (searchLower && !exactMatch) {
+                const createItem = document.createElement('button');
+                createItem.className = 'panel-tag-dropdown-item new-tag';
+                createItem.innerHTML = `<i class="bi bi-plus"></i> Create "${escapeHtml(searchTerm)}"`;
+                createItem.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await createAndAddPanelTag(taskId, searchTerm);
+                });
+                container.appendChild(createItem);
+            }
+
+            // Show message if no tags exist
+            if (filteredTags.length === 0 && !searchLower) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.cssText = 'padding: 0.5rem 0.75rem; color: #6c757d; font-size: 0.85rem;';
+                emptyMsg.textContent = 'No tags yet. Type to create one.';
+                container.appendChild(emptyMsg);
+            }
+        }
+
+        async function togglePanelTag(taskId, tagId, hasTag) {
+            try {
+                const url = hasTag
+                    ? `/tasks/api/${taskId}/tags/remove/`
+                    : `/tasks/api/${taskId}/tags/add/`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ tag_id: tagId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    taskTagsMap[taskId] = data.task_tags;
+                    updateTaskCardTags(taskId, data.task_tags);
+                    renderPanelTags(taskId);
+                }
+            } catch (error) {
+                console.error('Error toggling panel tag:', error);
+            }
+        }
+
+        async function createAndAddPanelTag(taskId, tagName) {
+            try {
+                const response = await fetch(`/tasks/api/${taskId}/tags/add/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ name: tagName.trim() })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    taskTagsMap[taskId] = data.task_tags;
+                    updateTaskCardTags(taskId, data.task_tags);
+                    // Add new tag to tagsList
+                    const newTag = data.task_tags.find(t => t.name === tagName.trim());
+                    if (newTag && !tagsList.some(t => t.id === newTag.id)) {
+                        tagsList.push(newTag);
+                    }
+                    renderPanelTags(taskId);
+                }
+            } catch (error) {
+                console.error('Error creating panel tag:', error);
             }
         }
 
