@@ -2949,8 +2949,8 @@
             <div class="panel calendar-panel collapsed" id="calendar-panel">
                 <div class="panel-header" id="calendar-panel-header" style="cursor: pointer;">
                     <div class="panel-header-left">
-                        <i class="bi bi-brightness-high-fill panel-header-icon"></i>
-                        <span class="panel-header-title">Today</span>
+                        <i class="bi bi-calendar3 panel-header-icon"></i>
+                        <span class="panel-header-title">Calendar</span>
                     </div>
                     <div class="panel-header-right">
                         <div class="panel-collapsed-metrics" id="calendar-collapsed-metrics">
@@ -3461,10 +3461,14 @@
                 return card;
             }
 
-            // Expand the Tasks panel if collapsed
+            // Expand both Tasks and Calendar panels if collapsed
             const tasksPanel = document.getElementById('tasks-panel');
             if (tasksPanel && tasksPanel.classList.contains('collapsed')) {
                 tasksPanel.classList.remove('collapsed');
+            }
+            const calendarPanel = document.getElementById('calendar-panel');
+            if (calendarPanel && calendarPanel.classList.contains('collapsed')) {
+                calendarPanel.classList.remove('collapsed');
             }
 
             // Always add to states-content (it's the master view)
@@ -6768,9 +6772,9 @@
                 return;
             }
 
-            // Create start time in local timezone, then convert to UTC
-            const now = new Date();
-            const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0);
+            // Create start time using currentCalendarDate (the day being viewed), then convert to UTC
+            const calDate = new Date(currentCalendarDate);
+            const startLocal = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), hour, 0);
             const startUTC = startLocal.toISOString();
 
             try {
@@ -7576,20 +7580,23 @@
                     } else {
                         // Handle task drop
                         const taskId = dataId;
+                        const schedules = taskSchedulesMap[taskId] || [];
 
                         // Preserve existing duration from first schedule, otherwise default to 30 minutes
                         let durationMs = 30 * 60 * 1000; // 30 minutes default
-                        const schedules = taskSchedulesMap[taskId] || [];
+                        let existingScheduleId = null;
+
                         if (schedules.length > 0) {
                             const existingStart = new Date(schedules[0].start_time);
                             const existingEnd = new Date(schedules[0].end_time);
                             durationMs = existingEnd - existingStart;
+                            existingScheduleId = schedules[0].id;
                         }
 
                         const endLocal = new Date(startLocal.getTime() + durationMs);
 
                         // Check for overlapping tasks - allow up to 3 tasks at same time
-                        const overlappingTaskCount = countOverlappingTasks(startLocal, endLocal, taskId);
+                        const overlappingTaskCount = countOverlappingTasks(startLocal, endLocal, taskId, existingScheduleId);
                         if (overlappingTaskCount >= 3) {
                             // Max 3 tasks allowed at same time
                             return;
@@ -7598,7 +7605,16 @@
                         const startUTC = localToUTC(startLocal);
                         const endUTC = localToUTC(endLocal);
 
-                        const success = await createTaskSchedule(taskId, startUTC, endUTC);
+                        let success;
+                        // Check if this is a scheduled task being moved (has existing schedule)
+                        if (e.dataTransfer.types.includes('application/x-scheduled-task') && existingScheduleId) {
+                            // Update the existing schedule (move it)
+                            success = await updateScheduleById(existingScheduleId, taskId, startUTC, endUTC);
+                        } else {
+                            // Create a new schedule
+                            success = await createTaskSchedule(taskId, startUTC, endUTC);
+                        }
+
                         if (success) {
                             renderScheduledTasks();
                             initializeTodayIcons();
