@@ -7671,7 +7671,8 @@
                 // Filter by completed tasks (terminal state) - only in Tags view
                 if (show && !showCompletedTasks && currentGroupBy === 'tags') {
                     const taskStateId = parseInt(card.closest('.state-group, .kanban-column')?.dataset?.stateId);
-                    if (taskStateId === terminalStateId) {
+                    const terminalStateId = getTerminalStateId();
+                    if (terminalStateId && taskStateId === terminalStateId) {
                         show = false;
                     }
                 }
