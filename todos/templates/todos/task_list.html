@@ -1169,16 +1169,6 @@
             font-size: 0.8rem;
         }
 
-        .task-property-deadline .deadline-custom-row {
-            gap: 0.5rem;
-        }
-
-        .task-property-deadline .deadline-date-input {
-            padding: 0.35rem 0.5rem;
-            font-size: 0.85rem;
-            flex: 1;
-        }
-
         .task-property-deadline .deadline-clear-btn {
             padding: 0.35rem 0.5rem;
             font-size: 0.8rem;
@@ -1511,12 +1501,6 @@
             color: white;
         }
 
-        .deadline-custom-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
         .deadline-date-input {
             padding: 0.35rem 0.5rem;
             border: 1px solid #dee2e6;
@@ -1533,7 +1517,7 @@
         .deadline-clear-btn {
             padding: 0.35rem 0.5rem;
             border: 1px solid #dee2e6;
-            border-radius: 6px;
+            border-radius: 16px;
             background: white;
             color: #6c757d;
             font-size: 0.8rem;
@@ -4691,9 +4675,7 @@
                                 <button type="button" class="deadline-preset-btn" data-preset="tomorrow">Tomorrow</button>
                                 <button type="button" class="deadline-preset-btn" data-preset="next-week">Next Week</button>
                                 <button type="button" class="deadline-preset-btn" data-preset="two-weeks">2 Weeks</button>
-                            </div>
-                            <div class="deadline-custom-row">
-                                <input type="date" class="deadline-date-input" id="panel-deadline-date">
+                                <button type="button" class="deadline-preset-btn" data-preset="custom" id="deadline-custom-btn">Custom</button>
                                 <button type="button" class="deadline-clear-btn" id="panel-deadline-clear" title="Clear deadline">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
@@ -4785,6 +4767,20 @@
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" id="prompt-modal-cancel">Cancel</button>
                 <button class="modal-btn modal-btn-primary" id="prompt-modal-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Date Modal -->
+    <div class="modal-overlay" id="custom-date-modal">
+        <div class="modal-content">
+            <div class="modal-title">Select Date</div>
+            <div class="modal-body">
+                <input type="date" class="deadline-date-input" id="custom-date-input" style="width: 100%; padding: 0.5rem; font-size: 1rem;">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="custom-date-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" id="custom-date-confirm">Set Date</button>
             </div>
         </div>
     </div>
@@ -6098,28 +6094,59 @@
             btn.addEventListener('click', async function() {
                 if (!currentTaskId) return;
                 const preset = this.dataset.preset;
-                const deadlineDate = getPresetDate(preset);
-                await updateTaskDeadline(currentTaskId, deadlineDate);
-                document.getElementById('panel-deadline-date').value = deadlineDate;
-                updatePresetButtonStates(deadlineDate);
-                updatePanelDeadlineStatus(deadlineDate);
+
+                if (preset === 'custom') {
+                    // Show custom date modal
+                    showCustomDateModal();
+                } else {
+                    const deadlineDate = getPresetDate(preset);
+                    await updateTaskDeadline(currentTaskId, deadlineDate);
+                    updatePresetButtonStates(deadlineDate);
+                    updatePanelDeadlineStatus(deadlineDate);
+                }
             });
         });
 
-        // Panel deadline date input
-        document.getElementById('panel-deadline-date').addEventListener('change', async function() {
+        // Custom date modal functions
+        function showCustomDateModal() {
+            const modal = document.getElementById('custom-date-modal');
+            const dateInput = document.getElementById('custom-date-input');
+
+            // Pre-populate with current deadline if exists
+            const currentDeadline = taskDeadlinesMap[currentTaskId]?.deadline;
+            dateInput.value = currentDeadline || '';
+
+            modal.classList.add('active');
+            dateInput.focus();
+        }
+
+        document.getElementById('custom-date-cancel').addEventListener('click', function() {
+            document.getElementById('custom-date-modal').classList.remove('active');
+        });
+
+        document.getElementById('custom-date-confirm').addEventListener('click', async function() {
             if (!currentTaskId) return;
-            const deadlineDate = this.value || null;
+            const dateInput = document.getElementById('custom-date-input');
+            const deadlineDate = dateInput.value || null;
+
             await updateTaskDeadline(currentTaskId, deadlineDate);
             updatePresetButtonStates(deadlineDate);
             updatePanelDeadlineStatus(deadlineDate);
+
+            document.getElementById('custom-date-modal').classList.remove('active');
+        });
+
+        // Close custom date modal on overlay click
+        document.getElementById('custom-date-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
         });
 
         // Panel deadline clear button
         document.getElementById('panel-deadline-clear').addEventListener('click', async function() {
             if (!currentTaskId) return;
             await updateTaskDeadline(currentTaskId, null);
-            document.getElementById('panel-deadline-date').value = '';
             updatePresetButtonStates(null);
             updatePanelDeadlineStatus(null);
         });
@@ -6155,10 +6182,21 @@
         }
 
         function updatePresetButtonStates(deadlineDate) {
+            let matchedPreset = false;
             document.querySelectorAll('.deadline-preset-btn').forEach(btn => {
-                const presetDate = getPresetDate(btn.dataset.preset);
-                btn.classList.toggle('active', deadlineDate === presetDate);
+                const preset = btn.dataset.preset;
+                if (preset === 'custom') return; // Handle custom separately
+                const presetDate = getPresetDate(preset);
+                const isMatch = deadlineDate === presetDate;
+                if (isMatch) matchedPreset = true;
+                btn.classList.toggle('active', isMatch);
             });
+
+            // Custom button is active if there's a deadline but no preset matched
+            const customBtn = document.getElementById('deadline-custom-btn');
+            if (customBtn) {
+                customBtn.classList.toggle('active', deadlineDate && !matchedPreset);
+            }
         }
 
         function updatePanelDeadlineStatus(deadlineDate) {
@@ -7108,8 +7146,6 @@
                     markdownViewBtn.classList.remove('active');
 
                     // Load deadline data
-                    const deadlineInput = document.getElementById('panel-deadline-date');
-                    deadlineInput.value = data.task.deadline || '';
                     updatePresetButtonStates(data.task.deadline);
                     updatePanelDeadlineStatus(data.task.deadline);
 
