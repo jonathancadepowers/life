@@ -511,10 +511,6 @@
             background: #f8f9fa;
         }
 
-        .template-dropdown-item:first-child {
-            border-radius: 3px 3px 0 0;
-        }
-
         .template-dropdown-item:last-child {
             border-radius: 0 0 3px 3px;
         }
@@ -523,6 +519,16 @@
             font-size: 0.65rem;
             color: #6B9080;
             font-weight: 500;
+        }
+
+        .template-dropdown-header {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6B9080;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .template-dropdown-empty {
@@ -11950,16 +11956,22 @@
             if (!menu) return;
 
             if (detailTemplates.length === 0) {
-                menu.innerHTML = '<div class="template-dropdown-empty">No templates available</div>';
+                menu.innerHTML = `
+                    <div class="template-dropdown-header">Load a template into Details</div>
+                    <div class="template-dropdown-empty">No templates available</div>
+                `;
                 return;
             }
 
-            menu.innerHTML = detailTemplates.map(t => `
-                <button class="template-dropdown-item" onclick="loadTemplate(${t.id})">
-                    <span>${escapeHtml(t.name)}</span>
-                    ${t.is_default ? '<span class="default-indicator">Default</span>' : ''}
-                </button>
-            `).join('');
+            menu.innerHTML = `
+                <div class="template-dropdown-header">Load a template into Details</div>
+                ${detailTemplates.map(t => `
+                    <button class="template-dropdown-item" onclick="loadTemplate(${t.id})">
+                        <span>${escapeHtml(t.name)}</span>
+                        ${t.is_default ? '<span class="default-indicator">Default</span>' : ''}
+                    </button>
+                `).join('')}
+            `;
         }
 
         // Helper to escape HTML
