@@ -10651,8 +10651,9 @@
 
         // Get available hours (top of hour only, 7am-6pm, not occupied)
         function getAvailableTimeSlots() {
-            const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            // Use currentCalendarDate instead of today
+            const viewDate = currentCalendarDate;
+            const todayStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), viewDate.getDate());
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
             // Collect all occupied hour ranges for today
