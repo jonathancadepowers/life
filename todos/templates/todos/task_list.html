@@ -3489,6 +3489,12 @@
             border-color: #d0e0d8;
         }
 
+        .task-card:focus {
+            outline: 2px solid #6B9080;
+            outline-offset: 2px;
+            background: #e8f5e9;
+        }
+
         .task-card.dragging {
             opacity: 0.5;
             cursor: grabbing;
@@ -5879,6 +5885,7 @@
                 const isScheduled = (taskSchedulesMap[task.id] || []).length > 0;
                 card.className = 'task-card' + (task.critical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (withHighlight ? ' highlight-new' : '');
                 card.dataset.taskId = task.id;
+                card.tabIndex = 0; // Make focusable
                 card.innerHTML = `
                     <div class="task-card-content">
                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
@@ -5892,6 +5899,14 @@
                 card.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+                });
+
+                // Add Enter key listener to open task panel
+                card.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        openTaskPanel(parseInt(this.dataset.taskId));
+                    }
                 });
 
                 return card;
@@ -5920,6 +5935,10 @@
                         if (firstStateGroup.classList.contains('collapsed')) {
                             firstStateGroup.classList.remove('collapsed');
                         }
+                        // Focus the newly created card
+                        setTimeout(() => {
+                            statesCard.focus();
+                        }, 100);
                         // Remove highlight class after animation
                         setTimeout(() => {
                             statesCard.classList.remove('highlight-new');
@@ -5946,6 +5965,10 @@
                         if (countEl) {
                             countEl.textContent = parseInt(countEl.textContent) + 1;
                         }
+                        // Focus the newly created card
+                        setTimeout(() => {
+                            tagsCard.focus();
+                        }, 100);
                         // Remove highlight class after animation
                         setTimeout(() => {
                             tagsCard.classList.remove('highlight-new');
