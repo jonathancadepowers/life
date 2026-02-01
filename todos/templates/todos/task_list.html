@@ -7703,6 +7703,17 @@
                 });
             }
 
+            // Add "Remove all tags" option if task has tags
+            if (taskTags.length > 0) {
+                menuHtml += `
+                        <div class="task-context-menu-divider"></div>
+                        <div class="task-context-menu-item" onclick="event.stopPropagation(); removeAllTagsFromTask(${taskId});">
+                            <i class="bi bi-x-circle" style="color: #dc3545;"></i>
+                            <span style="color: #dc3545;">Remove all tags</span>
+                        </div>
+                `;
+            }
+
             menuHtml += `
                         <div class="task-context-menu-divider"></div>
                         <div class="task-context-menu-item save-tags-btn" onclick="event.stopPropagation(); savePendingTags(${taskId});">
@@ -8022,6 +8033,40 @@
 
             closeContextMenu();
             clearTaskSelection();
+        }
+
+        async function removeAllTagsFromTask(taskId) {
+            const currentTags = taskTagsMap[taskId] || [];
+
+            if (currentTags.length === 0) {
+                closeContextMenu();
+                return;
+            }
+
+            // Remove each tag from the task
+            for (const tag of currentTags) {
+                try {
+                    const response = await fetch(`/tasks/api/${taskId}/tags/remove/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ tag_id: tag.id })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        taskTagsMap[taskId] = data.task_tags;
+                    }
+                } catch (error) {
+                    console.error('Error removing tag:', error);
+                }
+            }
+
+            // Update UI after all tags removed
+            updateTaskCardTags(taskId, []);
+            closeContextMenu();
         }
 
         async function batchDeleteTasks() {
