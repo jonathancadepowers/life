@@ -10481,8 +10481,57 @@
                     }
                 });
 
-                // Note: We don't need special positioning for time blocks or tasks
-                // since they use percentage positioning and will align naturally
+                // Also check for adjacent time blocks (use pixel positioning to avoid percentage rounding gaps)
+                if (adjustedTopPx === null) {
+                    timeBlocks.forEach(otherBlock => {
+                        if (otherBlock.id === block.id) return; // Skip self
+                        const otherEnd = new Date(otherBlock.end);
+                        if (Math.abs(otherEnd - startDate) < 1000) { // Within 1 second
+                            // Found an adjacent time block - use pixel positioning
+                            const otherStart = new Date(otherBlock.start);
+                            const otherStartHour = otherStart.getHours();
+                            const otherStartMinute = otherStart.getMinutes();
+
+                            // Time block duration and visual height (percentage to pixels: 60px per hour)
+                            const otherDurationMinutes = (otherEnd - otherStart) / (1000 * 60);
+                            const otherHeightPx = (otherDurationMinutes / 60) * 60;
+
+                            // Where the other block starts in its hour (in pixels)
+                            const otherTopPx = (otherStartMinute / 60) * 60;
+
+                            // Where the other block visually ends (in pixels from top of its start hour)
+                            const otherVisualEndPx = otherTopPx + otherHeightPx;
+
+                            // Calculate how many pixels into the current hour that is
+                            const hoursDiff = startHour - otherStartHour;
+                            adjustedTopPx = otherVisualEndPx - (hoursDiff * 60);
+                        }
+                    });
+                }
+
+                // Also check for adjacent scheduled tasks
+                if (adjustedTopPx === null) {
+                    Object.keys(taskSchedulesMap).forEach(taskId => {
+                        const schedules = taskSchedulesMap[taskId] || [];
+                        schedules.forEach(schedule => {
+                            const scheduleEnd = new Date(schedule.end_time);
+                            if (Math.abs(scheduleEnd - startDate) < 1000) { // Within 1 second
+                                // Found an adjacent scheduled task - use pixel positioning
+                                const scheduleStart = new Date(schedule.start_time);
+                                const scheduleStartHour = scheduleStart.getHours();
+                                const scheduleStartMinute = scheduleStart.getMinutes();
+
+                                const scheduleDurationMinutes = (scheduleEnd - scheduleStart) / (1000 * 60);
+                                const scheduleHeightPx = (scheduleDurationMinutes / 60) * 60;
+                                const scheduleTopPx = (scheduleStartMinute / 60) * 60;
+                                const scheduleVisualEndPx = scheduleTopPx + scheduleHeightPx;
+
+                                const hoursDiff = startHour - scheduleStartHour;
+                                adjustedTopPx = scheduleVisualEndPx - (hoursDiff * 60);
+                            }
+                        });
+                    });
+                }
 
                 if (adjustedTopPx !== null && adjustedTopPx >= -4 && adjustedTopPx < 60) {
                     // Position time block exactly where event visually ends
@@ -11432,9 +11481,53 @@
                     }
                 });
 
+                // Also check for adjacent time blocks
+                if (adjustedTopPx === null) {
+                    timeBlocks.forEach(block => {
+                        const blockEnd = new Date(block.end);
+                        if (Math.abs(blockEnd - startDate) < 1000) { // Within 1 second
+                            const blockStart = new Date(block.start);
+                            const blockStartHour = blockStart.getHours();
+                            const blockStartMinute = blockStart.getMinutes();
+
+                            const blockDurationMinutes = (blockEnd - blockStart) / (1000 * 60);
+                            const blockHeightPx = (blockDurationMinutes / 60) * 60;
+                            const blockTopPx = (blockStartMinute / 60) * 60;
+                            const blockVisualEndPx = blockTopPx + blockHeightPx;
+
+                            const hoursDiff = hour - blockStartHour;
+                            adjustedTopPx = blockVisualEndPx - (hoursDiff * 60);
+                        }
+                    });
+                }
+
+                // Also check for adjacent other scheduled tasks
+                if (adjustedTopPx === null) {
+                    Object.keys(taskSchedulesMap).forEach(otherTaskId => {
+                        const otherSchedules = taskSchedulesMap[otherTaskId] || [];
+                        otherSchedules.forEach(otherSchedule => {
+                            if (otherSchedule.id === schedule.id) return; // Skip self
+                            const otherEnd = new Date(otherSchedule.end_time);
+                            if (Math.abs(otherEnd - startDate) < 1000) { // Within 1 second
+                                const otherStart = new Date(otherSchedule.start_time);
+                                const otherStartHour = otherStart.getHours();
+                                const otherStartMinute = otherStart.getMinutes();
+
+                                const otherDurationMinutes = (otherEnd - otherStart) / (1000 * 60);
+                                const otherHeightPx = (otherDurationMinutes / 60) * 60;
+                                const otherTopPx = (otherStartMinute / 60) * 60;
+                                const otherVisualEndPx = otherTopPx + otherHeightPx;
+
+                                const hoursDiff = hour - otherStartHour;
+                                adjustedTopPx = otherVisualEndPx - (hoursDiff * 60);
+                            }
+                        });
+                    });
+                }
+
                 if (adjustedTopPx !== null && adjustedTopPx >= -4 && adjustedTopPx < 60) {
-                    // Position task exactly where event visually ends
-                    // Allow small negative values (down to -4px) to close the gap from event's -4px margin
+                    // Position task exactly where adjacent item visually ends
+                    // Allow small negative values (down to -4px) to close gaps
                     taskEl.style.top = `${adjustedTopPx}px`;
                     taskEl.style.height = `${heightPercent}%`;
                 } else {
