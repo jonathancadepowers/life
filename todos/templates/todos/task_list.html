@@ -10546,11 +10546,26 @@
                 // Dragging top edge - adjust both top position and height (snap to time points)
                 const hourContent = blockEl.parentElement;
                 const hour = parseInt(hourContent.dataset.hour);
-                const snapPoints = getValidSnapPoints(hour);
 
                 const rawTop = initialTop + deltaPercent;
                 const rawTopMinute = (rawTop / 100) * 60;
-                const snappedMinute = findClosestSnapPoint(snapPoints, rawTopMinute);
+
+                // Allow dragging into previous hour - expand snap points
+                let allSnapPoints = [];
+                let hourOffset = 0;
+
+                if (rawTopMinute < 0) {
+                    // Dragging into previous hour - add previous hour's snap points as negative values
+                    const prevHourSnapPoints = getValidSnapPoints(hour - 1);
+                    allSnapPoints = prevHourSnapPoints.map(p => p - 60); // Convert to negative offset
+                    hourOffset = -1;
+                } else {
+                    // Normal - within current hour
+                    allSnapPoints = getValidSnapPoints(hour);
+                    hourOffset = 0;
+                }
+
+                const snappedMinute = findClosestSnapPoint(allSnapPoints, rawTopMinute);
                 const snappedTop = (snappedMinute / 60) * 100;
 
                 const topChange = snappedTop - initialTop;
@@ -10560,9 +10575,19 @@
                 if (newHeight >= 50) {
                     // Check for overlap before applying visual change
                     const calDate = new Date(currentCalendarDate);
-                    const startMinutes = (snappedTop / 100) * 60;
+
+                    // Calculate actual start time accounting for hour offset
+                    let actualHour = hour;
+                    let actualMinute = snappedMinute;
+
+                    if (snappedMinute < 0) {
+                        // Time is in previous hour
+                        actualHour = hour - 1;
+                        actualMinute = 60 + snappedMinute; // Convert negative to positive minutes in prev hour
+                    }
+
                     const durationMinutes = (newHeight / 100) * 60;
-                    const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), hour, startMinutes);
+                    const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), actualHour, actualMinute);
                     const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
 
                     const { blockId } = timeBlockResizeState;
@@ -10591,10 +10616,17 @@
 
             // Calculate new start and end times using currentCalendarDate (not today)
             const calDate = new Date(currentCalendarDate);
-            const startMinutes = (topPercent / 100) * 60;
+            let startMinutes = (topPercent / 100) * 60;
             const durationMinutes = (heightPercent / 100) * 60;
 
-            const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), baseHour, startMinutes);
+            // Handle negative topPercent (block resized into previous hour)
+            let actualHour = baseHour;
+            if (startMinutes < 0) {
+                actualHour = baseHour - 1;
+                startMinutes = 60 + startMinutes; // Convert negative to positive minutes in prev hour
+            }
+
+            const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), actualHour, startMinutes);
             const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
 
             // Check for overlaps before saving
@@ -10637,6 +10669,8 @@
                         }
                         block.end = data.time_block.end;
                     }
+                    // Re-render to move block to correct hour if needed
+                    renderTimeBlocks();
                 }
             } catch (error) {
                 console.error('Error updating time block:', error);
