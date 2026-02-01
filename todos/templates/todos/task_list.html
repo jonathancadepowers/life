@@ -10330,7 +10330,7 @@
                 eventEl.style.top = `${topPercent}%`;
                 eventEl.style.left = '4px';
                 eventEl.style.right = '4px';
-                eventEl.style.height = `${heightPx - 4}px`;
+                eventEl.style.height = `${heightPx}px`;
                 eventEl.style.zIndex = '1';
                 eventEl.style.borderRadius = '4px';
                 eventEl.style.overflow = 'hidden';
@@ -10465,9 +10465,9 @@
                         const eventStartHour = eventStart.getHours();
                         const eventStartMinute = eventStart.getMinutes();
 
-                        // Event duration and visual height (with -4px)
+                        // Event duration and visual height
                         const eventDurationMinutes = (eventEnd - eventStart) / (1000 * 60);
-                        const eventHeightPx = (eventDurationMinutes / 60) * 60 - 4;
+                        const eventHeightPx = (eventDurationMinutes / 60) * 60;
 
                         // Where the event starts in its hour (in pixels)
                         const eventTopPx = (eventStartMinute / 60) * 60;
@@ -10493,23 +10493,12 @@
                             const otherStartHour = otherStart.getHours();
                             const otherStartMinute = otherStart.getMinutes();
 
-                            // Check if the OTHER block is itself adjacent to a calendar event
-                            // (which would make it positioned at -4px offset)
-                            let otherBlockOffset = 0;
-                            calendarEvents.forEach(event => {
-                                const eventEnd = new Date(event.end);
-                                if (Math.abs(eventEnd - otherStart) < 1000) {
-                                    // The other block is adjacent to a calendar event, so it's offset by -4px
-                                    otherBlockOffset = -4;
-                                }
-                            });
-
-                            // Time block duration and visual height (percentage to pixels: 60px per hour)
+                            // Time block duration and visual height (60px per hour)
                             const otherDurationMinutes = (otherEnd - otherStart) / (1000 * 60);
                             const otherHeightPx = (otherDurationMinutes / 60) * 60;
 
-                            // Where the other block starts in its hour (in pixels), accounting for its own offset
-                            const otherTopPx = (otherStartMinute / 60) * 60 + otherBlockOffset;
+                            // Where the other block starts in its hour (in pixels)
+                            const otherTopPx = (otherStartMinute / 60) * 60;
 
                             // Where the other block visually ends (in pixels from top of its start hour)
                             const otherVisualEndPx = otherTopPx + otherHeightPx;
@@ -11677,9 +11666,9 @@
                         const eventStartHour = eventStart.getHours();
                         const eventStartMinute = eventStart.getMinutes();
 
-                        // Event duration and visual height (with -4px)
+                        // Event duration and visual height
                         const eventDurationMinutes = (eventEnd - eventStart) / (1000 * 60);
-                        const eventHeightPx = (eventDurationMinutes / 60) * 60 - 4;
+                        const eventHeightPx = (eventDurationMinutes / 60) * 60;
 
                         // Where the event starts in its hour (in pixels)
                         const eventTopPx = (eventStartMinute / 60) * 60;
@@ -11702,18 +11691,9 @@
                             const blockStartHour = blockStart.getHours();
                             const blockStartMinute = blockStart.getMinutes();
 
-                            // Check if this time block is itself adjacent to a calendar event
-                            let blockOffset = 0;
-                            calendarEvents.forEach(event => {
-                                const eventEnd = new Date(event.end);
-                                if (Math.abs(eventEnd - blockStart) < 1000) {
-                                    blockOffset = -4;
-                                }
-                            });
-
                             const blockDurationMinutes = (blockEnd - blockStart) / (1000 * 60);
                             const blockHeightPx = (blockDurationMinutes / 60) * 60;
-                            const blockTopPx = (blockStartMinute / 60) * 60 + blockOffset;
+                            const blockTopPx = (blockStartMinute / 60) * 60;
                             const blockVisualEndPx = blockTopPx + blockHeightPx;
 
                             const hoursDiff = hour - blockStartHour;
