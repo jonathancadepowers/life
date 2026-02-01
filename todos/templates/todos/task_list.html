@@ -4052,7 +4052,7 @@
         .calendar-scheduled-task.dragging {
             opacity: 0.5;
             cursor: grabbing;
-            /* Prevent width changes during drag - width is preserved from before drag started */
+            /* Dimensions are preserved via data attributes set in dragstart */
         }
 
         /* Critical tasks use icon instead of red background */
@@ -12163,9 +12163,9 @@
                         return;
                     }
 
-                    // Find all tasks that overlap with this one (excluding dragging tasks from count)
+                    // Find all tasks that overlap with this one (INCLUDE dragging tasks in count
+                    // so sibling tasks don't expand when a task is picked up to drag)
                     const overlapping = taskInfos.filter(other => {
-                        if (other.element.classList.contains('dragging')) return false;
                         return !(taskInfo.top >= other.bottom || taskInfo.bottom <= other.top);
                     });
 
