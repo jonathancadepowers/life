@@ -11766,15 +11766,27 @@
                 const tasks = Array.from(hourContent.querySelectorAll('.calendar-scheduled-task'));
                 if (tasks.length === 0) return;
 
-                // Build task info array with time ranges
+                const containerHeight = hourContent.offsetHeight || 60;
+
+                // Helper to convert CSS value to pixels
+                function toPixels(value, containerSize) {
+                    if (value.endsWith('%')) {
+                        return (parseFloat(value) / 100) * containerSize;
+                    }
+                    return parseFloat(value) || 0;
+                }
+
+                // Build task info array with time ranges (all in pixels for accurate comparison)
                 const taskInfos = tasks.map(taskEl => {
-                    const top = parseFloat(taskEl.style.top) || 0;
-                    const height = parseFloat(taskEl.style.height) || 0;
-                    const bottom = top + height;
+                    const topPx = toPixels(taskEl.style.top, containerHeight);
+                    const heightPx = toPixels(taskEl.style.height, containerHeight);
+                    const bottomPx = topPx + heightPx;
                     return {
                         element: taskEl,
-                        top,
-                        bottom,
+                        top: topPx,
+                        height: heightPx,
+                        bottom: bottomPx,
+                        originalTop: taskEl.style.top,  // Preserve original CSS value
                         column: 0  // Will be assigned based on overlap detection
                     };
                 });
@@ -11829,6 +11841,11 @@
                     const columnIndex = taskInfo.column;
 
                     if (overlapCount > 1) {
+                        // Align all overlapping tasks to the same top position (minimum among them)
+                        // This ensures tasks at the same time appear at the same vertical position
+                        const minTop = Math.min(...overlapping.map(t => t.top));
+                        taskInfo.element.style.top = `${minTop}px`;
+
                         // Calculate width and left position
                         // We want: 4px left padding, 4px right padding, 4px gap between columns
                         // Total gaps between columns = (overlapCount - 1) * 4
