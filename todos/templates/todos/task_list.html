@@ -10510,13 +10510,23 @@
             const block = timeBlocks.find(b => b.id === blockId);
             if (!block) return;
 
+            // Calculate initialTop from actual time data (not CSS which may be in pixels)
+            const blockStartDate = new Date(block.start);
+            const blockEndDate = new Date(block.end);
+            const startMinute = blockStartDate.getMinutes();
+            const initialTopPercent = (startMinute / 60) * 100;
+
+            // Calculate height from actual duration
+            const durationMinutes = (blockEndDate - blockStartDate) / (1000 * 60);
+            const initialHeightPercent = (durationMinutes / 60) * 100;
+
             timeBlockResizeState = {
                 blockEl,
                 blockId,
                 startDate: new Date(startDate),
                 endDate: new Date(endDate),
-                initialTop: parseFloat(blockEl.style.top) || 0,
-                initialHeight: parseFloat(blockEl.style.height) || 50,
+                initialTop: initialTopPercent,
+                initialHeight: initialHeightPercent,
                 startY: e.clientY,
                 edge: edge // 'top' or 'bottom'
             };
@@ -10603,31 +10613,47 @@
         async function endTimeBlockResize() {
             if (!timeBlockResizeState) return;
 
-            const { blockEl, blockId, startDate, endDate, edge, initialTop } = timeBlockResizeState;
+            const { blockEl, blockId, startDate, endDate, edge, initialTop, initialHeight } = timeBlockResizeState;
             const heightPercent = parseFloat(blockEl.style.height) || 50;
-            const topPercent = parseFloat(blockEl.style.top) || 0;
 
             blockEl.classList.remove('resizing');
 
-            // Calculate new times based on current position and height
-            // Get the hour from the parent hour-content
-            const hourContent = blockEl.parentElement;
-            const baseHour = parseInt(hourContent.dataset.hour);
-
-            // Calculate new start and end times using currentCalendarDate (not today)
-            const calDate = new Date(currentCalendarDate);
-            let startMinutes = (topPercent / 100) * 60;
-            const durationMinutes = (heightPercent / 100) * 60;
-
-            // Handle negative topPercent (block resized into previous hour)
-            let actualHour = baseHour;
-            if (startMinutes < 0) {
-                actualHour = baseHour - 1;
-                startMinutes = 60 + startMinutes; // Convert negative to positive minutes in prev hour
+            // Get the block's actual data for time calculations
+            const block = timeBlocks.find(b => b.id === blockId);
+            if (!block) {
+                document.removeEventListener('mousemove', handleTimeBlockResize);
+                document.removeEventListener('mouseup', endTimeBlockResize);
+                timeBlockResizeState = null;
+                return;
             }
 
-            const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), actualHour, startMinutes);
-            const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
+            const blockStartDate = new Date(block.start);
+            const durationMinutes = (heightPercent / 100) * 60;
+
+            let newStartDate, newEndDate;
+
+            if (edge === 'bottom') {
+                // Bottom edge resize - start time stays the same, only end changes
+                newStartDate = new Date(blockStartDate);
+                newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
+            } else {
+                // Top edge resize - need to calculate new start time from CSS top
+                // CSS top may be set by handleTimeBlockResize during drag
+                const topPercent = parseFloat(blockEl.style.top) || 0;
+                const hourContent = blockEl.parentElement;
+                const baseHour = parseInt(hourContent.dataset.hour);
+                const calDate = new Date(currentCalendarDate);
+
+                let startMinutes = (topPercent / 100) * 60;
+                let actualHour = baseHour;
+                if (startMinutes < 0) {
+                    actualHour = baseHour - 1;
+                    startMinutes = 60 + startMinutes;
+                }
+
+                newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), actualHour, startMinutes);
+                newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
+            }
 
             // Check for overlaps before saving
             if (hasOverlappingItem(newStartDate, newEndDate, 'timeblock-' + blockId)) {
