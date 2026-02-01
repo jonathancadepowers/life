@@ -4922,6 +4922,23 @@
         </div>
     </div>
 
+    <!-- Edit Time Block Modal -->
+    <div class="modal-overlay" id="edit-time-block-modal">
+        <div class="modal-content">
+            <div class="modal-title">Edit Time Block</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 0.75rem;">
+                    <label for="edit-time-block-name-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Name</label>
+                    <input type="text" class="modal-input" id="edit-time-block-name-input" placeholder="Time block name" style="margin-bottom: 0;">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" id="edit-time-block-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-primary" id="edit-time-block-save">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Task Detail Template Modal -->
     <div class="modal-overlay" id="template-modal">
         <div class="modal-content" style="width: 450px;">
@@ -10386,15 +10403,24 @@
                 const contentWrapper = document.createElement('div');
                 contentWrapper.className = 'time-block-content';
 
-                // Add title text (click to edit)
+                // Add title text
                 const titleSpan = document.createElement('span');
                 titleSpan.className = 'time-block-title';
                 titleSpan.textContent = block.name;
-                titleSpan.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    startTimeBlockInlineEdit(blockEl, block.id, titleSpan);
-                });
                 contentWrapper.appendChild(titleSpan);
+
+                // Add double-click to edit
+                blockEl.addEventListener('dblclick', function(e) {
+                    e.stopPropagation();
+                    openEditTimeBlockModal(block.id);
+                });
+
+                // Add right-click context menu
+                blockEl.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showTimeBlockContextMenu(e, block.id);
+                });
 
                 blockEl.appendChild(contentWrapper);
 
@@ -10577,68 +10603,128 @@
             }
         }
 
-        // Inline edit a time block name
-        function startTimeBlockInlineEdit(blockEl, blockId, titleSpan) {
-            // Don't start another edit if already editing
-            if (titleSpan.querySelector('input')) return;
+        // Edit time block modal
+        let currentEditingTimeBlockId = null;
+        const editTimeBlockModal = document.getElementById('edit-time-block-modal');
+        const editTimeBlockNameInput = document.getElementById('edit-time-block-name-input');
+        const editTimeBlockSave = document.getElementById('edit-time-block-save');
+        const editTimeBlockCancel = document.getElementById('edit-time-block-cancel');
 
-            const currentName = titleSpan.textContent;
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'time-block-inline-input';
-            input.value = currentName;
+        function openEditTimeBlockModal(blockId) {
+            const block = timeBlocks.find(b => b.id === blockId);
+            if (!block) return;
 
-            // Replace title with input
-            titleSpan.textContent = '';
-            titleSpan.appendChild(input);
-            input.focus();
-            input.select();
+            currentEditingTimeBlockId = blockId;
+            editTimeBlockNameInput.value = block.name;
+            editTimeBlockModal.classList.add('active');
+            editTimeBlockNameInput.focus();
+            editTimeBlockNameInput.select();
+        }
 
-            // Save on blur or Enter
-            async function saveEdit() {
-                const newName = input.value.trim();
-                if (newName && newName !== currentName) {
-                    try {
-                        const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
-                            method: 'PATCH',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken
-                            },
-                            body: JSON.stringify({ name: newName })
-                        });
-
-                        const data = await response.json();
-                        if (data.success) {
-                            // Update local data
-                            const block = timeBlocks.find(b => b.id === blockId);
-                            if (block) {
-                                block.name = data.time_block.name;
-                            }
-                            titleSpan.textContent = newName;
-                            blockEl.title = newName;
-                        } else {
-                            titleSpan.textContent = currentName;
-                        }
-                    } catch (error) {
-                        console.error('Error updating time block name:', error);
-                        titleSpan.textContent = currentName;
-                    }
-                } else {
-                    titleSpan.textContent = currentName || newName;
-                }
+        async function saveTimeBlockEdit() {
+            const newName = editTimeBlockNameInput.value.trim();
+            if (!newName || !currentEditingTimeBlockId) {
+                editTimeBlockModal.classList.remove('active');
+                currentEditingTimeBlockId = null;
+                return;
             }
 
-            input.addEventListener('blur', saveEdit);
-            input.addEventListener('keydown', function(e) {
+            try {
+                const response = await fetch(`/tasks/api/time-blocks/${currentEditingTimeBlockId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ name: newName })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local data
+                    const block = timeBlocks.find(b => b.id === currentEditingTimeBlockId);
+                    if (block) {
+                        block.name = data.time_block.name;
+                    }
+                    // Re-render to show updated name
+                    renderTimeBlocks();
+                } else {
+                    alert(data.error || 'Failed to update time block');
+                }
+            } catch (error) {
+                console.error('Error updating time block name:', error);
+                alert('Failed to update time block');
+            }
+
+            editTimeBlockModal.classList.remove('active');
+            currentEditingTimeBlockId = null;
+        }
+
+        if (editTimeBlockSave) {
+            editTimeBlockSave.addEventListener('click', saveTimeBlockEdit);
+        }
+
+        if (editTimeBlockCancel) {
+            editTimeBlockCancel.addEventListener('click', function() {
+                editTimeBlockModal.classList.remove('active');
+                currentEditingTimeBlockId = null;
+            });
+        }
+
+        if (editTimeBlockNameInput) {
+            editTimeBlockNameInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    input.blur();
+                    saveTimeBlockEdit();
                 } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    titleSpan.textContent = currentName;
+                    editTimeBlockModal.classList.remove('active');
+                    currentEditingTimeBlockId = null;
                 }
             });
+        }
+
+        // Time block context menu
+        function showTimeBlockContextMenu(e, blockId) {
+            closeContextMenu();
+
+            const menuHtml = `
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); openEditTimeBlockModal(${blockId}); closeContextMenu();">
+                    <i class="bi bi-pencil"></i>
+                    Edit
+                </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-item danger" onclick="event.stopPropagation(); deleteTimeBlock(${blockId}); closeContextMenu();">
+                    <i class="bi bi-trash"></i>
+                    Delete
+                </div>
+            `;
+
+            const menu = document.createElement('div');
+            menu.className = 'task-context-menu';
+            menu.id = 'task-context-menu';
+            menu.innerHTML = menuHtml;
+
+            document.body.appendChild(menu);
+
+            // Position the menu
+            const menuRect = menu.getBoundingClientRect();
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            setTimeout(() => {
+                document.addEventListener('click', closeContextMenu);
+                document.addEventListener('contextmenu', closeContextMenu);
+            }, 0);
         }
 
         // ========== Block Time Modal ==========
