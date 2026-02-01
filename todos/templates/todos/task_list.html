@@ -1615,8 +1615,27 @@
 
         .filter-dropdown-body {
             padding: 0.75rem 1rem;
-            max-height: 70vh;
+            max-height: 60vh;
             overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .filter-dropdown-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .filter-dropdown-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .filter-dropdown-body::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .filter-dropdown-body::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
         }
 
         .filter-section {
@@ -1940,8 +1959,27 @@
 
         .settings-dropdown-body {
             padding: 0.75rem 0;
-            max-height: 70vh;
+            max-height: 60vh;
             overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .settings-dropdown-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .settings-dropdown-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .settings-dropdown-body::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .settings-dropdown-body::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
         }
 
         .context-list {
@@ -4293,7 +4331,7 @@
     <div class="filter-dropdown" id="filter-dropdown">
         <div class="filter-dropdown-header">
             <i class="bi bi-sliders"></i>
-            Views & Filters
+            What You See
         </div>
 
         <!-- Saved Views Section -->
@@ -4378,6 +4416,10 @@
                 <label class="filter-option">
                     <input type="checkbox" id="hide-rollups-toggle">
                     Hide Rollups
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" id="hide-calendar-toggle">
+                    Hide Calendar
                 </label>
             </div>
 
@@ -4651,6 +4693,19 @@
             <div class="task-panel-section">
                 <div class="task-panel-section-header">
                     <span>Details</span>
+                    <span class="markdown-help-icon">
+                        <i class="bi bi-question-circle"></i>
+                        <span class="markdown-help-tooltip">
+                            <strong>Markdown</strong><br>
+                            <code>**text**</code> bold<br>
+                            <code>*text*</code> italic<br>
+                            <code>[text](url)</code> link<br>
+                            <code>- item</code> bullet<br>
+                            <code>1. item</code> numbered<br>
+                            <code>`code`</code> code<br>
+                            <code>## text</code> heading
+                        </span>
+                    </span>
                     <div class="task-panel-section-actions">
                         <div class="template-dropdown" id="template-dropdown">
                             <button type="button" class="template-dropdown-btn" id="template-dropdown-btn" title="Load template">
@@ -4668,7 +4723,7 @@
                 </div>
                 <div class="task-panel-section-content">
                     <div class="panel-details-container">
-                        <textarea class="panel-details-input" id="panel-details" placeholder="Markdown supported"></textarea>
+                        <textarea class="panel-details-input" id="panel-details" placeholder=""></textarea>
                         <div class="panel-details-preview" id="panel-details-preview" style="display: none;"></div>
                     </div>
                 </div>
@@ -8571,6 +8626,7 @@
         let showCompletedTasks = false;  // Default to hiding completed tasks
         let searchText = '';  // Current search query for tasks
         let hideRollups = false;  // Default to showing rollup metrics
+        let hideCalendar = false;  // Default to showing calendar panel
 
         function saveFilterSettings() {
             setCookie('taskFilters', {
@@ -8580,9 +8636,26 @@
                 groupBy: currentGroupBy,
                 showCompleted: showCompletedTasks,
                 hideRollups: hideRollups,
+                hideCalendar: hideCalendar,
                 abandonedDays: abandonedDays,
                 autoAbandonEnabled: autoAbandonEnabled
             });
+        }
+
+        function updateCalendarVisibility() {
+            const calendarPanel = document.getElementById('calendar-panel');
+            if (calendarPanel) {
+                calendarPanel.style.display = hideCalendar ? 'none' : '';
+            }
+            // If hiding calendar, expand tasks panel to full width
+            const tasksPanel = document.getElementById('tasks-panel');
+            if (tasksPanel) {
+                if (hideCalendar) {
+                    tasksPanel.style.flex = '1';
+                } else {
+                    tasksPanel.style.flex = '';
+                }
+            }
         }
 
         function updateRollupsVisibility() {
@@ -9006,8 +9079,9 @@
         // Toggle filter dropdown
         filterIcon.addEventListener('click', function(e) {
             e.stopPropagation();
-            // Close deadline dropdown if open
+            // Close other dropdowns if open
             closeDeadlineDropdown();
+            closeSettingsDropdown();
             filterDropdown.classList.toggle('active');
             filterIcon.classList.toggle('active', filterDropdown.classList.contains('active'));
         });
@@ -9026,9 +9100,10 @@
 
         deadlineWarningIcon.addEventListener('click', function(e) {
             e.stopPropagation();
-            // Close filter dropdown if open
+            // Close other dropdowns if open
             filterDropdown.classList.remove('active');
             filterIcon.classList.remove('active');
+            closeSettingsDropdown();
             // Toggle deadline dropdown
             const isActive = deadlineDropdown.classList.contains('active');
             if (isActive) {
@@ -9298,6 +9373,13 @@
             saveFilterSettings();
         });
 
+        // Toggle for hiding calendar panel
+        document.getElementById('hide-calendar-toggle').addEventListener('change', function() {
+            hideCalendar = this.checked;
+            updateCalendarVisibility();
+            saveFilterSettings();
+        });
+
         // Load saved filter settings from cookies on page load
         (function loadFilterSettings() {
             const saved = getCookie('taskFilters');
@@ -9344,6 +9426,14 @@
                     const toggle = document.getElementById('hide-rollups-toggle');
                     toggle.checked = saved.hideRollups;
                     updateRollupsVisibility();
+                }
+
+                // Restore hide calendar toggle
+                if (saved.hideCalendar !== undefined) {
+                    hideCalendar = saved.hideCalendar;
+                    const toggle = document.getElementById('hide-calendar-toggle');
+                    if (toggle) toggle.checked = saved.hideCalendar;
+                    updateCalendarVisibility();
                 }
 
                 // Load abandoned settings
