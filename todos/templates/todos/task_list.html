@@ -6050,10 +6050,17 @@
             markdownViewBtn.classList.remove('active');
         });
 
+        // Track whether we're interacting with tag controls
+        let isInteractingWithTags = false;
+
         // Clicking outside switches to view mode
         detailsTextarea.addEventListener('blur', function() {
-            // Small delay to allow clicking the toggle buttons
-            setTimeout(showMarkdownPreview, 150);
+            // Small delay to allow clicking the toggle buttons or tag controls
+            setTimeout(() => {
+                if (!isInteractingWithTags) {
+                    showMarkdownPreview();
+                }
+            }, 150);
         });
 
         // Clicking preview switches to edit mode and positions cursor at click location
@@ -8465,11 +8472,14 @@
 
             addBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                isInteractingWithTags = true;
                 menu.classList.toggle('show');
                 if (menu.classList.contains('show')) {
                     searchInput.value = '';
                     renderPanelTagOptions(taskId, '', optionsContainer);
                     searchInput.focus();
+                } else {
+                    isInteractingWithTags = false;
                 }
             });
 
@@ -8483,6 +8493,7 @@
             document.addEventListener('click', function closePanelTagDropdown(e) {
                 if (!dropdown.contains(e.target)) {
                     menu.classList.remove('show');
+                    isInteractingWithTags = false;
                 }
             });
         }
