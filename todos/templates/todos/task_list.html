@@ -8783,9 +8783,9 @@
                 label.innerHTML = `
                     <input type="checkbox" class="filter-tag-checkbox" data-tag-id="${tag.id}" ${isChecked ? 'checked' : ''}>
                     <span class="task-tag-pill" style="font-size: 0.75rem;">${escapeHtml(tag.name)}</span>
+                    <i class="bi bi-pencil rename-tag-btn" data-tag-id="${tag.id}" data-tag-name="${escapeHtml(tag.name)}" style="margin-left: 0.3rem; cursor: pointer; color: #6c757d; opacity: 0.6; transition: opacity 0.2s; font-size: 0.65rem;" title="Rename tag"></i>
+                    <i class="bi bi-x-circle delete-tag-btn" data-tag-id="${tag.id}" style="margin-left: 0.15rem; cursor: pointer; color: #dc3545; opacity: 0.6; transition: opacity 0.2s; font-size: 0.65rem;" title="Delete tag"></i>
                     <span style="color: #6c757d; font-size: 0.7rem; margin-left: auto;">(${count})</span>
-                    <i class="bi bi-pencil rename-tag-btn" data-tag-id="${tag.id}" data-tag-name="${escapeHtml(tag.name)}" style="margin-left: 0.35rem; cursor: pointer; color: #6c757d; opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" title="Rename tag"></i>
-                    <i class="bi bi-x-circle delete-tag-btn" data-tag-id="${tag.id}" style="margin-left: 0.2rem; cursor: pointer; color: #dc3545; opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" title="Delete tag"></i>
                 `;
                 filterTagsList.appendChild(label);
 
