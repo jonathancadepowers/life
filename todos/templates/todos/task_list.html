@@ -3966,14 +3966,22 @@
             color: #c9956c;
             cursor: pointer;
             position: absolute;
-            right: 2px;
-            top: 2px;
-            padding: 0;
+            right: 0;
+            top: 0;
+            padding: 8px;
             font-size: 0.75rem;
+            line-height: 1;
+            min-width: 24px;
+            min-height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .calendar-time-block .remove-btn:hover {
             color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+            border-radius: 4px;
         }
 
         .calendar-task-resize-handle:hover {
@@ -3987,20 +3995,27 @@
 
         .calendar-scheduled-task .remove-btn {
             position: absolute;
-            right: 4px;
-            top: 4px;
+            right: 0;
+            top: 0;
             background: none;
             border: none;
             color: #6c757d;
             opacity: 0.4;
             cursor: pointer;
-            padding: 0;
+            padding: 8px;
             font-size: 0.7rem;
             line-height: 1;
+            min-width: 24px;
+            min-height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .calendar-scheduled-task .remove-btn:hover {
             opacity: 1;
+            background: rgba(108, 117, 125, 0.1);
+            border-radius: 4px;
         }
 
         .calendar-scheduled-task:hover {
@@ -4010,6 +4025,7 @@
         .calendar-scheduled-task.dragging {
             opacity: 0.5;
             cursor: grabbing;
+            /* Prevent width changes during drag - width is preserved from before drag started */
         }
 
         /* Critical tasks use icon instead of red background */
@@ -4935,6 +4951,9 @@
                     </div>
                 </div>
                 <p style="font-size: 0.7rem; color: #999; margin-top: 0.75rem; margin-bottom: 0;">You can adjust the time and duration on the calendar.</p>
+                <p style="font-size: 0.7rem; color: #6b9080; margin-top: 0.75rem; margin-bottom: 0; padding: 8px; background: #f0f7f4; border-radius: 4px;">
+                    <strong>Tip:</strong> Hold <strong>COMMAND</strong> (on MacOS) or <strong>CTRL</strong> (on a PC) over an open space on the calendar to block time. That's like…way faster than using this clunky method that you're using now. :)
+                </p>
             </div>
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" id="add-event-cancel">Cancel</button>
@@ -12059,8 +12078,14 @@
 
                 // For each task, determine the max number of overlapping tasks at its time
                 taskInfos.forEach(taskInfo => {
-                    // Find all tasks that overlap with this one
+                    // Skip tasks that are being dragged - preserve their width
+                    if (taskInfo.element.classList.contains('dragging')) {
+                        return;
+                    }
+
+                    // Find all tasks that overlap with this one (excluding dragging tasks from count)
                     const overlapping = taskInfos.filter(other => {
+                        if (other.element.classList.contains('dragging')) return false;
                         return !(taskInfo.top >= other.bottom || taskInfo.bottom <= other.top);
                     });
 
@@ -12187,16 +12212,33 @@
         // Setup drag events for scheduled tasks on the calendar
         function setupScheduledTaskDragEvents(taskEl) {
             taskEl.addEventListener('dragstart', function(e) {
+                // Store original dimensions before any changes
+                const originalWidth = this.style.width;
+                const originalLeft = this.style.left;
+                this.dataset.originalWidth = originalWidth;
+                this.dataset.originalLeft = originalLeft;
+
                 this.classList.add('dragging');
                 currentDragTaskId = this.dataset.taskId;
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', this.dataset.taskId);
                 e.dataTransfer.setData('application/x-scheduled-task', 'true');
+
+                // Force preserve width during drag (prevent expansion)
+                if (originalWidth) {
+                    this.style.width = originalWidth;
+                    this.style.left = originalLeft;
+                }
             });
 
             taskEl.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
                 currentDragTaskId = null;
+
+                // Clean up stored dimensions
+                delete this.dataset.originalWidth;
+                delete this.dataset.originalLeft;
+
                 document.querySelectorAll('.hour-content.drag-over').forEach(el => {
                     el.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
                     el.style.removeProperty('--preview-height');
