@@ -7852,11 +7852,11 @@
                     ${count} tasks selected
                 </div>
                 <div class="task-context-menu-divider"></div>
-                <div class="task-context-menu-item" onclick="batchMarkCritical(true)">
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); batchMarkCritical(true)">
                     <i class="bi bi-exclamation-circle"></i>
                     Mark All Critical
                 </div>
-                <div class="task-context-menu-item" onclick="batchMarkCritical(false)">
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); batchMarkCritical(false)">
                     <i class="bi bi-exclamation-circle-fill"></i>
                     Unmark All Critical
                 </div>
@@ -7877,7 +7877,7 @@
                 // Add tags section
                 tagsList.forEach(tag => {
                     menuHtml += `
-                        <div class="task-context-menu-item" onclick="batchAddTag(${tag.id})">
+                        <div class="task-context-menu-item" onclick="event.stopPropagation(); batchAddTag(${tag.id})">
                             <i class="bi bi-plus-circle" style="color: #6B9080;"></i>
                             ${escapeHtml(tag.name)}
                         </div>
@@ -7888,7 +7888,7 @@
                 menuHtml += `<div class="task-context-menu-divider"></div>`;
                 tagsList.forEach(tag => {
                     menuHtml += `
-                        <div class="task-context-menu-item" onclick="batchRemoveTag(${tag.id})">
+                        <div class="task-context-menu-item" onclick="event.stopPropagation(); batchRemoveTag(${tag.id})">
                             <i class="bi bi-dash-circle" style="color: #dc3545;"></i>
                             ${escapeHtml(tag.name)}
                         </div>
@@ -7898,7 +7898,7 @@
                 // Remove all tags option
                 menuHtml += `
                     <div class="task-context-menu-divider"></div>
-                    <div class="task-context-menu-item" onclick="batchRemoveAllTags()">
+                    <div class="task-context-menu-item" onclick="event.stopPropagation(); batchRemoveAllTags()">
                         <i class="bi bi-x-circle" style="color: #dc3545;"></i>
                         Remove all tags
                     </div>
@@ -7909,7 +7909,7 @@
                     </div>
                 </div>
                 <div class="task-context-menu-divider"></div>
-                <div class="task-context-menu-item danger" onclick="batchDeleteTasks()">
+                <div class="task-context-menu-item danger" onclick="event.stopPropagation(); batchDeleteTasks()">
                     <i class="bi bi-trash"></i>
                     Delete ${count} Tasks
                 </div>
