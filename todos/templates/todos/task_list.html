@@ -11594,7 +11594,7 @@
             return count;
         }
 
-        // Find valid snap points for a given hour (includes :00, :30, and event end times)
+        // Find valid snap points for a given hour (includes :00, :30, and 1 min after event end times)
         function getValidSnapPoints(hour) {
             const snapPoints = [0, 30]; // Always include :00 and :30
 
@@ -11609,7 +11609,8 @@
                 if (endDate >= todayStart && endDate < todayEnd) {
                     const endHour = endDate.getHours();
                     const endMinute = endDate.getMinutes();
-                    // If event ends in this hour and not on :00 or :30, add it as a snap point
+                    // If event ends in this hour and not on :00 or :30, add end time as snap point
+                    // We snap to the exact end time (not +1) for precise alignment
                     if (endHour === hour && endMinute !== 0 && endMinute !== 30) {
                         if (!snapPoints.includes(endMinute)) {
                             snapPoints.push(endMinute);
@@ -11622,38 +11623,62 @@
         }
 
         // Find the closest snap point to a given minute
-        // Prioritizes event end times (non-standard times) when within range
+        // Prevents snapping to times that would overlap with events
         function findClosestSnapPoint(snapPoints, targetMinute) {
+            if (snapPoints.length === 0) return 0;
+
             // Separate standard (:00, :30) from event end times (everything else)
             const standardPoints = snapPoints.filter(p => p === 0 || p === 30);
             const eventEndPoints = snapPoints.filter(p => p !== 0 && p !== 30);
 
-            // If there are event end times, check if we're near any of them
-            // Snap to event end times when within 5 minutes (before or after)
-            // This creates precise alignment with event boundaries
-            if (eventEndPoints.length > 0) {
-                for (const point of eventEndPoints) {
-                    const diff = Math.abs(targetMinute - point);
-                    // If within 5 minutes of an event end time, snap to it
-                    if (diff <= 5) {
-                        return point;
-                    }
-                }
-            }
-
-            // Otherwise, find the closest snap point normally
-            let closest = snapPoints[0];
-            let minDiff = Math.abs(targetMinute - closest);
-
-            for (const point of snapPoints) {
+            // Find closest standard point
+            let closestStandard = null;
+            let standardDiff = Infinity;
+            for (const point of standardPoints) {
                 const diff = Math.abs(targetMinute - point);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    closest = point;
+                if (diff < standardDiff) {
+                    standardDiff = diff;
+                    closestStandard = point;
                 }
             }
 
-            return closest;
+            // Find closest event end point
+            let closestEventEnd = null;
+            let eventDiff = Infinity;
+            for (const point of eventEndPoints) {
+                const diff = Math.abs(targetMinute - point);
+                if (diff < eventDiff) {
+                    eventDiff = diff;
+                    closestEventEnd = point;
+                }
+            }
+
+            // If there's an event end point and snapping to the standard point would
+            // put us before the event ends (creating overlap), use event end instead
+            if (closestEventEnd !== null && closestStandard !== null) {
+                // Check if the standard point is before the event end
+                if (closestStandard < closestEventEnd && targetMinute >= closestStandard - 5) {
+                    // We're trying to place after/near the standard time, but there's an event
+                    // ending after it. Use the event end to avoid overlap.
+                    return closestEventEnd;
+                }
+            }
+
+            // If we're within 3 minutes of an event end, snap to it
+            if (closestEventEnd !== null && eventDiff <= 3) {
+                return closestEventEnd;
+            }
+
+            // Otherwise use closest point overall
+            if (closestEventEnd !== null && closestStandard !== null) {
+                return eventDiff < standardDiff ? closestEventEnd : closestStandard;
+            } else if (closestEventEnd !== null) {
+                return closestEventEnd;
+            } else if (closestStandard !== null) {
+                return closestStandard;
+            }
+
+            return snapPoints[0];
         }
 
         // Setup drop zones on calendar hour rows
