@@ -10451,10 +10451,44 @@
                 });
                 blockEl.appendChild(resizeHandle);
 
-                // Position based on minute within the hour
-                const topPercent = (startMinute / 60) * 100;
-                blockEl.style.top = `${topPercent}%`;
-                blockEl.style.height = `${heightPercent}%`;
+                // Check if this time block starts exactly when an event ends
+                // Events use heightPx - 4, so we need to account for that gap
+                let adjustedTopPx = null;
+                calendarEvents.forEach(event => {
+                    const eventEnd = new Date(event.end);
+                    if (Math.abs(eventEnd - startDate) < 1000) { // Within 1 second
+                        // Found an adjacent event - calculate where it visually ends
+                        const eventStart = new Date(event.start);
+                        const eventStartHour = eventStart.getHours();
+                        const eventStartMinute = eventStart.getMinutes();
+
+                        // Event duration and visual height (with -4px)
+                        const eventDurationMinutes = (eventEnd - eventStart) / (1000 * 60);
+                        const eventHeightPx = (eventDurationMinutes / 60) * 60 - 4;
+
+                        // Where the event starts in its hour (in pixels)
+                        const eventTopPx = (eventStartMinute / 60) * 60;
+
+                        // Where the event visually ends (in pixels from top of its start hour)
+                        const eventVisualEndPx = eventTopPx + eventHeightPx;
+
+                        // Calculate how many pixels into the current hour that is
+                        const hoursDiff = startHour - eventStartHour;
+                        adjustedTopPx = eventVisualEndPx - (hoursDiff * 60);
+                    }
+                });
+
+                if (adjustedTopPx !== null && adjustedTopPx >= 0 && adjustedTopPx < 60) {
+                    // Position time block exactly where event visually ends
+                    blockEl.style.top = `${adjustedTopPx}px`;
+                    blockEl.style.height = `${heightPercent}%`;
+                } else {
+                    // Normal percentage-based positioning
+                    const topPercent = (startMinute / 60) * 100;
+                    blockEl.style.top = `${topPercent}%`;
+                    blockEl.style.height = `${heightPercent}%`;
+                }
+
                 blockEl.style.minHeight = '28px';
 
                 // Make time block draggable
