@@ -11622,7 +11622,25 @@
         }
 
         // Find the closest snap point to a given minute
+        // Prioritizes event end times (non-standard times) when within range
         function findClosestSnapPoint(snapPoints, targetMinute) {
+            // Separate standard (:00, :30) from event end times (everything else)
+            const standardPoints = snapPoints.filter(p => p === 0 || p === 30);
+            const eventEndPoints = snapPoints.filter(p => p !== 0 && p !== 30);
+
+            // If there are event end times, check if we're within 15 minutes of any of them
+            // Event end times get priority to make it easier to align with events
+            if (eventEndPoints.length > 0) {
+                for (const point of eventEndPoints) {
+                    const diff = Math.abs(targetMinute - point);
+                    // If within 15 minutes of an event end time, snap to it
+                    if (diff <= 15) {
+                        return point;
+                    }
+                }
+            }
+
+            // Otherwise, find the closest snap point normally
             let closest = snapPoints[0];
             let minDiff = Math.abs(targetMinute - closest);
 
