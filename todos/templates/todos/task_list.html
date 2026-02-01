@@ -10863,7 +10863,7 @@
                 const rawTop = initialTop + deltaPercent;
                 const rawTopMinute = (rawTop / 100) * 60;
 
-                // Allow dragging into previous hour - expand snap points
+                // Allow dragging into previous/next hour - expand snap points
                 let allSnapPoints = [];
                 let hourOffset = 0;
 
@@ -10872,9 +10872,18 @@
                     const prevHourSnapPoints = getValidSnapPoints(hour - 1);
                     allSnapPoints = prevHourSnapPoints.map(p => p - 60); // Convert to negative offset
                     hourOffset = -1;
+                } else if (rawTopMinute >= 60) {
+                    // Dragging into next hour - add next hour's snap points offset by 60
+                    const nextHourSnapPoints = getValidSnapPoints(hour + 1);
+                    allSnapPoints = nextHourSnapPoints.map(p => p + 60); // Convert to offset from current hour
+                    hourOffset = 1;
                 } else {
-                    // Normal - within current hour
+                    // Normal - within current hour, but include boundaries for smoother dragging
                     allSnapPoints = getValidSnapPoints(hour);
+                    // Also include the 60 mark (start of next hour) for when dragging near the bottom
+                    if (!allSnapPoints.includes(60)) {
+                        allSnapPoints.push(60);
+                    }
                     hourOffset = 0;
                 }
 
@@ -10897,6 +10906,10 @@
                         // Time is in previous hour
                         actualHour = hour - 1;
                         actualMinute = 60 + snappedMinute; // Convert negative to positive minutes in prev hour
+                    } else if (snappedMinute >= 60) {
+                        // Time is in next hour
+                        actualHour = hour + 1;
+                        actualMinute = snappedMinute - 60; // Convert to minutes in next hour
                     }
 
                     const durationMinutes = (newHeight / 100) * 60;
