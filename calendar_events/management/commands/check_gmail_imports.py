@@ -83,6 +83,7 @@ class Command(BaseCommand):
 
             total_created = 0
             total_updated = 0
+            total_canceled = 0
             processed_count = 0
 
             for email_id in email_ids:
@@ -137,12 +138,13 @@ class Command(BaseCommand):
 
                 # Import the calendar events
                 try:
-                    created, updated = import_calendar_events(json_data, source=source)
+                    created, updated, canceled = import_calendar_events(json_data, source=source)
                     total_created += created
                     total_updated += updated
+                    total_canceled += canceled
                     processed_count += 1
                     self.stdout.write(self.style.SUCCESS(
-                        f'  Imported: {created} created, {updated} updated'
+                        f'  Imported: {created} created, {updated} updated, {canceled} canceled'
                     ))
 
                     # Mark email as read
@@ -172,7 +174,7 @@ class Command(BaseCommand):
             self.stdout.write('')
             self.stdout.write(self.style.SUCCESS(
                 f'Done! Processed {processed_count} email(s): '
-                f'{total_created} events created, {total_updated} events updated'
+                f'{total_created} created, {total_updated} updated, {total_canceled} canceled'
             ))
 
         except imaplib.IMAP4.error as e:

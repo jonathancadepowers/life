@@ -19,6 +19,9 @@ class CalendarEvent(models.Model):
     organizer = models.EmailField(max_length=255, blank=True, default='')
     body_preview = models.TextField(blank=True, default='')
 
+    # Status - events can be "canceled" (removed from calendar but kept for notes)
+    is_active = models.BooleanField(default=True)
+
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
