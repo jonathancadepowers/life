@@ -10513,22 +10513,24 @@
                 const snappedMinute = findClosestSnapPoint(snapPoints, rawTopMinute);
                 const snappedTop = (snappedMinute / 60) * 100;
 
-                console.log('Resize snap debug:', {
-                    hour: hour,
-                    rawTop: rawTop,
-                    rawTopMinute: rawTopMinute,
-                    snapPoints: snapPoints,
-                    snappedTop: snappedTop,
-                    snappedMinute: snappedMinute
-                });
-
                 const topChange = snappedTop - initialTop;
                 const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
 
                 // Don't allow top to go past the bottom
                 if (newHeight >= 50) {
-                    blockEl.style.top = `${snappedTop}%`;
-                    blockEl.style.height = `${newHeight}%`;
+                    // Check for overlap before applying visual change
+                    const calDate = new Date(currentCalendarDate);
+                    const startMinutes = (snappedTop / 100) * 60;
+                    const durationMinutes = (newHeight / 100) * 60;
+                    const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), hour, startMinutes);
+                    const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
+
+                    const { blockId } = timeBlockResizeState;
+                    if (!hasOverlappingItem(newStartDate, newEndDate, 'timeblock-' + blockId)) {
+                        blockEl.style.top = `${snappedTop}%`;
+                        blockEl.style.height = `${newHeight}%`;
+                    }
+                    // If overlap detected, don't update visual - keeps it at last valid position
                 }
             }
         }
