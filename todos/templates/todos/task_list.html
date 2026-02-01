@@ -7506,9 +7506,12 @@
 
         function showGroupContextMenu(e, groupElement) {
             e.preventDefault();
+            e.stopPropagation();
 
-            // Remove any existing menu
+            // Remove any existing menus
             closeContextMenu();
+            const tasksPanelMenu = document.getElementById('tasks-panel-context-menu');
+            if (tasksPanelMenu) tasksPanelMenu.remove();
 
             // Build simple menu HTML
             const menuHtml = `
@@ -9807,8 +9810,8 @@
         }
 
         tasksPanel.addEventListener('contextmenu', function(e) {
-            // Only show on the panel body, not on task cards
-            if (e.target.closest('.task-card') || e.target.closest('.kanban-card')) return;
+            // Only show on the panel body, not on task cards or state headers
+            if (e.target.closest('.task-card') || e.target.closest('.kanban-card') || e.target.closest('.state-group-header')) return;
 
             e.preventDefault();
             closeTasksPanelContextMenu();
