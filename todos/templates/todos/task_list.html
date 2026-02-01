@@ -4052,7 +4052,10 @@
         .calendar-scheduled-task.dragging {
             opacity: 0.5;
             cursor: grabbing;
-            /* Dimensions are preserved via data attributes set in dragstart */
+            /* Lock dimensions using CSS variables set in dragstart */
+            width: var(--drag-width) !important;
+            left: var(--drag-left) !important;
+            right: auto !important;
         }
 
         /* Critical tasks use icon instead of red background */
@@ -12291,38 +12294,54 @@
 
         // Setup drag events for scheduled tasks on the calendar
         function setupScheduledTaskDragEvents(taskEl) {
-            taskEl.addEventListener('dragstart', function(e) {
-                // Store original dimensions before any changes
-                const originalWidth = this.style.width;
-                const originalLeft = this.style.left;
-                this.dataset.originalWidth = originalWidth;
-                this.dataset.originalLeft = originalLeft;
+            // Capture dimensions on mousedown (before drag starts) to prevent expansion
+            taskEl.addEventListener('mousedown', function(e) {
+                // Don't interfere with resize handles
+                if (e.target.classList.contains('calendar-task-resize-handle') ||
+                    e.target.classList.contains('calendar-task-resize-handle-top') ||
+                    e.target.classList.contains('remove-btn') ||
+                    e.target.closest('.remove-btn')) {
+                    return;
+                }
 
+                // Get computed dimensions and store them as CSS variables
+                const computedStyle = window.getComputedStyle(this);
+                const currentWidth = computedStyle.width;
+                const currentLeft = computedStyle.left;
+
+                // Store as CSS variables for use by .dragging class
+                this.style.setProperty('--drag-width', currentWidth);
+                this.style.setProperty('--drag-left', currentLeft);
+            });
+
+            taskEl.addEventListener('dragstart', function(e) {
                 this.classList.add('dragging');
                 currentDragTaskId = this.dataset.taskId;
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', this.dataset.taskId);
                 e.dataTransfer.setData('application/x-scheduled-task', 'true');
-
-                // Force preserve width during drag (prevent expansion)
-                if (originalWidth) {
-                    this.style.width = originalWidth;
-                    this.style.left = originalLeft;
-                }
             });
 
             taskEl.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
                 currentDragTaskId = null;
 
-                // Clean up stored dimensions
-                delete this.dataset.originalWidth;
-                delete this.dataset.originalLeft;
+                // Clean up CSS variables used for dimension locking
+                this.style.removeProperty('--drag-width');
+                this.style.removeProperty('--drag-left');
 
                 document.querySelectorAll('.hour-content.drag-over').forEach(el => {
                     el.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
                     el.style.removeProperty('--preview-height');
                 });
+            });
+
+            // Clean up CSS variables if user clicks without dragging
+            taskEl.addEventListener('mouseup', function() {
+                if (!this.classList.contains('dragging')) {
+                    this.style.removeProperty('--drag-width');
+                    this.style.removeProperty('--drag-left');
+                }
             });
         }
 
