@@ -355,6 +355,28 @@
             background: #5a7d6e;
         }
 
+        .modal-btn-ok {
+            background: #c8e6c9;
+            color: #4a7c4e;
+            cursor: not-allowed;
+        }
+
+        .modal-btn-ok:disabled {
+            background: #c8e6c9;
+            color: #8cb590;
+            cursor: not-allowed;
+        }
+
+        .modal-btn-ok:not(:disabled) {
+            background: #4caf50;
+            color: white;
+            cursor: pointer;
+        }
+
+        .modal-btn-ok:not(:disabled):hover {
+            background: #43a047;
+        }
+
         .modal-textarea {
             width: 100%;
             padding: 0.5rem;
@@ -619,6 +641,11 @@
 
         .time-slot-btn:hover {
             background: #5a7d6e;
+        }
+
+        .time-slot-btn.selected {
+            background: #4caf50;
+            box-shadow: 0 0 0 2px #fff, 0 0 0 4px #4caf50;
         }
 
         .slide-panel {
@@ -4945,18 +4972,17 @@
                     <input type="text" class="modal-input" id="event-name-input" placeholder="Event name" style="margin-bottom: 0;">
                 </div>
                 <div>
-                    <label style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.5rem;">Click a time to add</label>
                     <div class="time-slot-buttons" id="time-slot-buttons">
                         <!-- Buttons will be populated dynamically -->
                     </div>
                 </div>
-                <p style="font-size: 0.7rem; color: #999; margin-top: 0.75rem; margin-bottom: 0;">You can adjust the time and duration on the calendar.</p>
                 <p style="font-size: 0.7rem; color: #6b9080; margin-top: 0.75rem; margin-bottom: 0; padding: 8px; background: #f0f7f4; border-radius: 4px;">
                     <strong>Tip:</strong> Hold <strong>COMMAND</strong> (on MacOS) or <strong>CTRL</strong> (on a PC) over an open space on the calendar to block time. That's like…way faster than using this clunky method that you're using now. :)
                 </p>
             </div>
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" id="add-event-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-ok" id="add-event-ok" disabled>OK</button>
             </div>
         </div>
     </div>
@@ -11612,6 +11638,8 @@
         const eventNameInput = document.getElementById('event-name-input');
         const timeSlotButtonsContainer = document.getElementById('time-slot-buttons');
         const addEventCancel = document.getElementById('add-event-cancel');
+        const addEventOk = document.getElementById('add-event-ok');
+        let selectedTimeSlotHour = null;  // Track selected hour
 
         // Get available hours (top of hour only, 7am-6pm, not occupied)
         function getAvailableTimeSlots() {
@@ -11718,6 +11746,8 @@
         function populateTimeSlotButtons() {
             const slots = getAvailableTimeSlots();
             timeSlotButtonsContainer.innerHTML = '';
+            selectedTimeSlotHour = null;
+            updateOkButtonState();
 
             if (slots.length === 0) {
                 timeSlotButtonsContainer.innerHTML = '<span style="color: #999; font-size: 0.8rem;">No available time slots</span>';
@@ -11730,9 +11760,26 @@
                 btn.className = 'time-slot-btn';
                 btn.textContent = formatHour(hour);
                 btn.dataset.hour = hour;
-                btn.addEventListener('click', () => createTimeBlockAtHour(hour));
+                btn.addEventListener('click', () => selectTimeSlot(hour, btn));
                 timeSlotButtonsContainer.appendChild(btn);
             });
+        }
+
+        function selectTimeSlot(hour, btn) {
+            // Remove selection from all buttons
+            timeSlotButtonsContainer.querySelectorAll('.time-slot-btn').forEach(b => {
+                b.classList.remove('selected');
+            });
+            // Select this one
+            btn.classList.add('selected');
+            selectedTimeSlotHour = hour;
+            updateOkButtonState();
+        }
+
+        function updateOkButtonState() {
+            if (addEventOk) {
+                addEventOk.disabled = (selectedTimeSlotHour === null);
+            }
         }
 
         async function createTimeBlockAtHour(hour) {
@@ -11743,10 +11790,21 @@
                 return;
             }
 
-            // Create start time using currentCalendarDate (the day being viewed), then convert to UTC
+            // Create start time using currentCalendarDate (the day being viewed)
             const calDate = new Date(currentCalendarDate);
             const startLocal = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), hour, 0);
             const startUTC = startLocal.toISOString();
+
+            // Find the gap at this time to determine end time
+            const gap = findGapAtTime(startLocal);
+            let endUTC;
+            if (gap && gap.end) {
+                endUTC = gap.end.toISOString();
+            } else {
+                // Fallback: 30 minutes if no gap found
+                const endLocal = new Date(startLocal.getTime() + 30 * 60 * 1000);
+                endUTC = endLocal.toISOString();
+            }
 
             try {
                 const response = await fetch('/tasks/api/time-blocks/create/', {
@@ -11757,7 +11815,8 @@
                     },
                     body: JSON.stringify({
                         name: name,
-                        start_time: startUTC
+                        start_time: startUTC,
+                        end_time: endUTC
                     })
                 });
 
@@ -11791,6 +11850,14 @@
         if (addEventCancel) {
             addEventCancel.addEventListener('click', function() {
                 addEventModal.classList.remove('active');
+            });
+        }
+
+        if (addEventOk) {
+            addEventOk.addEventListener('click', function() {
+                if (selectedTimeSlotHour !== null) {
+                    createTimeBlockAtHour(selectedTimeSlotHour);
+                }
             });
         }
 
