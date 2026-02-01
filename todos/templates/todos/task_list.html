@@ -10925,7 +10925,6 @@
 
             const blockStart = new Date(block.start);
             const blockEnd = new Date(block.end);
-            const duration = blockEnd - blockStart;
 
             // Find the closest item (event, time block, or task) that ends before this block starts
             let closestItemEnd = null;
@@ -10980,11 +10979,11 @@
                 return;
             }
 
-            // Set the new start time to match the closest item's end time exactly
+            // Extend the start time upward to match the closest item's end time
+            // Keep the original end time (extend, don't move)
             const newStart = new Date(closestItemEnd);
-            const newEnd = new Date(newStart.getTime() + duration);
 
-            // Update via backend
+            // Update via backend - only update start_time, keep end_time the same
             try {
                 const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
                     method: 'PATCH',
@@ -10993,8 +10992,7 @@
                         'X-CSRFToken': csrfToken
                     },
                     body: JSON.stringify({
-                        start_time: newStart.toISOString(),
-                        end_time: newEnd.toISOString()
+                        start_time: newStart.toISOString()
                     })
                 });
 
@@ -11167,7 +11165,6 @@
 
             const scheduleStart = new Date(schedule.start_time);
             const scheduleEnd = new Date(schedule.end_time);
-            const duration = scheduleEnd - scheduleStart;
 
             // Find the closest item (event, time block, or task) that ends before this task starts
             let closestItemEnd = null;
@@ -11222,11 +11219,11 @@
                 return;
             }
 
-            // Set the new start time to match the closest item's end time exactly
+            // Extend the start time upward to match the closest item's end time
+            // Keep the original end time (extend, don't move)
             const newStart = new Date(closestItemEnd);
-            const newEnd = new Date(newStart.getTime() + duration);
 
-            // Update via backend
+            // Update via backend - only update start_time, keep end_time the same
             try {
                 const response = await fetch(`/tasks/api/schedules/${scheduleId}/update/`, {
                     method: 'PATCH',
@@ -11235,8 +11232,7 @@
                         'X-CSRFToken': csrfToken
                     },
                     body: JSON.stringify({
-                        start_time: newStart.toISOString(),
-                        end_time: newEnd.toISOString()
+                        start_time: newStart.toISOString()
                     })
                 });
 
