@@ -10718,6 +10718,10 @@
                     <i class="bi bi-pencil"></i>
                     Edit
                 </div>
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); snapTimeBlockToEventAbove(${blockId}); closeContextMenu();">
+                    <i class="bi bi-magnet"></i>
+                    Snap to Event Above
+                </div>
                 <div class="task-context-menu-divider"></div>
                 <div class="task-context-menu-item danger" onclick="event.stopPropagation(); deleteTimeBlock(${blockId}); closeContextMenu();">
                     <i class="bi bi-trash"></i>
@@ -10751,6 +10755,77 @@
                 document.addEventListener('click', closeContextMenu);
                 document.addEventListener('contextmenu', closeContextMenu);
             }, 0);
+        }
+
+        // Snap time block to the event directly above it
+        async function snapTimeBlockToEventAbove(blockId) {
+            const block = timeBlocks.find(b => b.id === blockId);
+            if (!block) return;
+
+            const blockStart = new Date(block.start);
+            const blockEnd = new Date(block.end);
+            const duration = blockEnd - blockStart;
+
+            // Find the closest event that ends before this block starts
+            let closestEvent = null;
+            let closestDistance = Infinity;
+
+            const todayStart = new Date(currentCalendarDate);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            calendarEvents.forEach(event => {
+                const eventEnd = new Date(event.end);
+                // Only consider events on the current calendar date
+                if (eventEnd >= todayStart && eventEnd < todayEnd) {
+                    // Check if event ends before or at the block start
+                    if (eventEnd <= blockStart) {
+                        const distance = blockStart - eventEnd;
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestEvent = event;
+                        }
+                    }
+                }
+            });
+
+            if (!closestEvent) {
+                alert('No event found above this time block.');
+                return;
+            }
+
+            // Set the new start time to match the event's end time exactly
+            const newStart = new Date(closestEvent.end);
+            const newEnd = new Date(newStart.getTime() + duration);
+
+            // Update via backend
+            try {
+                const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        start_time: newStart.toISOString(),
+                        end_time: newEnd.toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Update local data
+                    block.start = data.time_block.start;
+                    block.end = data.time_block.end;
+                    // Re-render
+                    renderTimeBlocks();
+                } else {
+                    alert('Failed to update time block.');
+                }
+            } catch (error) {
+                console.error('Error updating time block:', error);
+                alert('Error updating time block.');
+            }
         }
 
         // ========== Block Time Modal ==========
