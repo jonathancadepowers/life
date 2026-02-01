@@ -3914,7 +3914,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             font-weight: 500;
-            cursor: text;
+            cursor: default;
         }
 
         .time-block-inline-input {
@@ -4049,12 +4049,8 @@
             z-index: 5;
         }
 
-        .hour-content.drag-over.drag-top::before {
-            top: 0;
-        }
-
-        .hour-content.drag-over.drag-bottom::before {
-            top: 50%;
+        .hour-content.drag-over::before {
+            top: var(--preview-top, 0);
         }
 
         .hour-content.drag-over.drag-blocked::before {
@@ -11711,10 +11707,10 @@
                     const snapPoints = getValidSnapPoints(hour);
                     const clampedMinute = findClosestSnapPoint(snapPoints, targetMinute);
 
-                    // Update visual indicators
-                    const isTopHalf = clampedMinute < 30;
-                    this.classList.toggle('drag-top', isTopHalf);
-                    this.classList.toggle('drag-bottom', !isTopHalf);
+                    // Update visual indicators - set precise preview position
+                    const previewTopPercent = (clampedMinute / 60) * 100;
+                    this.style.setProperty('--preview-top', `${previewTopPercent}%`);
+
                     const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), hour, clampedMinute);
                     const endLocal = new Date(startLocal.getTime() + durationMs);
 
@@ -11739,15 +11735,17 @@
 
                 hourContent.addEventListener('dragleave', function(e) {
                     if (!this.contains(e.relatedTarget)) {
-                        this.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
+                        this.classList.remove('drag-over', 'drag-blocked');
                         this.style.removeProperty('--preview-height');
+                        this.style.removeProperty('--preview-top');
                     }
                 });
 
                 hourContent.addEventListener('drop', async function(e) {
                     e.preventDefault();
-                    this.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
+                    this.classList.remove('drag-over', 'drag-blocked');
                     this.style.removeProperty('--preview-height');
+                    this.style.removeProperty('--preview-top');
 
                     // Block multi-select drops on calendar
                     if (e.dataTransfer.types.includes('application/x-multi-task')) {
