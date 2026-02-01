@@ -1338,22 +1338,6 @@
             background: #aaa;
         }
 
-        /* Tooltips in deadline dropdown should appear to the LEFT since icons are at right edge */
-        .deadline-dropdown .settings-info-tooltip {
-            left: auto;
-            right: 0;
-        }
-
-        .deadline-dropdown .settings-info-tooltip::before {
-            left: auto;
-            right: 4px;
-        }
-
-        .deadline-dropdown .settings-info-tooltip::after {
-            left: auto;
-            right: 5px;
-        }
-
         .deadline-section {
             margin-bottom: 1rem;
         }
@@ -2115,7 +2099,8 @@
             display: none;
             position: absolute;
             top: calc(100% + 8px);
-            left: 0;
+            left: auto;
+            right: 0;
             background: #fff;
             color: #666;
             padding: 0.5rem 0.65rem;
@@ -2135,7 +2120,8 @@
             content: '';
             position: absolute;
             bottom: 100%;
-            left: 4px;
+            left: auto;
+            right: 4px;
             border: 6px solid transparent;
             border-bottom-color: #e9ecef;
         }
@@ -2144,7 +2130,8 @@
             content: '';
             position: absolute;
             bottom: 100%;
-            left: 5px;
+            left: auto;
+            right: 5px;
             border: 5px solid transparent;
             border-bottom-color: #fff;
         }
@@ -8225,6 +8212,54 @@
             }
         }
 
+        async function renameTag(tagId, currentName) {
+            const newName = await showPromptModal(`Rename tag "${currentName}":`, 'Rename Tag', currentName);
+            if (!newName || newName.trim() === '' || newName.trim() === currentName) return;
+
+            try {
+                const response = await fetch(`/tasks/api/tags/${tagId}/rename/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ name: newName.trim() })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update tagsList
+                    const tagIndex = tagsList.findIndex(t => t.id === tagId);
+                    if (tagIndex !== -1) {
+                        tagsList[tagIndex].name = data.tag.name;
+                    }
+
+                    // Update all tasks in taskTagsMap
+                    Object.keys(taskTagsMap).forEach(taskId => {
+                        const taskTags = taskTagsMap[taskId];
+                        const tagToUpdate = taskTags.find(t => t.id === tagId);
+                        if (tagToUpdate) {
+                            tagToUpdate.name = data.tag.name;
+                            updateTaskCardTags(taskId, taskTags);
+                        }
+                    });
+
+                    // Refresh filter tags list
+                    populateFilterTags(filterTagsSearch.value);
+
+                    // Re-render tag groups if grouping by tags
+                    const groupBy = document.querySelector('input[name="group-by"]:checked')?.value;
+                    if (groupBy === 'tags') {
+                        renderTagGroups();
+                    }
+                } else {
+                    await showAlertModal(data.error || 'Failed to rename tag');
+                }
+            } catch (error) {
+                console.error('Error renaming tag:', error);
+            }
+        }
+
         // Panel tags functionality
         function renderPanelTags(taskId) {
             const container = document.getElementById('panel-tags-container');
@@ -8672,11 +8707,28 @@
                 label.style.position = 'relative';
                 label.innerHTML = `
                     <input type="checkbox" class="filter-tag-checkbox" data-tag-id="${tag.id}" ${isChecked ? 'checked' : ''}>
-                    <span class="task-tag-pill" style="font-size: 0.75rem;">${tag.name}</span>
+                    <span class="task-tag-pill" style="font-size: 0.75rem;">${escapeHtml(tag.name)}</span>
                     <span style="color: #6c757d; font-size: 0.7rem; margin-left: auto;">(${count})</span>
-                    <i class="bi bi-x-circle delete-tag-btn" data-tag-id="${tag.id}" style="margin-left: 0.5rem; cursor: pointer; color: #dc3545; opacity: 0.6; transition: opacity 0.2s;" title="Delete tag"></i>
+                    <i class="bi bi-pencil rename-tag-btn" data-tag-id="${tag.id}" data-tag-name="${escapeHtml(tag.name)}" style="margin-left: 0.5rem; cursor: pointer; color: #6c757d; opacity: 0.6; transition: opacity 0.2s;" title="Rename tag"></i>
+                    <i class="bi bi-x-circle delete-tag-btn" data-tag-id="${tag.id}" style="margin-left: 0.25rem; cursor: pointer; color: #dc3545; opacity: 0.6; transition: opacity 0.2s;" title="Delete tag"></i>
                 `;
                 filterTagsList.appendChild(label);
+
+                // Add rename button hover effect and click handler
+                const renameBtn = label.querySelector('.rename-tag-btn');
+                renameBtn.addEventListener('mouseenter', function() {
+                    this.style.opacity = '1';
+                });
+                renameBtn.addEventListener('mouseleave', function() {
+                    this.style.opacity = '0.6';
+                });
+                renameBtn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const tagId = parseInt(this.dataset.tagId);
+                    const currentName = this.dataset.tagName;
+                    await renameTag(tagId, currentName);
+                });
 
                 // Add delete button hover effect
                 const deleteBtn = label.querySelector('.delete-tag-btn');

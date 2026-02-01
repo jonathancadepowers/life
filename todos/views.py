@@ -464,6 +464,30 @@ def delete_tag(request, tag_id):
         return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
 
 
+@require_http_methods(["PATCH"])
+def rename_tag(request, tag_id):
+    """Rename a tag."""
+    try:
+        tag = TaskTag.objects.get(id=tag_id)
+        data = json.loads(request.body)
+        new_name = data.get('name', '').strip()
+
+        if not new_name:
+            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+
+        # Check if tag name already exists
+        if TaskTag.objects.filter(name=new_name).exclude(id=tag_id).exists():
+            return JsonResponse({'success': False, 'error': 'Tag name already exists'}, status=400)
+
+        tag.name = new_name
+        tag.save()
+        return JsonResponse({'success': True, 'tag': {'id': tag.id, 'name': tag.name}})
+    except TaskTag.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+
 # ========== Time Block Views ==========
 
 @require_POST
