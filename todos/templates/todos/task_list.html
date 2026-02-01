@@ -10486,7 +10486,8 @@
                     timeBlocks.forEach(otherBlock => {
                         if (otherBlock.id === block.id) return; // Skip self
                         const otherEnd = new Date(otherBlock.end);
-                        if (Math.abs(otherEnd - startDate) < 1000) { // Within 1 second
+                        const timeDiff = Math.abs(otherEnd - startDate);
+                        if (timeDiff < 1000) { // Within 1 second
                             // Found an adjacent time block - use pixel positioning
                             const otherStart = new Date(otherBlock.start);
                             const otherStartHour = otherStart.getHours();
@@ -10505,6 +10506,14 @@
                             // Calculate how many pixels into the current hour that is
                             const hoursDiff = startHour - otherStartHour;
                             adjustedTopPx = otherVisualEndPx - (hoursDiff * 60);
+
+                            console.log(`RENDER: ${block.name} adjacent to ${otherBlock.name}`);
+                            console.log(`  otherStart: ${otherStart}, otherEnd: ${otherEnd}`);
+                            console.log(`  otherStartHour: ${otherStartHour}, otherStartMinute: ${otherStartMinute}`);
+                            console.log(`  otherDurationMinutes: ${otherDurationMinutes}, otherHeightPx: ${otherHeightPx}`);
+                            console.log(`  otherTopPx: ${otherTopPx}, otherVisualEndPx: ${otherVisualEndPx}`);
+                            console.log(`  startHour: ${startHour}, hoursDiff: ${hoursDiff}`);
+                            console.log(`  adjustedTopPx: ${adjustedTopPx}`);
                         }
                     });
                 }
@@ -10536,11 +10545,13 @@
                 if (adjustedTopPx !== null && adjustedTopPx >= -4 && adjustedTopPx < 60) {
                     // Position time block exactly where event visually ends
                     // Allow small negative values (down to -4px) to close the gap from event's -4px margin
+                    console.log(`RENDER: ${block.name} using pixel positioning: top=${adjustedTopPx}px`);
                     blockEl.style.top = `${adjustedTopPx}px`;
                     blockEl.style.height = `${heightPercent}%`;
                 } else {
                     // Normal percentage-based positioning
                     const topPercent = (startMinute / 60) * 100;
+                    console.log(`RENDER: ${block.name} using percentage positioning: top=${topPercent}% (adjustedTopPx was ${adjustedTopPx})`);
                     blockEl.style.top = `${topPercent}%`;
                     blockEl.style.height = `${heightPercent}%`;
                 }
