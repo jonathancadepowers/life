@@ -6399,7 +6399,7 @@
             }
         });
 
-        // Global Escape key handler for slide-out panels and dropdowns
+        // Global Escape and Delete key handler for slide-out panels, dropdowns, and batch delete
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 // Don't handle if a modal is active (modals handle their own Escape)
@@ -6421,6 +6421,33 @@
                     closePanel();
                 } else if (timeslotPanel && timeslotPanel.classList.contains('active')) {
                     closeTimeslotPanel();
+                }
+            }
+
+            // Delete key handler for batch delete
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                // Don't handle if a modal is active
+                const activeModal = document.querySelector('.modal-overlay.active');
+                if (activeModal) return;
+
+                // Don't handle if user is typing in an input/textarea
+                const activeElement = document.activeElement;
+                if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                    return;
+                }
+
+                // Don't handle if any slide-out panel is open
+                const taskPanel = document.getElementById('slide-panel');
+                const timeslotPanel = document.getElementById('timeslot-panel');
+                if ((taskPanel && taskPanel.classList.contains('active')) ||
+                    (timeslotPanel && timeslotPanel.classList.contains('active'))) {
+                    return;
+                }
+
+                // Trigger batch delete if tasks are selected
+                if (selectedTaskIds.size > 0) {
+                    e.preventDefault();
+                    batchDeleteTasks();
                 }
             }
         });
