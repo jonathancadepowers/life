@@ -7262,6 +7262,13 @@
 
             document.getElementById('panel-overlay').classList.add('active');
             document.getElementById('slide-panel').classList.add('active');
+
+            // Scroll panel to top
+            const panelBody = document.querySelector('#slide-panel .panel-body');
+            if (panelBody) {
+                panelBody.scrollTop = 0;
+            }
+
             setTimeout(autoResizeTitle, 10);
         }
 
