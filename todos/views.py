@@ -54,10 +54,11 @@ def task_list(request):
     query_start = now_utc - timedelta(days=7)  # 7 days back for browsing history
     query_end = now_utc + timedelta(days=7)    # 7 days forward for planning
 
-    # Query events that overlap with this window
+    # Query events that overlap with this window (only active, not canceled)
     calendar_events = CalendarEvent.objects.filter(
         start__lt=query_end,
-        end__gt=query_start
+        end__gt=query_start,
+        is_active=True
     ).order_by('start')
 
     # Send UTC ISO timestamps - JavaScript will convert to local timezone
