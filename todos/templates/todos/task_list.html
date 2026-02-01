@@ -11635,7 +11635,7 @@
             return count;
         }
 
-        // Find valid snap points for a given hour (includes :00, :30, and 1 min after event end times)
+        // Find valid snap points for a given hour (includes :00, :30, and event end times)
         function getValidSnapPoints(hour) {
             const snapPoints = [0, 30]; // Always include :00 and :30
 
@@ -11644,42 +11644,23 @@
             todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-            console.log('getValidSnapPoints for hour', hour, ':', {
-                todayStart: todayStart.toISOString(),
-                todayEnd: todayEnd.toISOString(),
-                currentCalendarDate: currentCalendarDate.toISOString()
-            });
-
             calendarEvents.forEach(event => {
                 const endDate = new Date(event.end);
                 const endHour = endDate.getHours();
                 const endMinute = endDate.getMinutes();
                 const onCurrentDay = endDate >= todayStart && endDate < todayEnd;
 
-                console.log('Checking event:', {
-                    eventEnd: event.end,
-                    endDateLocal: endDate.toString(),
-                    endHour: endHour,
-                    endMinute: endMinute,
-                    onCurrentDay: onCurrentDay,
-                    matchesHour: endHour === hour,
-                    nonStandardTime: endMinute !== 0 && endMinute !== 30
-                });
-
                 // Check if event ends on current calendar date
                 if (onCurrentDay) {
-                    // If event ends in this hour and not on :00 or :30, add end time as snap point
-                    // We snap to the exact end time (not +1) for precise alignment
+                    // If event ends in this hour at non-standard time, add it
                     if (endHour === hour && endMinute !== 0 && endMinute !== 30) {
                         if (!snapPoints.includes(endMinute)) {
-                            console.log('Adding snap point:', endMinute);
                             snapPoints.push(endMinute);
                         }
                     }
                 }
             });
 
-            console.log('Final snap points:', snapPoints);
             return snapPoints.sort((a, b) => a - b);
         }
 
@@ -11838,14 +11819,57 @@
                     const percentY = relativeY / rect.height;
 
                     // Calculate target minute from position
-                    const targetMinute = Math.round(percentY * 60);
+                    let targetMinute = Math.round(percentY * 60);
+                    let finalHour = hour;
+                    let finalMinute = targetMinute;
 
-                    // Get valid snap points for this hour and find closest
-                    const snapPoints = getValidSnapPoints(hour);
-                    const clampedMinute = findClosestSnapPoint(snapPoints, targetMinute);
+                    // Check if we should snap to previous hour's event end
+                    // If dragging near top of hour (< 15 min) and there's an event ending in previous hour at irregular time
+                    if (targetMinute < 15) {
+                        const todayStart = new Date(currentCalendarDate);
+                        todayStart.setHours(0, 0, 0, 0);
+                        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+                        let closestPrevHourEventEnd = null;
+                        let closestDistance = Infinity;
+
+                        calendarEvents.forEach(event => {
+                            const endDate = new Date(event.end);
+                            if (endDate >= todayStart && endDate < todayEnd) {
+                                const endHour = endDate.getHours();
+                                const endMinute = endDate.getMinutes();
+                                // Check if event ends in previous hour at non-standard time
+                                if (endHour === hour - 1 && endMinute !== 0 && endMinute !== 30) {
+                                    // Calculate distance from drop position to this event end
+                                    // Drop position is at hour:targetMinute, event ends at (hour-1):endMinute
+                                    const dropPositionMinutes = hour * 60 + targetMinute;
+                                    const eventEndMinutes = (hour - 1) * 60 + endMinute;
+                                    const distance = dropPositionMinutes - eventEndMinutes;
+                                    if (distance >= 0 && distance < closestDistance) {
+                                        closestDistance = distance;
+                                        closestPrevHourEventEnd = { hour: hour - 1, minute: endMinute };
+                                    }
+                                }
+                            }
+                        });
+
+                        // If found a close event end within 15 minutes, snap to it
+                        if (closestPrevHourEventEnd && closestDistance <= 15) {
+                            finalHour = closestPrevHourEventEnd.hour;
+                            finalMinute = closestPrevHourEventEnd.minute;
+                        } else {
+                            // Normal snapping within current hour
+                            const snapPoints = getValidSnapPoints(hour);
+                            finalMinute = findClosestSnapPoint(snapPoints, targetMinute);
+                        }
+                    } else {
+                        // Normal snapping within current hour
+                        const snapPoints = getValidSnapPoints(hour);
+                        finalMinute = findClosestSnapPoint(snapPoints, targetMinute);
+                    }
 
                     // Create the scheduled start time in local timezone using currentCalendarDate
-                    const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), hour, clampedMinute);
+                    const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), finalHour, finalMinute);
 
                     if (isTimeBlock) {
                         // Handle time block drop
