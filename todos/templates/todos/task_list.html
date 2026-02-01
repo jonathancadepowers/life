@@ -4692,20 +4692,22 @@
             <!-- Details Section -->
             <div class="task-panel-section">
                 <div class="task-panel-section-header">
-                    <span>Details</span>
-                    <span class="markdown-help-icon">
-                        <i class="bi bi-question-circle"></i>
-                        <span class="markdown-help-tooltip">
-                            <strong>Markdown</strong><br>
-                            <code>**text**</code> bold<br>
-                            <code>*text*</code> italic<br>
-                            <code>[text](url)</code> link<br>
-                            <code>- item</code> bullet<br>
-                            <code>1. item</code> numbered<br>
-                            <code>`code`</code> code<br>
-                            <code>## text</code> heading
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                        <span>Details</span>
+                        <span class="markdown-help-icon">
+                            <i class="bi bi-question-circle"></i>
+                            <span class="markdown-help-tooltip">
+                                <strong>Markdown</strong><br>
+                                <code>**text**</code> bold<br>
+                                <code>*text*</code> italic<br>
+                                <code>[text](url)</code> link<br>
+                                <code>- item</code> bullet<br>
+                                <code>1. item</code> numbered<br>
+                                <code>`code`</code> code<br>
+                                <code>## text</code> heading
+                            </span>
                         </span>
-                    </span>
+                    </div>
                     <div class="task-panel-section-actions">
                         <div class="template-dropdown" id="template-dropdown">
                             <button type="button" class="template-dropdown-btn" id="template-dropdown-btn" title="Load template">
@@ -8782,8 +8784,8 @@
                     <input type="checkbox" class="filter-tag-checkbox" data-tag-id="${tag.id}" ${isChecked ? 'checked' : ''}>
                     <span class="task-tag-pill" style="font-size: 0.75rem;">${escapeHtml(tag.name)}</span>
                     <span style="color: #6c757d; font-size: 0.7rem; margin-left: auto;">(${count})</span>
-                    <i class="bi bi-pencil rename-tag-btn" data-tag-id="${tag.id}" data-tag-name="${escapeHtml(tag.name)}" style="margin-left: 0.5rem; cursor: pointer; color: #6c757d; opacity: 0.6; transition: opacity 0.2s;" title="Rename tag"></i>
-                    <i class="bi bi-x-circle delete-tag-btn" data-tag-id="${tag.id}" style="margin-left: 0.25rem; cursor: pointer; color: #dc3545; opacity: 0.6; transition: opacity 0.2s;" title="Delete tag"></i>
+                    <i class="bi bi-pencil rename-tag-btn" data-tag-id="${tag.id}" data-tag-name="${escapeHtml(tag.name)}" style="margin-left: 0.35rem; cursor: pointer; color: #6c757d; opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" title="Rename tag"></i>
+                    <i class="bi bi-x-circle delete-tag-btn" data-tag-id="${tag.id}" style="margin-left: 0.2rem; cursor: pointer; color: #dc3545; opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" title="Delete tag"></i>
                 `;
                 filterTagsList.appendChild(label);
 
