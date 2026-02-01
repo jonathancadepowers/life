@@ -10927,6 +10927,152 @@
             }
         }
 
+        // Scheduled task context menu (for tasks on the calendar)
+        function showScheduledTaskContextMenu(e, taskId, scheduleId) {
+            closeContextMenu();
+
+            const menuHtml = `
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); openTaskPanel(${taskId}); closeContextMenu();">
+                    <i class="bi bi-pencil"></i>
+                    Edit Task
+                </div>
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); snapScheduledTaskToEventAbove(${taskId}, ${scheduleId}); closeContextMenu();">
+                    <i class="bi bi-magnet"></i>
+                    Snap to Item Above
+                </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-item danger" onclick="event.stopPropagation(); removeScheduleFromCalendar(${scheduleId}, ${taskId}); closeContextMenu();">
+                    <i class="bi bi-calendar-x"></i>
+                    Remove from Calendar
+                </div>
+            `;
+
+            const menu = document.createElement('div');
+            menu.className = 'task-context-menu';
+            menu.id = 'task-context-menu';
+            menu.innerHTML = menuHtml;
+
+            document.body.appendChild(menu);
+
+            // Position the menu
+            const menuRect = menu.getBoundingClientRect();
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuRect.width > window.innerWidth) {
+                x = window.innerWidth - menuRect.width - 10;
+            }
+            if (y + menuRect.height > window.innerHeight) {
+                y = window.innerHeight - menuRect.height - 10;
+            }
+
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            setTimeout(() => {
+                document.addEventListener('click', closeContextMenu);
+                document.addEventListener('contextmenu', closeContextMenu);
+            }, 0);
+        }
+
+        // Snap scheduled task to any item directly above it (event, time block, or other task)
+        async function snapScheduledTaskToEventAbove(taskId, scheduleId) {
+            // Find the schedule
+            const schedules = taskSchedulesMap[taskId] || [];
+            const schedule = schedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+
+            const scheduleStart = new Date(schedule.start_time);
+            const scheduleEnd = new Date(schedule.end_time);
+            const duration = scheduleEnd - scheduleStart;
+
+            // Find the closest item (event, time block, or task) that ends before this task starts
+            let closestItemEnd = null;
+            let closestDistance = Infinity;
+
+            const todayStart = new Date(currentCalendarDate);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            // Check calendar events
+            calendarEvents.forEach(event => {
+                const eventEnd = new Date(event.end);
+                if (eventEnd >= todayStart && eventEnd < todayEnd && eventEnd <= scheduleStart) {
+                    const distance = scheduleStart - eventEnd;
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItemEnd = eventEnd;
+                    }
+                }
+            });
+
+            // Check time blocks
+            timeBlocks.forEach(block => {
+                const blockEnd = new Date(block.end);
+                if (blockEnd >= todayStart && blockEnd < todayEnd && blockEnd <= scheduleStart) {
+                    const distance = scheduleStart - blockEnd;
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItemEnd = blockEnd;
+                    }
+                }
+            });
+
+            // Check other scheduled tasks
+            Object.keys(taskSchedulesMap).forEach(otherTaskId => {
+                const otherSchedules = taskSchedulesMap[otherTaskId] || [];
+                otherSchedules.forEach(otherSchedule => {
+                    if (otherSchedule.id === scheduleId) return; // Skip self
+                    const otherEnd = new Date(otherSchedule.end_time);
+                    if (otherEnd >= todayStart && otherEnd < todayEnd && otherEnd <= scheduleStart) {
+                        const distance = scheduleStart - otherEnd;
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestItemEnd = otherEnd;
+                        }
+                    }
+                });
+            });
+
+            if (!closestItemEnd) {
+                alert('No item found above this task.');
+                return;
+            }
+
+            // Set the new start time to match the closest item's end time exactly
+            const newStart = new Date(closestItemEnd);
+            const newEnd = new Date(newStart.getTime() + duration);
+
+            // Update via backend
+            try {
+                const response = await fetch(`/tasks/api/schedules/${scheduleId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        start_time: newStart.toISOString(),
+                        end_time: newEnd.toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Update local data
+                    schedule.start_time = data.schedule.start_time;
+                    schedule.end_time = data.schedule.end_time;
+                    // Re-render
+                    renderScheduledTasks();
+                } else {
+                    alert('Failed to update task schedule.');
+                }
+            } catch (error) {
+                console.error('Error updating task schedule:', error);
+                alert('Error updating task schedule.');
+            }
+        }
+
         // ========== Block Time Modal ==========
 
         const addEventBtn = document.getElementById('add-event-btn');
@@ -11243,7 +11389,7 @@
                 taskEl.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+                    showScheduledTaskContextMenu(e, parseInt(this.dataset.taskId), parseInt(this.dataset.scheduleId));
                 });
 
                 // Double-click to open task panel
