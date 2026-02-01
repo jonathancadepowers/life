@@ -10871,138 +10871,125 @@
         function handleTimeBlockResize(e) {
             if (!timeBlockResizeState) return;
 
-            const { blockEl, startY, initialHeight, initialTop, edge } = timeBlockResizeState;
-            const deltaY = e.clientY - startY;
+            const { blockEl, blockId, startY, initialHeight, initialTop, edge } = timeBlockResizeState;
+            const hourContent = blockEl.parentElement;
+            const baseHour = parseInt(hourContent.dataset.hour);
             const hourHeight = 60; // pixels per hour
-            const deltaPercent = (deltaY / hourHeight) * 100;
+            const calDate = new Date(currentCalendarDate);
 
-            // Snap to 30-minute increments (50% of an hour)
-            const snapTo30Min = (percent) => Math.round(percent / 50) * 50;
+            // Get the calendar container for absolute positioning reference
+            const calendarBody = document.querySelector('.calendar-body');
+            const calendarRect = calendarBody.getBoundingClientRect();
+            const mouseY = e.clientY - calendarRect.top;
+
+            // Calculate which hour and minute the mouse is over (7am = hour 7 at top)
+            const totalMinutesFromTop = (mouseY / hourHeight) * 60;
+            const targetHour = 7 + Math.floor(totalMinutesFromTop / 60);
+            const targetMinute = totalMinutesFromTop % 60;
+
+            // Get snap points for the target hour and find closest
+            const targetHourClamped = Math.max(7, Math.min(18, targetHour));
+            const snapPoints = getValidSnapPoints(targetHourClamped);
+            const snappedMinute = findClosestSnapPoint(snapPoints, targetMinute);
+
+            // Calculate the snapped absolute time
+            const snappedHour = targetHourClamped;
+            const snappedTime = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), snappedHour, snappedMinute);
+
+            // Get the block's current start/end times
+            const block = timeBlocks.find(b => b.id === blockId);
+            if (!block) return;
+
+            const blockStart = new Date(block.start);
+            const blockEnd = new Date(block.end);
+
+            let newStartDate, newEndDate;
 
             if (edge === 'bottom') {
-                // Dragging bottom edge - adjust height only (snap duration to 30 min increments)
-                const rawHeight = initialHeight + deltaPercent;
-                const newHeight = Math.max(50, snapTo30Min(rawHeight)); // Min 30 minutes
-                blockEl.style.height = `${newHeight}%`;
-            } else {
-                // Dragging top edge - adjust both top position and height (snap to time points)
-                const hourContent = blockEl.parentElement;
-                const hour = parseInt(hourContent.dataset.hour);
+                // Bottom edge - keep start, change end
+                newStartDate = blockStart;
+                newEndDate = snappedTime;
 
-                const rawTop = initialTop + deltaPercent;
-                const rawTopMinute = (rawTop / 100) * 60;
-
-                // Allow dragging into previous/next hour - expand snap points
-                let allSnapPoints = [];
-                let hourOffset = 0;
-
-                if (rawTopMinute < 0) {
-                    // Dragging into previous hour - add previous hour's snap points as negative values
-                    const prevHourSnapPoints = getValidSnapPoints(hour - 1);
-                    allSnapPoints = prevHourSnapPoints.map(p => p - 60); // Convert to negative offset
-                    hourOffset = -1;
-                } else if (rawTopMinute >= 60) {
-                    // Dragging into next hour - add next hour's snap points offset by 60
-                    const nextHourSnapPoints = getValidSnapPoints(hour + 1);
-                    allSnapPoints = nextHourSnapPoints.map(p => p + 60); // Convert to offset from current hour
-                    hourOffset = 1;
-                } else {
-                    // Normal - within current hour, but include boundaries for smoother dragging
-                    allSnapPoints = getValidSnapPoints(hour);
-                    // Also include the 60 mark (start of next hour) for when dragging near the bottom
-                    if (!allSnapPoints.includes(60)) {
-                        allSnapPoints.push(60);
-                    }
-                    hourOffset = 0;
+                // Ensure minimum 30 minute duration
+                const minEndTime = new Date(newStartDate.getTime() + 30 * 60 * 1000);
+                if (newEndDate < minEndTime) {
+                    newEndDate = minEndTime;
                 }
 
-                const snappedMinute = findClosestSnapPoint(allSnapPoints, rawTopMinute);
-                const snappedTop = (snappedMinute / 60) * 100;
+                // Clamp to visible range (7pm max)
+                const maxEnd = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), 19, 0);
+                if (newEndDate > maxEnd) {
+                    newEndDate = maxEnd;
+                }
+            } else {
+                // Top edge - keep end, change start
+                newEndDate = blockEnd;
+                newStartDate = snappedTime;
 
-                const topChange = snappedTop - initialTop;
-                const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
+                // Ensure minimum 30 minute duration
+                const maxStartTime = new Date(newEndDate.getTime() - 30 * 60 * 1000);
+                if (newStartDate > maxStartTime) {
+                    newStartDate = maxStartTime;
+                }
 
-                // Don't allow top to go past the bottom
-                if (newHeight >= 50) {
-                    // Check for overlap before applying visual change
-                    const calDate = new Date(currentCalendarDate);
-
-                    // Calculate actual start time accounting for hour offset
-                    let actualHour = hour;
-                    let actualMinute = snappedMinute;
-
-                    if (snappedMinute < 0) {
-                        // Time is in previous hour
-                        actualHour = hour - 1;
-                        actualMinute = 60 + snappedMinute; // Convert negative to positive minutes in prev hour
-                    } else if (snappedMinute >= 60) {
-                        // Time is in next hour
-                        actualHour = hour + 1;
-                        actualMinute = snappedMinute - 60; // Convert to minutes in next hour
-                    }
-
-                    const durationMinutes = (newHeight / 100) * 60;
-                    const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), actualHour, actualMinute);
-                    const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
-
-                    const { blockId } = timeBlockResizeState;
-                    if (!hasOverlappingItem(newStartDate, newEndDate, 'timeblock-' + blockId)) {
-                        blockEl.style.top = `${snappedTop}%`;
-                        blockEl.style.height = `${newHeight}%`;
-                    }
-                    // If overlap detected, don't update visual - keeps it at last valid position
+                // Clamp to visible range (7am min)
+                const minStart = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), 7, 0);
+                if (newStartDate < minStart) {
+                    newStartDate = minStart;
                 }
             }
+
+            // Check for overlaps
+            if (hasOverlappingItem(newStartDate, newEndDate, 'timeblock-' + blockId)) {
+                return; // Don't update visual if would overlap
+            }
+
+            // Calculate visual position relative to the block's parent hour
+            const newStartHour = newStartDate.getHours();
+            const newStartMinute = newStartDate.getMinutes();
+            const newEndHour = newEndDate.getHours();
+            const newEndMinute = newEndDate.getMinutes();
+
+            // Calculate top and height as percentage of the parent hour
+            const topMinuteOffset = (newStartHour - baseHour) * 60 + newStartMinute;
+            const durationMinutes = (newEndDate - newStartDate) / (60 * 1000);
+
+            const topPercent = (topMinuteOffset / 60) * 100;
+            const heightPercent = (durationMinutes / 60) * 100;
+
+            blockEl.style.top = `${topPercent}%`;
+            blockEl.style.height = `${heightPercent}%`;
         }
 
         async function endTimeBlockResize() {
             if (!timeBlockResizeState) return;
 
-            const { blockEl, blockId, startDate, endDate, edge, initialTop, initialHeight } = timeBlockResizeState;
-            const heightPercent = parseFloat(blockEl.style.height) || 50;
+            const { blockEl, blockId, edge } = timeBlockResizeState;
 
             blockEl.classList.remove('resizing');
 
-            // Get the block's actual data for time calculations
-            const block = timeBlocks.find(b => b.id === blockId);
-            if (!block) {
-                document.removeEventListener('mousemove', handleTimeBlockResize);
-                document.removeEventListener('mouseup', endTimeBlockResize);
-                timeBlockResizeState = null;
-                return;
-            }
+            // Calculate times from the current visual position
+            const topPercent = parseFloat(blockEl.style.top) || 0;
+            const heightPercent = parseFloat(blockEl.style.height) || 50;
+            const hourContent = blockEl.parentElement;
+            const baseHour = parseInt(hourContent.dataset.hour);
+            const calDate = new Date(currentCalendarDate);
 
-            const blockStartDate = new Date(block.start);
+            // Calculate start time from top position (can be negative for previous hour)
+            const startMinuteOffset = (topPercent / 100) * 60;
+            const startTotalMinutes = baseHour * 60 + startMinuteOffset;
+            const startHour = Math.floor(startTotalMinutes / 60);
+            const startMinute = Math.round(startTotalMinutes % 60);
+
+            // Calculate duration and end time
             const durationMinutes = (heightPercent / 100) * 60;
 
-            let newStartDate, newEndDate;
-
-            if (edge === 'bottom') {
-                // Bottom edge resize - start time stays the same, only end changes
-                newStartDate = new Date(blockStartDate);
-                newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
-            } else {
-                // Top edge resize - need to calculate new start time from CSS top
-                // CSS top may be set by handleTimeBlockResize during drag
-                const topPercent = parseFloat(blockEl.style.top) || 0;
-                const hourContent = blockEl.parentElement;
-                const baseHour = parseInt(hourContent.dataset.hour);
-                const calDate = new Date(currentCalendarDate);
-
-                let startMinutes = (topPercent / 100) * 60;
-                let actualHour = baseHour;
-                if (startMinutes < 0) {
-                    actualHour = baseHour - 1;
-                    startMinutes = 60 + startMinutes;
-                }
-
-                newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), actualHour, startMinutes);
-                newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
-            }
+            const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), startHour, startMinute);
+            const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
 
             // Check for overlaps before saving
             if (hasOverlappingItem(newStartDate, newEndDate, 'timeblock-' + blockId)) {
-                // Revert visual changes using actual CSS values (may be pixels or percentage)
+                // Revert visual changes
                 blockEl.style.top = timeBlockResizeState.initialCssTop;
                 blockEl.style.height = timeBlockResizeState.initialCssHeight;
                 document.removeEventListener('mousemove', handleTimeBlockResize);
@@ -11014,19 +11001,18 @@
             const startTimeUTC = newStartDate.toISOString();
             const endTimeUTC = newEndDate.toISOString();
 
-            // Update on server
+            // Update on server - always send both times since either edge can change across hours
             try {
-                const body = edge === 'top'
-                    ? { start_time: startTimeUTC, end_time: endTimeUTC }
-                    : { end_time: endTimeUTC };
-
                 const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify(body)
+                    body: JSON.stringify({
+                        start_time: startTimeUTC,
+                        end_time: endTimeUTC
+                    })
                 });
 
                 const data = await response.json();
@@ -11034,9 +11020,7 @@
                     // Update local data
                     const block = timeBlocks.find(b => b.id === blockId);
                     if (block) {
-                        if (edge === 'top') {
-                            block.start = data.time_block.start;
-                        }
+                        block.start = data.time_block.start;
                         block.end = data.time_block.end;
                     }
                     // Re-render to move block to correct hour if needed
@@ -12238,60 +12222,121 @@
         function handleTaskResize(e) {
             if (!resizeState) return;
 
-            const { taskEl, startY, initialHeight, initialTop, edge } = resizeState;
-            const deltaY = e.clientY - startY;
+            const { taskEl, taskId, scheduleId, edge } = resizeState;
+            const hourContent = taskEl.parentElement;
+            const baseHour = parseInt(hourContent.dataset.hour);
             const hourHeight = 60; // pixels per hour
-            const deltaPercent = (deltaY / hourHeight) * 100;
+            const calDate = new Date(currentCalendarDate);
 
-            // Snap to 30-minute increments (50% of an hour)
-            const snapTo30Min = (percent) => Math.round(percent / 50) * 50;
+            // Get the calendar container for absolute positioning reference
+            const calendarBody = document.querySelector('.calendar-body');
+            const calendarRect = calendarBody.getBoundingClientRect();
+            const mouseY = e.clientY - calendarRect.top;
+
+            // Calculate which hour and minute the mouse is over (7am = hour 7 at top)
+            const totalMinutesFromTop = (mouseY / hourHeight) * 60;
+            const targetHour = 7 + Math.floor(totalMinutesFromTop / 60);
+            const targetMinute = totalMinutesFromTop % 60;
+
+            // Get snap points for the target hour and find closest
+            const targetHourClamped = Math.max(7, Math.min(18, targetHour));
+            const snapPoints = getValidSnapPoints(targetHourClamped);
+            const snappedMinute = findClosestSnapPoint(snapPoints, targetMinute);
+
+            // Calculate the snapped absolute time
+            const snappedHour = targetHourClamped;
+            const snappedTime = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), snappedHour, snappedMinute);
+
+            // Get the task's current schedule
+            const schedules = taskSchedulesMap[taskId] || [];
+            const schedule = schedules.find(s => s.id === parseInt(scheduleId));
+            if (!schedule) return;
+
+            const scheduleStart = new Date(schedule.start_time);
+            const scheduleEnd = new Date(schedule.end_time);
+
+            let newStartDate, newEndDate;
 
             if (edge === 'bottom') {
-                // Dragging bottom edge - adjust height only
-                const rawHeight = initialHeight + deltaPercent;
-                const newHeight = Math.max(50, snapTo30Min(rawHeight)); // Min 30 minutes
-                taskEl.style.height = `${newHeight}%`;
-            } else {
-                // Dragging top edge - adjust both top position and height
-                const rawTop = initialTop + deltaPercent;
-                const snappedTop = snapTo30Min(rawTop);
-                const topChange = snappedTop - initialTop;
-                const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
+                // Bottom edge - keep start, change end
+                newStartDate = scheduleStart;
+                newEndDate = snappedTime;
 
-                // Don't allow top to go past the bottom
-                if (newHeight >= 50) {
-                    taskEl.style.top = `${snappedTop}%`;
-                    taskEl.style.height = `${newHeight}%`;
+                // Ensure minimum 30 minute duration
+                const minEndTime = new Date(newStartDate.getTime() + 30 * 60 * 1000);
+                if (newEndDate < minEndTime) {
+                    newEndDate = minEndTime;
+                }
+
+                // Clamp to visible range (7pm max)
+                const maxEnd = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), 19, 0);
+                if (newEndDate > maxEnd) {
+                    newEndDate = maxEnd;
+                }
+            } else {
+                // Top edge - keep end, change start
+                newEndDate = scheduleEnd;
+                newStartDate = snappedTime;
+
+                // Ensure minimum 30 minute duration
+                const maxStartTime = new Date(newEndDate.getTime() - 30 * 60 * 1000);
+                if (newStartDate > maxStartTime) {
+                    newStartDate = maxStartTime;
+                }
+
+                // Clamp to visible range (7am min)
+                const minStart = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), 7, 0);
+                if (newStartDate < minStart) {
+                    newStartDate = minStart;
                 }
             }
+
+            // Calculate visual position relative to the task's parent hour
+            const newStartHour = newStartDate.getHours();
+            const newStartMinute = newStartDate.getMinutes();
+
+            // Calculate top and height as percentage of the parent hour
+            const topMinuteOffset = (newStartHour - baseHour) * 60 + newStartMinute;
+            const durationMinutes = (newEndDate - newStartDate) / (60 * 1000);
+
+            const topPercent = (topMinuteOffset / 60) * 100;
+            const heightPercent = (durationMinutes / 60) * 100;
+
+            taskEl.style.top = `${topPercent}%`;
+            taskEl.style.height = `${heightPercent}%`;
         }
 
         async function endTaskResize() {
             if (!resizeState) return;
 
-            const { taskEl, taskId, scheduleId, startDate, edge } = resizeState;
-            const heightPercent = parseFloat(taskEl.style.height) || 50;
-            const topPercent = parseFloat(taskEl.style.top) || 0;
+            const { taskEl, taskId, scheduleId, edge } = resizeState;
 
             taskEl.classList.remove('resizing');
 
-            // Get the hour from the parent hour-content
+            // Calculate times from the current visual position
+            const topPercent = parseFloat(taskEl.style.top) || 0;
+            const heightPercent = parseFloat(taskEl.style.height) || 50;
             const hourContent = taskEl.parentElement;
             const baseHour = parseInt(hourContent.dataset.hour);
-
-            // Calculate new start and end times using currentCalendarDate (not today)
             const calDate = new Date(currentCalendarDate);
-            const startMinutes = (topPercent / 100) * 60;
+
+            // Calculate start time from top position (can span multiple hours)
+            const startMinuteOffset = (topPercent / 100) * 60;
+            const startTotalMinutes = baseHour * 60 + startMinuteOffset;
+            const startHour = Math.floor(startTotalMinutes / 60);
+            const startMinute = Math.round(startTotalMinutes % 60);
+
+            // Calculate duration and end time
             const durationMinutes = (heightPercent / 100) * 60;
 
-            const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), baseHour, startMinutes);
+            const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), startHour, startMinute);
             const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
 
             const startTimeUTC = localToUTC(newStartDate);
             const endTimeUTC = localToUTC(newEndDate);
 
-            // Update on server using specific schedule ID
-            await updateScheduleById(scheduleId, taskId, edge === 'top' ? startTimeUTC : null, endTimeUTC);
+            // Update on server - always send both times since resize can span hours
+            await updateScheduleById(scheduleId, taskId, startTimeUTC, endTimeUTC);
 
             document.removeEventListener('mousemove', handleTaskResize);
             document.removeEventListener('mouseup', endTaskResize);
