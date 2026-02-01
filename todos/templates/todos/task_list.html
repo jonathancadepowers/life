@@ -10995,9 +10995,10 @@
             const calDate = new Date(currentCalendarDate);
 
             // Get the calendar container for absolute positioning reference
-            const calendarBody = document.querySelector('.calendar-body');
-            const calendarRect = calendarBody.getBoundingClientRect();
-            const mouseY = e.clientY - calendarRect.top;
+            const hourlyGrid = document.getElementById('hourly-grid');
+            if (!hourlyGrid) return;
+            const gridRect = hourlyGrid.getBoundingClientRect();
+            const mouseY = e.clientY - gridRect.top;
 
             // Calculate which hour and minute the mouse is over (7am = hour 7 at top)
             const totalMinutesFromTop = (mouseY / hourHeight) * 60;
@@ -12346,9 +12347,10 @@
             const calDate = new Date(currentCalendarDate);
 
             // Get the calendar container for absolute positioning reference
-            const calendarBody = document.querySelector('.calendar-body');
-            const calendarRect = calendarBody.getBoundingClientRect();
-            const mouseY = e.clientY - calendarRect.top;
+            const hourlyGrid = document.getElementById('hourly-grid');
+            if (!hourlyGrid) return;
+            const gridRect = hourlyGrid.getBoundingClientRect();
+            const mouseY = e.clientY - gridRect.top;
 
             // Calculate which hour and minute the mouse is over (7am = hour 7 at top)
             const totalMinutesFromTop = (mouseY / hourHeight) * 60;
