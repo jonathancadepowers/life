@@ -10451,9 +10451,12 @@
                 });
                 blockEl.appendChild(resizeHandle);
 
-                // Check if this time block starts exactly when an event ends
-                // Events use heightPx - 4, so we need to account for that gap
+                // Check if this time block starts exactly when any item ends
+                // Events use heightPx - 4, so we need special pixel positioning for them
+                // Time blocks and tasks use percentage positioning, so they align naturally
                 let adjustedTopPx = null;
+
+                // Check calendar events (need pixel adjustment for -4px gap)
                 calendarEvents.forEach(event => {
                     const eventEnd = new Date(event.end);
                     if (Math.abs(eventEnd - startDate) < 1000) { // Within 1 second
@@ -10477,6 +10480,9 @@
                         adjustedTopPx = eventVisualEndPx - (hoursDiff * 60);
                     }
                 });
+
+                // Note: We don't need special positioning for time blocks or tasks
+                // since they use percentage positioning and will align naturally
 
                 if (adjustedTopPx !== null && adjustedTopPx >= 0 && adjustedTopPx < 60) {
                     // Position time block exactly where event visually ends
@@ -10754,7 +10760,7 @@
                 </div>
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); snapTimeBlockToEventAbove(${blockId}); closeContextMenu();">
                     <i class="bi bi-magnet"></i>
-                    Snap to Event Above
+                    Snap to Item Above
                 </div>
                 <div class="task-context-menu-divider"></div>
                 <div class="task-context-menu-item danger" onclick="event.stopPropagation(); deleteTimeBlock(${blockId}); closeContextMenu();">
@@ -10791,7 +10797,7 @@
             }, 0);
         }
 
-        // Snap time block to the event directly above it
+        // Snap time block to any item directly above it (event, time block, or task)
         async function snapTimeBlockToEventAbove(blockId) {
             const block = timeBlocks.find(b => b.id === blockId);
             if (!block) return;
@@ -10800,36 +10806,61 @@
             const blockEnd = new Date(block.end);
             const duration = blockEnd - blockStart;
 
-            // Find the closest event that ends before this block starts
-            let closestEvent = null;
+            // Find the closest item (event, time block, or task) that ends before this block starts
+            let closestItemEnd = null;
             let closestDistance = Infinity;
 
             const todayStart = new Date(currentCalendarDate);
             todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
+            // Check calendar events
             calendarEvents.forEach(event => {
                 const eventEnd = new Date(event.end);
-                // Only consider events on the current calendar date
-                if (eventEnd >= todayStart && eventEnd < todayEnd) {
-                    // Check if event ends before or at the block start
-                    if (eventEnd <= blockStart) {
-                        const distance = blockStart - eventEnd;
-                        if (distance < closestDistance) {
-                            closestDistance = distance;
-                            closestEvent = event;
-                        }
+                if (eventEnd >= todayStart && eventEnd < todayEnd && eventEnd <= blockStart) {
+                    const distance = blockStart - eventEnd;
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItemEnd = eventEnd;
                     }
                 }
             });
 
-            if (!closestEvent) {
-                alert('No event found above this time block.');
+            // Check other time blocks
+            timeBlocks.forEach(otherBlock => {
+                if (otherBlock.id === blockId) return; // Skip self
+                const otherEnd = new Date(otherBlock.end);
+                if (otherEnd >= todayStart && otherEnd < todayEnd && otherEnd <= blockStart) {
+                    const distance = blockStart - otherEnd;
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItemEnd = otherEnd;
+                    }
+                }
+            });
+
+            // Check scheduled tasks
+            Object.keys(taskSchedulesMap).forEach(taskId => {
+                const schedules = taskSchedulesMap[taskId] || [];
+                schedules.forEach(schedule => {
+                    const scheduleEnd = new Date(schedule.end_time);
+                    if (scheduleEnd >= todayStart && scheduleEnd < todayEnd && scheduleEnd <= blockStart) {
+                        const distance = blockStart - scheduleEnd;
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestItemEnd = scheduleEnd;
+                        }
+                    }
+                });
+            });
+
+            if (!closestItemEnd) {
+                alert('No item found above this time block.');
                 return;
             }
 
-            // Set the new start time to match the event's end time exactly
-            const newStart = new Date(closestEvent.end);
+            // Set the new start time to match the closest item's end time exactly
+            const newStart = new Date(closestItemEnd);
             const newEnd = new Date(newStart.getTime() + duration);
 
             // Update via backend
