@@ -7235,11 +7235,8 @@
                         markDoneBtn.querySelector('i').className = 'bi bi-check-circle';
                     }
 
-                    // Always start in edit mode
-                    detailsPreview.style.display = 'none';
-                    detailsTextarea.style.display = 'block';
-                    markdownEditBtn.classList.add('active');
-                    markdownViewBtn.classList.remove('active');
+                    // Always start in view mode
+                    showMarkdownPreview();
 
                     // Load deadline data
                     updatePresetButtonStates(data.task.deadline);
