@@ -1315,8 +1315,27 @@
 
         .deadline-dropdown-body {
             padding: 0.75rem 1rem;
-            max-height: 60vh;
+            max-height: 50vh;
             overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .deadline-dropdown-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .deadline-dropdown-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .deadline-dropdown-body::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .deadline-dropdown-body::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
         }
 
         /* Tooltips in deadline dropdown should appear to the LEFT since icons are at right edge */
