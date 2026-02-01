@@ -10582,6 +10582,10 @@
             const durationMinutes = (blockEndDate - blockStartDate) / (1000 * 60);
             const initialHeightPercent = (durationMinutes / 60) * 100;
 
+            // Store the ACTUAL CSS top value for reverting (may be pixels or percentage)
+            const initialCssTop = blockEl.style.top;
+            const initialCssHeight = blockEl.style.height;
+
             timeBlockResizeState = {
                 blockEl,
                 blockId,
@@ -10589,6 +10593,8 @@
                 endDate: new Date(endDate),
                 initialTop: initialTopPercent,
                 initialHeight: initialHeightPercent,
+                initialCssTop: initialCssTop,
+                initialCssHeight: initialCssHeight,
                 startY: e.clientY,
                 edge: edge // 'top' or 'bottom'
             };
@@ -10720,9 +10726,9 @@
             // Check for overlaps before saving
             if (hasOverlappingItem(newStartDate, newEndDate, 'timeblock-' + blockId)) {
                 console.log('Resize blocked: would overlap with event or other item');
-                // Revert visual changes
-                blockEl.style.top = `${initialTop}%`;
-                blockEl.style.height = `${timeBlockResizeState.initialHeight}%`;
+                // Revert visual changes using actual CSS values (may be pixels or percentage)
+                blockEl.style.top = timeBlockResizeState.initialCssTop;
+                blockEl.style.height = timeBlockResizeState.initialCssHeight;
                 document.removeEventListener('mousemove', handleTimeBlockResize);
                 document.removeEventListener('mouseup', endTimeBlockResize);
                 timeBlockResizeState = null;
