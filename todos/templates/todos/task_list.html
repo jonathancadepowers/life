@@ -13245,6 +13245,7 @@
         const newTaskInput = document.getElementById('new-task-input');
         let currentPhraseIndex = -1; // Start with initial text
         let placeholderTimeout = null;
+        let placeholderRestartTimer = null;
 
         function wrapChars(text) {
             return text.split('').map(char =>
@@ -13306,20 +13307,50 @@
             }
         }
 
+        function cancelDelayedRestart() {
+            if (placeholderRestartTimer) {
+                clearTimeout(placeholderRestartTimer);
+                placeholderRestartTimer = null;
+            }
+        }
+
+        function scheduleDelayedPlaceholderRestart() {
+            // Cancel any existing delayed restart
+            cancelDelayedRestart();
+
+            // Schedule restart after 10 seconds if input remains empty and unfocused
+            placeholderRestartTimer = setTimeout(() => {
+                if (!newTaskInput.value && document.activeElement !== newTaskInput) {
+                    animatedPlaceholder.classList.remove('hidden');
+                    startPlaceholderCycle();
+                }
+                placeholderRestartTimer = null;
+            }, 10000);
+        }
+
         // Show/hide placeholder based on input state
         newTaskInput.addEventListener('input', function() {
             if (this.value) {
+                // User is typing - hide placeholder and cancel any delayed restart
                 animatedPlaceholder.classList.add('hidden');
                 stopPlaceholderCycle();
+                cancelDelayedRestart();
             } else {
-                animatedPlaceholder.classList.remove('hidden');
-                startPlaceholderCycle();
+                // Input is empty - hide placeholder and schedule delayed restart
+                animatedPlaceholder.classList.add('hidden');
+                stopPlaceholderCycle();
+                scheduleDelayedPlaceholderRestart();
             }
         });
 
         newTaskInput.addEventListener('focus', function() {
-            if (!this.value) {
-                // Keep showing but could optionally pause animation
+            // Cancel delayed restart if user focuses the input
+            cancelDelayedRestart();
+
+            // If input is empty and placeholder is hidden, show it immediately
+            if (!this.value && animatedPlaceholder.classList.contains('hidden')) {
+                animatedPlaceholder.classList.remove('hidden');
+                startPlaceholderCycle();
             }
         });
 
