@@ -10494,18 +10494,35 @@
             const hourHeight = 60; // pixels per hour
             const deltaPercent = (deltaY / hourHeight) * 100;
 
-            // Snap to 30-minute increments (50% of an hour)
-            const snapTo30Min = (percent) => Math.round(percent / 50) * 50;
+            // Get hour for snap points
+            const hourContent = blockEl.parentElement;
+            const hour = parseInt(hourContent.dataset.hour);
+            const snapPoints = getValidSnapPoints(hour);
+
+            // Snap to valid points (includes :00, :30, and event end times)
+            const snapToValidPoints = (percent) => {
+                const minute = (percent / 100) * 60;
+                const snappedMinute = findClosestSnapPoint(snapPoints, minute);
+                return (snappedMinute / 60) * 100;
+            };
 
             if (edge === 'bottom') {
                 // Dragging bottom edge - adjust height only
                 const rawHeight = initialHeight + deltaPercent;
-                const newHeight = Math.max(50, snapTo30Min(rawHeight)); // Min 30 minutes
+                const newHeight = Math.max(50, snapToValidPoints(rawHeight)); // Min 30 minutes
                 blockEl.style.height = `${newHeight}%`;
             } else {
                 // Dragging top edge - adjust both top position and height
                 const rawTop = initialTop + deltaPercent;
-                const snappedTop = snapTo30Min(rawTop);
+                const snappedTop = snapToValidPoints(rawTop);
+                console.log('Resize snap debug:', {
+                    hour: hour,
+                    rawTop: rawTop,
+                    rawTopMinute: (rawTop / 100) * 60,
+                    snapPoints: snapPoints,
+                    snappedTop: snappedTop,
+                    snappedMinute: (snappedTop / 100) * 60
+                });
                 const topChange = snappedTop - initialTop;
                 const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
 
@@ -11735,10 +11752,18 @@
 
                     // Get valid snap points for this hour and find closest
                     const snapPoints = getValidSnapPoints(hour);
+                    console.log('Drag snap debug:', {
+                        hour: hour,
+                        targetMinute: targetMinute,
+                        snapPoints: snapPoints,
+                        calendarEvents: calendarEvents.map(e => ({ title: e.title, end: e.end }))
+                    });
                     const clampedMinute = findClosestSnapPoint(snapPoints, targetMinute);
+                    console.log('Selected snap point:', clampedMinute);
 
                     // Update visual indicators - set precise preview position
                     const previewTopPercent = (clampedMinute / 60) * 100;
+                    console.log('Preview top percent:', previewTopPercent);
                     this.style.setProperty('--preview-top', `${previewTopPercent}%`);
 
                     const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), hour, clampedMinute);
