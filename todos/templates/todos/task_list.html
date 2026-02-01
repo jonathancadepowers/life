@@ -10517,10 +10517,6 @@
                             // Calculate how many pixels into the current hour that is
                             const hoursDiff = startHour - otherStartHour;
                             adjustedTopPx = otherVisualEndPx - (hoursDiff * 60);
-
-                            console.log(`RENDER: ${block.name} adjacent to ${otherBlock.name}`);
-                            console.log(`  otherBlockOffset: ${otherBlockOffset}, otherTopPx: ${otherTopPx}, otherVisualEndPx: ${otherVisualEndPx}`);
-                            console.log(`  startHour: ${startHour}, hoursDiff: ${hoursDiff}, adjustedTopPx: ${adjustedTopPx}`);
                         }
                     });
                 }
@@ -10550,15 +10546,13 @@
                 }
 
                 if (adjustedTopPx !== null && adjustedTopPx >= -4 && adjustedTopPx < 60) {
-                    // Position time block exactly where event visually ends
-                    // Allow small negative values (down to -4px) to close the gap from event's -4px margin
-                    console.log(`RENDER: ${block.name} using pixel positioning: top=${adjustedTopPx}px`);
+                    // Position time block exactly where adjacent item visually ends
+                    // Allow small negative values (down to -4px) to close gaps from cascading offsets
                     blockEl.style.top = `${adjustedTopPx}px`;
                     blockEl.style.height = `${heightPercent}%`;
                 } else {
                     // Normal percentage-based positioning
                     const topPercent = (startMinute / 60) * 100;
-                    console.log(`RENDER: ${block.name} using percentage positioning: top=${topPercent}% (adjustedTopPx was ${adjustedTopPx})`);
                     blockEl.style.top = `${topPercent}%`;
                     blockEl.style.height = `${heightPercent}%`;
                 }
@@ -10927,13 +10921,8 @@
 
         // Snap time block to any item directly above it (event, time block, or task)
         async function snapTimeBlockToEventAbove(blockId) {
-            console.log('snapTimeBlockToEventAbove called with blockId:', blockId);
             const block = timeBlocks.find(b => b.id === blockId);
-            if (!block) {
-                console.log('Block not found in timeBlocks array');
-                return;
-            }
-            console.log('Found block:', block.name, 'start:', block.start, 'end:', block.end);
+            if (!block) return;
 
             const blockStart = new Date(block.start);
             const blockEnd = new Date(block.end);
@@ -10960,14 +10949,11 @@
             });
 
             // Check other time blocks
-            console.log('Checking other time blocks...');
             timeBlocks.forEach(otherBlock => {
                 if (otherBlock.id === blockId) return; // Skip self
                 const otherEnd = new Date(otherBlock.end);
-                console.log('  Other block:', otherBlock.name, 'ends:', otherBlock.end, 'otherEnd <= blockStart:', otherEnd <= blockStart);
                 if (otherEnd >= todayStart && otherEnd < todayEnd && otherEnd <= blockStart) {
                     const distance = blockStart - otherEnd;
-                    console.log('    Candidate! Distance:', distance, 'ms');
                     if (distance < closestDistance) {
                         closestDistance = distance;
                         closestItemEnd = otherEnd;
@@ -10991,7 +10977,6 @@
             });
 
             if (!closestItemEnd) {
-                console.log('No item found above this time block');
                 alert('No item found above this time block.');
                 return;
             }
@@ -10999,8 +10984,6 @@
             // Set the new start time to match the closest item's end time exactly
             const newStart = new Date(closestItemEnd);
             const newEnd = new Date(newStart.getTime() + duration);
-            console.log('Found closest item, snapping to:', newStart.toISOString());
-            console.log('Block will move from', block.start, 'to', newStart.toISOString());
 
             // Update via backend
             try {
