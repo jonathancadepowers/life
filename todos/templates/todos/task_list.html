@@ -10494,35 +10494,34 @@
             const hourHeight = 60; // pixels per hour
             const deltaPercent = (deltaY / hourHeight) * 100;
 
-            // Get hour for snap points
-            const hourContent = blockEl.parentElement;
-            const hour = parseInt(hourContent.dataset.hour);
-            const snapPoints = getValidSnapPoints(hour);
-
-            // Snap to valid points (includes :00, :30, and event end times)
-            const snapToValidPoints = (percent) => {
-                const minute = (percent / 100) * 60;
-                const snappedMinute = findClosestSnapPoint(snapPoints, minute);
-                return (snappedMinute / 60) * 100;
-            };
+            // Snap to 30-minute increments (50% of an hour)
+            const snapTo30Min = (percent) => Math.round(percent / 50) * 50;
 
             if (edge === 'bottom') {
-                // Dragging bottom edge - adjust height only
+                // Dragging bottom edge - adjust height only (snap duration to 30 min increments)
                 const rawHeight = initialHeight + deltaPercent;
-                const newHeight = Math.max(50, snapToValidPoints(rawHeight)); // Min 30 minutes
+                const newHeight = Math.max(50, snapTo30Min(rawHeight)); // Min 30 minutes
                 blockEl.style.height = `${newHeight}%`;
             } else {
-                // Dragging top edge - adjust both top position and height
+                // Dragging top edge - adjust both top position and height (snap to time points)
+                const hourContent = blockEl.parentElement;
+                const hour = parseInt(hourContent.dataset.hour);
+                const snapPoints = getValidSnapPoints(hour);
+
                 const rawTop = initialTop + deltaPercent;
-                const snappedTop = snapToValidPoints(rawTop);
+                const rawTopMinute = (rawTop / 100) * 60;
+                const snappedMinute = findClosestSnapPoint(snapPoints, rawTopMinute);
+                const snappedTop = (snappedMinute / 60) * 100;
+
                 console.log('Resize snap debug:', {
                     hour: hour,
                     rawTop: rawTop,
-                    rawTopMinute: (rawTop / 100) * 60,
+                    rawTopMinute: rawTopMinute,
                     snapPoints: snapPoints,
                     snappedTop: snappedTop,
-                    snappedMinute: (snappedTop / 100) * 60
+                    snappedMinute: snappedMinute
                 });
+
                 const topChange = snappedTop - initialTop;
                 const newHeight = Math.max(50, initialHeight - topChange); // Min 30 minutes
 
