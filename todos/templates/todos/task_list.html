@@ -11830,12 +11830,17 @@
 
                     if (overlapCount > 1) {
                         // Calculate width and left position
-                        const widthPercent = 100 / overlapCount;
-                        const leftPosition = 4 + (columnIndex * widthPercent * (hourContent.offsetWidth - 8) / 100);
-                        const widthPx = (widthPercent * (hourContent.offsetWidth - 8) / 100) - 4;
+                        // We want: 4px left padding, 4px right padding, 4px gap between columns
+                        // Total gaps between columns = (overlapCount - 1) * 4
+                        // Available width for all columns = container - 8 (left/right padding) - gaps
+                        const gap = 4;
+                        const totalGaps = (overlapCount - 1) * gap;
+                        const availableWidth = hourContent.offsetWidth - 8 - totalGaps;
+                        const columnWidth = availableWidth / overlapCount;
+                        const leftPosition = 4 + columnIndex * (columnWidth + gap);
 
                         taskInfo.element.style.left = `${leftPosition}px`;
-                        taskInfo.element.style.width = `${widthPx}px`;
+                        taskInfo.element.style.width = `${columnWidth}px`;
                         taskInfo.element.style.right = 'auto';
                     } else {
                         // Single task, use full width
