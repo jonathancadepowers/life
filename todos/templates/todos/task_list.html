@@ -10890,6 +10890,10 @@
                     <i class="bi bi-magnet"></i>
                     Snap to Item Above
                 </div>
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); snapTimeBlockToItemBelow(${blockId}); closeContextMenu();">
+                    <i class="bi bi-magnet"></i>
+                    Snap to Item Below
+                </div>
                 <div class="task-context-menu-divider"></div>
                 <div class="task-context-menu-item danger" onclick="event.stopPropagation(); deleteTimeBlock(${blockId}); closeContextMenu();">
                     <i class="bi bi-trash"></i>
@@ -11021,6 +11025,98 @@
             }
         }
 
+        // Snap time block to extend its end time to meet the item below it
+        async function snapTimeBlockToItemBelow(blockId) {
+            const block = timeBlocks.find(b => b.id === blockId);
+            if (!block) return;
+
+            const blockStart = new Date(block.start);
+            const blockEnd = new Date(block.end);
+
+            // Find the closest item (event, time block, or task) that starts after this block ends
+            let closestItemStart = null;
+            let closestDistance = Infinity;
+
+            const todayStart = new Date(currentCalendarDate);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            // Check calendar events
+            calendarEvents.forEach(event => {
+                const eventStart = new Date(event.start);
+                if (eventStart >= todayStart && eventStart < todayEnd && eventStart >= blockEnd) {
+                    const distance = eventStart - blockEnd;
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItemStart = eventStart;
+                    }
+                }
+            });
+
+            // Check other time blocks
+            timeBlocks.forEach(otherBlock => {
+                if (otherBlock.id === blockId) return; // Skip self
+                const otherStart = new Date(otherBlock.start);
+                if (otherStart >= todayStart && otherStart < todayEnd && otherStart >= blockEnd) {
+                    const distance = otherStart - blockEnd;
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItemStart = otherStart;
+                    }
+                }
+            });
+
+            // Check scheduled tasks
+            Object.keys(taskSchedulesMap).forEach(taskId => {
+                const schedules = taskSchedulesMap[taskId] || [];
+                schedules.forEach(schedule => {
+                    const scheduleStart = new Date(schedule.start_time);
+                    if (scheduleStart >= todayStart && scheduleStart < todayEnd && scheduleStart >= blockEnd) {
+                        const distance = scheduleStart - blockEnd;
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestItemStart = scheduleStart;
+                        }
+                    }
+                });
+            });
+
+            if (!closestItemStart) {
+                alert('No item found below this time block.');
+                return;
+            }
+
+            // Keep the start time, extend the end time to match the closest item's start
+            const newEnd = new Date(closestItemStart);
+
+            // Update via backend
+            try {
+                const response = await fetch(`/tasks/api/time-blocks/${blockId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        end_time: newEnd.toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Update local data
+                    block.end = data.time_block.end;
+                    // Re-render
+                    renderTimeBlocks();
+                } else {
+                    alert('Failed to update time block.');
+                }
+            } catch (error) {
+                console.error('Error updating time block:', error);
+                alert('Error updating time block.');
+            }
+        }
+
         // Scheduled task context menu (for tasks on the calendar)
         function showScheduledTaskContextMenu(e, taskId, scheduleId) {
             closeContextMenu();
@@ -11033,6 +11129,10 @@
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); snapScheduledTaskToEventAbove(${taskId}, ${scheduleId}); closeContextMenu();">
                     <i class="bi bi-magnet"></i>
                     Snap to Item Above
+                </div>
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); snapScheduledTaskToItemBelow(${taskId}, ${scheduleId}); closeContextMenu();">
+                    <i class="bi bi-magnet"></i>
+                    Snap to Item Below
                 </div>
                 <div class="task-context-menu-divider"></div>
                 <div class="task-context-menu-item danger" onclick="event.stopPropagation(); removeScheduleFromCalendar(${scheduleId}, ${taskId}); closeContextMenu();">
@@ -11155,6 +11255,100 @@
                     const data = await response.json();
                     // Update local data
                     schedule.start_time = data.schedule.start_time;
+                    schedule.end_time = data.schedule.end_time;
+                    // Re-render
+                    renderScheduledTasks();
+                } else {
+                    alert('Failed to update task schedule.');
+                }
+            } catch (error) {
+                console.error('Error updating task schedule:', error);
+                alert('Error updating task schedule.');
+            }
+        }
+
+        // Snap scheduled task to extend its end time to meet the item below it
+        async function snapScheduledTaskToItemBelow(taskId, scheduleId) {
+            // Find the schedule
+            const schedules = taskSchedulesMap[taskId] || [];
+            const schedule = schedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+
+            const scheduleStart = new Date(schedule.start_time);
+            const scheduleEnd = new Date(schedule.end_time);
+
+            // Find the closest item (event, time block, or task) that starts after this task ends
+            let closestItemStart = null;
+            let closestDistance = Infinity;
+
+            const todayStart = new Date(currentCalendarDate);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            // Check calendar events
+            calendarEvents.forEach(event => {
+                const eventStart = new Date(event.start);
+                if (eventStart >= todayStart && eventStart < todayEnd && eventStart >= scheduleEnd) {
+                    const distance = eventStart - scheduleEnd;
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItemStart = eventStart;
+                    }
+                }
+            });
+
+            // Check time blocks
+            timeBlocks.forEach(block => {
+                const blockStart = new Date(block.start);
+                if (blockStart >= todayStart && blockStart < todayEnd && blockStart >= scheduleEnd) {
+                    const distance = blockStart - scheduleEnd;
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestItemStart = blockStart;
+                    }
+                }
+            });
+
+            // Check other scheduled tasks
+            Object.keys(taskSchedulesMap).forEach(otherTaskId => {
+                const otherSchedules = taskSchedulesMap[otherTaskId] || [];
+                otherSchedules.forEach(otherSchedule => {
+                    if (otherSchedule.id === scheduleId) return; // Skip self
+                    const otherStart = new Date(otherSchedule.start_time);
+                    if (otherStart >= todayStart && otherStart < todayEnd && otherStart >= scheduleEnd) {
+                        const distance = otherStart - scheduleEnd;
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestItemStart = otherStart;
+                        }
+                    }
+                });
+            });
+
+            if (!closestItemStart) {
+                alert('No item found below this task.');
+                return;
+            }
+
+            // Keep the start time, extend the end time to match the closest item's start
+            const newEnd = new Date(closestItemStart);
+
+            // Update via backend
+            try {
+                const response = await fetch(`/tasks/api/schedules/${scheduleId}/update/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        end_time: newEnd.toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Update local data
                     schedule.end_time = data.schedule.end_time;
                     // Re-render
                     renderScheduledTasks();
