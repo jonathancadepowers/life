@@ -10539,6 +10539,18 @@
             const newStartDate = new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), baseHour, startMinutes);
             const newEndDate = new Date(newStartDate.getTime() + durationMinutes * 60 * 1000);
 
+            // Check for overlaps before saving
+            if (hasOverlappingItem(newStartDate, newEndDate, 'timeblock-' + blockId)) {
+                console.log('Resize blocked: would overlap with event or other item');
+                // Revert visual changes
+                blockEl.style.top = `${initialTop}%`;
+                blockEl.style.height = `${timeBlockResizeState.initialHeight}%`;
+                document.removeEventListener('mousemove', handleTimeBlockResize);
+                document.removeEventListener('mouseup', endTimeBlockResize);
+                timeBlockResizeState = null;
+                return;
+            }
+
             const startTimeUTC = newStartDate.toISOString();
             const endTimeUTC = newEndDate.toISOString();
 
