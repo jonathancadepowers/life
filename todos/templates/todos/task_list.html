@@ -8718,7 +8718,7 @@
                             if (!iconsDiv) {
                                 iconsDiv = document.createElement('div');
                                 iconsDiv.className = 'task-card-icons';
-                                taskCard.querySelector('.task-card-header').appendChild(iconsDiv);
+                                taskCard.querySelector('.task-card-content').appendChild(iconsDiv);
                             }
                             if (!iconsDiv.querySelector('.task-critical-icon')) {
                                 const icon = document.createElement('i');
@@ -11002,7 +11002,6 @@
 
             // Check for overlaps before saving
             if (hasOverlappingItem(newStartDate, newEndDate, 'timeblock-' + blockId)) {
-                console.log('Resize blocked: would overlap with event or other item');
                 // Revert visual changes using actual CSS values (may be pixels or percentage)
                 blockEl.style.top = timeBlockResizeState.initialCssTop;
                 blockEl.style.height = timeBlockResizeState.initialCssHeight;
@@ -11919,13 +11918,23 @@
                     const taskDeadlineData = taskDeadlinesMap[taskId];
                     const isCompleted = taskDeadlineData && taskDeadlineData.state_id === terminalStateId;
 
+                    // Format time range for tooltip (e.g., "4pm to 5pm (60 mins)")
+                    const formatTooltipTime = (date) => {
+                        let hours = date.getHours();
+                        const ampm = hours >= 12 ? 'pm' : 'am';
+                        hours = hours % 12 || 12;
+                        const mins = date.getMinutes();
+                        return mins === 0 ? `${hours}${ampm}` : `${hours}:${mins.toString().padStart(2, '0')}${ampm}`;
+                    };
+                    const timeRange = `${formatTooltipTime(startDate)} to ${formatTooltipTime(endDate)} (${Math.round(durationMinutes)} mins)`;
+
                     // Create scheduled task element
                     const taskEl = document.createElement('div');
                     taskEl.className = 'calendar-scheduled-task' + (isCompleted ? ' completed' : '');
                     taskEl.dataset.taskId = taskId;
                     taskEl.dataset.scheduleId = schedule.id;
                     taskEl.draggable = true;
-                    taskEl.title = title;
+                    taskEl.title = `${title}\n${timeRange}`;
 
                     // Create content wrapper
                     const contentWrapper = document.createElement('div');
@@ -12628,30 +12637,18 @@
 
             // Check calendar events
             if (calendarEvents && calendarEvents.length > 0) {
-                console.log('Checking overlap against', calendarEvents.length, 'calendar events');
                 for (const event of calendarEvents) {
                     if (event.is_all_day) continue;
 
                     const eventStart = new Date(event.start);
                     const eventEnd = new Date(event.end);
 
-                    console.log('Event check:', {
-                        eventTitle: event.title,
-                        eventStart: eventStart.toISOString(),
-                        eventEnd: eventEnd.toISOString(),
-                        newStart: newStart.toISOString(),
-                        newEnd: newEnd.toISOString(),
-                        overlaps: newStart < eventEnd && newEnd > eventStart
-                    });
-
                     // Check for overlap
                     if (newStart < eventEnd && newEnd > eventStart) {
-                        console.log('OVERLAP DETECTED with event:', event.title);
                         return true;
                     }
                 }
             } else {
-                console.log('No calendar events to check');
             }
 
             // Check time blocks
@@ -12816,18 +12813,10 @@
 
                     // Get valid snap points for this hour and find closest
                     const snapPoints = getValidSnapPoints(hour);
-                    console.log('Drag snap debug:', {
-                        hour: hour,
-                        targetMinute: targetMinute,
-                        snapPoints: snapPoints,
-                        calendarEvents: calendarEvents.map(e => ({ title: e.title, end: e.end }))
-                    });
                     const clampedMinute = findClosestSnapPoint(snapPoints, targetMinute);
-                    console.log('Selected snap point:', clampedMinute);
 
                     // Update visual indicators - set precise preview position
                     const previewTopPercent = (clampedMinute / 60) * 100;
-                    console.log('Preview top percent:', previewTopPercent);
                     this.style.setProperty('--preview-top', `${previewTopPercent}%`);
 
                     const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), hour, clampedMinute);
@@ -12949,14 +12938,7 @@
 
                         // Check for overlapping items
                         const hasOverlap = hasOverlappingItem(startLocal, endLocal, 'timeblock-' + blockId);
-                        console.log('Time block overlap check:', {
-                            startLocal: startLocal.toISOString(),
-                            endLocal: endLocal.toISOString(),
-                            hasOverlap,
-                            calendarEventsCount: calendarEvents ? calendarEvents.length : 0
-                        });
                         if (hasOverlap) {
-                            console.log('Blocking time block drop due to overlap');
                             return;
                         }
 
