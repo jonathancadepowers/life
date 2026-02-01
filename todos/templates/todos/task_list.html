@@ -11536,17 +11536,30 @@
 
             // Check calendar events
             if (calendarEvents && calendarEvents.length > 0) {
+                console.log('Checking overlap against', calendarEvents.length, 'calendar events');
                 for (const event of calendarEvents) {
                     if (event.is_all_day) continue;
 
                     const eventStart = new Date(event.start);
                     const eventEnd = new Date(event.end);
 
+                    console.log('Event check:', {
+                        eventTitle: event.title,
+                        eventStart: eventStart.toISOString(),
+                        eventEnd: eventEnd.toISOString(),
+                        newStart: newStart.toISOString(),
+                        newEnd: newEnd.toISOString(),
+                        overlaps: newStart < eventEnd && newEnd > eventStart
+                    });
+
                     // Check for overlap
                     if (newStart < eventEnd && newEnd > eventStart) {
+                        console.log('OVERLAP DETECTED with event:', event.title);
                         return true;
                     }
                 }
+            } else {
+                console.log('No calendar events to check');
             }
 
             // Check time blocks
@@ -11830,7 +11843,15 @@
                         const endLocal = new Date(startLocal.getTime() + durationMs);
 
                         // Check for overlapping items
-                        if (hasOverlappingItem(startLocal, endLocal, 'timeblock-' + blockId)) {
+                        const hasOverlap = hasOverlappingItem(startLocal, endLocal, 'timeblock-' + blockId);
+                        console.log('Time block overlap check:', {
+                            startLocal: startLocal.toISOString(),
+                            endLocal: endLocal.toISOString(),
+                            hasOverlap,
+                            calendarEventsCount: calendarEvents ? calendarEvents.length : 0
+                        });
+                        if (hasOverlap) {
+                            console.log('Blocking time block drop due to overlap');
                             return;
                         }
 
