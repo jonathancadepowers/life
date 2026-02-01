@@ -4064,8 +4064,8 @@
             position: absolute;
             left: 4px;
             right: 4px;
-            background: rgba(209, 250, 229, 0.7);
-            border: 2px dashed #10b981;
+            background: #fff4ed;
+            border: 2px dashed #e8a87c;
             border-radius: 4px;
             pointer-events: none;
             z-index: 10;
@@ -4073,11 +4073,12 @@
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
+            overflow: visible;
         }
 
         .gap-fill-label {
             font-size: 12px;
-            color: #059669;
+            color: #8b5a3c;
             font-weight: 500;
             opacity: 0.8;
         }
@@ -10522,40 +10523,28 @@
 
             const startHour = startTime.getHours();
             const startMinute = startTime.getMinutes();
-            const endHour = endTime.getHours();
-            const endMinute = endTime.getMinutes();
 
-            // For each hour the gap spans, create a preview segment
-            for (let hour = startHour; hour <= endHour && hour <= 18; hour++) {
-                if (hour < 7) continue;  // Skip hours outside visible range
+            // Find the starting hour's container
+            const hourContent = document.querySelector(`.hour-content[data-hour="${startHour}"]`);
+            if (!hourContent) return;
 
-                const hourContent = document.querySelector(`.hour-content[data-hour="${hour}"]`);
-                if (!hourContent) continue;
+            // Calculate total duration in minutes
+            const durationMs = endTime - startTime;
+            const durationMinutes = durationMs / (1000 * 60);
 
-                // Calculate segment start/end within this hour
-                let segmentStartMin = (hour === startHour) ? startMinute : 0;
-                let segmentEndMin = (hour === endHour) ? endMinute : 60;
+            // Calculate position and height as percentage of one hour (60 minutes)
+            // Height can exceed 100% to span multiple hours
+            const topPercent = (startMinute / 60) * 100;
+            const heightPercent = (durationMinutes / 60) * 100;
 
-                // Handle edge case: if end is at :00 of next hour
-                if (hour === endHour && endMinute === 0 && hour > startHour) {
-                    continue;  // Don't render in this hour
-                }
+            // Create a single preview element
+            const preview = document.createElement('div');
+            preview.className = 'gap-fill-preview';
+            preview.style.top = `${topPercent}%`;
+            preview.style.height = `${heightPercent}%`;
+            preview.innerHTML = '<span class="gap-fill-label">Click to block</span>';
 
-                // Skip if no height
-                if (segmentEndMin <= segmentStartMin) continue;
-
-                const topPercent = (segmentStartMin / 60) * 100;
-                const heightPercent = ((segmentEndMin - segmentStartMin) / 60) * 100;
-
-                // Create preview element
-                const preview = document.createElement('div');
-                preview.className = 'gap-fill-preview';
-                preview.style.top = `${topPercent}%`;
-                preview.style.height = `${heightPercent}%`;
-                preview.innerHTML = '<span class="gap-fill-label">Click to block</span>';
-
-                hourContent.appendChild(preview);
-            }
+            hourContent.appendChild(preview);
         }
 
         // Clear the gap-fill preview
