@@ -11629,12 +11629,13 @@
             const eventEndPoints = snapPoints.filter(p => p !== 0 && p !== 30);
 
             // If there are event end times, check if we're near any of them
-            // Only snap to event end if target is at or after the event end (within 10 min)
-            // This prevents snapping when dragging before the event (which would cause overlap)
+            // Snap to event end times when within 5 minutes (before or after)
+            // This creates precise alignment with event boundaries
             if (eventEndPoints.length > 0) {
                 for (const point of eventEndPoints) {
-                    // Only snap if target is at or after the event end, within 10 minutes
-                    if (targetMinute >= point && targetMinute <= point + 10) {
+                    const diff = Math.abs(targetMinute - point);
+                    // If within 5 minutes of an event end time, snap to it
+                    if (diff <= 5) {
                         return point;
                     }
                 }
