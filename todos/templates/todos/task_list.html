@@ -11644,22 +11644,42 @@
             todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
+            console.log('getValidSnapPoints for hour', hour, ':', {
+                todayStart: todayStart.toISOString(),
+                todayEnd: todayEnd.toISOString(),
+                currentCalendarDate: currentCalendarDate.toISOString()
+            });
+
             calendarEvents.forEach(event => {
                 const endDate = new Date(event.end);
+                const endHour = endDate.getHours();
+                const endMinute = endDate.getMinutes();
+                const onCurrentDay = endDate >= todayStart && endDate < todayEnd;
+
+                console.log('Checking event:', {
+                    eventEnd: event.end,
+                    endDateLocal: endDate.toString(),
+                    endHour: endHour,
+                    endMinute: endMinute,
+                    onCurrentDay: onCurrentDay,
+                    matchesHour: endHour === hour,
+                    nonStandardTime: endMinute !== 0 && endMinute !== 30
+                });
+
                 // Check if event ends on current calendar date
-                if (endDate >= todayStart && endDate < todayEnd) {
-                    const endHour = endDate.getHours();
-                    const endMinute = endDate.getMinutes();
+                if (onCurrentDay) {
                     // If event ends in this hour and not on :00 or :30, add end time as snap point
                     // We snap to the exact end time (not +1) for precise alignment
                     if (endHour === hour && endMinute !== 0 && endMinute !== 30) {
                         if (!snapPoints.includes(endMinute)) {
+                            console.log('Adding snap point:', endMinute);
                             snapPoints.push(endMinute);
                         }
                     }
                 }
             });
 
+            console.log('Final snap points:', snapPoints);
             return snapPoints.sort((a, b) => a - b);
         }
 
