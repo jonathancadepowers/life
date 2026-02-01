@@ -1109,6 +1109,40 @@
             padding-top: 0;
         }
 
+        /* Scheduled Dates (read-only) */
+        .panel-scheduled-dates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .scheduled-date-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.65rem;
+            background: #e8f4fd;
+            color: #1976d2;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .scheduled-date-chip i {
+            font-size: 0.75rem;
+        }
+
+        .scheduled-date-chip.is-today {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .panel-no-scheduled-dates {
+            color: #9e9e9e;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+
         /* Toggle Switch */
         .task-toggle {
             position: relative;
@@ -3770,7 +3804,7 @@
 
         /* Scheduled task indicator - no background change, only sun icon shows scheduling */
 
-        .task-card-today-icon {
+        .task-card-scheduled-icon {
             color: #ffc107;
             font-size: 0.85rem;
             flex-shrink: 0;
@@ -3923,6 +3957,15 @@
 
         .calendar-time-block:hover {
             background: #ffece0;
+        }
+
+        .calendar-time-block.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            /* Lock dimensions using CSS variables set in mousedown */
+            width: var(--drag-width) !important;
+            left: var(--drag-left) !important;
+            right: auto !important;
         }
 
         .time-block-content {
@@ -4851,6 +4894,21 @@
                             </div>
                             <div id="panel-deadline-status"></div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scheduled Dates Section (read-only) -->
+            <div class="task-panel-section" id="panel-scheduled-section" style="display: none;">
+                <div class="task-panel-section-header">
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                        <i class="bi bi-calendar-check" style="font-size: 0.85rem;"></i>
+                        <span>Scheduled Dates</span>
+                    </div>
+                </div>
+                <div class="task-panel-section-content">
+                    <div class="panel-scheduled-dates" id="panel-scheduled-dates">
+                        <!-- Scheduled dates will be populated by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -7400,6 +7458,9 @@
             // Render panel tags
             renderPanelTags(taskId);
 
+            // Render scheduled dates
+            renderPanelScheduledDates(taskId);
+
             document.getElementById('panel-overlay').classList.add('active');
             document.getElementById('slide-panel').classList.add('active');
 
@@ -8580,6 +8641,63 @@
                     menu.classList.remove('show');
                     isInteractingWithTags = false;
                 }
+            });
+        }
+
+        function renderPanelScheduledDates(taskId) {
+            const section = document.getElementById('panel-scheduled-section');
+            const container = document.getElementById('panel-scheduled-dates');
+            if (!section || !container) return;
+
+            const schedules = taskSchedulesMap[taskId] || [];
+
+            if (schedules.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            container.innerHTML = '';
+
+            // Get today's date for comparison
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Collect unique dates from schedules and sort them
+            const uniqueDates = [];
+            const seenDates = new Set();
+
+            schedules.forEach(schedule => {
+                const scheduleDate = new Date(schedule.start_time);
+                const dateKey = scheduleDate.toISOString().split('T')[0];
+                if (!seenDates.has(dateKey)) {
+                    seenDates.add(dateKey);
+                    uniqueDates.push(scheduleDate);
+                }
+            });
+
+            // Sort by date
+            uniqueDates.sort((a, b) => a - b);
+
+            // Render date chips
+            uniqueDates.forEach(date => {
+                const chip = document.createElement('span');
+                chip.className = 'scheduled-date-chip';
+
+                const dateOnly = new Date(date);
+                dateOnly.setHours(0, 0, 0, 0);
+                const isToday = dateOnly.getTime() === today.getTime();
+
+                if (isToday) {
+                    chip.classList.add('is-today');
+                }
+
+                // Format the date
+                const options = { weekday: 'short', month: 'short', day: 'numeric' };
+                const formattedDate = isToday ? 'Today' : dateOnly.toLocaleDateString('en-US', options);
+
+                chip.innerHTML = `<i class="bi bi-calendar3"></i> ${formattedDate}`;
+                container.appendChild(chip);
             });
         }
 
@@ -9802,7 +9920,6 @@
                 const card = document.createElement('div');
                 const schedules = taskSchedulesMap[task.id] || [];
                 const isScheduled = schedules.length > 0;
-                const isToday = isScheduled && schedules.some(s => isScheduledForToday(s.start_time));
                 card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (task.isCompleted ? ' completed' : '');
                 card.dataset.taskId = task.id;
 
@@ -9811,10 +9928,10 @@
                     ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
                     : '';
 
-                const todayIconHtml = isToday ? '<i class="bi bi-brightness-high-fill task-card-today-icon" title="Scheduled for Today"></i>' : '';
+                const scheduledIconHtml = isScheduled ? '<i class="bi bi-brightness-high-fill task-card-scheduled-icon" title="Scheduled on Calendar"></i>' : '';
                 const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i>' : '';
-                const hasIcons = isToday || task.isCritical;
-                const iconsHtml = hasIcons ? `<div class="task-card-icons">${todayIconHtml}${criticalIconHtml}</div>` : '';
+                const hasIcons = isScheduled || task.isCritical;
+                const iconsHtml = hasIcons ? `<div class="task-card-icons">${scheduledIconHtml}${criticalIconHtml}</div>` : '';
 
                 card.innerHTML = `
                     <div class="task-card-content">
@@ -12403,6 +12520,26 @@
         let currentDragTimeBlockId = null;
 
         function setupTimeBlockDragEvents(blockEl) {
+            // Capture dimensions on mousedown (before drag starts) to prevent expansion
+            blockEl.addEventListener('mousedown', function(e) {
+                // Don't interfere with resize handles
+                if (e.target.classList.contains('time-block-resize-handle') ||
+                    e.target.classList.contains('time-block-resize-handle-top') ||
+                    e.target.classList.contains('remove-btn') ||
+                    e.target.closest('.remove-btn')) {
+                    return;
+                }
+
+                // Get computed dimensions and store them as CSS variables
+                const computedStyle = window.getComputedStyle(this);
+                const currentWidth = computedStyle.width;
+                const currentLeft = computedStyle.left;
+
+                // Store as CSS variables for use by .dragging class
+                this.style.setProperty('--drag-width', currentWidth);
+                this.style.setProperty('--drag-left', currentLeft);
+            });
+
             blockEl.addEventListener('dragstart', function(e) {
                 this.classList.add('dragging');
                 currentDragTimeBlockId = this.dataset.blockId;
@@ -12414,10 +12551,23 @@
             blockEl.addEventListener('dragend', function() {
                 this.classList.remove('dragging');
                 currentDragTimeBlockId = null;
+
+                // Clean up CSS variables used for dimension locking
+                this.style.removeProperty('--drag-width');
+                this.style.removeProperty('--drag-left');
+
                 document.querySelectorAll('.hour-content.drag-over').forEach(el => {
                     el.classList.remove('drag-over', 'drag-top', 'drag-bottom', 'drag-blocked');
                     el.style.removeProperty('--preview-height');
                 });
+            });
+
+            // Clean up CSS variables if user clicks without dragging
+            blockEl.addEventListener('mouseup', function() {
+                if (!this.classList.contains('dragging')) {
+                    this.style.removeProperty('--drag-width');
+                    this.style.removeProperty('--drag-left');
+                }
             });
         }
 
@@ -12550,7 +12700,7 @@
                     updateTaskScheduledClass(taskId);
 
                     renderScheduledTasks();
-                    initializeTodayIcons();
+                    initializeScheduledIcons();
                 }
             } catch (error) {
                 console.error('Error removing schedule from calendar:', error);
@@ -12562,18 +12712,17 @@
             const cards = document.querySelectorAll(`.task-card[data-task-id="${taskId}"]`);
             const schedules = taskSchedulesMap[taskId] || [];
             const isScheduled = schedules.length > 0;
-            // Check if any schedule is for today
-            const isToday = isScheduled && schedules.some(s => isScheduledForToday(s.start_time));
 
             cards.forEach(card => {
                 card.classList.toggle('scheduled', isScheduled);
 
-                // Add or remove today sun icon
-                let todayIcon = card.querySelector('.task-card-today-icon');
-                if (isToday) {
-                    if (!todayIcon) {
-                        todayIcon = document.createElement('i');
-                        todayIcon.className = 'bi bi-brightness-high-fill task-card-today-icon';
+                // Add or remove scheduled sun icon
+                let scheduledIcon = card.querySelector('.task-card-scheduled-icon');
+                if (isScheduled) {
+                    if (!scheduledIcon) {
+                        scheduledIcon = document.createElement('i');
+                        scheduledIcon.className = 'bi bi-brightness-high-fill task-card-scheduled-icon';
+                        scheduledIcon.title = 'Scheduled on Calendar';
                         // Insert into icons container or create one
                         const content = card.querySelector('.task-card-content');
                         if (content) {
@@ -12583,12 +12732,12 @@
                                 iconsContainer.className = 'task-card-icons';
                                 content.appendChild(iconsContainer);
                             }
-                            // Insert today icon at the start (before critical icon)
-                            iconsContainer.insertBefore(todayIcon, iconsContainer.firstChild);
+                            // Insert scheduled icon at the start (before critical icon)
+                            iconsContainer.insertBefore(scheduledIcon, iconsContainer.firstChild);
                         }
                     }
-                } else if (todayIcon) {
-                    todayIcon.remove();
+                } else if (scheduledIcon) {
+                    scheduledIcon.remove();
                     // Remove icons container if empty
                     const iconsContainer = card.querySelector('.task-card-icons');
                     if (iconsContainer && iconsContainer.children.length === 0) {
@@ -12619,7 +12768,7 @@
                     updateTaskScheduledClass(taskId);
 
                     renderScheduledTasks();
-                    initializeTodayIcons();
+                    initializeScheduledIcons();
                 }
             } catch (error) {
                 console.error('Error removing task from calendar:', error);
@@ -13050,7 +13199,7 @@
 
                         if (success) {
                             renderScheduledTasks();
-                            initializeTodayIcons();
+                            initializeScheduledIcons();
                         }
                     }
                 });
@@ -14564,15 +14713,15 @@
         document.getElementById('timeslot-panel-overlay').addEventListener('click', closeTimeslotPanel);
 
         // Initialize sun icons for tasks scheduled for today on page load
-        function initializeTodayIcons() {
+        function initializeScheduledIcons() {
             document.querySelectorAll('.task-card').forEach(card => {
                 const taskId = card.dataset.taskId;
                 const schedules = taskSchedulesMap[taskId] || [];
-                const hasScheduleToday = schedules.some(s => isScheduledForToday(s.start_time));
+                const isScheduled = schedules.length > 0;
 
-                if (hasScheduleToday) {
+                if (isScheduled) {
                     // Add sun icon if not already present
-                    const existingIcon = card.querySelector('.task-card-today-icon');
+                    const existingIcon = card.querySelector('.task-card-scheduled-icon');
                     if (!existingIcon) {
                         let iconsDiv = card.querySelector('.task-card-icons');
                         if (!iconsDiv) {
@@ -14581,22 +14730,23 @@
                             card.querySelector('.task-card-content').appendChild(iconsDiv);
                         }
 
-                        const todayIcon = document.createElement('i');
-                        todayIcon.className = 'bi bi-brightness-high-fill task-card-today-icon';
+                        const scheduledIcon = document.createElement('i');
+                        scheduledIcon.className = 'bi bi-brightness-high-fill task-card-scheduled-icon';
+                        scheduledIcon.title = 'Scheduled on Calendar';
 
                         // Insert at the beginning (before critical icon)
                         const criticalIcon = iconsDiv.querySelector('.task-critical-icon');
                         if (criticalIcon) {
-                            iconsDiv.insertBefore(todayIcon, criticalIcon);
+                            iconsDiv.insertBefore(scheduledIcon, criticalIcon);
                         } else {
-                            iconsDiv.appendChild(todayIcon);
+                            iconsDiv.appendChild(scheduledIcon);
                         }
                     }
                 } else {
-                    // Remove sun icon if task is not scheduled for today
-                    const todayIcon = card.querySelector('.task-card-today-icon');
-                    if (todayIcon) {
-                        todayIcon.remove();
+                    // Remove sun icon if task is not scheduled
+                    const scheduledIcon = card.querySelector('.task-card-scheduled-icon');
+                    if (scheduledIcon) {
+                        scheduledIcon.remove();
                         // Clean up empty icons div
                         const iconsDiv = card.querySelector('.task-card-icons');
                         if (iconsDiv && iconsDiv.children.length === 0) {
@@ -14644,7 +14794,7 @@
             renderCalendarEvents();
             renderTimeBlocks();
             renderScheduledTasks();
-            initializeTodayIcons();
+            initializeScheduledIcons();
         }
 
         // Check if we can navigate forward (max 4 days from today)
@@ -14696,7 +14846,7 @@
         updateNavigationButtons();
 
         // Initialize today icons on page load
-        initializeTodayIcons();
+        initializeScheduledIcons();
 
         // Initialize deadline warning icon on page load
         updateDeadlineWarningIcon();
