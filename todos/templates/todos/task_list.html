@@ -4059,6 +4059,29 @@
             opacity: 0.7;
         }
 
+        /* Gap fill preview when Cmd/Ctrl + hover over empty space */
+        .gap-fill-preview {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            background: rgba(209, 250, 229, 0.7);
+            border: 2px dashed #10b981;
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .gap-fill-label {
+            font-size: 12px;
+            color: #059669;
+            font-weight: 500;
+            opacity: 0.8;
+        }
+
         .state-group-empty {
             color: #adb5bd;
             font-size: 0.8rem;
@@ -10265,6 +10288,10 @@
         // Task detail templates from database
         let detailTemplates = {{ detail_templates|safe }};
 
+        // Gap-fill feature: track modifier key state for Cmd/Ctrl + hover
+        let isModifierKeyHeld = false;
+        let currentGapPreview = null;  // { startTime: Date, endTime: Date }
+
         // Render calendar events on the hourly grid (using browser's local timezone)
         function renderCalendarEvents() {
             // Remove existing event elements before re-rendering
@@ -10351,6 +10378,217 @@
 
                 hourContent.appendChild(eventEl);
             });
+        }
+
+        // ========== Gap-Fill Feature (Cmd/Ctrl + Hover) ==========
+
+        // Get time at a specific position in an hour
+        function getTimeAtPosition(hour, minute) {
+            const calDate = new Date(currentCalendarDate);
+            return new Date(calDate.getFullYear(), calDate.getMonth(), calDate.getDate(), hour, minute);
+        }
+
+        // Check if a specific time is occupied by any calendar item
+        function isPositionOccupied(time) {
+            const todayStart = new Date(currentCalendarDate);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            // Check calendar events
+            for (const event of calendarEvents) {
+                if (event.is_all_day) continue;
+                const eventStart = new Date(event.start);
+                const eventEnd = new Date(event.end);
+                if (eventStart < todayEnd && eventEnd > todayStart) {
+                    if (time >= eventStart && time < eventEnd) return true;
+                }
+            }
+
+            // Check time blocks
+            for (const block of timeBlocks) {
+                const blockStart = new Date(block.start);
+                const blockEnd = new Date(block.end);
+                if (blockStart < todayEnd && blockEnd > todayStart) {
+                    if (time >= blockStart && time < blockEnd) return true;
+                }
+            }
+
+            // Check scheduled tasks
+            for (const taskId in taskSchedulesMap) {
+                for (const schedule of taskSchedulesMap[taskId]) {
+                    const schedStart = new Date(schedule.start_time);
+                    const schedEnd = new Date(schedule.end_time);
+                    if (schedStart < todayEnd && schedEnd > todayStart) {
+                        if (time >= schedStart && time < schedEnd) return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // Find the gap (empty space) that contains the cursor time
+        function findGapAtTime(cursorTime) {
+            const todayStart = new Date(currentCalendarDate);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            // Collect all item boundaries on current day
+            const items = [];
+
+            // Calendar events
+            calendarEvents.forEach(event => {
+                if (event.is_all_day) return;
+                const start = new Date(event.start);
+                const end = new Date(event.end);
+                if (start < todayEnd && end > todayStart) {
+                    items.push({
+                        start: new Date(Math.max(start.getTime(), todayStart.getTime())),
+                        end: new Date(Math.min(end.getTime(), todayEnd.getTime()))
+                    });
+                }
+            });
+
+            // Time blocks
+            timeBlocks.forEach(block => {
+                const start = new Date(block.start);
+                const end = new Date(block.end);
+                if (start < todayEnd && end > todayStart) {
+                    items.push({
+                        start: new Date(Math.max(start.getTime(), todayStart.getTime())),
+                        end: new Date(Math.min(end.getTime(), todayEnd.getTime()))
+                    });
+                }
+            });
+
+            // Scheduled tasks
+            Object.values(taskSchedulesMap).forEach(schedules => {
+                schedules.forEach(schedule => {
+                    const start = new Date(schedule.start_time);
+                    const end = new Date(schedule.end_time);
+                    if (start < todayEnd && end > todayStart) {
+                        items.push({
+                            start: new Date(Math.max(start.getTime(), todayStart.getTime())),
+                            end: new Date(Math.min(end.getTime(), todayEnd.getTime()))
+                        });
+                    }
+                });
+            });
+
+            // Sort by start time
+            items.sort((a, b) => a.start - b.start);
+
+            // Use calendar visible bounds (7am to 7pm)
+            const visibleStart = new Date(todayStart);
+            visibleStart.setHours(7, 0, 0, 0);
+            const visibleEnd = new Date(todayStart);
+            visibleEnd.setHours(19, 0, 0, 0);  // 7PM
+
+            // Find gap that contains cursorTime
+            let gapStart = visibleStart;
+
+            for (const item of items) {
+                // Skip items outside visible range
+                if (item.end <= visibleStart) continue;
+                if (item.start >= visibleEnd) break;
+
+                if (item.start > gapStart) {
+                    // There's a gap between gapStart and item.start
+                    if (cursorTime >= gapStart && cursorTime < item.start) {
+                        return { start: gapStart, end: item.start };
+                    }
+                }
+                // Move gapStart to end of this item (if it extends our current position)
+                if (item.end > gapStart) {
+                    gapStart = new Date(item.end);
+                }
+            }
+
+            // Check final gap (from last item to end of visible day)
+            if (cursorTime >= gapStart && cursorTime < visibleEnd) {
+                return { start: gapStart, end: visibleEnd };
+            }
+
+            return null;
+        }
+
+        // Show the gap-fill preview
+        function showGapPreview(startTime, endTime) {
+            // Remove any existing preview
+            clearGapPreview();
+
+            // Store current gap info
+            currentGapPreview = { startTime, endTime };
+
+            const startHour = startTime.getHours();
+            const startMinute = startTime.getMinutes();
+            const endHour = endTime.getHours();
+            const endMinute = endTime.getMinutes();
+
+            // For each hour the gap spans, create a preview segment
+            for (let hour = startHour; hour <= endHour && hour <= 18; hour++) {
+                if (hour < 7) continue;  // Skip hours outside visible range
+
+                const hourContent = document.querySelector(`.hour-content[data-hour="${hour}"]`);
+                if (!hourContent) continue;
+
+                // Calculate segment start/end within this hour
+                let segmentStartMin = (hour === startHour) ? startMinute : 0;
+                let segmentEndMin = (hour === endHour) ? endMinute : 60;
+
+                // Handle edge case: if end is at :00 of next hour
+                if (hour === endHour && endMinute === 0 && hour > startHour) {
+                    continue;  // Don't render in this hour
+                }
+
+                // Skip if no height
+                if (segmentEndMin <= segmentStartMin) continue;
+
+                const topPercent = (segmentStartMin / 60) * 100;
+                const heightPercent = ((segmentEndMin - segmentStartMin) / 60) * 100;
+
+                // Create preview element
+                const preview = document.createElement('div');
+                preview.className = 'gap-fill-preview';
+                preview.style.top = `${topPercent}%`;
+                preview.style.height = `${heightPercent}%`;
+                preview.innerHTML = '<span class="gap-fill-label">Click to block</span>';
+
+                hourContent.appendChild(preview);
+            }
+        }
+
+        // Clear the gap-fill preview
+        function clearGapPreview() {
+            document.querySelectorAll('.gap-fill-preview').forEach(el => el.remove());
+            currentGapPreview = null;
+        }
+
+        // Create a time block to fill the gap
+        async function createBlockedTimeForGap(startTime, endTime) {
+            try {
+                const response = await fetch('/tasks/api/time-blocks/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        name: 'Blocked Time',
+                        start_time: startTime.toISOString(),
+                        end_time: endTime.toISOString()
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    timeBlocks.push(data.time_block);
+                    renderTimeBlocks();
+                    clearGapPreview();
+                }
+            } catch (error) {
+                console.error('Error creating blocked time:', error);
+            }
         }
 
         // ========== Time Blocks on Calendar ==========
@@ -12659,6 +12897,49 @@
                         }
                     }
                 });
+
+                // Gap-fill feature: mousemove handler for Cmd/Ctrl + hover preview
+                hourContent.addEventListener('mousemove', function(e) {
+                    if (!isModifierKeyHeld) {
+                        clearGapPreview();
+                        return;
+                    }
+
+                    const hour = parseInt(this.dataset.hour);
+                    const rect = this.getBoundingClientRect();
+                    const relativeY = e.clientY - rect.top;
+                    const minuteInHour = Math.round((relativeY / rect.height) * 60);
+
+                    // Calculate the full time of cursor position
+                    const cursorTime = getTimeAtPosition(hour, minuteInHour);
+
+                    // Check if cursor is over an existing item
+                    if (isPositionOccupied(cursorTime)) {
+                        clearGapPreview();
+                        return;
+                    }
+
+                    // Find the gap boundaries
+                    const gap = findGapAtTime(cursorTime);
+                    if (gap) {
+                        showGapPreview(gap.start, gap.end);
+                    } else {
+                        clearGapPreview();
+                    }
+                });
+
+                hourContent.addEventListener('mouseleave', function() {
+                    clearGapPreview();
+                });
+
+                // Gap-fill feature: click handler to create blocked time
+                hourContent.addEventListener('click', function(e) {
+                    if (isModifierKeyHeld && currentGapPreview) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        createBlockedTimeForGap(currentGapPreview.startTime, currentGapPreview.endTime);
+                    }
+                });
             });
         }
 
@@ -13703,6 +13984,26 @@
         updateCollapsedMetricsForStates();  // Rebuild metrics excluding terminal state
         updateCalendarMetrics();
         updateStateTypeLabels();
+
+        // Gap-fill feature: track modifier key state (Cmd on Mac, Ctrl on Windows)
+        document.addEventListener('keydown', function(e) {
+            if (e.metaKey || e.ctrlKey) {
+                isModifierKeyHeld = true;
+            }
+        });
+
+        document.addEventListener('keyup', function(e) {
+            if (!e.metaKey && !e.ctrlKey) {
+                isModifierKeyHeld = false;
+                clearGapPreview();
+            }
+        });
+
+        // Clear gap preview when window loses focus
+        window.addEventListener('blur', function() {
+            isModifierKeyHeld = false;
+            clearGapPreview();
+        });
 
         // Subtle icon color animation
         (function() {

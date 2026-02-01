@@ -498,15 +498,21 @@ def create_time_block(request):
         data = json.loads(request.body)
         name = data.get('name', '').strip()
         start_time = data.get('start_time')
+        end_time = data.get('end_time')  # Optional: if not provided, defaults to 30 min
 
         if not name:
             return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
         if not start_time:
             return JsonResponse({'success': False, 'error': 'Start time is required'}, status=400)
 
-        # Parse start time and calculate end time (30 minutes later)
+        # Parse start time
         start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-        end_dt = start_dt + timedelta(minutes=30)
+
+        # Use provided end_time or default to 30 minutes after start
+        if end_time:
+            end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        else:
+            end_dt = start_dt + timedelta(minutes=30)
 
         time_block = TimeBlock.objects.create(
             name=name,
