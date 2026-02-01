@@ -10493,12 +10493,23 @@
                             const otherStartHour = otherStart.getHours();
                             const otherStartMinute = otherStart.getMinutes();
 
+                            // Check if the OTHER block is itself adjacent to a calendar event
+                            // (which would make it positioned at -4px offset)
+                            let otherBlockOffset = 0;
+                            calendarEvents.forEach(event => {
+                                const eventEnd = new Date(event.end);
+                                if (Math.abs(eventEnd - otherStart) < 1000) {
+                                    // The other block is adjacent to a calendar event, so it's offset by -4px
+                                    otherBlockOffset = -4;
+                                }
+                            });
+
                             // Time block duration and visual height (percentage to pixels: 60px per hour)
                             const otherDurationMinutes = (otherEnd - otherStart) / (1000 * 60);
                             const otherHeightPx = (otherDurationMinutes / 60) * 60;
 
-                            // Where the other block starts in its hour (in pixels)
-                            const otherTopPx = (otherStartMinute / 60) * 60;
+                            // Where the other block starts in its hour (in pixels), accounting for its own offset
+                            const otherTopPx = (otherStartMinute / 60) * 60 + otherBlockOffset;
 
                             // Where the other block visually ends (in pixels from top of its start hour)
                             const otherVisualEndPx = otherTopPx + otherHeightPx;
@@ -10508,12 +10519,8 @@
                             adjustedTopPx = otherVisualEndPx - (hoursDiff * 60);
 
                             console.log(`RENDER: ${block.name} adjacent to ${otherBlock.name}`);
-                            console.log(`  otherStart: ${otherStart}, otherEnd: ${otherEnd}`);
-                            console.log(`  otherStartHour: ${otherStartHour}, otherStartMinute: ${otherStartMinute}`);
-                            console.log(`  otherDurationMinutes: ${otherDurationMinutes}, otherHeightPx: ${otherHeightPx}`);
-                            console.log(`  otherTopPx: ${otherTopPx}, otherVisualEndPx: ${otherVisualEndPx}`);
-                            console.log(`  startHour: ${startHour}, hoursDiff: ${hoursDiff}`);
-                            console.log(`  adjustedTopPx: ${adjustedTopPx}`);
+                            console.log(`  otherBlockOffset: ${otherBlockOffset}, otherTopPx: ${otherTopPx}, otherVisualEndPx: ${otherVisualEndPx}`);
+                            console.log(`  startHour: ${startHour}, hoursDiff: ${hoursDiff}, adjustedTopPx: ${adjustedTopPx}`);
                         }
                     });
                 }
@@ -11512,9 +11519,18 @@
                             const blockStartHour = blockStart.getHours();
                             const blockStartMinute = blockStart.getMinutes();
 
+                            // Check if this time block is itself adjacent to a calendar event
+                            let blockOffset = 0;
+                            calendarEvents.forEach(event => {
+                                const eventEnd = new Date(event.end);
+                                if (Math.abs(eventEnd - blockStart) < 1000) {
+                                    blockOffset = -4;
+                                }
+                            });
+
                             const blockDurationMinutes = (blockEnd - blockStart) / (1000 * 60);
                             const blockHeightPx = (blockDurationMinutes / 60) * 60;
-                            const blockTopPx = (blockStartMinute / 60) * 60;
+                            const blockTopPx = (blockStartMinute / 60) * 60 + blockOffset;
                             const blockVisualEndPx = blockTopPx + blockHeightPx;
 
                             const hoursDiff = hour - blockStartHour;
