@@ -40,9 +40,11 @@ def import_calendar_events(events_data, source=''):
         else:
             continue
 
-        # Use update_or_create for idempotent import
+        subject = event.get('subject', '')[:500]
+
+        # Build the defaults dict
         defaults = {
-            'subject': event.get('subject', '')[:500],
+            'subject': subject,
             'start': start_dt,
             'end': end_dt,
             'is_all_day': event.get('isAllDay', False),
@@ -53,14 +55,28 @@ def import_calendar_events(events_data, source=''):
         if source:
             defaults['source'] = source
 
-        obj, created = CalendarEvent.objects.update_or_create(
-            outlook_id=outlook_id,
-            defaults=defaults
-        )
+        # For recurring meetings, Outlook assigns different IDs to each occurrence.
+        # Check if an event with the same subject and start time already exists.
+        existing_by_time = CalendarEvent.objects.filter(
+            subject=subject,
+            start=start_dt
+        ).first()
 
-        if created:
-            created_count += 1
-        else:
+        if existing_by_time:
+            # Update the existing event (found by subject + start time)
+            for key, value in defaults.items():
+                setattr(existing_by_time, key, value)
+            existing_by_time.save()
             updated_count += 1
+        else:
+            # No existing event at this time - use update_or_create by outlook_id
+            obj, created = CalendarEvent.objects.update_or_create(
+                outlook_id=outlook_id,
+                defaults=defaults
+            )
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
 
     return created_count, updated_count
