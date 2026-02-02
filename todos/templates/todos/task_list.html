@@ -927,7 +927,7 @@
         }
 
         .filter-summary .clear-filters-link {
-            color: #6B9080;
+            color: #6c757d;
             text-decoration: none;
             cursor: pointer;
             font-weight: 400;
@@ -10837,16 +10837,11 @@
                 if (show) visibleCount++;
             });
 
-            // Update filter badge - show dot when any filters are active
+            // Update filter badge - no longer showing dot, using filter summary instead
             const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0 || searchText;
-            if (hasActiveFilters) {
-                filterBadge.style.display = 'block';
-                filterIcon.classList.add('active');
-            } else {
-                filterBadge.style.display = 'none';
-                if (!filterDropdown.classList.contains('active')) {
-                    filterIcon.classList.remove('active');
-                }
+            // Badge display removed - filter summary bar now shows active filters
+            if (!hasActiveFilters && !filterDropdown.classList.contains('active')) {
+                filterIcon.classList.remove('active');
             }
 
             // Update filter summary
