@@ -5887,6 +5887,8 @@
             header.addEventListener('click', (e) => {
                 const panel = header.closest('.panel');
                 if (panel.classList.contains('minimized')) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     layoutModal.style.display = 'block';
                     showLayoutModeView();
                 }
@@ -10910,53 +10912,7 @@
             applyPanelStates();
         }
 
-        if (tasksExpandBtn) {
-            tasksExpandBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                togglePanelExpand(tasksPanel);
-                updateTasksPanelWrapperState();
-            });
-        }
-
-        if (calendarExpandBtn) {
-            calendarExpandBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                togglePanelExpand(calendarPanel);
-                updateTasksPanelWrapperState();
-            });
-        }
-
-        if (notesExpandBtn) {
-            notesExpandBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                togglePanelExpand(notesPanel);
-                updateTasksPanelWrapperState();
-            });
-        }
-
-        // Click anywhere on minimized panel to expand it
-        tasksPanel.addEventListener('click', function(e) {
-            if (this.classList.contains('minimized')) {
-                togglePanelExpand(this);
-                updateTasksPanelWrapperState();
-            }
-        });
-
-        calendarPanel.addEventListener('click', function(e) {
-            if (this.classList.contains('minimized')) {
-                togglePanelExpand(this);
-                updateTasksPanelWrapperState();
-            }
-        });
-
-        if (notesPanel) {
-            notesPanel.addEventListener('click', function(e) {
-                if (this.classList.contains('minimized')) {
-                    togglePanelExpand(this);
-                    updateTasksPanelWrapperState();
-                }
-            });
-        }
+        // Old expand button handlers removed - now using layout modal system instead
 
         // Initialize panel states on page load (Tasks + Calendar half-expanded, Notes minimized)
         function initializePanelStates() {
