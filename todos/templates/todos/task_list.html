@@ -5828,14 +5828,19 @@
         // Apply focus layout
         function applyFocusLayout(focusPanel) {
             const panels = ['tasks', 'calendar', 'notes'];
-            panels.forEach(panel => {
+
+            // Apply classes and order to prevent minimized panels in the middle
+            panels.forEach((panel, index) => {
                 const panelEl = document.getElementById(`${panel}-panel`);
                 if (panel === focusPanel) {
                     panelEl.classList.remove('minimized');
                     panelEl.classList.add('focused');
+                    panelEl.style.order = '0'; // Focused panel in the middle
                 } else {
                     panelEl.classList.add('minimized');
                     panelEl.classList.remove('focused');
+                    // Put minimized panels on the edges
+                    panelEl.style.order = index < panels.indexOf(focusPanel) ? '-1' : '1';
                 }
             });
 
@@ -5847,14 +5852,28 @@
         // Apply side by side layout
         function applySideBySideLayout(sideBySidePanels) {
             const panels = ['tasks', 'calendar', 'notes'];
-            panels.forEach(panel => {
+
+            // Find indices of expanded and minimized panels
+            const expandedIndices = panels.map((p, i) => sideBySidePanels.includes(p) ? i : -1).filter(i => i !== -1);
+            const minimizedIndex = panels.findIndex(p => !sideBySidePanels.includes(p));
+
+            panels.forEach((panel, index) => {
                 const panelEl = document.getElementById(`${panel}-panel`);
                 if (sideBySidePanels.includes(panel)) {
                     panelEl.classList.remove('minimized');
                     panelEl.classList.remove('focused');
+                    panelEl.style.order = '0'; // Expanded panels in the middle
                 } else {
                     panelEl.classList.add('minimized');
                     panelEl.classList.remove('focused');
+                    // If minimized panel is between two expanded panels, push to left edge
+                    if (minimizedIndex > Math.min(...expandedIndices) && minimizedIndex < Math.max(...expandedIndices)) {
+                        panelEl.style.order = '-1'; // Push to left edge
+                    } else if (minimizedIndex < Math.min(...expandedIndices)) {
+                        panelEl.style.order = '-1'; // Already on left
+                    } else {
+                        panelEl.style.order = '1'; // Push to right edge
+                    }
                 }
             });
 
