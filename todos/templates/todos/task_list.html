@@ -2106,26 +2106,28 @@
 
         /* Saved Views section */
         .saved-views-section {
-            padding: 0.75rem 1rem;
+            margin-bottom: 0.85rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .saved-views-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 0.4rem;
             margin-bottom: 0.5rem;
             cursor: pointer;
             user-select: none;
         }
 
-        .saved-views-header:hover .saved-views-title {
+        .saved-views-header:hover {
             color: #5a7a6a;
         }
 
         .saved-views-header i.collapse-icon {
+            margin-left: auto;
             font-size: 0.7rem;
             transition: transform 0.2s;
-            color: #6B9080;
         }
 
         .saved-views-section.collapsed .saved-views-header i.collapse-icon {
