@@ -4900,7 +4900,9 @@
             <!-- Group By -->
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
-                    <span>Group By</span>
+                    <span style="display: flex; align-items: center; gap: 0.3rem;">Group By
+                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help;" title="Choose how to organize your tasks - by workflow states or by tags"></i>
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="filter-section-content">
@@ -4920,7 +4922,9 @@
             <!-- Filters -->
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
-                    <span>Show Only</span>
+                    <span style="display: flex; align-items: center; gap: 0.3rem;">Show Only
+                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help;" title="Apply filters to show only critical tasks or tasks scheduled for today"></i>
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="filter-section-content">
@@ -4940,7 +4944,9 @@
             <!-- Tags -->
             <div class="filter-section collapsed" id="filter-tags-section">
                 <div class="filter-section-title">
-                    <span>Tags</span>
+                    <span style="display: flex; align-items: center; gap: 0.3rem;">Tags
+                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help;" title="Filter tasks by tags - select one or more tags to show only matching tasks"></i>
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="filter-section-content">
@@ -4954,7 +4960,9 @@
             <!-- Options -->
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
-                    <span>Options</span>
+                    <span style="display: flex; align-items: center; gap: 0.3rem;">Options
+                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help;" title="Toggle visibility of completed tasks and calendar metrics"></i>
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="filter-section-content">
@@ -5006,7 +5014,7 @@
                         <div class="layout-mode-name">SIDE BY SIDE</div>
                     </button>
                     <button class="layout-mode-card" id="all-mode-btn">
-                        <i class="bi bi-grid-3x3"></i>
+                        <i class="bi bi-columns-gap"></i>
                         <div class="layout-mode-name">ALL</div>
                     </button>
                 </div>
@@ -5106,7 +5114,7 @@
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i></div>{% endif %}
+                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i></div>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -5134,7 +5142,7 @@
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i></div>{% endif %}
+                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i></div>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -5223,7 +5231,10 @@
             <!-- States Section -->
             <div class="settings-section collapsed">
                 <div class="settings-section-header">
-                    <i class="bi bi-collection"></i> States
+                    <span style="display: flex; align-items: center; gap: 0.3rem;">
+                        <i class="bi bi-collection"></i> States
+                        <i class="bi bi-info-circle settings-info-icon" style="font-size: 0.75rem; cursor: help;" title="Manage the workflow states for your tasks (e.g., To Do, In Progress, Done)"></i>
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="settings-section-content">
@@ -5263,7 +5274,10 @@
             <!-- Task Detail Templates Section -->
             <div class="settings-section collapsed">
                 <div class="settings-section-header">
-                    <i class="bi bi-file-earmark-text"></i> Templates
+                    <span style="display: flex; align-items: center; gap: 0.3rem;">
+                        <i class="bi bi-file-earmark-text"></i> Templates
+                        <i class="bi bi-info-circle settings-info-icon" style="font-size: 0.75rem; cursor: help;" title="Create reusable templates for task details to speed up task creation"></i>
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="settings-section-content">
@@ -5279,7 +5293,10 @@
             <!-- Auto-Abandon Section -->
             <div class="settings-section collapsed">
                 <div class="settings-section-header">
-                    <i class="bi bi-archive"></i> Auto-Abandon
+                    <span style="display: flex; align-items: center; gap: 0.3rem;">
+                        <i class="bi bi-archive"></i> Auto-Abandon
+                        <i class="bi bi-info-circle settings-info-icon" style="font-size: 0.75rem; cursor: help;" title="Automatically move unscheduled tasks to abandoned state after a set number of days"></i>
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="settings-section-content">
@@ -5413,6 +5430,7 @@
                     <div style="display: flex; align-items: center; gap: 0.35rem;">
                         <i class="bi bi-calendar-check" style="font-size: 0.85rem;"></i>
                         <span>Scheduled Dates</span>
+                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help; color: #6c757d;" title="Dates and times when this task is scheduled on the calendar. Click a date to jump to that day."></i>
                     </div>
                 </div>
                 <div class="task-panel-section-content">
@@ -6738,7 +6756,7 @@
                     <div class="task-card-content">
                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
-                        ${task.critical ? '<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i></div>' : ''}
+                        ${task.critical ? '<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i></div>' : ''}
                     </div>
                 `;
 
@@ -9399,6 +9417,7 @@
             uniqueDates.forEach(date => {
                 const chip = document.createElement('span');
                 chip.className = 'scheduled-date-chip';
+                chip.style.cursor = 'pointer';
 
                 const dateOnly = new Date(date);
                 dateOnly.setHours(0, 0, 0, 0);
@@ -9413,6 +9432,30 @@
                 const formattedDate = isToday ? 'Today' : dateOnly.toLocaleDateString('en-US', options);
 
                 chip.innerHTML = `<i class="bi bi-calendar3"></i> ${formattedDate}`;
+
+                // Click handler to jump to calendar date
+                chip.addEventListener('click', function() {
+                    // Close the task details panel
+                    closePanelOverlay();
+
+                    // Expand calendar panel if collapsed
+                    const calendarPanel = document.getElementById('calendar-panel');
+                    if (calendarPanel && calendarPanel.classList.contains('collapsed')) {
+                        calendarPanel.classList.remove('collapsed');
+                    }
+
+                    // Navigate to the date
+                    if (typeof navigateToDate === 'function') {
+                        navigateToDate(dateOnly);
+                    } else {
+                        // Fallback: set currentCalendarDate and render
+                        currentCalendarDate = new Date(dateOnly);
+                        if (typeof renderCalendar === 'function') {
+                            renderCalendar();
+                        }
+                    }
+                });
+
                 container.appendChild(chip);
             });
         }
@@ -10643,8 +10686,8 @@
                     ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
                     : '';
 
-                const scheduledIconHtml = isScheduled ? '<i class="bi bi-brightness-high-fill task-card-scheduled-icon" title="Scheduled on Calendar"></i>' : '';
-                const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical Task"></i>' : '';
+                const scheduledIconHtml = isScheduled ? '<i class="bi bi-brightness-high-fill task-card-scheduled-icon" title="Scheduled: This task has time blocks on the calendar"></i>' : '';
+                const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>' : '';
                 const hasIcons = isScheduled || task.isCritical;
                 const iconsHtml = hasIcons ? `<div class="task-card-icons">${scheduledIconHtml}${criticalIconHtml}</div>` : '';
 
