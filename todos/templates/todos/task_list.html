@@ -3370,9 +3370,17 @@
         }
 
         .panel.collapsed .panel-header-title {
-            writing-mode: vertical-lr;
-            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
             font-size: 0.7rem;
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
+        .panel.collapsed .panel-header-title .vertical-char {
+            display: block;
+            text-align: center;
         }
 
         .panel.collapsed .panel-header-right {
@@ -5833,6 +5841,35 @@
             layoutModal.style.display = 'none';
         });
 
+        // Convert panel title to vertical stacked characters
+        function makeVerticalTitle(panelEl, panelName) {
+            const titleEl = panelEl.querySelector('.panel-header-title');
+            if (!titleEl) return;
+
+            // Store original text if not already stored
+            if (!titleEl.dataset.originalText) {
+                titleEl.dataset.originalText = titleEl.textContent.trim();
+            }
+
+            // Clear and rebuild with individual character divs
+            titleEl.innerHTML = '';
+            const text = panelName.toUpperCase();
+            for (let char of text) {
+                const charDiv = document.createElement('div');
+                charDiv.className = 'vertical-char';
+                charDiv.textContent = char;
+                titleEl.appendChild(charDiv);
+            }
+        }
+
+        // Restore panel title to normal horizontal text
+        function restoreHorizontalTitle(panelEl) {
+            const titleEl = panelEl.querySelector('.panel-header-title');
+            if (!titleEl || !titleEl.dataset.originalText) return;
+
+            titleEl.innerHTML = titleEl.dataset.originalText;
+        }
+
         // Apply focus layout
         function applyFocusLayout(focusPanel) {
             const panels = ['tasks', 'calendar', 'notes'];
@@ -5842,10 +5879,12 @@
                     panelEl.classList.remove('collapsed');
                     panelEl.classList.add('focused');
                     panelEl.style.flex = '1';
+                    restoreHorizontalTitle(panelEl);
                 } else {
                     panelEl.classList.add('collapsed');
                     panelEl.classList.remove('focused');
                     panelEl.style.flex = '0 0 60px';
+                    makeVerticalTitle(panelEl, panel);
                 }
             });
 
@@ -5863,10 +5902,12 @@
                     panelEl.classList.remove('collapsed');
                     panelEl.classList.remove('focused');
                     panelEl.style.flex = '1';
+                    restoreHorizontalTitle(panelEl);
                 } else {
                     panelEl.classList.add('collapsed');
                     panelEl.classList.remove('focused');
                     panelEl.style.flex = '0 0 60px';
+                    makeVerticalTitle(panelEl, panel);
                 }
             });
 
