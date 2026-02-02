@@ -2485,6 +2485,33 @@
             display: flex;
             align-items: center;
             gap: 0.4rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .settings-section-header:hover {
+            color: #5a7a6a;
+        }
+
+        .settings-section-header i.collapse-icon {
+            margin-left: auto;
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+        }
+
+        .settings-section.collapsed .settings-section-header i.collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .settings-section-content {
+            overflow: hidden;
+            max-height: 1000px;
+            transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+        }
+
+        .settings-section.collapsed .settings-section-content {
+            max-height: 0;
+            opacity: 0;
         }
 
         .settings-section-header i {
@@ -5108,17 +5135,16 @@
         </div>
         <div class="settings-dropdown-body">
             <!-- States Section -->
-            <div class="settings-section">
+            <div class="settings-section collapsed">
                 <div class="settings-section-header">
                     <i class="bi bi-collection"></i> States
-                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                        <span class="settings-info-tooltip">Workflow stages for organizing tasks. Drag to reorder.</span>
-                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
-                <div class="state-input-container">
-                    <input type="text" id="new-state-input" placeholder="Add new state..." autocomplete="off">
-                </div>
-                <ul class="state-list" id="state-list">
+                <div class="settings-section-content">
+                    <div class="state-input-container">
+                        <input type="text" id="new-state-input" placeholder="Add new state..." autocomplete="off">
+                    </div>
+                    <ul class="state-list" id="state-list">
                     {% for state in states %}
                     <li class="state-item{% if state.is_terminal %} terminal-state{% endif %}" data-state-id="{{ state.id }}" data-state-name="{{ state.name }}" data-order="{{ state.order }}" data-icon="{{ state.bootstrap_icon }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" draggable="{% if state.is_system %}false{% else %}true{% endif %}">
                         <div class="state-item-left">
@@ -5145,41 +5171,42 @@
                     </li>
                     {% endfor %}
                 </ul>
+                </div>
             </div>
 
             <!-- Task Detail Templates Section -->
-            <div class="settings-section">
+            <div class="settings-section collapsed">
                 <div class="settings-section-header">
                     <i class="bi bi-file-earmark-text"></i> Templates
-                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                        <span class="settings-info-tooltip">Reusable markdown templates for task details.</span>
-                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
-                <div class="template-list" id="template-list">
-                    <!-- Templates will be populated by JavaScript -->
+                <div class="settings-section-content">
+                    <div class="template-list" id="template-list">
+                        <!-- Templates will be populated by JavaScript -->
+                    </div>
+                    <button class="add-template-btn" id="add-template-btn">
+                        <i class="bi bi-plus-lg"></i> Add Template
+                    </button>
                 </div>
-                <button class="add-template-btn" id="add-template-btn">
-                    <i class="bi bi-plus-lg"></i> Add Template
-                </button>
             </div>
 
             <!-- Auto-Abandon Section -->
-            <div class="settings-section">
+            <div class="settings-section collapsed">
                 <div class="settings-section-header">
                     <i class="bi bi-archive"></i> Auto-Abandon
-                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                        <span class="settings-info-tooltip">Tasks idle for this many days move to Abandoned.</span>
-                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
-                <div class="settings-row">
-                    <label class="settings-toggle">
-                        <input type="checkbox" id="auto-abandon-enabled" checked>
-                        <span>Enable auto-abandon</span>
-                    </label>
-                </div>
-                <div class="settings-row" id="abandoned-days-row">
-                    <label for="abandoned-days-input">Days until abandoned:</label>
-                    <input type="number" id="abandoned-days-input" min="1" max="365" value="14" class="abandoned-days-input">
+                <div class="settings-section-content">
+                    <div class="settings-row">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="auto-abandon-enabled" checked>
+                            <span>Enable auto-abandon</span>
+                        </label>
+                    </div>
+                    <div class="settings-row" id="abandoned-days-row">
+                        <label for="abandoned-days-input">Days until abandoned:</label>
+                        <input type="number" id="abandoned-days-input" min="1" max="365" value="14" class="abandoned-days-input">
+                    </div>
                 </div>
             </div>
         </div>
@@ -7138,6 +7165,17 @@
         function closeSettingsDropdown() {
             document.getElementById('settings-dropdown').classList.remove('active');
         }
+
+        // Handle collapsible sections in settings dropdown
+        document.querySelectorAll('#settings-dropdown .settings-section-header').forEach(header => {
+            header.addEventListener('click', function(e) {
+                // Don't toggle if clicking on info icon
+                if (e.target.closest('.settings-info-icon')) return;
+
+                const section = this.closest('.settings-section');
+                section.classList.toggle('collapsed');
+            });
+        });
 
         // Close settings dropdown when clicking outside
         document.addEventListener('click', (e) => {
