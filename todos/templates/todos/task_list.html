@@ -5034,7 +5034,10 @@
                     </div>
                 </div>
                 <div class="filter-summary" id="filter-summary">
-                    <span class="filter-summary-text" id="filter-summary-text">Showing <span id="visible-task-count">0</span> of <span id="total-task-count">0</span> tasks</span>
+                    <span class="filter-summary-text" id="filter-summary-text">
+                        Showing <span id="visible-task-count">0</span> of <span id="total-task-count">0</span> tasks
+                        <i class="bi bi-info-circle" id="filter-info-icon" style="margin-left: 0.3rem; cursor: help;" title=""></i>
+                    </span>
                     <span class="clear-filters-link" id="clear-filters-link">Clear filters</span>
                 </div>
                 <div class="panel-content" id="tasks-content">
@@ -10848,6 +10851,7 @@
             const filterSummary = document.getElementById('filter-summary');
             const visibleTaskCount = document.getElementById('visible-task-count');
             const totalTaskCount = document.getElementById('total-task-count');
+            const filterInfoIcon = document.getElementById('filter-info-icon');
 
             if (filterSummary && visibleTaskCount && totalTaskCount) {
                 const totalTasks = allCards.length;
@@ -10856,6 +10860,29 @@
 
                 if (hasActiveFilters && visibleCount < totalTasks) {
                     filterSummary.classList.add('active');
+
+                    // Build tooltip describing active filters
+                    if (filterInfoIcon) {
+                        const filterDescriptions = [];
+                        if (activeFilters.critical) {
+                            filterDescriptions.push('Critical tasks only');
+                        }
+                        if (activeFilters.today) {
+                            filterDescriptions.push('Tasks scheduled for today');
+                        }
+                        if (activeFilters.tags.length > 0) {
+                            const tagNames = activeFilters.tags.map(tagId => {
+                                if (tagId === 'untagged') return 'Untagged';
+                                const tag = tagsList.find(t => t.id === tagId);
+                                return tag ? tag.name : tagId;
+                            });
+                            filterDescriptions.push('Tags: ' + tagNames.join(', '));
+                        }
+                        if (searchText) {
+                            filterDescriptions.push('Search: "' + searchText + '"');
+                        }
+                        filterInfoIcon.title = 'Active filters:\n' + filterDescriptions.join('\n');
+                    }
                 } else {
                     filterSummary.classList.remove('active');
                 }
