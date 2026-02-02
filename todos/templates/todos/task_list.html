@@ -979,6 +979,47 @@
             opacity: 1;
         }
 
+        /* General tooltip system */
+        .has-tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .has-tooltip .custom-tooltip {
+            visibility: hidden;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 5px;
+            padding: 0.4rem 0.6rem;
+            background: #333;
+            color: white;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            border-radius: 4px;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .has-tooltip .custom-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        .has-tooltip:hover .custom-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
         .panel-close {
             background: none;
             border: none;
@@ -4873,18 +4914,28 @@
         </div>
 
         <!-- Panel Layout Button -->
-        <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #e9ecef;">
-            <button class="layout-mode-btn" id="filter-layout-btn">
+        <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; gap: 0.5rem;">
+            <button class="layout-mode-btn" id="filter-layout-btn" style="flex: 1;">
                 <i class="bi bi-columns"></i>
                 <span>Choose Layout</span>
             </button>
+            <span class="has-tooltip" style="font-size: 0.7rem;">
+                <i class="bi bi-info-circle"></i>
+                <span class="custom-tooltip">Select panel layout configuration</span>
+            </span>
         </div>
 
         <div class="filter-dropdown-body">
             <!-- Saved Views Section -->
             <div class="saved-views-section collapsed">
                 <div class="saved-views-header">
-                    <span class="saved-views-title">Saved Views</span>
+                    <span style="display: flex; align-items: center; gap: 0.3rem;">
+                        <span class="saved-views-title">Saved Views</span>
+                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Save and restore filter configurations</span>
+                        </span>
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="saved-views-content">
@@ -4901,7 +4952,10 @@
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
                     <span style="display: flex; align-items: center; gap: 0.3rem;">Group By
-                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help;" title="Choose how to organize your tasks - by workflow states or by tags"></i>
+                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Organize by states or tags</span>
+                        </span>
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
@@ -4923,7 +4977,10 @@
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
                     <span style="display: flex; align-items: center; gap: 0.3rem;">Show Only
-                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help;" title="Apply filters to show only critical tasks or tasks scheduled for today"></i>
+                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Filter by critical or today's tasks</span>
+                        </span>
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
@@ -4945,7 +5002,10 @@
             <div class="filter-section collapsed" id="filter-tags-section">
                 <div class="filter-section-title">
                     <span style="display: flex; align-items: center; gap: 0.3rem;">Tags
-                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help;" title="Filter tasks by tags - select one or more tags to show only matching tasks"></i>
+                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Filter tasks by one or more tags</span>
+                        </span>
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
@@ -4961,7 +5021,10 @@
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
                     <span style="display: flex; align-items: center; gap: 0.3rem;">Options
-                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help;" title="Toggle visibility of completed tasks and calendar metrics"></i>
+                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Toggle completed tasks and metrics</span>
+                        </span>
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
@@ -5233,7 +5296,10 @@
                 <div class="settings-section-header">
                     <span style="display: flex; align-items: center; gap: 0.3rem;">
                         <i class="bi bi-collection"></i> States
-                        <i class="bi bi-info-circle settings-info-icon" style="font-size: 0.75rem; cursor: help;" title="Manage the workflow states for your tasks (e.g., To Do, In Progress, Done)"></i>
+                        <span class="has-tooltip settings-info-icon" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Manage workflow states for tasks</span>
+                        </span>
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
@@ -5276,7 +5342,10 @@
                 <div class="settings-section-header">
                     <span style="display: flex; align-items: center; gap: 0.3rem;">
                         <i class="bi bi-file-earmark-text"></i> Templates
-                        <i class="bi bi-info-circle settings-info-icon" style="font-size: 0.75rem; cursor: help;" title="Create reusable templates for task details to speed up task creation"></i>
+                        <span class="has-tooltip settings-info-icon" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Reusable templates for task details</span>
+                        </span>
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
@@ -5295,7 +5364,10 @@
                 <div class="settings-section-header">
                     <span style="display: flex; align-items: center; gap: 0.3rem;">
                         <i class="bi bi-archive"></i> Auto-Abandon
-                        <i class="bi bi-info-circle settings-info-icon" style="font-size: 0.75rem; cursor: help;" title="Automatically move unscheduled tasks to abandoned state after a set number of days"></i>
+                        <span class="has-tooltip settings-info-icon" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Auto-move unscheduled tasks to abandoned</span>
+                        </span>
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
@@ -5430,7 +5502,10 @@
                     <div style="display: flex; align-items: center; gap: 0.35rem;">
                         <i class="bi bi-calendar-check" style="font-size: 0.85rem;"></i>
                         <span>Scheduled Dates</span>
-                        <i class="bi bi-info-circle" style="font-size: 0.7rem; cursor: help; color: #6c757d;" title="Dates and times when this task is scheduled on the calendar. Click a date to jump to that day."></i>
+                        <span class="has-tooltip" style="font-size: 0.7rem; color: #6c757d;">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Click dates to jump to calendar</span>
+                        </span>
                     </div>
                 </div>
                 <div class="task-panel-section-content">
@@ -8855,7 +8930,7 @@
                                 if (!icons.querySelector('.task-critical-icon')) {
                                     const icon = document.createElement('i');
                                     icon.className = 'bi bi-exclamation-circle-fill task-critical-icon';
-                                    icon.title = 'Critical Task';
+                                    icon.title = 'Critical: High priority task requiring immediate attention';
                                     icons.insertBefore(icon, icons.firstChild);
                                 }
                             } else {
@@ -9436,7 +9511,7 @@
                 // Click handler to jump to calendar date
                 chip.addEventListener('click', function() {
                     // Close the task details panel
-                    closePanelOverlay();
+                    closePanel();
 
                     // Expand calendar panel if collapsed
                     const calendarPanel = document.getElementById('calendar-panel');
@@ -9445,15 +9520,8 @@
                     }
 
                     // Navigate to the date
-                    if (typeof navigateToDate === 'function') {
-                        navigateToDate(dateOnly);
-                    } else {
-                        // Fallback: set currentCalendarDate and render
-                        currentCalendarDate = new Date(dateOnly);
-                        if (typeof renderCalendar === 'function') {
-                            renderCalendar();
-                        }
-                    }
+                    currentCalendarDate = new Date(dateOnly);
+                    refreshCalendar();
                 });
 
                 container.appendChild(chip);
@@ -9600,6 +9668,7 @@
                             if (!iconsDiv.querySelector('.task-critical-icon')) {
                                 const icon = document.createElement('i');
                                 icon.className = 'bi bi-exclamation-circle-fill task-critical-icon';
+                                icon.title = 'Critical: High priority task requiring immediate attention';
                                 iconsDiv.appendChild(icon);
                             }
                         } else {
@@ -13518,7 +13587,7 @@
                     if (!scheduledIcon) {
                         scheduledIcon = document.createElement('i');
                         scheduledIcon.className = 'bi bi-brightness-high-fill task-card-scheduled-icon';
-                        scheduledIcon.title = 'Scheduled on Calendar';
+                        scheduledIcon.title = 'Scheduled: This task has time blocks on the calendar';
                         // Insert into icons container or create one
                         const content = card.querySelector('.task-card-content');
                         if (content) {
@@ -15528,7 +15597,7 @@
 
                         const scheduledIcon = document.createElement('i');
                         scheduledIcon.className = 'bi bi-brightness-high-fill task-card-scheduled-icon';
-                        scheduledIcon.title = 'Scheduled on Calendar';
+                        scheduledIcon.title = 'Scheduled: This task has time blocks on the calendar';
 
                         // Insert at the beginning (before critical icon)
                         const criticalIcon = iconsDiv.querySelector('.task-critical-icon');
