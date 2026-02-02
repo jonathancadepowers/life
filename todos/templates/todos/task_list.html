@@ -4542,13 +4542,14 @@
             background: white;
             border: 1px solid #dee2e6;
             border-radius: 4px;
-            padding: 0.25rem 0.5rem;
+            padding: 0.35rem 0.5rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #495057;
             transition: all 0.15s ease;
+            min-height: 32px;
         }
 
         .calendar-nav-btn:hover {
@@ -4885,10 +4886,6 @@
                     <label class="filter-option">
                         <input type="checkbox" id="hide-rollups-toggle">
                         Hide Rollups
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" id="hide-calendar-toggle">
-                        Hide Calendar
                     </label>
                 </div>
             </div>
@@ -9572,7 +9569,6 @@
         let showCompletedTasks = false;  // Default to hiding completed tasks
         let searchText = '';  // Current search query for tasks
         let hideRollups = false;  // Default to showing rollup metrics
-        let hideCalendar = false;  // Default to showing calendar panel
 
         function saveFilterSettings() {
             setCookie('taskFilters', {
@@ -9582,26 +9578,9 @@
                 groupBy: currentGroupBy,
                 showCompleted: showCompletedTasks,
                 hideRollups: hideRollups,
-                hideCalendar: hideCalendar,
                 abandonedDays: abandonedDays,
                 autoAbandonEnabled: autoAbandonEnabled
             });
-        }
-
-        function updateCalendarVisibility() {
-            const calendarPanel = document.getElementById('calendar-panel');
-            if (calendarPanel) {
-                calendarPanel.style.display = hideCalendar ? 'none' : '';
-            }
-            // If hiding calendar, expand tasks panel to full width
-            const tasksPanel = document.getElementById('tasks-panel');
-            if (tasksPanel) {
-                if (hideCalendar) {
-                    tasksPanel.style.flex = '1';
-                } else {
-                    tasksPanel.style.flex = '';
-                }
-            }
         }
 
         function updateRollupsVisibility() {
@@ -10330,13 +10309,6 @@
             saveFilterSettings();
         });
 
-        // Toggle for hiding calendar panel
-        document.getElementById('hide-calendar-toggle').addEventListener('change', function() {
-            hideCalendar = this.checked;
-            updateCalendarVisibility();
-            saveFilterSettings();
-        });
-
         // Load saved filter settings from cookies on page load
         (function loadFilterSettings() {
             const saved = getCookie('taskFilters');
@@ -10383,14 +10355,6 @@
                     const toggle = document.getElementById('hide-rollups-toggle');
                     toggle.checked = saved.hideRollups;
                     updateRollupsVisibility();
-                }
-
-                // Restore hide calendar toggle
-                if (saved.hideCalendar !== undefined) {
-                    hideCalendar = saved.hideCalendar;
-                    const toggle = document.getElementById('hide-calendar-toggle');
-                    if (toggle) toggle.checked = saved.hideCalendar;
-                    updateCalendarVisibility();
                 }
 
                 // Load abandoned settings
