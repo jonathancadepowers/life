@@ -72,19 +72,21 @@
         }
 
         .layout-btn {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 10000;
             background: transparent;
             border: none;
-            padding: 0.5rem;
-            font-size: 1.5rem;
-            color: #666;
+            padding: 0;
+            font-size: 1.25rem;
+            color: #adb5bd;
             cursor: pointer;
             transition: color 0.2s;
-            display: flex;
-            align-items: center;
         }
 
         .layout-btn:hover {
-            color: #333;
+            color: #6c757d;
         }
 
         /* Layout Modal */
@@ -4816,13 +4818,15 @@
         </div>
     </div>
 
+    <!-- Layout button -->
+    <button class="layout-btn" id="layout-btn" title="Choose Layout">
+        <i class="bi bi-columns"></i>
+    </button>
+
     <div class="container">
         <div class="page-header">
             <i class="bi bi-highlights page-icon" id="page-icon"></i>
             <h1 class="page-title">Empty, Marvelous</h1>
-            <button class="layout-btn" id="layout-btn" title="Choose Layout">
-                <i class="bi bi-columns"></i>
-            </button>
         </div>
 
         <div class="task-input-container">
