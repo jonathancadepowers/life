@@ -73,22 +73,18 @@
 
         .layout-btn {
             background: transparent;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 0.5rem 0.75rem;
-            font-size: 1.25rem;
+            border: none;
+            padding: 0.5rem;
+            font-size: 1.5rem;
             color: #666;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: color 0.2s;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
         }
 
         .layout-btn:hover {
-            background: #f8f9fa;
             color: #333;
-            border-color: #adb5bd;
         }
 
         /* Layout Modal */
@@ -4839,7 +4835,7 @@
             <i class="bi bi-highlights page-icon" id="page-icon"></i>
             <h1 class="page-title">Empty, Marvelous</h1>
             <button class="layout-btn" id="layout-btn" title="Choose Layout">
-                <i class="bi bi-layout-three-columns"></i>
+                <i class="bi bi-columns"></i>
             </button>
         </div>
 
@@ -5894,6 +5890,9 @@
                 if (sideBySidePanels.length === 2) {
                     applySideBySideLayout(sideBySidePanels);
                 }
+            } else {
+                // Default: show tasks and calendar side by side
+                applySideBySideLayout(['tasks', 'calendar']);
             }
         }
 
@@ -10783,28 +10782,7 @@
             }
         }
 
-        // Sync vertical collapse/expand between all panels
-        function toggleAllPanelsCollapsed() {
-            const isTasksCollapsed = tasksPanel.classList.contains('collapsed');
-            // Toggle all panels together
-            if (isTasksCollapsed) {
-                allPanels.forEach(panel => panel.classList.remove('collapsed'));
-            } else {
-                allPanels.forEach(panel => panel.classList.add('collapsed'));
-            }
-            updateTasksPanelWrapperState();
-        }
-
-        if (tasksPanelHeader) {
-            tasksPanelHeader.addEventListener('click', function(e) {
-                // Don't toggle collapsed if clicking expand button
-                if (e.target.closest('.panel-expand-btn')) return;
-                // Don't toggle vertical collapse if panel is horizontally minimized or expanded
-                if (tasksPanel.classList.contains('minimized')) return;
-                if (tasksPanel.classList.contains('expanded')) return;
-                toggleAllPanelsCollapsed();
-            });
-        }
+        // Old vertical collapse code removed - now using horizontal layout system
 
         // Right-click context menu for Tasks panel
         function expandAllStateGroups() {
@@ -10872,31 +10850,7 @@
             }, 0);
         });
 
-        if (calendarPanelHeader) {
-            calendarPanelHeader.addEventListener('click', function(e) {
-                // Don't toggle collapsed if clicking expand button
-                if (e.target.closest('.panel-expand-btn')) return;
-                // Don't toggle collapsed if clicking Today button or navigation buttons
-                if (e.target.closest('.calendar-today-btn')) return;
-                if (e.target.closest('.calendar-nav-btn')) return;
-                if (e.target.closest('.add-event-btn')) return;
-                // Don't toggle vertical collapse if panel is horizontally minimized or expanded
-                if (calendarPanel.classList.contains('minimized')) return;
-                if (calendarPanel.classList.contains('expanded')) return;
-                toggleAllPanelsCollapsed();
-            });
-        }
-
-        if (notesPanelHeader) {
-            notesPanelHeader.addEventListener('click', function(e) {
-                // Don't toggle collapsed if clicking expand button
-                if (e.target.closest('.panel-expand-btn')) return;
-                // Don't toggle vertical collapse if panel is horizontally minimized or expanded
-                if (notesPanel.classList.contains('minimized')) return;
-                if (notesPanel.classList.contains('expanded')) return;
-                toggleAllPanelsCollapsed();
-            });
-        }
+        // Old vertical collapse code removed - now using horizontal layout system
 
         // Panel expand/minimize (horizontal)
         const tasksExpandBtn = document.getElementById('tasks-expand-btn');
