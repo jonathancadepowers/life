@@ -10389,57 +10389,62 @@
         const calendarExpandBtn = document.getElementById('calendar-expand-btn');
         const notesExpandBtn = document.getElementById('notes-expand-btn');
 
-        // Toggle panel expansion - UP TO TWO panels can be expanded at a time
+        // Toggle panel expansion
+        // States: 1 fully expanded + 2 minimized, OR 2 equally expanded + 1 minimized
+        // NOT allowed: all 3 at equal width
         function togglePanelExpand(panel) {
             const isExpanded = panel.classList.contains('expanded');
-
-            if (isExpanded) {
-                // Un-expand this panel
-                panel.classList.remove('expanded');
-            } else {
-                // Expand this panel
-                panel.classList.add('expanded');
-                panel.classList.remove('minimized');
-            }
-
-            // Recalculate all panel states based on how many are expanded
-            recalculatePanelStates();
-        }
-
-        // Recalculate panel states: 0 expanded = all normal, 1-2 expanded = others minimized
-        function recalculatePanelStates() {
             const expandedPanels = allPanels.filter(p => p.classList.contains('expanded'));
             const expandedCount = expandedPanels.length;
 
-            if (expandedCount === 0) {
-                // No panels expanded - all normal (equal width)
-                allPanels.forEach(panel => {
-                    panel.classList.remove('collapsed', 'minimized', 'expanded');
-                });
-            } else if (expandedCount === 1 || expandedCount === 2) {
-                // 1 or 2 panels expanded - minimize the rest
-                allPanels.forEach(panel => {
-                    if (panel.classList.contains('expanded')) {
-                        panel.classList.remove('collapsed', 'minimized');
-                    } else {
-                        panel.classList.add('minimized');
-                        panel.classList.remove('collapsed', 'expanded');
+            if (isExpanded) {
+                // Clicking expand on an already-expanded panel
+                if (expandedCount === 2) {
+                    // Two are expanded - make this one fully expanded alone
+                    allPanels.forEach(p => p.classList.remove('expanded'));
+                    panel.classList.add('expanded');
+                } else if (expandedCount === 1) {
+                    // Only this one is expanded - expand another one to join it
+                    const minimizedPanels = allPanels.filter(p => !p.classList.contains('expanded'));
+                    if (minimizedPanels.length > 0) {
+                        minimizedPanels[0].classList.add('expanded');
                     }
-                });
+                }
             } else {
-                // 3 expanded (shouldn't happen) - treat as all normal
-                allPanels.forEach(panel => {
-                    panel.classList.remove('collapsed', 'minimized', 'expanded');
-                });
+                // Clicking expand on a minimized panel
+                if (expandedCount >= 2) {
+                    // Already 2 expanded - this one becomes fully expanded alone
+                    allPanels.forEach(p => p.classList.remove('expanded'));
+                    panel.classList.add('expanded');
+                } else {
+                    // 0 or 1 expanded - add this to expanded group
+                    panel.classList.add('expanded');
+                }
             }
+
+            // Recalculate states (ensure minimized class on non-expanded)
+            recalculatePanelStates();
         }
 
-        // Return all panels to normal equal state
-        function resetAllPanelsToNormal() {
+        // Ensure proper classes: expanded panels get 'expanded', others get 'minimized'
+        function recalculatePanelStates() {
+            const expandedPanels = allPanels.filter(p => p.classList.contains('expanded'));
+
+            // Ensure at least 1 panel is expanded (default to first two if somehow none)
+            if (expandedPanels.length === 0) {
+                allPanels[0].classList.add('expanded');
+                allPanels[1].classList.add('expanded');
+            }
+
+            // Apply minimized class to non-expanded panels
             allPanels.forEach(panel => {
-                panel.classList.remove('collapsed', 'minimized', 'expanded');
+                if (panel.classList.contains('expanded')) {
+                    panel.classList.remove('collapsed', 'minimized');
+                } else {
+                    panel.classList.add('minimized');
+                    panel.classList.remove('collapsed', 'expanded');
+                }
             });
-            updateTasksPanelWrapperState();
         }
 
         if (tasksExpandBtn) {
@@ -10490,7 +10495,23 @@
             });
         }
 
-        // Initialize wrapper state on page load
+        // Initialize panel states on page load (Tasks + Calendar expanded, Notes minimized)
+        function initializePanelStates() {
+            // Remove collapsed class from all panels first
+            allPanels.forEach(p => p.classList.remove('collapsed'));
+
+            // Set initial state: Tasks and Calendar expanded, Notes minimized
+            tasksPanel.classList.add('expanded');
+            tasksPanel.classList.remove('minimized');
+            calendarPanel.classList.add('expanded');
+            calendarPanel.classList.remove('minimized');
+            if (notesPanel) {
+                notesPanel.classList.remove('expanded');
+                notesPanel.classList.add('minimized');
+            }
+        }
+
+        initializePanelStates();
         updateTasksPanelWrapperState();
 
         // State group collapse/expand
