@@ -9522,6 +9522,17 @@
                     // Navigate to the date
                     currentCalendarDate = new Date(dateOnly);
                     refreshCalendar();
+
+                    // Highlight the task on the calendar with yellow animation
+                    setTimeout(() => {
+                        const calendarTasks = document.querySelectorAll(`.calendar-scheduled-task[data-task-id="${taskId}"]`);
+                        calendarTasks.forEach(taskEl => {
+                            taskEl.classList.add('highlight-new');
+                            setTimeout(() => {
+                                taskEl.classList.remove('highlight-new');
+                            }, 2000);
+                        });
+                    }, 100);
                 });
 
                 container.appendChild(chip);
@@ -11212,6 +11223,19 @@
                     panel.classList.add('minimized');
                 }
             });
+
+            // Hide filter summary when Tasks panel is minimized
+            const tasksPanel = document.getElementById('tasks-panel');
+            const filterSummary = document.getElementById('filter-summary');
+            if (tasksPanel && filterSummary) {
+                if (tasksPanel.classList.contains('minimized')) {
+                    filterSummary.style.display = 'none';
+                } else {
+                    // Show filter summary only if filters are active
+                    const hasActiveFilters = document.querySelectorAll('#state-filter-options .filter-option.active, #tag-filter-options .filter-option.active').length > 0;
+                    filterSummary.style.display = hasActiveFilters ? 'flex' : 'none';
+                }
+            }
         }
 
         // Toggle panel expansion
