@@ -906,6 +906,37 @@
             justify-content: space-between;
         }
 
+        .filter-summary {
+            padding: 0.5rem 1.25rem;
+            background: #fff3cd;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.85rem;
+            color: #856404;
+            display: none;
+        }
+
+        .filter-summary.active {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filter-summary-text {
+            flex: 1;
+        }
+
+        .filter-summary .clear-filters-link {
+            color: #856404;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .filter-summary .clear-filters-link:hover {
+            color: #533f03;
+        }
+
         .panel-close {
             background: none;
             border: none;
@@ -4999,6 +5030,10 @@
                             {% endfor %}
                         </div>
                     </div>
+                </div>
+                <div class="filter-summary" id="filter-summary">
+                    <span class="filter-summary-text" id="filter-summary-text">Showing <span id="visible-task-count">0</span> of <span id="total-task-count">0</span> tasks</span>
+                    <span class="clear-filters-link" id="clear-filters-link">Clear filters</span>
                 </div>
                 <div class="panel-content" id="tasks-content">
                     <!-- States grouping (default) -->
@@ -10109,6 +10144,14 @@
             clearViewAndFilters();
         });
 
+        // Clear filters link in filter summary
+        const clearFiltersLink = document.getElementById('clear-filters-link');
+        if (clearFiltersLink) {
+            clearFiltersLink.addEventListener('click', function() {
+                clearViewAndFilters();
+            });
+        }
+
         // Tasks search functionality
         const tasksSearchBar = document.getElementById('tasks-search-bar');
         const tasksSearchIcon = document.getElementById('tasks-search-icon');
@@ -10793,7 +10836,7 @@
             });
 
             // Update filter badge - show dot when any filters are active
-            const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0;
+            const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0 || searchText;
             if (hasActiveFilters) {
                 filterBadge.style.display = 'block';
                 filterIcon.classList.add('active');
@@ -10801,6 +10844,23 @@
                 filterBadge.style.display = 'none';
                 if (!filterDropdown.classList.contains('active')) {
                     filterIcon.classList.remove('active');
+                }
+            }
+
+            // Update filter summary
+            const filterSummary = document.getElementById('filter-summary');
+            const visibleTaskCount = document.getElementById('visible-task-count');
+            const totalTaskCount = document.getElementById('total-task-count');
+
+            if (filterSummary && visibleTaskCount && totalTaskCount) {
+                const totalTasks = allCards.length;
+                visibleTaskCount.textContent = visibleCount;
+                totalTaskCount.textContent = totalTasks;
+
+                if (hasActiveFilters && visibleCount < totalTasks) {
+                    filterSummary.classList.add('active');
+                } else {
+                    filterSummary.classList.remove('active');
                 }
             }
 
