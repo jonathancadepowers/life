@@ -1953,6 +1953,59 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .filter-section-title:hover {
+            color: #5a7a6a;
+        }
+
+        .filter-section-title i.collapse-icon {
+            margin-left: auto;
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+        }
+
+        .filter-section.collapsed .filter-section-title i.collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .filter-section-content {
+            overflow: hidden;
+            max-height: 500px;
+            transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+        }
+
+        .filter-section.collapsed .filter-section-content {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .layout-mode-btn {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .layout-mode-btn:hover {
+            background: #f8f9fa;
+            border-color: #6B9080;
+            color: #6B9080;
+        }
+
+        .layout-mode-btn i {
+            font-size: 1rem;
         }
 
         .filter-section-title .settings-info-icon,
@@ -2064,6 +2117,33 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .saved-views-header:hover .saved-views-title {
+            color: #5a7a6a;
+        }
+
+        .saved-views-header i.collapse-icon {
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+            color: #6B9080;
+        }
+
+        .saved-views-section.collapsed .saved-views-header i.collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .saved-views-content {
+            overflow: hidden;
+            max-height: 300px;
+            transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+        }
+
+        .saved-views-section.collapsed .saved-views-content {
+            max-height: 0;
+            opacity: 0;
         }
 
         .saved-views-title {
@@ -4723,93 +4803,111 @@
             What You See
         </div>
 
-        <!-- Saved Views Section -->
-        <div class="saved-views-section">
-            <div class="saved-views-header">
-                <span class="saved-views-title">Saved Views</span>
-                <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                    <span class="settings-info-tooltip">Save your current filter setup for quick access.</span>
-                </span>
-            </div>
-            <div class="saved-views-list" id="saved-views-list">
-                <!-- Views will be populated by JavaScript -->
-            </div>
-            <button class="save-view-btn" id="save-view-btn">
-                <i class="bi bi-plus-lg"></i> Save Current View
-            </button>
-        </div>
-
         <div class="filter-dropdown-body">
-            <!-- Group By -->
-            <div class="filter-section">
-                <div class="filter-section-title">Group By
-                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                        <span class="settings-info-tooltip">Choose how tasks are organized in the panel.</span>
-                    </span>
+            <!-- Panel Layout Section -->
+            <div class="filter-section collapsed">
+                <div class="filter-section-title">
+                    <span>Panel Layout</span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
-                <div class="filter-options-row">
-                    <label class="filter-option-inline" id="group-by-states-label">
-                        <input type="radio" name="group-by" value="states" id="group-by-states" checked>
-                        <i class="bi bi-kanban"></i> States
-                    </label>
-                    <label class="filter-option-inline" id="group-by-tags-label">
-                        <input type="radio" name="group-by" value="tags" id="group-by-tags">
-                        <i class="bi bi-tags"></i> Tags
-                    </label>
+                <div class="filter-section-content">
+                    <button class="layout-mode-btn" id="filter-layout-btn">
+                        <i class="bi bi-columns"></i>
+                        <span>Choose Layout</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Saved Views Section -->
+            <div class="saved-views-section collapsed">
+                <div class="saved-views-header">
+                    <span class="saved-views-title">Saved Views</span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </div>
+                <div class="saved-views-content">
+                    <div class="saved-views-list" id="saved-views-list">
+                        <!-- Views will be populated by JavaScript -->
+                    </div>
+                    <button class="save-view-btn" id="save-view-btn">
+                        <i class="bi bi-plus-lg"></i> Save Current View
+                    </button>
+                </div>
+            </div>
+
+            <!-- Group By -->
+            <div class="filter-section collapsed">
+                <div class="filter-section-title">
+                    <span>Group By</span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </div>
+                <div class="filter-section-content">
+                    <div class="filter-options-row">
+                        <label class="filter-option-inline" id="group-by-states-label">
+                            <input type="radio" name="group-by" value="states" id="group-by-states" checked>
+                            <i class="bi bi-kanban"></i> States
+                        </label>
+                        <label class="filter-option-inline" id="group-by-tags-label">
+                            <input type="radio" name="group-by" value="tags" id="group-by-tags">
+                            <i class="bi bi-tags"></i> Tags
+                        </label>
+                    </div>
                 </div>
             </div>
 
             <!-- Filters -->
-            <div class="filter-section">
-                <div class="filter-section-title">Show Only
-                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                        <span class="settings-info-tooltip">Filter to show only matching tasks.</span>
-                    </span>
+            <div class="filter-section collapsed">
+                <div class="filter-section-title">
+                    <span>Show Only</span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
-                <div class="filter-options-row">
-                    <label class="filter-option-inline" id="filter-critical-label">
-                        <input type="checkbox" id="filter-critical">
-                        <i class="bi bi-exclamation-circle" style="color: #dc3545;"></i> Critical
-                    </label>
-                    <label class="filter-option-inline" id="filter-today-label">
-                        <input type="checkbox" id="filter-today">
-                        <i class="bi bi-sun" style="color: #ffc107;"></i> Today
-                    </label>
+                <div class="filter-section-content">
+                    <div class="filter-options-row">
+                        <label class="filter-option-inline" id="filter-critical-label">
+                            <input type="checkbox" id="filter-critical">
+                            <i class="bi bi-exclamation-circle" style="color: #dc3545;"></i> Critical
+                        </label>
+                        <label class="filter-option-inline" id="filter-today-label">
+                            <input type="checkbox" id="filter-today">
+                            <i class="bi bi-sun" style="color: #ffc107;"></i> Today
+                        </label>
+                    </div>
                 </div>
             </div>
 
             <!-- Tags -->
-            <div class="filter-section" id="filter-tags-section">
-                <div class="filter-section-title">Tags
-                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                        <span class="settings-info-tooltip">Show tasks with selected tags.</span>
-                    </span>
+            <div class="filter-section collapsed" id="filter-tags-section">
+                <div class="filter-section-title">
+                    <span>Tags</span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
-                <input type="text" id="filter-tags-search" class="filter-tags-search" placeholder="Search tags...">
-                <div id="filter-tags-list" class="filter-tags-list">
-                    <!-- Tags will be populated by JavaScript -->
+                <div class="filter-section-content">
+                    <input type="text" id="filter-tags-search" class="filter-tags-search" placeholder="Search tags...">
+                    <div id="filter-tags-list" class="filter-tags-list">
+                        <!-- Tags will be populated by JavaScript -->
+                    </div>
                 </div>
             </div>
 
             <!-- Options -->
-            <div class="filter-section">
-                <div class="filter-section-title">Options
-                    <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                        <span class="settings-info-tooltip">Additional display options for the task view.</span>
-                    </span>
+            <div class="filter-section collapsed">
+                <div class="filter-section-title">
+                    <span>Options</span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
-                <label class="filter-option" id="show-completed-label" style="display: none;">
-                    <input type="checkbox" id="show-completed-toggle">
-                    Include Completed
-                </label>
-                <label class="filter-option">
-                    <input type="checkbox" id="hide-rollups-toggle">
-                    Hide Rollups
-                </label>
-                <label class="filter-option">
-                    <input type="checkbox" id="hide-calendar-toggle">
-                    Hide Calendar
-                </label>
+                <div class="filter-section-content">
+                    <label class="filter-option" id="show-completed-label" style="display: none;">
+                        <input type="checkbox" id="show-completed-toggle">
+                        Include Completed
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" id="hide-rollups-toggle">
+                        Hide Rollups
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" id="hide-calendar-toggle">
+                        Hide Calendar
+                    </label>
+                </div>
             </div>
 
             <button class="filter-clear" id="filter-clear">
@@ -4817,11 +4915,6 @@
             </button>
         </div>
     </div>
-
-    <!-- Layout button -->
-    <button class="layout-btn" id="layout-btn" title="Choose Layout">
-        <i class="bi bi-columns"></i>
-    </button>
 
     <div class="container">
         <div class="page-header">
@@ -5734,7 +5827,7 @@
         // ========== Layout Modal ==========
 
         const layoutModal = document.getElementById('layout-modal');
-        const layoutBtn = document.getElementById('layout-btn');
+        const filterLayoutBtn = document.getElementById('filter-layout-btn');
         const layoutModeView = document.getElementById('layout-mode-view');
         const layoutFocusView = document.getElementById('layout-focus-view');
         const layoutSideBySideView = document.getElementById('layout-sidebyside-view');
@@ -5742,10 +5835,12 @@
         let selectedFocusPanel = null;
         let selectedSideBySidePanels = [];
 
-        // Open layout modal
-        layoutBtn.addEventListener('click', () => {
+        // Open layout modal from filter dropdown
+        filterLayoutBtn.addEventListener('click', () => {
             layoutModal.style.display = 'block';
             showLayoutModeView();
+            // Close filter dropdown
+            document.getElementById('filter-dropdown').classList.remove('active');
         });
 
         // Close modal when clicking overlay
@@ -5901,16 +5996,13 @@
             }
         }
 
-        // Make minimized panel headers clickable to reopen layout modal
+        // Make ALL panel headers clickable to open layout modal
         document.querySelectorAll('.panel-header').forEach(header => {
             header.addEventListener('click', (e) => {
-                const panel = header.closest('.panel');
-                if (panel.classList.contains('minimized')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    layoutModal.style.display = 'block';
-                    showLayoutModeView();
-                }
+                e.preventDefault();
+                e.stopPropagation();
+                layoutModal.style.display = 'block';
+                showLayoutModeView();
             });
         });
 
@@ -9952,6 +10044,17 @@
                 filterDropdown.classList.remove('active');
                 filterIcon.classList.remove('active');
             }
+        });
+
+        // Handle collapsible sections in filter dropdown
+        document.querySelectorAll('.filter-section-title, .saved-views-header').forEach(header => {
+            header.addEventListener('click', function(e) {
+                // Don't toggle if clicking on info icon
+                if (e.target.closest('.settings-info-icon')) return;
+
+                const section = this.closest('.filter-section, .saved-views-section');
+                section.classList.toggle('collapsed');
+            });
         });
 
         // Toggle deadline warning dropdown
