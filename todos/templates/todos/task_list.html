@@ -5879,6 +5879,10 @@
             // Apply classes and order to prevent minimized panels in the middle
             panels.forEach((panel, index) => {
                 const panelEl = document.getElementById(`${panel}-panel`);
+                // Clear any inline flex styles
+                panelEl.style.flex = '';
+                panelEl.style.display = '';
+
                 if (panel === focusPanel) {
                     panelEl.classList.remove('minimized');
                     panelEl.classList.add('focused');
@@ -5906,6 +5910,10 @@
 
             panels.forEach((panel, index) => {
                 const panelEl = document.getElementById(`${panel}-panel`);
+                // Clear any inline flex styles
+                panelEl.style.flex = '';
+                panelEl.style.display = '';
+
                 if (sideBySidePanels.includes(panel)) {
                     panelEl.classList.remove('minimized');
                     panelEl.classList.remove('focused');
@@ -5934,6 +5942,10 @@
             const panels = ['tasks', 'calendar', 'notes'];
             panels.forEach(panel => {
                 const panelEl = document.getElementById(`${panel}-panel`);
+                // Clear any inline flex styles
+                panelEl.style.flex = '';
+                panelEl.style.display = '';
+
                 panelEl.classList.remove('minimized');
                 panelEl.classList.remove('focused');
                 panelEl.style.order = '0';
