@@ -4701,6 +4701,30 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Notes Panel -->
+            <div class="panel notes-panel collapsed" id="notes-panel">
+                <div class="panel-header" id="notes-panel-header" style="cursor: pointer;">
+                    <div class="panel-header-left">
+                        <i class="bi bi-journal-text panel-header-icon"></i>
+                        <span class="panel-header-title">Notes</span>
+                    </div>
+                    <div class="panel-header-right">
+                        <div class="panel-collapsed-metrics" id="notes-collapsed-metrics">
+                            <!-- Metrics placeholder for future use -->
+                        </div>
+                        <span class="panel-expand-btn" id="notes-expand-btn" title="Expand Notes">
+                            <i class="bi bi-arrows-angle-expand"></i>
+                        </span>
+                        <span class="panel-collapse-btn" id="notes-collapse-btn" title="Collapse Notes">
+                            <i class="bi bi-chevron-down"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="panel-content" id="notes-content">
+                    <!-- Notes content will be added later -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -10226,9 +10250,14 @@
         // Panel collapse/expand
         const tasksPanel = document.getElementById('tasks-panel');
         const calendarPanel = document.getElementById('calendar-panel');
+        const notesPanel = document.getElementById('notes-panel');
         const tasksPanelHeader = document.getElementById('tasks-panel-header');
         const calendarPanelHeader = document.getElementById('calendar-panel-header');
+        const notesPanelHeader = document.getElementById('notes-panel-header');
         const tasksPanelWrapper = document.getElementById('tasks-panel-wrapper');
+
+        // All panels for iteration
+        const allPanels = [tasksPanel, calendarPanel, notesPanel].filter(p => p);
 
         // Sync wrapper class with tasks panel collapsed state
         function updateTasksPanelWrapperState() {
@@ -10240,16 +10269,14 @@
             }
         }
 
-        // Sync vertical collapse/expand between Tasks and Calendar
-        function toggleBothPanelsCollapsed() {
+        // Sync vertical collapse/expand between all panels
+        function toggleAllPanelsCollapsed() {
             const isTasksCollapsed = tasksPanel.classList.contains('collapsed');
-            // Toggle both panels together
+            // Toggle all panels together
             if (isTasksCollapsed) {
-                tasksPanel.classList.remove('collapsed');
-                calendarPanel.classList.remove('collapsed');
+                allPanels.forEach(panel => panel.classList.remove('collapsed'));
             } else {
-                tasksPanel.classList.add('collapsed');
-                calendarPanel.classList.add('collapsed');
+                allPanels.forEach(panel => panel.classList.add('collapsed'));
             }
             updateTasksPanelWrapperState();
         }
@@ -10261,7 +10288,7 @@
                 // Don't toggle vertical collapse if panel is horizontally minimized or expanded
                 if (tasksPanel.classList.contains('minimized')) return;
                 if (tasksPanel.classList.contains('expanded')) return;
-                toggleBothPanelsCollapsed();
+                toggleAllPanelsCollapsed();
             });
         }
 
@@ -10342,35 +10369,62 @@
                 // Don't toggle vertical collapse if panel is horizontally minimized or expanded
                 if (calendarPanel.classList.contains('minimized')) return;
                 if (calendarPanel.classList.contains('expanded')) return;
-                toggleBothPanelsCollapsed();
+                toggleAllPanelsCollapsed();
+            });
+        }
+
+        if (notesPanelHeader) {
+            notesPanelHeader.addEventListener('click', function(e) {
+                // Don't toggle collapsed if clicking expand button
+                if (e.target.closest('.panel-expand-btn')) return;
+                // Don't toggle vertical collapse if panel is horizontally minimized or expanded
+                if (notesPanel.classList.contains('minimized')) return;
+                if (notesPanel.classList.contains('expanded')) return;
+                toggleAllPanelsCollapsed();
             });
         }
 
         // Panel expand/minimize (horizontal)
         const tasksExpandBtn = document.getElementById('tasks-expand-btn');
         const calendarExpandBtn = document.getElementById('calendar-expand-btn');
+        const notesExpandBtn = document.getElementById('notes-expand-btn');
 
-        function togglePanelExpand(expandPanel, minimizePanel) {
+        // Toggle panel expansion - only ONE panel can be expanded at a time
+        function togglePanelExpand(expandPanel) {
             const isExpanded = expandPanel.classList.contains('expanded');
             const isMinimized = expandPanel.classList.contains('minimized');
 
             if (isExpanded || isMinimized) {
-                // Either panel in expanded/minimized state - return both to normal 50/50 state
-                expandPanel.classList.remove('collapsed', 'minimized', 'expanded');
-                minimizePanel.classList.remove('collapsed', 'minimized', 'expanded');
+                // Panel is expanded or minimized - return all to normal equal state
+                allPanels.forEach(panel => {
+                    panel.classList.remove('collapsed', 'minimized', 'expanded');
+                });
             } else {
-                // Normal state - expand this panel, minimize the other
-                expandPanel.classList.add('expanded');
-                expandPanel.classList.remove('collapsed', 'minimized');
-                minimizePanel.classList.add('minimized');
-                minimizePanel.classList.remove('collapsed', 'expanded');
+                // Normal state - expand this panel, minimize all others
+                allPanels.forEach(panel => {
+                    if (panel === expandPanel) {
+                        panel.classList.add('expanded');
+                        panel.classList.remove('collapsed', 'minimized');
+                    } else {
+                        panel.classList.add('minimized');
+                        panel.classList.remove('collapsed', 'expanded');
+                    }
+                });
             }
+        }
+
+        // Return all panels to normal equal state
+        function resetAllPanelsToNormal() {
+            allPanels.forEach(panel => {
+                panel.classList.remove('collapsed', 'minimized', 'expanded');
+            });
+            updateTasksPanelWrapperState();
         }
 
         if (tasksExpandBtn) {
             tasksExpandBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                togglePanelExpand(tasksPanel, calendarPanel);
+                togglePanelExpand(tasksPanel);
                 updateTasksPanelWrapperState();
             });
         }
@@ -10378,7 +10432,15 @@
         if (calendarExpandBtn) {
             calendarExpandBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                togglePanelExpand(calendarPanel, tasksPanel);
+                togglePanelExpand(calendarPanel);
+                updateTasksPanelWrapperState();
+            });
+        }
+
+        if (notesExpandBtn) {
+            notesExpandBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                togglePanelExpand(notesPanel);
                 updateTasksPanelWrapperState();
             });
         }
@@ -10386,21 +10448,23 @@
         // Click anywhere on minimized panel to expand it back to normal
         tasksPanel.addEventListener('click', function(e) {
             if (this.classList.contains('minimized')) {
-                // Return both panels to normal 50/50 state
-                tasksPanel.classList.remove('collapsed', 'minimized', 'expanded');
-                calendarPanel.classList.remove('collapsed', 'minimized', 'expanded');
-                updateTasksPanelWrapperState();
+                resetAllPanelsToNormal();
             }
         });
 
         calendarPanel.addEventListener('click', function(e) {
             if (this.classList.contains('minimized')) {
-                // Return both panels to normal 50/50 state
-                tasksPanel.classList.remove('collapsed', 'minimized', 'expanded');
-                calendarPanel.classList.remove('collapsed', 'minimized', 'expanded');
-                updateTasksPanelWrapperState();
+                resetAllPanelsToNormal();
             }
         });
+
+        if (notesPanel) {
+            notesPanel.addEventListener('click', function(e) {
+                if (this.classList.contains('minimized')) {
+                    resetAllPanelsToNormal();
+                }
+            });
+        }
 
         // Initialize wrapper state on page load
         updateTasksPanelWrapperState();
