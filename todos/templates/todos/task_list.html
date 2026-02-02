@@ -3340,16 +3340,17 @@
 
         /* Horizontal collapse (when panel is in sidebar mode) */
         .panel.collapsed {
-            min-width: 60px;
-            max-width: 60px;
+            min-width: 45px;
+            max-width: 45px;
             flex-shrink: 0;
+            overflow: hidden;
         }
 
         .panel.collapsed .panel-header {
             flex-direction: column;
             justify-content: flex-start;
             align-items: center;
-            padding: 1.5rem 0.5rem;
+            padding: 1.5rem 0.25rem;
             border-bottom: none;
             border-right: 1px solid #e9ecef;
             height: 100%;
@@ -3367,15 +3368,16 @@
         }
 
         .panel.collapsed .panel-header-icon {
-            font-size: 1.2rem;
+            font-size: 1rem;
         }
 
         .panel.collapsed .panel-header-title {
             transform: rotate(-90deg);
             white-space: nowrap;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             font-weight: 600;
             letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
 
         .panel.collapsed .panel-header-right {
@@ -5848,7 +5850,7 @@
                 } else {
                     panelEl.classList.add('collapsed');
                     panelEl.classList.remove('focused');
-                    panelEl.style.flex = '0 0 60px';
+                    panelEl.style.flex = '0 0 45px';
                 }
             });
 
@@ -5869,7 +5871,7 @@
                 } else {
                     panelEl.classList.add('collapsed');
                     panelEl.classList.remove('focused');
-                    panelEl.style.flex = '0 0 60px';
+                    panelEl.style.flex = '0 0 45px';
                 }
             });
 
