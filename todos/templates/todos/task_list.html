@@ -3339,56 +3339,39 @@
         }
 
         /* Horizontal collapse (when panel is in sidebar mode) */
-        .panel.collapsed {
-            min-width: 45px;
-            max-width: 45px;
-            flex-shrink: 0;
-            overflow: hidden;
+        .panel.minimized {
+            flex: 0 0 60px;
+            min-width: 60px;
         }
 
-        .panel.collapsed .panel-header {
+        .panel.minimized .panel-content {
+            display: none;
+        }
+
+        .panel.minimized .panel-header {
             flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-            padding: 1.5rem 0.25rem;
+            padding: 0.75rem 0.5rem;
+            height: 100%;
             border-bottom: none;
             border-right: 1px solid #e9ecef;
-            height: 100%;
             cursor: pointer;
         }
 
-        .panel.collapsed .panel-header:hover {
+        .panel.minimized .panel-header:hover {
             background: #f0f0f0;
         }
 
-        .panel.collapsed .panel-header-left {
-            flex-direction: column;
-            gap: 0.75rem;
-            align-items: center;
+        .panel.minimized .panel-header-left {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
         }
 
-        .panel.collapsed .panel-header-icon {
-            font-size: 1rem;
-        }
-
-        .panel.collapsed .panel-header-title {
-            transform: rotate(-90deg);
-            white-space: nowrap;
-            font-size: 0.65rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-
-        .panel.collapsed .panel-header-right {
+        .panel.minimized .panel-header-right {
             display: none;
         }
 
-        .panel.collapsed .panel-content {
-            display: none;
-        }
-
-        .panel.collapsed .tasks-search-bar {
+        .panel.minimized .tasks-search-bar {
             display: none;
         }
 
@@ -5844,13 +5827,11 @@
             panels.forEach(panel => {
                 const panelEl = document.getElementById(`${panel}-panel`);
                 if (panel === focusPanel) {
-                    panelEl.classList.remove('collapsed');
+                    panelEl.classList.remove('minimized');
                     panelEl.classList.add('focused');
-                    panelEl.style.flex = '1';
                 } else {
-                    panelEl.classList.add('collapsed');
+                    panelEl.classList.add('minimized');
                     panelEl.classList.remove('focused');
-                    panelEl.style.flex = '0 0 45px';
                 }
             });
 
@@ -5865,13 +5846,11 @@
             panels.forEach(panel => {
                 const panelEl = document.getElementById(`${panel}-panel`);
                 if (sideBySidePanels.includes(panel)) {
-                    panelEl.classList.remove('collapsed');
+                    panelEl.classList.remove('minimized');
                     panelEl.classList.remove('focused');
-                    panelEl.style.flex = '1';
                 } else {
-                    panelEl.classList.add('collapsed');
+                    panelEl.classList.add('minimized');
                     panelEl.classList.remove('focused');
-                    panelEl.style.flex = '0 0 45px';
                 }
             });
 
@@ -5899,11 +5878,11 @@
             }
         }
 
-        // Make collapsed panel headers clickable to reopen layout modal
+        // Make minimized panel headers clickable to reopen layout modal
         document.querySelectorAll('.panel-header').forEach(header => {
             header.addEventListener('click', (e) => {
                 const panel = header.closest('.panel');
-                if (panel.classList.contains('collapsed')) {
+                if (panel.classList.contains('minimized')) {
                     layoutModal.style.display = 'block';
                     showLayoutModeView();
                 }
