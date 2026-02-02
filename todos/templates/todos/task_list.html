@@ -3347,8 +3347,9 @@
 
         .panel.collapsed .panel-header {
             flex-direction: column;
-            justify-content: center;
-            padding: 2rem 0.5rem;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 1.5rem 0.5rem;
             border-bottom: none;
             border-right: 1px solid #e9ecef;
             height: 100%;
@@ -3372,15 +3373,17 @@
         .panel.collapsed .panel-header-title {
             display: flex;
             flex-direction: column;
-            gap: 0.1rem;
-            font-size: 0.7rem;
-            line-height: 1;
+            gap: 0.25rem;
+            font-size: 0.85rem;
+            line-height: 1.2;
             letter-spacing: 0;
+            align-items: center;
         }
 
         .panel.collapsed .panel-header-title .vertical-char {
             display: block;
             text-align: center;
+            width: 100%;
         }
 
         .panel.collapsed .panel-header-right {
