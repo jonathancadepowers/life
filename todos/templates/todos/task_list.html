@@ -3346,17 +3346,19 @@
         .panel.collapsed {
             min-width: 60px;
             max-width: 60px;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
+            flex-shrink: 0;
         }
 
         .panel.collapsed .panel-header {
             flex-direction: column;
-            padding: 1rem 0.5rem;
+            justify-content: center;
+            padding: 2rem 0.5rem;
             border-bottom: none;
             border-right: 1px solid #e9ecef;
             height: 100%;
             cursor: pointer;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
         }
 
         .panel.collapsed .panel-header:hover {
@@ -3366,6 +3368,17 @@
         .panel.collapsed .panel-header-left {
             flex-direction: column;
             gap: 0.75rem;
+            align-items: center;
+        }
+
+        .panel.collapsed .panel-header-icon {
+            writing-mode: horizontal-tb;
+            transform: rotate(0deg);
+        }
+
+        .panel.collapsed .panel-header-title {
+            writing-mode: vertical-rl;
+            white-space: nowrap;
         }
 
         .panel.collapsed .panel-header-right {
