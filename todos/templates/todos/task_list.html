@@ -4928,25 +4928,24 @@
         <div class="layout-modal-content" id="layout-modal-content">
             <!-- Mode Selection View -->
             <div class="layout-view layout-mode-view" id="layout-mode-view">
-                <h3 class="layout-modal-title">Choose Layout</h3>
                 <div class="layout-mode-options">
                     <button class="layout-mode-card" id="focus-mode-btn">
                         <i class="bi bi-bullseye"></i>
                         <div class="layout-mode-name">FOCUS</div>
-                        <div class="layout-mode-desc">One panel, full width</div>
                     </button>
                     <button class="layout-mode-card" id="side-by-side-mode-btn">
                         <i class="bi bi-layout-split"></i>
                         <div class="layout-mode-name">SIDE BY SIDE</div>
-                        <div class="layout-mode-desc">Two panels, equal</div>
+                    </button>
+                    <button class="layout-mode-card" id="all-mode-btn">
+                        <i class="bi bi-grid-3x3"></i>
+                        <div class="layout-mode-name">ALL</div>
                     </button>
                 </div>
             </div>
 
             <!-- Focus Mode View -->
             <div class="layout-view layout-focus-view" id="layout-focus-view" style="display: none;">
-                <h3 class="layout-modal-title">Focus Mode</h3>
-                <p class="layout-modal-subtitle">Which panel to focus on?</p>
                 <div class="layout-panel-options">
                     <button class="layout-panel-card" data-panel="tasks">
                         <i class="bi bi-check2-circle"></i>
@@ -4961,16 +4960,10 @@
                         <div class="layout-panel-name">Notes</div>
                     </button>
                 </div>
-                <div class="layout-modal-actions">
-                    <button class="layout-modal-btn layout-modal-btn-secondary" id="focus-back-btn">Cancel</button>
-                    <button class="layout-modal-btn layout-modal-btn-primary" id="focus-ok-btn" disabled>OK</button>
-                </div>
             </div>
 
             <!-- Side by Side Mode View -->
             <div class="layout-view layout-sidebyside-view" id="layout-sidebyside-view" style="display: none;">
-                <h3 class="layout-modal-title">Side by Side Mode</h3>
-                <p class="layout-modal-subtitle">Pick two panels to show:</p>
                 <div class="layout-panel-checkboxes">
                     <label class="layout-panel-checkbox">
                         <input type="checkbox" name="panel" value="tasks">
@@ -4987,10 +4980,6 @@
                         <i class="bi bi-journal-text"></i>
                         <span>Notes</span>
                     </label>
-                </div>
-                <div class="layout-modal-actions">
-                    <button class="layout-modal-btn layout-modal-btn-secondary" id="sidebyside-back-btn">Cancel</button>
-                    <button class="layout-modal-btn layout-modal-btn-primary" id="sidebyside-ok-btn" disabled>OK</button>
                 </div>
             </div>
         </div>
@@ -5850,65 +5839,45 @@
         document.getElementById('focus-mode-btn').addEventListener('click', () => {
             layoutModeView.style.display = 'none';
             layoutFocusView.style.display = 'block';
-            selectedFocusPanel = null;
             document.querySelectorAll('.layout-focus-view .layout-panel-card').forEach(card => {
                 card.classList.remove('selected');
             });
-            document.getElementById('focus-ok-btn').disabled = true;
         });
 
         // Side by side mode button
         document.getElementById('side-by-side-mode-btn').addEventListener('click', () => {
             layoutModeView.style.display = 'none';
             layoutSideBySideView.style.display = 'block';
-            selectedSideBySidePanels = [];
             document.querySelectorAll('.layout-panel-checkbox input').forEach(checkbox => {
                 checkbox.checked = false;
             });
-            document.getElementById('sidebyside-ok-btn').disabled = true;
         });
 
-        // Focus panel selection
+        // All mode button
+        document.getElementById('all-mode-btn').addEventListener('click', () => {
+            applyAllLayout();
+            layoutModal.style.display = 'none';
+        });
+
+        // Focus panel selection - auto-close on selection
         document.querySelectorAll('.layout-focus-view .layout-panel-card').forEach(card => {
             card.addEventListener('click', () => {
-                document.querySelectorAll('.layout-focus-view .layout-panel-card').forEach(c => {
-                    c.classList.remove('selected');
-                });
-                card.classList.add('selected');
-                selectedFocusPanel = card.dataset.panel;
-                document.getElementById('focus-ok-btn').disabled = false;
+                applyFocusLayout(card.dataset.panel);
+                layoutModal.style.display = 'none';
             });
         });
 
-        // Side by side panel checkboxes
+        // Side by side panel checkboxes - auto-close when 2 selected
         document.querySelectorAll('.layout-panel-checkbox input').forEach(checkbox => {
             checkbox.addEventListener('change', () => {
-                selectedSideBySidePanels = Array.from(document.querySelectorAll('.layout-panel-checkbox input:checked'))
+                const selectedPanels = Array.from(document.querySelectorAll('.layout-panel-checkbox input:checked'))
                     .map(cb => cb.value);
-                document.getElementById('sidebyside-ok-btn').disabled = selectedSideBySidePanels.length !== 2;
+
+                if (selectedPanels.length === 2) {
+                    applySideBySideLayout(selectedPanels);
+                    layoutModal.style.display = 'none';
+                }
             });
-        });
-
-        // Focus back button
-        document.getElementById('focus-back-btn').addEventListener('click', () => {
-            showLayoutModeView();
-        });
-
-        // Side by side back button
-        document.getElementById('sidebyside-back-btn').addEventListener('click', () => {
-            showLayoutModeView();
-        });
-
-        // Focus OK button
-        document.getElementById('focus-ok-btn').addEventListener('click', () => {
-            applyFocusLayout(selectedFocusPanel);
-            layoutModal.style.display = 'none';
-        });
-
-        // Side by side OK button
-        document.getElementById('sidebyside-ok-btn').addEventListener('click', () => {
-            applySideBySideLayout(selectedSideBySidePanels);
-            layoutModal.style.display = 'none';
         });
 
         // Apply focus layout
@@ -5968,6 +5937,20 @@
             localStorage.setItem('layoutSideBySidePanels', JSON.stringify(sideBySidePanels));
         }
 
+        // Apply all panels layout
+        function applyAllLayout() {
+            const panels = ['tasks', 'calendar', 'notes'];
+            panels.forEach(panel => {
+                const panelEl = document.getElementById(`${panel}-panel`);
+                panelEl.classList.remove('minimized');
+                panelEl.classList.remove('focused');
+                panelEl.style.order = '0';
+            });
+
+            // Save to localStorage
+            localStorage.setItem('layoutMode', 'all');
+        }
+
         // Restore layout from localStorage on page load
         function restoreLayout() {
             const layoutMode = localStorage.getItem('layoutMode');
@@ -5981,6 +5964,8 @@
                 if (sideBySidePanels.length === 2) {
                     applySideBySideLayout(sideBySidePanels);
                 }
+            } else if (layoutMode === 'all') {
+                applyAllLayout();
             } else {
                 // Default: show tasks and calendar side by side
                 applySideBySideLayout(['tasks', 'calendar']);
