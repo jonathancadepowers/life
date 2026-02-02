@@ -9513,10 +9513,10 @@
                     // Close the task details panel
                     closePanel();
 
-                    // Expand calendar panel if collapsed
+                    // Check if calendar panel is minimized - if so, switch to focus mode
                     const calendarPanel = document.getElementById('calendar-panel');
-                    if (calendarPanel && calendarPanel.classList.contains('collapsed')) {
-                        calendarPanel.classList.remove('collapsed');
+                    if (calendarPanel && calendarPanel.classList.contains('minimized')) {
+                        applyFocusLayout('calendar');
                     }
 
                     // Navigate to the date
