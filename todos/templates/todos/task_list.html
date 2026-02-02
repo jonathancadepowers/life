@@ -988,10 +988,10 @@
         .has-tooltip .custom-tooltip {
             visibility: hidden;
             position: absolute;
-            bottom: 100%;
+            top: 100%;
             left: 50%;
             transform: translateX(-50%);
-            margin-bottom: 5px;
+            margin-top: 5px;
             padding: 0.4rem 0.6rem;
             background: #333;
             color: white;
@@ -1007,12 +1007,12 @@
         .has-tooltip .custom-tooltip::after {
             content: "";
             position: absolute;
-            top: 100%;
+            bottom: 100%;
             left: 50%;
             margin-left: -5px;
             border-width: 5px;
             border-style: solid;
-            border-color: #333 transparent transparent transparent;
+            border-color: transparent transparent #333 transparent;
         }
 
         .has-tooltip:hover .custom-tooltip {
