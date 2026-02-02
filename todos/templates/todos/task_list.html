@@ -946,8 +946,9 @@
 
         .filter-info-tooltip {
             visibility: hidden;
-            position: absolute;
-            bottom: 125%;
+            position: fixed;
+            bottom: auto;
+            top: auto;
             left: 50%;
             transform: translateX(-50%);
             background: #333;
@@ -956,20 +957,21 @@
             border-radius: 4px;
             font-size: 0.7rem;
             white-space: nowrap;
-            z-index: 1000;
+            z-index: 10000;
             opacity: 0;
             transition: opacity 0.2s;
+            margin-top: 0.5rem;
         }
 
-        .filter-info-tooltip::after {
+        .filter-info-tooltip::before {
             content: "";
             position: absolute;
-            top: 100%;
+            bottom: 100%;
             left: 50%;
             margin-left: -5px;
             border-width: 5px;
             border-style: solid;
-            border-color: #333 transparent transparent transparent;
+            border-color: transparent transparent #333 transparent;
         }
 
         .filter-info-wrapper:hover .filter-info-tooltip {
@@ -10195,6 +10197,19 @@
         if (clearFiltersLink) {
             clearFiltersLink.addEventListener('click', function() {
                 clearViewAndFilters();
+            });
+        }
+
+        // Position tooltip below the info icon on hover
+        const filterInfoWrapper = document.querySelector('.filter-info-wrapper');
+        const filterInfoIcon = document.getElementById('filter-info-icon');
+        const filterTooltip = document.getElementById('filter-info-tooltip');
+
+        if (filterInfoWrapper && filterInfoIcon && filterTooltip) {
+            filterInfoWrapper.addEventListener('mouseenter', function() {
+                const rect = filterInfoIcon.getBoundingClientRect();
+                filterTooltip.style.top = (rect.bottom) + 'px';
+                filterTooltip.style.left = (rect.left + rect.width / 2) + 'px';
             });
         }
 
