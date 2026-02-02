@@ -68,6 +68,239 @@
             font-weight: 300;
             color: #333;
             margin: 0;
+            flex: 1;
+        }
+
+        .layout-btn {
+            background: transparent;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            font-size: 1.25rem;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .layout-btn:hover {
+            background: #f8f9fa;
+            color: #333;
+            border-color: #adb5bd;
+        }
+
+        /* Layout Modal */
+        .layout-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10000;
+        }
+
+        .layout-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .layout-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            min-width: 400px;
+            max-width: 500px;
+        }
+
+        .layout-modal-title {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .layout-modal-subtitle {
+            font-size: 0.95rem;
+            color: #666;
+            margin: 0 0 1.5rem 0;
+        }
+
+        .layout-mode-options {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .layout-mode-card {
+            flex: 1;
+            padding: 2rem 1rem;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .layout-mode-card:hover {
+            background: #e9ecef;
+            border-color: #0d6efd;
+            transform: translateY(-2px);
+        }
+
+        .layout-mode-card i {
+            font-size: 2.5rem;
+            color: #0d6efd;
+            display: block;
+            margin-bottom: 0.75rem;
+        }
+
+        .layout-mode-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .layout-mode-desc {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .layout-panel-options {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .layout-panel-card {
+            flex: 1;
+            padding: 1.5rem 1rem;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .layout-panel-card:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .layout-panel-card.selected {
+            background: #e7f3ff;
+            border-color: #0d6efd;
+        }
+
+        .layout-panel-card i {
+            font-size: 2rem;
+            color: #0d6efd;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .layout-panel-name {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .layout-panel-checkboxes {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .layout-panel-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .layout-panel-checkbox:hover {
+            background: #e9ecef;
+        }
+
+        .layout-panel-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .layout-panel-checkbox input[type="checkbox"]:checked {
+            accent-color: #0d6efd;
+        }
+
+        .layout-panel-checkbox i {
+            font-size: 1.5rem;
+            color: #0d6efd;
+        }
+
+        .layout-panel-checkbox span {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .layout-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .layout-modal-btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .layout-modal-btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #dee2e6;
+        }
+
+        .layout-modal-btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .layout-modal-btn-primary {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .layout-modal-btn-primary:hover:not(:disabled) {
+            background: #0b5ed7;
+        }
+
+        .layout-modal-btn-primary:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
         }
 
         /* Task Input */
@@ -3109,16 +3342,46 @@
             min-height: 870px;
         }
 
+        /* Horizontal collapse (when panel is in sidebar mode) */
         .panel.collapsed {
-            height: 48px;
-            min-height: 48px;
-            max-height: 48px;
-            overflow: hidden;
-            box-sizing: border-box;
+            min-width: 60px;
+            max-width: 60px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+        }
+
+        .panel.collapsed .panel-header {
+            flex-direction: column;
+            padding: 1rem 0.5rem;
+            border-bottom: none;
+            border-right: 1px solid #e9ecef;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .panel.collapsed .panel-header:hover {
+            background: #f0f0f0;
+        }
+
+        .panel.collapsed .panel-header-left {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .panel.collapsed .panel-header-right {
+            display: none;
         }
 
         .panel.collapsed .panel-content {
             display: none;
+        }
+
+        .panel.collapsed .tasks-search-bar {
+            display: none;
+        }
+
+        .panel.focused {
+            flex: 1;
         }
 
         .panel-header {
@@ -4562,6 +4825,9 @@
         <div class="page-header">
             <i class="bi bi-highlights page-icon" id="page-icon"></i>
             <h1 class="page-title">Empty, Marvelous</h1>
+            <button class="layout-btn" id="layout-btn" title="Choose Layout">
+                <i class="bi bi-layout-three-columns"></i>
+            </button>
         </div>
 
         <div class="task-input-container">
@@ -4570,6 +4836,80 @@
                    placeholder=""
                    autocomplete="off">
             <div class="animated-placeholder" id="animated-placeholder">Add a new task...</div>
+        </div>
+    </div>
+
+    <!-- Layout Modal -->
+    <div class="layout-modal" id="layout-modal" style="display: none;">
+        <div class="layout-modal-overlay" id="layout-modal-overlay"></div>
+        <div class="layout-modal-content" id="layout-modal-content">
+            <!-- Mode Selection View -->
+            <div class="layout-view layout-mode-view" id="layout-mode-view">
+                <h3 class="layout-modal-title">Choose Layout</h3>
+                <div class="layout-mode-options">
+                    <button class="layout-mode-card" id="focus-mode-btn">
+                        <i class="bi bi-bullseye"></i>
+                        <div class="layout-mode-name">FOCUS</div>
+                        <div class="layout-mode-desc">One panel, full width</div>
+                    </button>
+                    <button class="layout-mode-card" id="side-by-side-mode-btn">
+                        <i class="bi bi-layout-split"></i>
+                        <div class="layout-mode-name">SIDE BY SIDE</div>
+                        <div class="layout-mode-desc">Two panels, equal</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Focus Mode View -->
+            <div class="layout-view layout-focus-view" id="layout-focus-view" style="display: none;">
+                <h3 class="layout-modal-title">Focus Mode</h3>
+                <p class="layout-modal-subtitle">Which panel to focus on?</p>
+                <div class="layout-panel-options">
+                    <button class="layout-panel-card" data-panel="tasks">
+                        <i class="bi bi-check2-circle"></i>
+                        <div class="layout-panel-name">Tasks</div>
+                    </button>
+                    <button class="layout-panel-card" data-panel="calendar">
+                        <i class="bi bi-calendar3"></i>
+                        <div class="layout-panel-name">Calendar</div>
+                    </button>
+                    <button class="layout-panel-card" data-panel="notes">
+                        <i class="bi bi-journal-text"></i>
+                        <div class="layout-panel-name">Notes</div>
+                    </button>
+                </div>
+                <div class="layout-modal-actions">
+                    <button class="layout-modal-btn layout-modal-btn-secondary" id="focus-back-btn">Cancel</button>
+                    <button class="layout-modal-btn layout-modal-btn-primary" id="focus-ok-btn" disabled>OK</button>
+                </div>
+            </div>
+
+            <!-- Side by Side Mode View -->
+            <div class="layout-view layout-sidebyside-view" id="layout-sidebyside-view" style="display: none;">
+                <h3 class="layout-modal-title">Side by Side Mode</h3>
+                <p class="layout-modal-subtitle">Pick two panels to show:</p>
+                <div class="layout-panel-checkboxes">
+                    <label class="layout-panel-checkbox">
+                        <input type="checkbox" name="panel" value="tasks">
+                        <i class="bi bi-check2-circle"></i>
+                        <span>Tasks</span>
+                    </label>
+                    <label class="layout-panel-checkbox">
+                        <input type="checkbox" name="panel" value="calendar">
+                        <i class="bi bi-calendar3"></i>
+                        <span>Calendar</span>
+                    </label>
+                    <label class="layout-panel-checkbox">
+                        <input type="checkbox" name="panel" value="notes">
+                        <i class="bi bi-journal-text"></i>
+                        <span>Notes</span>
+                    </label>
+                </div>
+                <div class="layout-modal-actions">
+                    <button class="layout-modal-btn layout-modal-btn-secondary" id="sidebyside-back-btn">Cancel</button>
+                    <button class="layout-modal-btn layout-modal-btn-primary" id="sidebyside-ok-btn" disabled>OK</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -4591,12 +4931,6 @@
                             <span class="metric-pill" data-state-id="{{ state.id }}">{{ state.name }}: <span class="metric-count">0</span></span>
                             {% endfor %}
                         </div>
-                        <span class="panel-expand-btn" id="tasks-expand-btn" title="Expand Tasks">
-                            <i class="bi bi-arrows-angle-expand"></i>
-                        </span>
-                        <span class="panel-collapse-btn" id="tasks-collapse-btn" title="Collapse Tasks">
-                            <i class="bi bi-chevron-down"></i>
-                        </span>
                     </div>
                 </div>
                 <div class="panel-content" id="tasks-content">
@@ -4691,12 +5025,6 @@
                         <button class="add-event-btn" id="add-event-btn" title="Block Time">
                             <i class="bi bi-plus-lg"></i> Block Time
                         </button>
-                        <span class="panel-expand-btn" id="calendar-expand-btn" title="Expand Calendar">
-                            <i class="bi bi-arrows-angle-expand"></i>
-                        </span>
-                        <span class="panel-collapse-btn" id="calendar-collapse-btn" title="Collapse Calendar">
-                            <i class="bi bi-chevron-down"></i>
-                        </span>
                     </div>
                 </div>
                 <div class="panel-content">
@@ -4726,12 +5054,6 @@
                         <div class="panel-collapsed-metrics" id="notes-collapsed-metrics">
                             <!-- Metrics placeholder for future use -->
                         </div>
-                        <span class="panel-expand-btn" id="notes-expand-btn" title="Expand Notes">
-                            <i class="bi bi-arrows-angle-expand"></i>
-                        </span>
-                        <span class="panel-collapse-btn" id="notes-collapse-btn" title="Collapse Notes">
-                            <i class="bi bi-chevron-down"></i>
-                        </span>
                     </div>
                 </div>
                 <div class="panel-content" id="notes-content">
@@ -5409,6 +5731,172 @@
                 setTimeout(() => inputEl.focus(), 100);
             });
         }
+
+        // ========== Layout Modal ==========
+
+        const layoutModal = document.getElementById('layout-modal');
+        const layoutBtn = document.getElementById('layout-btn');
+        const layoutModeView = document.getElementById('layout-mode-view');
+        const layoutFocusView = document.getElementById('layout-focus-view');
+        const layoutSideBySideView = document.getElementById('layout-sidebyside-view');
+
+        let selectedFocusPanel = null;
+        let selectedSideBySidePanels = [];
+
+        // Open layout modal
+        layoutBtn.addEventListener('click', () => {
+            layoutModal.style.display = 'block';
+            showLayoutModeView();
+        });
+
+        // Close modal when clicking overlay
+        document.getElementById('layout-modal-overlay').addEventListener('click', () => {
+            layoutModal.style.display = 'none';
+        });
+
+        // Show mode selection view
+        function showLayoutModeView() {
+            layoutModeView.style.display = 'block';
+            layoutFocusView.style.display = 'none';
+            layoutSideBySideView.style.display = 'none';
+        }
+
+        // Focus mode button
+        document.getElementById('focus-mode-btn').addEventListener('click', () => {
+            layoutModeView.style.display = 'none';
+            layoutFocusView.style.display = 'block';
+            selectedFocusPanel = null;
+            document.querySelectorAll('.layout-focus-view .layout-panel-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.getElementById('focus-ok-btn').disabled = true;
+        });
+
+        // Side by side mode button
+        document.getElementById('side-by-side-mode-btn').addEventListener('click', () => {
+            layoutModeView.style.display = 'none';
+            layoutSideBySideView.style.display = 'block';
+            selectedSideBySidePanels = [];
+            document.querySelectorAll('.layout-panel-checkbox input').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.getElementById('sidebyside-ok-btn').disabled = true;
+        });
+
+        // Focus panel selection
+        document.querySelectorAll('.layout-focus-view .layout-panel-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.layout-focus-view .layout-panel-card').forEach(c => {
+                    c.classList.remove('selected');
+                });
+                card.classList.add('selected');
+                selectedFocusPanel = card.dataset.panel;
+                document.getElementById('focus-ok-btn').disabled = false;
+            });
+        });
+
+        // Side by side panel checkboxes
+        document.querySelectorAll('.layout-panel-checkbox input').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                selectedSideBySidePanels = Array.from(document.querySelectorAll('.layout-panel-checkbox input:checked'))
+                    .map(cb => cb.value);
+                document.getElementById('sidebyside-ok-btn').disabled = selectedSideBySidePanels.length !== 2;
+            });
+        });
+
+        // Focus back button
+        document.getElementById('focus-back-btn').addEventListener('click', () => {
+            showLayoutModeView();
+        });
+
+        // Side by side back button
+        document.getElementById('sidebyside-back-btn').addEventListener('click', () => {
+            showLayoutModeView();
+        });
+
+        // Focus OK button
+        document.getElementById('focus-ok-btn').addEventListener('click', () => {
+            applyFocusLayout(selectedFocusPanel);
+            layoutModal.style.display = 'none';
+        });
+
+        // Side by side OK button
+        document.getElementById('sidebyside-ok-btn').addEventListener('click', () => {
+            applySideBySideLayout(selectedSideBySidePanels);
+            layoutModal.style.display = 'none';
+        });
+
+        // Apply focus layout
+        function applyFocusLayout(focusPanel) {
+            const panels = ['tasks', 'calendar', 'notes'];
+            panels.forEach(panel => {
+                const panelEl = document.getElementById(`${panel}-panel`);
+                if (panel === focusPanel) {
+                    panelEl.classList.remove('collapsed');
+                    panelEl.classList.add('focused');
+                    panelEl.style.flex = '1';
+                } else {
+                    panelEl.classList.add('collapsed');
+                    panelEl.classList.remove('focused');
+                    panelEl.style.flex = '0 0 60px';
+                }
+            });
+
+            // Save to localStorage
+            localStorage.setItem('layoutMode', 'focus');
+            localStorage.setItem('layoutFocusPanel', focusPanel);
+        }
+
+        // Apply side by side layout
+        function applySideBySideLayout(sideBySidePanels) {
+            const panels = ['tasks', 'calendar', 'notes'];
+            panels.forEach(panel => {
+                const panelEl = document.getElementById(`${panel}-panel`);
+                if (sideBySidePanels.includes(panel)) {
+                    panelEl.classList.remove('collapsed');
+                    panelEl.classList.remove('focused');
+                    panelEl.style.flex = '1';
+                } else {
+                    panelEl.classList.add('collapsed');
+                    panelEl.classList.remove('focused');
+                    panelEl.style.flex = '0 0 60px';
+                }
+            });
+
+            // Save to localStorage
+            localStorage.setItem('layoutMode', 'sidebyside');
+            localStorage.setItem('layoutSideBySidePanels', JSON.stringify(sideBySidePanels));
+        }
+
+        // Restore layout from localStorage on page load
+        function restoreLayout() {
+            const layoutMode = localStorage.getItem('layoutMode');
+            if (layoutMode === 'focus') {
+                const focusPanel = localStorage.getItem('layoutFocusPanel');
+                if (focusPanel) {
+                    applyFocusLayout(focusPanel);
+                }
+            } else if (layoutMode === 'sidebyside') {
+                const sideBySidePanels = JSON.parse(localStorage.getItem('layoutSideBySidePanels') || '[]');
+                if (sideBySidePanels.length === 2) {
+                    applySideBySideLayout(sideBySidePanels);
+                }
+            }
+        }
+
+        // Make collapsed panel headers clickable to reopen layout modal
+        document.querySelectorAll('.panel-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const panel = header.closest('.panel');
+                if (panel.classList.contains('collapsed')) {
+                    layoutModal.style.display = 'block';
+                    showLayoutModeView();
+                }
+            });
+        });
+
+        // Restore layout on page load
+        restoreLayout();
 
         // ========== Deadline Management ==========
 
