@@ -4298,8 +4298,9 @@
             color: #495057;
         }
 
-        /* State pills in Schedule view get colored styling */
-        .state-group-body[data-schedule-group] .task-state-pill {
+        /* State pills in Schedule and Tags views get colored styling */
+        .state-group-body[data-schedule-group] .task-state-pill,
+        .state-group-body[data-tag-id] .task-state-pill {
             background: #e0e7ff;
             color: #3730a3;
         }
@@ -10891,22 +10892,17 @@
                 card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (task.isCompleted ? ' completed' : '');
                 card.dataset.taskId = task.id;
 
-                // Only show tag pills if task has multiple tags
-                const tagsHtml = task.tags.length > 1
-                    ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
-                    : '';
-
-                const scheduledIconHtml = getSchedulePillHtml(schedules);
+                // Don't show tag pills in Tags view since we're already grouping by tags
+                // Don't show schedule pills either - keep this view focused on tags
                 const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>' : '';
                 const statePillHtml = task.stateName ? `<span class="task-state-pill">${escapeHtml(task.stateName)}</span>` : '';
-                const hasIcons = isScheduled || task.isCritical || task.stateName;
-                const iconsHtml = hasIcons ? `<div class="task-card-icons">${statePillHtml}${scheduledIconHtml}${criticalIconHtml}</div>` : '';
+                const hasIcons = task.isCritical || task.stateName;
+                const iconsHtml = hasIcons ? `<div class="task-card-icons">${statePillHtml}${criticalIconHtml}</div>` : '';
 
                 card.innerHTML = `
                     <div class="task-card-content">
                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
-                        ${tagsHtml}
                         ${iconsHtml}
                     </div>
                 `;
