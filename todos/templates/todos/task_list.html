@@ -8614,16 +8614,29 @@
                 }
             }
 
-            // Update task cards in tags view
+            // Update task cards in tags view - add completed class for strikethrough
+            const terminalStateId = getTerminalStateId();
+            const isCompleted = task.state_id === terminalStateId;
+            const isAbandoned = abandonedStateId && task.state_id === abandonedStateId;
+
             document.querySelectorAll(`#tags-content .task-card[data-task-id="${task.id}"]`).forEach(card => {
                 const titleEl = card.querySelector('.task-card-title');
                 if (titleEl) titleEl.textContent = task.title;
                 card.classList.toggle('critical', task.critical);
+                // Add completed class for strikethrough - task will be hidden on page reload
+                card.classList.toggle('completed', isCompleted || isAbandoned);
+            });
+
+            // Update task cards in schedules view - add completed class for strikethrough
+            document.querySelectorAll(`#schedules-content .task-card[data-task-id="${task.id}"]`).forEach(card => {
+                const titleEl = card.querySelector('.task-card-title');
+                if (titleEl) titleEl.textContent = task.title;
+                card.classList.toggle('critical', task.critical);
+                // Add completed class for strikethrough - task will be hidden on page reload
+                card.classList.toggle('completed', isCompleted || isAbandoned);
             });
 
             // Update calendar scheduled tasks - add/remove completed class
-            const terminalStateId = getTerminalStateId();
-            const isCompleted = task.state_id === terminalStateId;
             document.querySelectorAll(`.calendar-scheduled-task[data-task-id="${task.id}"]`).forEach(calTask => {
                 calTask.classList.toggle('completed', isCompleted);
             });
@@ -8773,10 +8786,12 @@
                     Edit Task
                 </div>
                 <div class="task-context-menu-divider"></div>
+                ${!isCompleted ? `
                 <div class="task-context-menu-item" onclick="markTaskComplete(${taskId})">
-                    <i class="bi bi-check-circle${isCompleted ? '-fill' : ''}"></i>
-                    ${isCompleted ? 'Task Completed' : 'Task Complete'}
+                    <i class="bi bi-check-circle"></i>
+                    Mark Complete
                 </div>
+                ` : ''}
                 <div class="task-context-menu-item" onclick="toggleTaskCritical(${taskId})">
                     <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
@@ -12924,10 +12939,12 @@
                     Edit Task
                 </div>
                 <div class="task-context-menu-divider"></div>
+                ${!isCompleted ? `
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); markTaskComplete(${taskId}); closeContextMenu();">
-                    <i class="bi bi-check-circle${isCompleted ? '-fill' : ''}"></i>
-                    ${isCompleted ? 'Task Completed' : 'Task Complete'}
+                    <i class="bi bi-check-circle"></i>
+                    Mark Complete
                 </div>
+                ` : ''}
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); toggleTaskCritical(${taskId}); closeContextMenu();">
                     <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
