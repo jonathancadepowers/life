@@ -11294,6 +11294,8 @@
             // Filter both kanban cards and task cards in the new panel layout
             const allCards = document.querySelectorAll('.kanban-card, .task-card');
             let visibleCount = 0;
+            // Track unique task IDs for accurate counts in views where tasks appear in multiple groups
+            const visibleTaskIds = new Set();
 
             allCards.forEach(card => {
                 let show = true;
@@ -11353,7 +11355,10 @@
                 }
 
                 card.style.display = show ? '' : 'none';
-                if (show) visibleCount++;
+                if (show) {
+                    visibleCount++;
+                    visibleTaskIds.add(taskId);
+                }
             });
 
             // Update filter badge - no longer showing dot, using filter summary instead
@@ -11373,30 +11378,38 @@
             const isFilteredView = currentGroupBy === 'tags' || currentGroupBy === 'schedules';
 
             if (filterSummary && visibleTaskCount && totalTaskCount) {
-                // For Tags and Schedules views, count only non-completed/non-abandoned tasks
-                let totalTasks = allCards.length;
+                // For Tags and Schedules views, count unique tasks (not card instances)
+                // since tasks can appear in multiple groups
+                let totalTasks;
+                let displayVisibleCount;
+
                 if (isFilteredView) {
-                    // Count tasks that are actually visible in this view
+                    // Count unique tasks that are not completed/abandoned
                     const terminalStateId = getTerminalStateId();
-                    let filteredViewCount = 0;
+                    const uniqueTotalTaskIds = new Set();
                     allCards.forEach(card => {
+                        const taskId = parseInt(card.dataset.taskId);
                         const stateGroup = card.closest('.state-group, .kanban-column');
                         const rawStateId = stateGroup ? stateGroup.dataset.stateId : null;
                         const taskStateId = rawStateId === 'none' ? null : (rawStateId ? parseInt(rawStateId) : null);
                         const isCompleted = taskStateId === terminalStateId;
                         const isAbandoned = abandonedStateId && taskStateId === abandonedStateId;
                         if (!isCompleted && !isAbandoned) {
-                            filteredViewCount++;
+                            uniqueTotalTaskIds.add(taskId);
                         }
                     });
-                    totalTasks = filteredViewCount;
+                    totalTasks = uniqueTotalTaskIds.size;
+                    displayVisibleCount = visibleTaskIds.size;
+                } else {
+                    totalTasks = allCards.length;
+                    displayVisibleCount = visibleCount;
                 }
 
-                visibleTaskCount.textContent = visibleCount;
+                visibleTaskCount.textContent = displayVisibleCount;
                 totalTaskCount.textContent = totalTasks;
 
                 // Show filter summary if there are active filters OR if in a filtered view
-                const showFilterSummary = (hasActiveFilters && visibleCount < totalTasks) || isFilteredView;
+                const showFilterSummary = (hasActiveFilters && displayVisibleCount < totalTasks) || isFilteredView;
 
                 if (showFilterSummary) {
                     filterSummary.classList.add('active');
