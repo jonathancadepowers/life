@@ -11293,8 +11293,18 @@
         }
 
         function applyFilters() {
-            // Filter both kanban cards and task cards in the new panel layout
-            const allCards = document.querySelectorAll('.kanban-card, .task-card');
+            // Determine which container to filter based on current view
+            let containerSelector;
+            if (currentGroupBy === 'tags') {
+                containerSelector = '#tags-content';
+            } else if (currentGroupBy === 'schedules') {
+                containerSelector = '#schedules-content';
+            } else {
+                containerSelector = '#states-content';
+            }
+
+            // Filter cards only in the active view container (plus kanban cards which are separate)
+            const allCards = document.querySelectorAll(`${containerSelector} .task-card, .kanban-card`);
             let visibleCount = 0;
             // Track unique task IDs for accurate counts in views where tasks appear in multiple groups
             const visibleTaskIds = new Set();
