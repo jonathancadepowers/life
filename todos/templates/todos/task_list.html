@@ -5040,6 +5040,10 @@
                             <input type="radio" name="group-by" value="tags" id="group-by-tags">
                             <i class="bi bi-tags"></i> Tags
                         </label>
+                        <label class="filter-option-inline" id="group-by-schedules-label">
+                            <input type="radio" name="group-by" value="schedules" id="group-by-schedules">
+                            <i class="bi bi-calendar-check"></i> Scheduled
+                        </label>
                     </div>
                 </div>
             </div>
@@ -5286,6 +5290,8 @@
                     </div>
                     <!-- Tags grouping (hidden by default) -->
                     <div id="tags-content" style="display: none;"></div>
+                    <!-- Schedules grouping (hidden by default) -->
+                    <div id="schedules-content" style="display: none;"></div>
                 </div>
                 <div class="tasks-search-bar" id="tasks-search-bar">
                     <i class="bi bi-search tasks-search-icon" id="tasks-search-icon" title="Search tasks"></i>
@@ -10107,7 +10113,7 @@
             });
         }
 
-        function clearViewAndFilters() {
+        function clearViewAndFilters(preserveGroupBy = false) {
             currentActiveViewId = null;
 
             // Reset all filters to defaults
@@ -10130,11 +10136,15 @@
                 document.getElementById('hide-rollups-toggle').checked = false;
             }
 
-            // Reset group by to states
-            const statesRadio = document.querySelector('input[name="group-by"][value="states"]');
-            if (statesRadio) {
-                statesRadio.checked = true;
-                statesRadio.dispatchEvent(new Event('change'));
+            // Reset group by to states only if not preserving and not in a filtered view
+            // Tags and Schedules views always filter completed/abandoned, so preserve that setting
+            const isFilteredView = currentGroupBy === 'tags' || currentGroupBy === 'schedules';
+            if (!preserveGroupBy && !isFilteredView) {
+                const statesRadio = document.querySelector('input[name="group-by"][value="states"]');
+                if (statesRadio) {
+                    statesRadio.checked = true;
+                    statesRadio.dispatchEvent(new Event('change'));
+                }
             }
 
             // Clear tag filters
@@ -10145,6 +10155,15 @@
             updateGroupByLabels();
             renderSavedViews();
             // Dropdown stays open so user can see all settings update
+
+            // If in a filtered view, rebuild the groups to reflect cleared filters
+            if (isFilteredView) {
+                if (currentGroupBy === 'tags') {
+                    buildTagGroups();
+                } else if (currentGroupBy === 'schedules') {
+                    buildScheduleGroups();
+                }
+            }
         }
 
         function getCurrentViewSettings() {
@@ -10367,8 +10386,11 @@
         // Update group-by label styling
         function updateGroupByLabels() {
             const statesChecked = document.getElementById('group-by-states').checked;
+            const tagsChecked = document.getElementById('group-by-tags').checked;
+            const schedulesChecked = document.getElementById('group-by-schedules').checked;
             document.getElementById('group-by-states-label').classList.toggle('checked', statesChecked);
-            document.getElementById('group-by-tags-label').classList.toggle('checked', !statesChecked);
+            document.getElementById('group-by-tags-label').classList.toggle('checked', tagsChecked);
+            document.getElementById('group-by-schedules-label').classList.toggle('checked', schedulesChecked);
         }
         document.querySelectorAll('input[name="group-by"]').forEach(radio => {
             radio.addEventListener('change', updateGroupByLabels);
@@ -10532,27 +10554,40 @@
         function switchGroupBy(groupBy) {
             const statesContent = document.getElementById('states-content');
             const tagsContent = document.getElementById('tags-content');
+            const schedulesContent = document.getElementById('schedules-content');
             const tasksCollapsedMetrics = document.getElementById('tasks-collapsed-metrics');
             const completedLabel = document.getElementById('show-completed-label');
 
             if (groupBy === 'states') {
                 statesContent.style.display = '';
                 tagsContent.style.display = 'none';
+                schedulesContent.style.display = 'none';
                 // Show state-based metrics in collapsed view
                 updateCollapsedMetricsForStates();
                 // Hide completed filter (only applies to tags view)
                 if (completedLabel) completedLabel.style.display = 'none';
-            } else {
+            } else if (groupBy === 'tags') {
                 statesContent.style.display = 'none';
                 tagsContent.style.display = '';
+                schedulesContent.style.display = 'none';
                 buildTagGroups();
                 // Show tag-based metrics in collapsed view
                 updateCollapsedMetricsForTags();
                 // Show completed filter (only applies to tags view)
                 if (completedLabel) completedLabel.style.display = '';
+            } else if (groupBy === 'schedules') {
+                statesContent.style.display = 'none';
+                tagsContent.style.display = 'none';
+                schedulesContent.style.display = '';
+                buildScheduleGroups();
+                // Show schedule-based metrics in collapsed view
+                updateCollapsedMetricsForSchedules();
+                // Hide completed filter (not applicable to schedules view)
+                if (completedLabel) completedLabel.style.display = 'none';
             }
             updatePanelCounts();
             updateGroupByLabels();
+            applyFilters(); // Re-apply filters when switching views
         }
 
         // Update collapsed metrics to show states (excluding terminal state)
@@ -10676,9 +10711,11 @@
                     if (daysRow) daysRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
                 }
 
-                // Switch to tags view if needed (after showCompleted is set)
+                // Switch to tags or schedules view if needed (after showCompleted is set)
                 if (saved.groupBy === 'tags') {
                     switchGroupBy('tags');
+                } else if (saved.groupBy === 'schedules') {
+                    switchGroupBy('schedules');
                 }
 
                 // Update group by label styling
@@ -11024,6 +11061,214 @@
             });
         }
 
+        // Build schedule groups: Today, Tomorrow, Future, Not Scheduled
+        // Always filters out terminal (completed) and abandoned tasks
+        function buildScheduleGroups(highlightTaskId = null) {
+            const schedulesContent = document.getElementById('schedules-content');
+
+            // Remember which groups were expanded before rebuilding
+            const expandedGroupIds = [];
+            schedulesContent.querySelectorAll('.state-group:not(.collapsed)').forEach(group => {
+                expandedGroupIds.push(group.dataset.scheduleGroup);
+            });
+
+            schedulesContent.innerHTML = '';
+
+            // Get terminal and abandoned state IDs
+            const terminalStateId = getTerminalStateId();
+
+            // Get all tasks from the state groups, excluding terminal and abandoned
+            const allTasks = [];
+            document.querySelectorAll('#states-content .task-card').forEach(card => {
+                const taskId = parseInt(card.dataset.taskId);
+                const title = card.querySelector('.task-card-title').textContent;
+                const isCritical = card.classList.contains('critical');
+                const tags = taskTagsMap[taskId] || [];
+
+                // Check if task is in terminal or abandoned state
+                const stateGroup = card.closest('.state-group');
+                const rawStateId = stateGroup ? stateGroup.dataset.stateId : null;
+                const taskStateId = rawStateId === 'none' ? null : (rawStateId ? parseInt(rawStateId) : null);
+                const isCompleted = taskStateId === terminalStateId;
+                const isAbandoned = abandonedStateId && taskStateId === abandonedStateId;
+
+                // Always skip completed and abandoned tasks in this view
+                if (isCompleted || isAbandoned) {
+                    return;
+                }
+
+                allTasks.push({ id: taskId, title, isCritical, isCompleted: false, tags, element: card });
+            });
+
+            // Group tasks by schedule category
+            const scheduleGroups = {
+                today: { name: 'Today', icon: 'bi-sun', tasks: [] },
+                tomorrow: { name: 'Tomorrow', icon: 'bi-sunrise', tasks: [] },
+                future: { name: 'Future', icon: 'bi-calendar3', tasks: [] },
+                unscheduled: { name: 'Not Scheduled', icon: 'bi-calendar-x', tasks: [] }
+            };
+
+            allTasks.forEach(task => {
+                const schedules = taskSchedulesMap[task.id] || [];
+                const scheduleLabel = getScheduleLabel(schedules);
+
+                if (scheduleLabel === 'today') {
+                    scheduleGroups.today.tasks.push(task);
+                } else if (scheduleLabel === 'tomorrow') {
+                    scheduleGroups.tomorrow.tasks.push(task);
+                } else if (scheduleLabel === 'future') {
+                    scheduleGroups.future.tasks.push(task);
+                } else {
+                    // No schedule or only past schedules
+                    scheduleGroups.unscheduled.tasks.push(task);
+                }
+            });
+
+            // Create group elements in order
+            const groupOrder = ['today', 'tomorrow', 'future', 'unscheduled'];
+            groupOrder.forEach(groupId => {
+                const group = scheduleGroups[groupId];
+                // If highlighting a task, put it at the top of each group it belongs to
+                if (highlightTaskId) {
+                    group.tasks.sort((a, b) => {
+                        if (a.id === highlightTaskId) return -1;
+                        if (b.id === highlightTaskId) return 1;
+                        return 0;
+                    });
+                }
+                const groupEl = createScheduleGroup(groupId, group.name, group.icon, group.tasks);
+                schedulesContent.appendChild(groupEl);
+            });
+
+            // Restore previously expanded groups
+            expandedGroupIds.forEach(groupId => {
+                const group = schedulesContent.querySelector(`.state-group[data-schedule-group="${groupId}"]`);
+                if (group) {
+                    group.classList.remove('collapsed');
+                }
+            });
+
+            // If highlighting a task, expand its group and apply visual feedback
+            if (highlightTaskId) {
+                const taskCard = schedulesContent.querySelector(`.task-card[data-task-id="${highlightTaskId}"]`);
+                if (taskCard) {
+                    const group = taskCard.closest('.state-group');
+                    if (group) {
+                        group.classList.remove('collapsed');
+                    }
+                    taskCard.classList.add('highlight');
+                    setTimeout(() => taskCard.classList.remove('highlight'), 1500);
+                    taskCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            // Update counts and apply filters
+            updatePanelCounts();
+            applyFilters();
+        }
+
+        // Create a schedule group element
+        function createScheduleGroup(groupId, groupName, iconClass, tasks) {
+            const group = document.createElement('div');
+            group.className = 'state-group collapsed';
+            group.dataset.scheduleGroup = groupId;
+
+            group.innerHTML = `
+                <div class="state-group-header" onclick="toggleStateGroup(this)">
+                    <div class="state-group-left">
+                        <i class="bi ${iconClass} state-group-icon"></i>
+                        <span class="state-group-name">${escapeHtml(groupName)}</span>
+                    </div>
+                    <div class="state-group-right">
+                        <span class="state-group-count">${tasks.length}</span>
+                        <i class="bi bi-chevron-down state-group-toggle"></i>
+                    </div>
+                </div>
+                <div class="state-group-body" data-schedule-group="${groupId}"></div>
+            `;
+
+            const body = group.querySelector('.state-group-body');
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                const schedules = taskSchedulesMap[task.id] || [];
+                const isScheduled = schedules.length > 0;
+                card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '');
+                card.dataset.taskId = task.id;
+
+                // Show tag pills
+                const tagsHtml = task.tags.length > 0
+                    ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
+                    : '';
+
+                // Don't show schedule pill in this view since we're already grouping by schedule
+                const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>' : '';
+                const hasIcons = task.isCritical;
+                const iconsHtml = hasIcons ? `<div class="task-card-icons">${criticalIconHtml}</div>` : '';
+
+                card.innerHTML = `
+                    <div class="task-card-content">
+                        <i class="bi bi-grip-vertical task-card-drag-handle"></i>
+                        <div class="task-card-title">${escapeHtml(task.title)}</div>
+                        ${tagsHtml}
+                        ${iconsHtml}
+                    </div>
+                `;
+
+                // Setup event handlers
+                setupTaskCardDragEvents(card);
+                card.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    showContextMenu(e, parseInt(this.dataset.taskId), 'openTaskPanel');
+                });
+                body.appendChild(card);
+            });
+
+            // Right-click to show context menu with Select All option
+            const header = group.querySelector('.state-group-header');
+            header.addEventListener('contextmenu', function(e) {
+                showGroupContextMenu(e, group);
+            });
+
+            return group;
+        }
+
+        // Update collapsed metrics for schedule view
+        function updateCollapsedMetricsForSchedules() {
+            const tasksCollapsedMetrics = document.getElementById('tasks-collapsed-metrics');
+            const terminalStateId = getTerminalStateId();
+
+            // Count tasks by schedule category (excluding completed and abandoned)
+            let todayCount = 0;
+            let tomorrowCount = 0;
+            let futureCount = 0;
+            let unscheduledCount = 0;
+
+            document.querySelectorAll('#states-content .task-card').forEach(card => {
+                const taskId = parseInt(card.dataset.taskId);
+                const stateGroup = card.closest('.state-group');
+                const rawStateId = stateGroup ? stateGroup.dataset.stateId : null;
+                const taskStateId = rawStateId === 'none' ? null : (rawStateId ? parseInt(rawStateId) : null);
+
+                // Skip completed and abandoned
+                if (taskStateId === terminalStateId) return;
+                if (abandonedStateId && taskStateId === abandonedStateId) return;
+
+                const schedules = taskSchedulesMap[taskId] || [];
+                const scheduleLabel = getScheduleLabel(schedules);
+
+                if (scheduleLabel === 'today') todayCount++;
+                else if (scheduleLabel === 'tomorrow') tomorrowCount++;
+                else if (scheduleLabel === 'future') futureCount++;
+                else unscheduledCount++;
+            });
+
+            tasksCollapsedMetrics.innerHTML = `
+                <span class="metric-pill" data-schedule-group="today">Today: <span class="metric-count">${todayCount}</span></span>
+                <span class="metric-pill" data-schedule-group="tomorrow">Tomorrow: <span class="metric-count">${tomorrowCount}</span></span>
+                <span class="metric-pill" data-schedule-group="unscheduled">Unscheduled: <span class="metric-count">${unscheduledCount}</span></span>
+            `;
+        }
+
         function applyFilters() {
             // Filter both kanban cards and task cards in the new panel layout
             const allCards = document.querySelectorAll('.kanban-card, .task-card');
@@ -11103,18 +11348,48 @@
             const totalTaskCount = document.getElementById('total-task-count');
             const filterInfoIcon = document.getElementById('filter-info-icon');
 
+            // Check if in Tags or Schedules view (which always filter completed/abandoned)
+            const isFilteredView = currentGroupBy === 'tags' || currentGroupBy === 'schedules';
+
             if (filterSummary && visibleTaskCount && totalTaskCount) {
-                const totalTasks = allCards.length;
+                // For Tags and Schedules views, count only non-completed/non-abandoned tasks
+                let totalTasks = allCards.length;
+                if (isFilteredView) {
+                    // Count tasks that are actually visible in this view
+                    const terminalStateId = getTerminalStateId();
+                    let filteredViewCount = 0;
+                    allCards.forEach(card => {
+                        const stateGroup = card.closest('.state-group, .kanban-column');
+                        const rawStateId = stateGroup ? stateGroup.dataset.stateId : null;
+                        const taskStateId = rawStateId === 'none' ? null : (rawStateId ? parseInt(rawStateId) : null);
+                        const isCompleted = taskStateId === terminalStateId;
+                        const isAbandoned = abandonedStateId && taskStateId === abandonedStateId;
+                        if (!isCompleted && !isAbandoned) {
+                            filteredViewCount++;
+                        }
+                    });
+                    totalTasks = filteredViewCount;
+                }
+
                 visibleTaskCount.textContent = visibleCount;
                 totalTaskCount.textContent = totalTasks;
 
-                if (hasActiveFilters && visibleCount < totalTasks) {
+                // Show filter summary if there are active filters OR if in a filtered view
+                const showFilterSummary = (hasActiveFilters && visibleCount < totalTasks) || isFilteredView;
+
+                if (showFilterSummary) {
                     filterSummary.classList.add('active');
 
                     // Build tooltip describing active filters
                     const filterTooltip = document.getElementById('filter-info-tooltip');
                     if (filterTooltip) {
                         const filterDescriptions = [];
+
+                        // Always show this message first for Tags and Schedules views
+                        if (isFilteredView) {
+                            filterDescriptions.push('Completed and abandoned tasks hidden');
+                        }
+
                         if (activeFilters.critical) {
                             filterDescriptions.push('Critical tasks only');
                         }
@@ -11132,7 +11407,12 @@
                         if (searchText) {
                             filterDescriptions.push('Search: "' + searchText + '"');
                         }
-                        filterTooltip.innerHTML = 'Active filters:<br>' + filterDescriptions.join('<br>');
+
+                        if (filterDescriptions.length > 0) {
+                            filterTooltip.innerHTML = 'Active filters:<br>' + filterDescriptions.join('<br>');
+                        } else {
+                            filterTooltip.innerHTML = 'No additional filters active';
+                        }
                     }
                 } else {
                     filterSummary.classList.remove('active');
@@ -14450,6 +14730,38 @@
                 const visibleCards = body.querySelectorAll('.task-card:not([style*="display: none"])').length;
                 const countEl = group.querySelector('.state-group-count');
                 if (countEl) countEl.textContent = visibleCards;
+
+                // Show empty message when no visible tasks
+                let emptyMsg = body.querySelector('.state-group-empty');
+                if (visibleCards === 0) {
+                    group.style.display = '';
+                    if (!emptyMsg) {
+                        emptyMsg = document.createElement('div');
+                        emptyMsg.className = 'state-group-empty';
+                        emptyMsg.textContent = 'No tasks';
+                        body.appendChild(emptyMsg);
+                    }
+                } else {
+                    group.style.display = '';
+                    if (emptyMsg) {
+                        emptyMsg.remove();
+                    }
+                }
+            });
+
+            // Update schedule group counts (in schedules-content)
+            document.querySelectorAll('#schedules-content .state-group').forEach(group => {
+                const body = group.querySelector('.state-group-body');
+                if (!body) return;
+
+                const visibleCards = body.querySelectorAll('.task-card:not([style*="display: none"])').length;
+                const countEl = group.querySelector('.state-group-count');
+                if (countEl) countEl.textContent = visibleCards;
+
+                // Update collapsed metrics pill
+                const scheduleGroup = group.dataset.scheduleGroup;
+                const metricPill = document.querySelector(`.panel-collapsed-metrics .metric-pill[data-schedule-group="${scheduleGroup}"] .metric-count`);
+                if (metricPill) metricPill.textContent = visibleCards;
 
                 // Show empty message when no visible tasks
                 let emptyMsg = body.querySelector('.state-group-empty');
