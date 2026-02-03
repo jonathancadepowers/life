@@ -32,6 +32,9 @@ urlpatterns = [
     path('api/<int:task_id>/schedules/update/', views.update_task_first_schedule, name='update_task_first_schedule'),
     path('api/schedules/<int:schedule_id>/update/', views.update_task_schedule, name='update_task_schedule'),
     path('api/schedules/<int:schedule_id>/delete/', views.delete_task_schedule, name='delete_task_schedule'),
+    # Done for Today
+    path('api/<int:task_id>/done-for-today/', views.mark_done_for_today, name='mark_done_for_today'),
+    path('api/<int:task_id>/done-for-today/unmark/', views.unmark_done_for_today, name='unmark_done_for_today'),
     # Task detail templates
     path('api/templates/', views.list_templates, name='list_templates'),
     path('api/templates/create/', views.create_template, name='create_template'),

@@ -28,6 +28,7 @@ def serialize_task(task):
         'deadline_dismissed': task.deadline_dismissed,
         'state_changed_at': task.state_changed_at.isoformat() if task.state_changed_at else None,
         'updated_at': task.updated_at.isoformat() if task.updated_at else None,
+        'done_for_day': task.done_for_day.isoformat() if task.done_for_day else None,
         'calendar_start_time': first_schedule.start_time.isoformat() if first_schedule else None,
         'calendar_end_time': first_schedule.end_time.isoformat() if first_schedule else None,
         'schedules': [
@@ -1023,5 +1024,55 @@ def hide_calendar_event(request, event_id):
         return JsonResponse({'success': True})
     except CalendarEvent.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Event not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# ========== Done for Today ==========
+
+@require_POST
+def mark_done_for_today(request, task_id):
+    """Mark a task as 'done for today' for the specified date."""
+    try:
+        task = Task.objects.get(id=task_id)
+        data = json.loads(request.body)
+
+        # Get the date from the request, default to today in the user's timezone
+        date_str = data.get('date')
+        if date_str:
+            done_date = datetime.fromisoformat(date_str).date()
+        else:
+            # Default to today
+            done_date = timezone.now().date()
+
+        task.done_for_day = done_date
+        task.save(update_fields=['done_for_day'])
+
+        return JsonResponse({
+            'success': True,
+            'task': serialize_task(task)
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+def unmark_done_for_today(request, task_id):
+    """Unmark a task as 'done for today' (clear the done_for_day field)."""
+    try:
+        task = Task.objects.get(id=task_id)
+        task.done_for_day = None
+        task.save(update_fields=['done_for_day'])
+
+        return JsonResponse({
+            'success': True,
+            'task': serialize_task(task)
+        })
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)

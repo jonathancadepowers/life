@@ -59,6 +59,7 @@ class Task(models.Model):
     deadline = models.DateField(null=True, blank=True)
     deadline_dismissed = models.BooleanField(default=False)
     state_changed_at = models.DateTimeField(null=True, blank=True)  # When task entered current state
+    done_for_day = models.DateField(null=True, blank=True)  # Date when task was marked "Done for Today"
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

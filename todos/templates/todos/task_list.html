@@ -4619,6 +4619,14 @@
             color: #6c757d;
         }
 
+        /* Done for Today icon on calendar tasks */
+        .calendar-done-for-day-icon {
+            color: #212529;
+            margin-left: auto;
+            padding-right: 4px;
+            flex-shrink: 0;
+        }
+
         /* Drop indicator for calendar - dynamic height based on task duration */
         .hour-content.drag-over::before {
             content: '';
@@ -5858,6 +5866,12 @@
         let taskUpdatedAtMap = {};
         {% for task in tasks %}
         taskUpdatedAtMap[{{ task.id }}] = {% if task.updated_at %}"{{ task.updated_at|date:'c' }}"{% else %}null{% endif %};
+        {% endfor %}
+
+        // Store task done_for_day for calendar "Done for Today" feature
+        let taskDoneForDayMap = {};
+        {% for task in tasks %}
+        taskDoneForDayMap[{{ task.id }}] = {% if task.done_for_day %}"{{ task.done_for_day|date:'Y-m-d' }}"{% else %}null{% endif %};
         {% endfor %}
 
         // Abandoned state tracking
@@ -9798,6 +9812,45 @@
             }
         }
 
+        // Toggle "Done for Today" status for a task (calendar only)
+        async function toggleDoneForToday(taskId) {
+            closeContextMenu();
+
+            // Check current done_for_day status for the current calendar date
+            const doneForDay = taskDoneForDayMap[taskId];
+            const calendarDateStr = currentCalendarDate.toISOString().split('T')[0];
+            const isDoneForToday = doneForDay === calendarDateStr;
+
+            try {
+                const endpoint = isDoneForToday
+                    ? `/tasks/api/${taskId}/done-for-today/unmark/`
+                    : `/tasks/api/${taskId}/done-for-today/`;
+
+                const body = isDoneForToday
+                    ? {}
+                    : { date: calendarDateStr };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update the local map
+                    taskDoneForDayMap[taskId] = data.task.done_for_day;
+                    // Re-render calendar tasks to show/hide the icon
+                    renderScheduledTasks();
+                }
+            } catch (error) {
+                console.error('Error toggling done for today:', error);
+            }
+        }
+
         async function markTaskComplete(taskId) {
             closeContextMenu();
 
@@ -12908,6 +12961,11 @@
             const taskData = taskDeadlinesMap[taskId];
             const isCompleted = taskData && taskData.state_id === terminalStateId;
 
+            // Check if task is marked as "Done for Today" for the current calendar date
+            const doneForDay = taskDoneForDayMap[taskId];
+            const calendarDateStr = currentCalendarDate.toISOString().split('T')[0];
+            const isDoneForToday = doneForDay === calendarDateStr;
+
             // Build menu HTML with all standard task options plus calendar-specific options
             let menuHtml = `
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); openTaskPanel(${taskId}); closeContextMenu();">
@@ -12924,6 +12982,10 @@
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); toggleTaskCritical(${taskId}); closeContextMenu();">
                     <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
+                </div>
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); toggleDoneForToday(${taskId}); closeContextMenu();">
+                    <i class="bi bi-bookmark-check${isDoneForToday ? '-fill' : ''}"></i>
+                    ${isDoneForToday ? 'Unmark Done for Today' : 'Done for Today'}
                 </div>
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); removeScheduleFromCalendar(${scheduleId}, ${taskId}); closeContextMenu();">
                     <i class="bi bi-calendar-x"></i>
@@ -13529,6 +13591,16 @@
                     titleSpan.className = 'calendar-task-title';
                     titleSpan.textContent = title;
                     contentWrapper.appendChild(titleSpan);
+
+                    // Add "Done for Today" icon if task is marked done for current calendar date
+                    const doneForDay = taskDoneForDayMap[taskId];
+                    const calendarDateStr = currentCalendarDate.toISOString().split('T')[0];
+                    if (doneForDay === calendarDateStr) {
+                        const doneIcon = document.createElement('i');
+                        doneIcon.className = 'bi bi-bookmark-check-fill calendar-done-for-day-icon';
+                        doneIcon.title = 'Done for Today';
+                        contentWrapper.appendChild(doneIcon);
+                    }
 
                     taskEl.appendChild(contentWrapper);
 
