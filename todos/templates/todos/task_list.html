@@ -12860,12 +12860,86 @@
         // Scheduled task context menu (for tasks on the calendar)
         function showScheduledTaskContextMenu(e, taskId, scheduleId) {
             closeContextMenu();
+            contextMenuTaskId = taskId;
+            pendingTagChanges = { toAdd: [], toRemove: [] };  // Reset pending changes
 
-            const menuHtml = `
+            // Get task info
+            let card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+            const isCritical = card ? card.classList.contains('critical') : false;
+            const taskTags = taskTagsMap[taskId] || [];
+            const terminalStateId = getTerminalStateId();
+            const taskData = taskDeadlinesMap[taskId];
+            const isCompleted = taskData && taskData.state_id === terminalStateId;
+
+            // Build menu HTML with all standard task options plus calendar-specific options
+            let menuHtml = `
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); openTaskPanel(${taskId}); closeContextMenu();">
                     <i class="bi bi-pencil"></i>
                     Edit Task
                 </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); markTaskComplete(${taskId}); closeContextMenu();">
+                    <i class="bi bi-check-circle${isCompleted ? '-fill' : ''}"></i>
+                    ${isCompleted ? 'Task Completed' : 'Task Complete'}
+                </div>
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); toggleTaskCritical(${taskId}); closeContextMenu();">
+                    <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
+                    ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
+                </div>
+                <div class="task-context-menu-item" onclick="event.stopPropagation(); removeScheduleFromCalendar(${scheduleId}, ${taskId}); closeContextMenu();">
+                    <i class="bi bi-calendar-x"></i>
+                    Remove from Calendar
+                </div>
+                <div class="task-context-menu-divider"></div>
+                <div class="task-context-menu-submenu">
+                    <div class="task-context-menu-item">
+                        <i class="bi bi-tags"></i>
+                        Tags
+                        <span class="submenu-arrow"><i class="bi bi-chevron-right"></i></span>
+                    </div>
+                    <div class="task-context-menu-submenu-content">
+                        <div class="task-context-menu-item" onclick="event.stopPropagation(); promptNewTag(${taskId});">
+                            <i class="bi bi-plus-circle"></i>
+                            Create New Tag...
+                        </div>
+                        <div class="task-context-menu-divider"></div>
+            `;
+
+            // Show existing tags with checkmarks for assigned ones
+            if (tagsList.length === 0) {
+                menuHtml += `<div class="task-context-menu-item" style="color: #999; font-style: italic;">No tags yet</div>`;
+            } else {
+                tagsList.forEach(tag => {
+                    const hasTag = taskTags.some(t => t.id === tag.id);
+                    menuHtml += `
+                        <div class="task-context-menu-item tag-toggle-item${hasTag ? ' active' : ''}" data-tag-id="${tag.id}" data-has-tag="${hasTag}" onclick="event.stopPropagation(); toggleTagLocally(this, ${tag.id})">
+                            <i class="bi bi-${hasTag ? 'check-square-fill' : 'square'}"></i>
+                            ${escapeHtml(tag.name)}
+                        </div>
+                    `;
+                });
+            }
+
+            // Add "Remove all tags" option if task has tags
+            if (taskTags.length > 0) {
+                menuHtml += `
+                        <div class="task-context-menu-divider"></div>
+                        <div class="task-context-menu-item" onclick="event.stopPropagation(); removeAllTagsFromTask(${taskId});">
+                            <i class="bi bi-x-circle" style="color: #dc3545;"></i>
+                            <span style="color: #dc3545;">Remove all tags</span>
+                        </div>
+                `;
+            }
+
+            menuHtml += `
+                        <div class="task-context-menu-divider"></div>
+                        <div class="task-context-menu-item save-tags-btn" onclick="event.stopPropagation(); savePendingTags(${taskId});">
+                            <i class="bi bi-check2"></i>
+                            Save Tags
+                        </div>
+                    </div>
+                </div>
+                <div class="task-context-menu-divider"></div>
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); snapScheduledTaskToEventAbove(${taskId}, ${scheduleId}); closeContextMenu();">
                     <i class="bi bi-magnet"></i>
                     Snap to Item Above
@@ -12875,9 +12949,9 @@
                     Snap to Item Below
                 </div>
                 <div class="task-context-menu-divider"></div>
-                <div class="task-context-menu-item danger" onclick="event.stopPropagation(); removeScheduleFromCalendar(${scheduleId}, ${taskId}); closeContextMenu();">
-                    <i class="bi bi-calendar-x"></i>
-                    Remove from Calendar
+                <div class="task-context-menu-item danger" onclick="event.stopPropagation(); deleteTaskFromMenu(${taskId}); closeContextMenu();">
+                    <i class="bi bi-trash"></i>
+                    Delete Task
                 </div>
             `;
 
