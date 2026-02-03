@@ -4285,6 +4285,19 @@
             color: #7c3aed;
         }
 
+        /* State indicator pills - shows task state in Tags/Scheduled views */
+        .task-state-pill {
+            font-size: 0.55rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 10px;
+            white-space: nowrap;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            flex-shrink: 0;
+            background: #e9ecef;
+            color: #495057;
+        }
+
         .task-card-content {
             display: flex;
             align-items: flex-start;
@@ -10764,7 +10777,10 @@
                     return;
                 }
 
-                allTasks.push({ id: taskId, title, isCritical, isCompleted, tags, element: card });
+                // Get state name for the state pill
+                const stateName = stateGroup ? stateGroup.querySelector('.state-group-name')?.textContent : null;
+
+                allTasks.push({ id: taskId, title, isCritical, isCompleted, tags, stateName, element: card });
             });
 
             // Group tasks by tag
@@ -10876,8 +10892,9 @@
 
                 const scheduledIconHtml = getSchedulePillHtml(schedules);
                 const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>' : '';
-                const hasIcons = isScheduled || task.isCritical;
-                const iconsHtml = hasIcons ? `<div class="task-card-icons">${scheduledIconHtml}${criticalIconHtml}</div>` : '';
+                const statePillHtml = task.stateName ? `<span class="task-state-pill">${escapeHtml(task.stateName)}</span>` : '';
+                const hasIcons = isScheduled || task.isCritical || task.stateName;
+                const iconsHtml = hasIcons ? `<div class="task-card-icons">${statePillHtml}${scheduledIconHtml}${criticalIconHtml}</div>` : '';
 
                 card.innerHTML = `
                     <div class="task-card-content">
@@ -11097,7 +11114,10 @@
                     return;
                 }
 
-                allTasks.push({ id: taskId, title, isCritical, isCompleted: false, tags, element: card });
+                // Get state name for the state pill
+                const stateName = stateGroup ? stateGroup.querySelector('.state-group-name')?.textContent : null;
+
+                allTasks.push({ id: taskId, title, isCritical, isCompleted: false, tags, stateName, element: card });
             });
 
             // Group tasks by schedule category
@@ -11202,8 +11222,9 @@
 
                 // Don't show schedule pill in this view since we're already grouping by schedule
                 const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>' : '';
-                const hasIcons = task.isCritical;
-                const iconsHtml = hasIcons ? `<div class="task-card-icons">${criticalIconHtml}</div>` : '';
+                const statePillHtml = task.stateName ? `<span class="task-state-pill">${escapeHtml(task.stateName)}</span>` : '';
+                const hasIcons = task.isCritical || task.stateName;
+                const iconsHtml = hasIcons ? `<div class="task-card-icons">${statePillHtml}${criticalIconHtml}</div>` : '';
 
                 card.innerHTML = `
                     <div class="task-card-content">
