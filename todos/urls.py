@@ -43,4 +43,7 @@ urlpatterns = [
     path('api/views/<int:view_id>/delete/', views.delete_view, name='delete_view'),
     # Abandoned tasks
     path('api/process-abandoned/', views.process_abandoned_tasks, name='process_abandoned'),
+    # Calendar events (local overrides - reset on next import)
+    path('api/calendar-events/<int:event_id>/move/', views.move_calendar_event, name='move_calendar_event'),
+    path('api/calendar-events/<int:event_id>/hide/', views.hide_calendar_event, name='hide_calendar_event'),
 ]

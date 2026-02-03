@@ -63,6 +63,7 @@ def import_calendar_events(events_data, source=''):
         subject = event.get('subject', '')[:500]
 
         # Build the defaults dict
+        # Clear override fields so Outlook's values take precedence
         defaults = {
             'subject': subject,
             'start': start_dt,
@@ -72,6 +73,9 @@ def import_calendar_events(events_data, source=''):
             'organizer': event.get('organizer', '')[:255],
             'body_preview': event.get('bodyPreview', ''),
             'is_active': True,  # Re-activate in case it was previously canceled
+            'override_start': None,  # Clear local overrides
+            'override_end': None,
+            'is_hidden': False,
         }
         if source:
             defaults['source'] = source

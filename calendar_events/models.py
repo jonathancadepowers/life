@@ -22,6 +22,12 @@ class CalendarEvent(models.Model):
     # Status - events can be "canceled" (removed from calendar but kept for notes)
     is_active = models.BooleanField(default=True)
 
+    # Local overrides - user can move/hide events, but next import resets them
+    # These are cleared when the Outlook import runs
+    override_start = models.DateTimeField(null=True, blank=True)
+    override_end = models.DateTimeField(null=True, blank=True)
+    is_hidden = models.BooleanField(default=False)
+
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

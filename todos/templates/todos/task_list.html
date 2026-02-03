@@ -4775,12 +4775,64 @@
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
             margin-bottom: 0.25rem;
-            cursor: pointer;
+            cursor: grab;
             border: 1px solid #b8d4c8;
+            position: relative;
         }
 
         .hour-event:hover {
             background: #dceee8;
+        }
+
+        .hour-event:active {
+            cursor: grabbing;
+        }
+
+        .hour-event-content {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .hour-event-subject {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .hour-event-hide-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: #6c757d;
+            opacity: 0;
+            transition: opacity 0.15s;
+            font-size: 1rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .hour-event:hover .hour-event-hide-btn {
+            opacity: 0.6;
+        }
+
+        .hour-event-hide-btn:hover {
+            opacity: 1 !important;
+            color: #dc3545;
+        }
+
+        .hour-event-override-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 6px;
+            height: 6px;
+            background: #f59e0b;
+            border-radius: 50%;
         }
 
         /* Right-click context menu */
@@ -11407,6 +11459,9 @@
         let isModifierKeyHeld = false;
         let currentGapPreview = null;  // { startTime: Date, endTime: Date }
 
+        // State for calendar event drag
+        let currentDragCalendarEventId = null;
+
         // Render calendar events on the hourly grid (using browser's local timezone)
         function renderCalendarEvents() {
             // Remove existing event elements before re-rendering
@@ -11422,11 +11477,11 @@
                 // Skip all-day events for now (could add a separate section)
                 if (event.is_all_day) return;
 
-                // Parse UTC timestamps and convert to local time
-                const startDate = new Date(event.start);
-                const endDate = new Date(event.end);
+                // Use override times if present, otherwise use original times
+                const startDate = event.override_start ? new Date(event.override_start) : new Date(event.start);
+                const endDate = event.override_end ? new Date(event.override_end) : new Date(event.end);
 
-                // Skip events that don't overlap with today (in local timezone)
+                // Skip events that don't overlap with current calendar date (in local timezone)
                 if (endDate <= todayStart || startDate >= todayEnd) return;
 
                 // Get local hours and minutes
@@ -11468,6 +11523,8 @@
                 // Create event element
                 const eventEl = document.createElement('div');
                 eventEl.className = 'hour-event';
+                eventEl.dataset.eventId = event.id;
+                eventEl.draggable = true;
                 eventEl.style.position = 'absolute';
                 eventEl.style.top = `${topPercent}%`;
                 eventEl.style.left = '4px';
@@ -11476,22 +11533,101 @@
                 eventEl.style.zIndex = '1';
                 eventEl.style.borderRadius = '4px';
                 eventEl.style.overflow = 'hidden';
+                eventEl.style.cursor = 'grab';
 
-                // Format time in local timezone
-                const startAmPm = startHourLocal >= 12 ? 'PM' : 'AM';
-                const startDisplayHour = startHourLocal > 12 ? startHourLocal - 12 : (startHourLocal === 0 ? 12 : startHourLocal);
-                const startMinuteStr = startMinuteLocal.toString().padStart(2, '0');
+                // Show visual indicator if this event has been moved locally
+                const hasOverride = event.override_start || event.override_end;
 
                 eventEl.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden;">
-                        <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis;">${event.subject}</span>
+                    <div class="hour-event-content">
+                        <span class="hour-event-subject">${event.subject}</span>
+                        <button class="hour-event-hide-btn" title="Hide event (resets on next import)">
+                            <i class="bi bi-x"></i>
+                        </button>
                     </div>
+                    ${hasOverride ? '<div class="hour-event-override-indicator" title="Moved locally - will reset on next import"></div>' : ''}
                 `;
 
-                eventEl.title = `${event.subject}${event.location ? '\n' + event.location : ''}`;
+                eventEl.title = `${event.subject}${event.location ? '\n' + event.location : ''}${hasOverride ? '\n(Moved locally - resets on next import)' : ''}`;
+
+                // Add drag event handlers
+                eventEl.addEventListener('dragstart', function(e) {
+                    currentDragCalendarEventId = event.id;
+                    e.dataTransfer.setData('text/plain', event.id);
+                    e.dataTransfer.setData('application/x-calendar-event', 'true');
+                    e.dataTransfer.effectAllowed = 'move';
+                    this.style.opacity = '0.5';
+                });
+
+                eventEl.addEventListener('dragend', function(e) {
+                    currentDragCalendarEventId = null;
+                    this.style.opacity = '1';
+                });
+
+                // Add hide button handler
+                const hideBtn = eventEl.querySelector('.hour-event-hide-btn');
+                hideBtn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    await hideCalendarEvent(event.id);
+                });
 
                 hourContent.appendChild(eventEl);
             });
+        }
+
+        // Hide a calendar event (local override, resets on next import)
+        async function hideCalendarEvent(eventId) {
+            try {
+                const response = await fetch(`/tasks/api/calendar-events/${eventId}/hide/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Remove from local array
+                    const index = calendarEvents.findIndex(e => e.id === eventId);
+                    if (index !== -1) {
+                        calendarEvents.splice(index, 1);
+                    }
+                    renderCalendarEvents();
+                }
+            } catch (error) {
+                console.error('Error hiding calendar event:', error);
+            }
+        }
+
+        // Move a calendar event to a new time (local override, resets on next import)
+        async function moveCalendarEvent(eventId, newStartTime, newEndTime) {
+            try {
+                const response = await fetch(`/tasks/api/calendar-events/${eventId}/move/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        start_time: newStartTime.toISOString(),
+                        end_time: newEndTime.toISOString()
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local array
+                    const event = calendarEvents.find(e => e.id === eventId);
+                    if (event) {
+                        event.override_start = data.event.override_start;
+                        event.override_end = data.event.override_end;
+                    }
+                    renderCalendarEvents();
+                }
+            } catch (error) {
+                console.error('Error moving calendar event:', error);
+            }
         }
 
         // ========== Gap-Fill Feature (Cmd/Ctrl + Hover) ==========
@@ -11508,11 +11644,11 @@
             todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-            // Check calendar events
+            // Check calendar events (use override times if present)
             for (const event of calendarEvents) {
                 if (event.is_all_day) continue;
-                const eventStart = new Date(event.start);
-                const eventEnd = new Date(event.end);
+                const eventStart = event.override_start ? new Date(event.override_start) : new Date(event.start);
+                const eventEnd = event.override_end ? new Date(event.override_end) : new Date(event.end);
                 if (eventStart < todayEnd && eventEnd > todayStart) {
                     if (time >= eventStart && time < eventEnd) return true;
                 }
@@ -11550,11 +11686,11 @@
             // Collect all item boundaries on current day
             const items = [];
 
-            // Calendar events
+            // Calendar events (use override times if present)
             calendarEvents.forEach(event => {
                 if (event.is_all_day) return;
-                const start = new Date(event.start);
-                const end = new Date(event.end);
+                const start = event.override_start ? new Date(event.override_start) : new Date(event.start);
+                const end = event.override_end ? new Date(event.override_end) : new Date(event.end);
                 if (start < todayEnd && end > todayStart) {
                     items.push({
                         start: new Date(Math.max(start.getTime(), todayStart.getTime())),
@@ -13729,13 +13865,13 @@
 
         // Check if there's an overlapping calendar event or time block (but NOT tasks)
         function hasEventOrTimeBlockOverlap(newStart, newEnd) {
-            // Check calendar events
+            // Check calendar events (use override times if present)
             if (calendarEvents && calendarEvents.length > 0) {
                 for (const event of calendarEvents) {
                     if (event.is_all_day) continue;
 
-                    const eventStart = new Date(event.start);
-                    const eventEnd = new Date(event.end);
+                    const eventStart = event.override_start ? new Date(event.override_start) : new Date(event.start);
+                    const eventEnd = event.override_end ? new Date(event.override_end) : new Date(event.end);
 
                     // Check for overlap
                     if (newStart < eventEnd && newEnd > eventStart) {
@@ -13905,15 +14041,24 @@
                         return;
                     }
 
-                    // Check if dragging a task or a time block
+                    // Check if dragging a task, time block, or calendar event
                     const taskId = currentDragTaskId;
                     const timeBlockId = currentDragTimeBlockId;
+                    const calendarEventId = currentDragCalendarEventId;
 
                     // Use existing duration if available, otherwise 30 minutes
                     let durationMs = 30 * 60 * 1000;
                     let excludeId = null;
 
-                    if (taskId) {
+                    if (calendarEventId) {
+                        excludeId = 'event-' + calendarEventId;
+                        const event = calendarEvents.find(e => e.id === calendarEventId);
+                        if (event) {
+                            const existingStart = event.override_start ? new Date(event.override_start) : new Date(event.start);
+                            const existingEnd = event.override_end ? new Date(event.override_end) : new Date(event.end);
+                            durationMs = existingEnd - existingStart;
+                        }
+                    } else if (taskId) {
                         excludeId = taskId;
                         // Only preserve duration if dragging from calendar (moving existing schedule on current day)
                         // When dragging from task panel, always use 30 minutes
@@ -14010,6 +14155,7 @@
                     if (!dataId) return;
 
                     const isTimeBlock = e.dataTransfer.types.includes('application/x-time-block');
+                    const isCalendarEvent = e.dataTransfer.types.includes('application/x-calendar-event');
                     const hour = parseInt(this.dataset.hour);
 
                     // Calculate minute based on drop position within the hour
@@ -14070,7 +14216,24 @@
                     // Create the scheduled start time in local timezone using currentCalendarDate
                     const startLocal = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), currentCalendarDate.getDate(), finalHour, finalMinute);
 
-                    if (isTimeBlock) {
+                    if (isCalendarEvent) {
+                        // Handle calendar event drop (local move)
+                        const eventId = parseInt(dataId);
+                        const event = calendarEvents.find(e => e.id === eventId);
+                        if (!event) return;
+
+                        // Get current event times (use override if present)
+                        const currentStart = event.override_start ? new Date(event.override_start) : new Date(event.start);
+                        const currentEnd = event.override_end ? new Date(event.override_end) : new Date(event.end);
+                        const durationMs = currentEnd - currentStart;
+                        const endLocal = new Date(startLocal.getTime() + durationMs);
+
+                        // Convert to UTC for API
+                        const startUTC = localToUTC(startLocal);
+                        const endUTC = localToUTC(endLocal);
+
+                        await moveCalendarEvent(eventId, startUTC, endUTC);
+                    } else if (isTimeBlock) {
                         // Handle time block drop
                         const blockId = dataId;
                         const block = timeBlocks.find(b => b.id === parseInt(blockId));

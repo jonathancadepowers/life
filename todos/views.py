@@ -54,14 +54,16 @@ def task_list(request):
     query_start = now_utc - timedelta(days=7)  # 7 days back for browsing history
     query_end = now_utc + timedelta(days=7)    # 7 days forward for planning
 
-    # Query events that overlap with this window (only active, not canceled)
+    # Query events that overlap with this window (only active, not canceled, not hidden)
     calendar_events = CalendarEvent.objects.filter(
         start__lt=query_end,
         end__gt=query_start,
-        is_active=True
+        is_active=True,
+        is_hidden=False
     ).order_by('start')
 
     # Send UTC ISO timestamps - JavaScript will convert to local timezone
+    # Include override times if present (user moved the event locally)
     events_data = []
     for event in calendar_events:
         events_data.append({
@@ -69,6 +71,8 @@ def task_list(request):
             'subject': event.subject,
             'start': event.start.isoformat(),
             'end': event.end.isoformat(),
+            'override_start': event.override_start.isoformat() if event.override_start else None,
+            'override_end': event.override_end.isoformat() if event.override_end else None,
             'location': event.location,
             'is_all_day': event.is_all_day,
         })
@@ -961,5 +965,63 @@ def process_abandoned_tasks(request):
         })
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+def move_calendar_event(request, event_id):
+    """Move a calendar event to a new time (local override, reset on next import)."""
+    try:
+        data = json.loads(request.body)
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+
+        if not start_time or not end_time:
+            return JsonResponse({'success': False, 'error': 'start_time and end_time are required'}, status=400)
+
+        event = CalendarEvent.objects.get(id=event_id)
+
+        # Parse the times
+        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+
+        # Set override times
+        event.override_start = start_dt
+        event.override_end = end_dt
+        event.save()
+
+        return JsonResponse({
+            'success': True,
+            'event': {
+                'id': event.id,
+                'subject': event.subject,
+                'start': event.start.isoformat(),
+                'end': event.end.isoformat(),
+                'override_start': event.override_start.isoformat(),
+                'override_end': event.override_end.isoformat(),
+                'location': event.location,
+                'is_all_day': event.is_all_day,
+            }
+        })
+    except CalendarEvent.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Event not found'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+def hide_calendar_event(request, event_id):
+    """Hide a calendar event (local override, reset on next import)."""
+    try:
+        event = CalendarEvent.objects.get(id=event_id)
+        event.is_hidden = True
+        event.save()
+
+        return JsonResponse({'success': True})
+    except CalendarEvent.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Event not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
