@@ -4259,12 +4259,31 @@
             outline: none;
         }
 
-        /* Scheduled task indicator - no background change, only sun icon shows scheduling */
-
-        .task-card-scheduled-icon {
-            color: #ffc107;
-            font-size: 0.85rem;
+        /* Schedule indicator pills - shows Today, Tomorrow, or Future */
+        .task-schedule-pill {
+            font-size: 0.55rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 10px;
+            white-space: nowrap;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
             flex-shrink: 0;
+        }
+
+        .task-schedule-pill.today {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .task-schedule-pill.tomorrow {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .task-schedule-pill.future {
+            background: #e2e3e5;
+            color: #6c757d;
         }
 
         .task-card-content {
@@ -10767,7 +10786,7 @@
                     ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
                     : '';
 
-                const scheduledIconHtml = isScheduled ? '<i class="bi bi-brightness-high-fill task-card-scheduled-icon" title="Scheduled: This task has time blocks on the calendar"></i>' : '';
+                const scheduledIconHtml = getSchedulePillHtml(schedules);
                 const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>' : '';
                 const hasIcons = isScheduled || task.isCritical;
                 const iconsHtml = hasIcons ? `<div class="task-card-icons">${scheduledIconHtml}${criticalIconHtml}</div>` : '';
@@ -11084,6 +11103,49 @@
             return calendarDate.getFullYear() === today.getFullYear() &&
                    calendarDate.getMonth() === today.getMonth() &&
                    calendarDate.getDate() === today.getDate();
+        }
+
+        // Get schedule label for a task's schedules: "today", "tomorrow", "future", or null (past only)
+        function getScheduleLabel(schedules) {
+            if (!schedules || schedules.length === 0) return null;
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+            const dayAfterTomorrow = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+            let hasToday = false;
+            let hasTomorrow = false;
+            let hasFuture = false;
+
+            for (const schedule of schedules) {
+                const scheduleDate = new Date(schedule.start_time);
+                const scheduleDateOnly = new Date(scheduleDate.getFullYear(), scheduleDate.getMonth(), scheduleDate.getDate());
+
+                if (scheduleDateOnly.getTime() === today.getTime()) {
+                    hasToday = true;
+                } else if (scheduleDateOnly.getTime() === tomorrow.getTime()) {
+                    hasTomorrow = true;
+                } else if (scheduleDateOnly >= dayAfterTomorrow) {
+                    hasFuture = true;
+                }
+                // Past dates are ignored
+            }
+
+            // Return the most urgent/relevant label
+            if (hasToday) return 'today';
+            if (hasTomorrow) return 'tomorrow';
+            if (hasFuture) return 'future';
+            return null; // Only past dates
+        }
+
+        // Generate schedule pill HTML
+        function getSchedulePillHtml(schedules) {
+            const label = getScheduleLabel(schedules);
+            if (!label) return '';
+
+            const displayText = label.charAt(0).toUpperCase() + label.slice(1);
+            return `<span class="task-schedule-pill ${label}">${displayText}</span>`;
         }
 
         // Override updateKanbanCounts to respect filters
@@ -13596,37 +13658,39 @@
             }
         }
 
-        // Update the scheduled class on a task card
+        // Update the scheduled class and pill on a task card
         function updateTaskScheduledClass(taskId) {
             const cards = document.querySelectorAll(`.task-card[data-task-id="${taskId}"]`);
             const schedules = taskSchedulesMap[taskId] || [];
-            const isScheduled = schedules.length > 0;
+            const scheduleLabel = getScheduleLabel(schedules);
+            const isScheduled = scheduleLabel !== null;
 
             cards.forEach(card => {
                 card.classList.toggle('scheduled', isScheduled);
 
-                // Add or remove scheduled sun icon
-                let scheduledIcon = card.querySelector('.task-card-scheduled-icon');
+                // Remove existing schedule pill
+                let schedulePill = card.querySelector('.task-schedule-pill');
+                if (schedulePill) {
+                    schedulePill.remove();
+                }
+
+                // Add new schedule pill if needed
                 if (isScheduled) {
-                    if (!scheduledIcon) {
-                        scheduledIcon = document.createElement('i');
-                        scheduledIcon.className = 'bi bi-brightness-high-fill task-card-scheduled-icon';
-                        scheduledIcon.title = 'Scheduled: This task has time blocks on the calendar';
-                        // Insert into icons container or create one
-                        const content = card.querySelector('.task-card-content');
-                        if (content) {
-                            let iconsContainer = content.querySelector('.task-card-icons');
-                            if (!iconsContainer) {
-                                iconsContainer = document.createElement('div');
-                                iconsContainer.className = 'task-card-icons';
-                                content.appendChild(iconsContainer);
-                            }
-                            // Insert scheduled icon at the start (before critical icon)
-                            iconsContainer.insertBefore(scheduledIcon, iconsContainer.firstChild);
+                    const content = card.querySelector('.task-card-content');
+                    if (content) {
+                        let iconsContainer = content.querySelector('.task-card-icons');
+                        if (!iconsContainer) {
+                            iconsContainer = document.createElement('div');
+                            iconsContainer.className = 'task-card-icons';
+                            content.appendChild(iconsContainer);
                         }
+                        // Create and insert schedule pill at the start
+                        const pill = document.createElement('span');
+                        pill.className = `task-schedule-pill ${scheduleLabel}`;
+                        pill.textContent = scheduleLabel.charAt(0).toUpperCase() + scheduleLabel.slice(1);
+                        iconsContainer.insertBefore(pill, iconsContainer.firstChild);
                     }
-                } else if (scheduledIcon) {
-                    scheduledIcon.remove();
+                } else {
                     // Remove icons container if empty
                     const iconsContainer = card.querySelector('.task-card-icons');
                     if (iconsContainer && iconsContainer.children.length === 0) {
@@ -15601,46 +15665,44 @@
         document.getElementById('timeslot-panel-close').addEventListener('click', closeTimeslotPanel);
         document.getElementById('timeslot-panel-overlay').addEventListener('click', closeTimeslotPanel);
 
-        // Initialize sun icons for tasks scheduled for today on page load
+        // Initialize schedule pills for tasks on page load
         function initializeScheduledIcons() {
             document.querySelectorAll('.task-card').forEach(card => {
                 const taskId = card.dataset.taskId;
                 const schedules = taskSchedulesMap[taskId] || [];
-                const isScheduled = schedules.length > 0;
+                const scheduleLabel = getScheduleLabel(schedules);
 
-                if (isScheduled) {
-                    // Add sun icon if not already present
-                    const existingIcon = card.querySelector('.task-card-scheduled-icon');
-                    if (!existingIcon) {
-                        let iconsDiv = card.querySelector('.task-card-icons');
-                        if (!iconsDiv) {
-                            iconsDiv = document.createElement('div');
-                            iconsDiv.className = 'task-card-icons';
-                            card.querySelector('.task-card-content').appendChild(iconsDiv);
-                        }
+                // Remove any existing schedule pill
+                const existingPill = card.querySelector('.task-schedule-pill');
+                if (existingPill) {
+                    existingPill.remove();
+                }
 
-                        const scheduledIcon = document.createElement('i');
-                        scheduledIcon.className = 'bi bi-brightness-high-fill task-card-scheduled-icon';
-                        scheduledIcon.title = 'Scheduled: This task has time blocks on the calendar';
+                if (scheduleLabel) {
+                    // Add schedule pill
+                    let iconsDiv = card.querySelector('.task-card-icons');
+                    if (!iconsDiv) {
+                        iconsDiv = document.createElement('div');
+                        iconsDiv.className = 'task-card-icons';
+                        card.querySelector('.task-card-content').appendChild(iconsDiv);
+                    }
 
-                        // Insert at the beginning (before critical icon)
-                        const criticalIcon = iconsDiv.querySelector('.task-critical-icon');
-                        if (criticalIcon) {
-                            iconsDiv.insertBefore(scheduledIcon, criticalIcon);
-                        } else {
-                            iconsDiv.appendChild(scheduledIcon);
-                        }
+                    const pill = document.createElement('span');
+                    pill.className = `task-schedule-pill ${scheduleLabel}`;
+                    pill.textContent = scheduleLabel.charAt(0).toUpperCase() + scheduleLabel.slice(1);
+
+                    // Insert at the beginning (before critical icon)
+                    const criticalIcon = iconsDiv.querySelector('.task-critical-icon');
+                    if (criticalIcon) {
+                        iconsDiv.insertBefore(pill, criticalIcon);
+                    } else {
+                        iconsDiv.insertBefore(pill, iconsDiv.firstChild);
                     }
                 } else {
-                    // Remove sun icon if task is not scheduled
-                    const scheduledIcon = card.querySelector('.task-card-scheduled-icon');
-                    if (scheduledIcon) {
-                        scheduledIcon.remove();
-                        // Clean up empty icons div
-                        const iconsDiv = card.querySelector('.task-card-icons');
-                        if (iconsDiv && iconsDiv.children.length === 0) {
-                            iconsDiv.remove();
-                        }
+                    // Clean up empty icons div if no schedule pill and no other icons
+                    const iconsDiv = card.querySelector('.task-card-icons');
+                    if (iconsDiv && iconsDiv.children.length === 0) {
+                        iconsDiv.remove();
                     }
                 }
             });
