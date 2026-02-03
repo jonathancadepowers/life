@@ -6985,38 +6985,14 @@
                 }
             }
 
-            // If currently viewing by tags, also add to the Untagged group
+            // If currently viewing by tags, rebuild to show new task in Untagged group
             if (currentGroupBy === 'tags') {
-                const untaggedGroup = document.querySelector('#tags-content .state-group[data-tag-id="untagged"]');
-                if (untaggedGroup) {
-                    const untaggedBody = untaggedGroup.querySelector('.state-group-body');
-                    if (untaggedBody) {
-                        const tagsCard = createTaskCard(true);
-                        untaggedBody.insertBefore(tagsCard, untaggedBody.firstChild);
+                buildTagGroups(task.id);
+            }
 
-                        // Expand the Untagged group if collapsed
-                        if (untaggedGroup.classList.contains('collapsed')) {
-                            untaggedGroup.classList.remove('collapsed');
-                        }
-                        // Update the count
-                        const countEl = untaggedGroup.querySelector('.state-group-count');
-                        if (countEl) {
-                            countEl.textContent = parseInt(countEl.textContent) + 1;
-                        }
-                        // Focus the newly created card
-                        setTimeout(() => {
-                            tagsCard.focus();
-                        }, 100);
-                        // Remove highlight class after animation
-                        setTimeout(() => {
-                            tagsCard.classList.remove('highlight-new');
-                        }, 4500);
-                    }
-                } else {
-                    // Untagged group doesn't exist yet (no tasks existed before)
-                    // Rebuild tag groups to create it with the new task
-                    buildTagGroups(task.id);
-                }
+            // If currently viewing by schedules, rebuild to show new task in Not Scheduled group
+            if (currentGroupBy === 'schedules') {
+                buildScheduleGroups(task.id);
             }
 
             // Update counts
@@ -11193,9 +11169,9 @@
                     if (group) {
                         group.classList.remove('collapsed');
                     }
-                    taskCard.classList.add('highlight');
-                    setTimeout(() => taskCard.classList.remove('highlight'), 1500);
-                    taskCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Use same highlight animation as Tags view
+                    taskCard.classList.add('highlight-new');
+                    setTimeout(() => taskCard.classList.remove('highlight-new'), 4500);
                 }
             }
 
