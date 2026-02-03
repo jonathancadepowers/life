@@ -10892,21 +10892,17 @@
                 card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (task.isCompleted ? ' completed' : '');
                 card.dataset.taskId = task.id;
 
-                // Show tag pills so user can see all tags assigned to this task
-                const tagsHtml = task.tags.length > 0
-                    ? `<div class="task-card-tags">${task.tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
-                    : '';
-
+                // In Tags view: show State + Scheduled pills (not Tags - already grouping by tags)
+                const schedulePillHtml = getSchedulePillHtml(schedules);
                 const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>' : '';
                 const statePillHtml = task.stateName ? `<span class="task-state-pill">${escapeHtml(task.stateName)}</span>` : '';
-                const hasIcons = task.isCritical || task.stateName;
-                const iconsHtml = hasIcons ? `<div class="task-card-icons">${statePillHtml}${criticalIconHtml}</div>` : '';
+                const hasIcons = task.isCritical || task.stateName || schedulePillHtml;
+                const iconsHtml = hasIcons ? `<div class="task-card-icons">${statePillHtml}${schedulePillHtml}${criticalIconHtml}</div>` : '';
 
                 card.innerHTML = `
                     <div class="task-card-content">
                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
-                        ${tagsHtml}
                         ${iconsHtml}
                     </div>
                 `;
@@ -14207,6 +14203,10 @@
             cards.forEach(card => {
                 card.classList.toggle('scheduled', isScheduled);
 
+                // Skip adding schedule pills to Schedules view cards (they don't show schedule pills)
+                const isInSchedulesView = card.closest('#schedules-content') !== null;
+                if (isInSchedulesView) return;
+
                 // Remove existing schedule pill
                 let schedulePill = card.querySelector('.task-schedule-pill');
                 if (schedulePill) {
@@ -16263,9 +16263,11 @@
         document.getElementById('timeslot-panel-close').addEventListener('click', closeTimeslotPanel);
         document.getElementById('timeslot-panel-overlay').addEventListener('click', closeTimeslotPanel);
 
-        // Initialize schedule pills for tasks on page load
+        // Initialize schedule pills for tasks on page load (States and Tags views)
+        // Schedules view does NOT show schedule pills (already grouping by schedule)
         function initializeScheduledIcons() {
-            document.querySelectorAll('.task-card').forEach(card => {
+            // Add schedule pills to States and Tags view cards (not Schedules view)
+            document.querySelectorAll('#states-content .task-card, #tags-content .task-card').forEach(card => {
                 const taskId = card.dataset.taskId;
                 const schedules = taskSchedulesMap[taskId] || [];
                 const scheduleLabel = getScheduleLabel(schedules);
