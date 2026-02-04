@@ -1022,14 +1022,17 @@
         }
 
         /* Left-align tooltips in settings dropdowns to prevent clipping */
-        .settings-section-header .has-tooltip .custom-tooltip {
+        .settings-section-header .has-tooltip .custom-tooltip,
+        .filter-section-title .has-tooltip .custom-tooltip {
             left: 0;
             transform: none;
             white-space: normal;
             max-width: 240px;
+            z-index: 99999;
         }
 
-        .settings-section-header .has-tooltip .custom-tooltip::after {
+        .settings-section-header .has-tooltip .custom-tooltip::after,
+        .filter-section-title .has-tooltip .custom-tooltip::after {
             left: 10px;
         }
 
@@ -1956,10 +1959,13 @@
         }
 
         .deadline-clear-btn {
-            padding: 0.25rem 0.55rem;
-            border: 1px solid #dee2e6;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.6rem;
+            border: 1px dashed #dee2e6;
             border-radius: 12px;
-            background: white;
+            background: transparent;
             color: #6c757d;
             font-size: 0.7rem;
             cursor: pointer;
@@ -1967,16 +1973,20 @@
         }
 
         .deadline-clear-btn:hover {
-            background: #fff5f5;
+            background: rgba(220, 53, 69, 0.05);
+            border-style: solid;
             border-color: #dc3545;
             color: #dc3545;
         }
 
         .deadline-change-btn {
-            padding: 0.25rem 0.55rem;
-            border: 1px solid #dee2e6;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.6rem;
+            border: 1px dashed #dee2e6;
             border-radius: 12px;
-            background: white;
+            background: transparent;
             color: #6c757d;
             font-size: 0.7rem;
             cursor: pointer;
@@ -1985,7 +1995,8 @@
         }
 
         .deadline-change-btn:hover {
-            background: #f8f9fa;
+            background: rgba(107, 144, 128, 0.05);
+            border-style: solid;
             border-color: #6B9080;
             color: #6B9080;
         }
@@ -2050,6 +2061,7 @@
             padding: 0.75rem 1rem;
             max-height: 60vh;
             overflow-y: auto;
+            overflow-x: visible;
             scrollbar-width: thin;
         }
 
@@ -2075,6 +2087,7 @@
             margin-bottom: 0.85rem;
             padding-bottom: 0.85rem;
             border-bottom: 1px solid #f0f0f0;
+            overflow: visible;
         }
 
         .filter-section:last-child {
@@ -2095,6 +2108,7 @@
             margin-bottom: 0.5rem;
             cursor: pointer;
             user-select: none;
+            position: relative;
         }
 
         .filter-section-title:hover {
