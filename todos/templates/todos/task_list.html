@@ -1541,6 +1541,12 @@
             color: #e65100;
         }
 
+        /* Ensure scheduled section aligns with other controls */
+        #panel-scheduled-section .deadline-presets {
+            margin-left: 0;
+            padding-left: 0;
+        }
+
         .panel-no-scheduled-dates {
             color: #9e9e9e;
             font-size: 0.85rem;
@@ -5700,7 +5706,7 @@
                         </div>
                     </div>
                     <!-- Scheduled Dates (read-only) -->
-                    <div class="task-property-row task-property-deadline" id="panel-scheduled-section" style="display: none;">
+                    <div class="task-property-row" id="panel-scheduled-section" style="display: none;">
                         <div class="task-property-label">
                             <i class="bi bi-calendar-check"></i>
                             <span>Scheduled</span>
@@ -5709,15 +5715,13 @@
                                 <span class="custom-tooltip">Click dates to jump to calendar</span>
                             </span>
                         </div>
-                        <div class="task-property-value">
-                            <div class="deadline-presets" id="panel-scheduled-dates">
+                        <div class="task-property-value" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
+                            <div id="panel-scheduled-dates" style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
                                 <!-- Date chips will be inserted here by JavaScript -->
                             </div>
-                            <div class="deadline-presets">
-                                <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days">
-                                    Remove from Calendar
-                                </button>
-                            </div>
+                            <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days">
+                                Remove from Calendar
+                            </button>
                         </div>
                     </div>
                 </div>
