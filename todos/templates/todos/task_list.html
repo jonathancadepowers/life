@@ -5683,8 +5683,8 @@
                                 <div class="panel-scheduled-dates" id="panel-scheduled-dates">
                                     <!-- Scheduled dates will be populated by JavaScript -->
                                 </div>
-                                <button type="button" class="deadline-clear-btn" id="panel-unschedule-all" title="Remove from all days" style="align-self: flex-start;">
-                                    Unschedule All
+                                <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days" style="align-self: flex-start;">
+                                    Remove from Calendar
                                 </button>
                             </div>
                         </div>
@@ -7391,9 +7391,9 @@
         });
 
         // Panel unschedule all button
-        document.getElementById('panel-unschedule-all').addEventListener('click', async function() {
+        document.getElementById('panel-remove-from-calendar').addEventListener('click', async function() {
             if (!currentTaskId) return;
-            await unscheduleAllDates(currentTaskId);
+            confirmRemoveFromCalendar(currentTaskId);
         });
 
         async function updateTaskDeadline(taskId, deadline) {
@@ -8902,9 +8902,9 @@
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
                 </div>
                 ${isScheduled ? `
-                <div class="task-context-menu-item" onclick="unscheduleAllDates(${taskId}); closeContextMenu();">
+                <div class="task-context-menu-item" onclick="confirmRemoveFromCalendar(${taskId}); closeContextMenu();">
                     <i class="bi bi-calendar-x"></i>
-                    Unschedule All
+                    Remove from Calendar
                 </div>
                 ` : ''}
                 <div class="task-context-menu-divider"></div>
@@ -14370,6 +14370,22 @@
                 }
             } catch (error) {
                 console.error('Error removing schedule from calendar:', error);
+            }
+        }
+
+        // Show confirmation before removing task from calendar
+        async function confirmRemoveFromCalendar(taskId) {
+            const schedules = taskSchedulesMap[taskId] || [];
+            if (schedules.length === 0) return;
+
+            const confirmed = await showConfirmModal(
+                'This will remove the task from all scheduled days on your calendar.',
+                'Remove from Calendar',
+                'Remove'
+            );
+
+            if (confirmed) {
+                await unscheduleAllDates(taskId);
             }
         }
 
