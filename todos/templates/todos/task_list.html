@@ -1974,6 +1974,24 @@
             color: #dc3545;
         }
 
+        .deadline-change-btn {
+            padding: 0.3rem 0.6rem;
+            border: 1px solid #dee2e6;
+            border-radius: 16px;
+            background: white;
+            color: #495057;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .deadline-change-btn:hover {
+            background: #f8f9fa;
+            border-color: #6B9080;
+            color: #6B9080;
+        }
+
         .deadline-status {
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
@@ -5602,6 +5620,9 @@
                                 <button type="button" class="deadline-preset-btn" data-preset="next-week">Next Week</button>
                                 <button type="button" class="deadline-preset-btn" data-preset="two-weeks">2 Weeks</button>
                                 <button type="button" class="deadline-preset-btn" data-preset="custom" id="deadline-custom-btn">Custom</button>
+                                <button type="button" class="deadline-change-btn" id="panel-deadline-change" title="Change deadline" style="display: none;">
+                                    Change
+                                </button>
                                 <button type="button" class="deadline-clear-btn" id="panel-deadline-clear" title="Clear deadline">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
@@ -7317,6 +7338,18 @@
             updatePanelDeadlineStatus(null);
         });
 
+        // Panel deadline change button
+        document.getElementById('panel-deadline-change').addEventListener('click', function() {
+            // Show preset buttons again
+            const presetsEl = document.querySelector('.deadline-presets');
+            if (presetsEl) {
+                const presetBtns = presetsEl.querySelectorAll('.deadline-preset-btn');
+                presetBtns.forEach(btn => btn.style.display = '');
+            }
+            // Hide change button
+            this.style.display = 'none';
+        });
+
         async function updateTaskDeadline(taskId, deadline) {
             try {
                 const response = await fetch(`/tasks/api/${taskId}/update/`, {
@@ -7367,13 +7400,30 @@
 
         function updatePanelDeadlineStatus(deadlineDate) {
             const statusEl = document.getElementById('panel-deadline-status');
+            const presetsEl = document.querySelector('.deadline-presets');
+            const changeBtn = document.getElementById('panel-deadline-change');
+
             if (!deadlineDate) {
                 statusEl.innerHTML = '';
+                // Show preset buttons when no deadline is set
+                if (presetsEl) {
+                    const presetBtns = presetsEl.querySelectorAll('.deadline-preset-btn');
+                    presetBtns.forEach(btn => btn.style.display = '');
+                }
+                // Hide change button when no deadline
+                if (changeBtn) changeBtn.style.display = 'none';
                 return;
             }
             const status = getDeadlineStatus(deadlineDate);
             if (!status) {
                 statusEl.innerHTML = '';
+                // Show preset buttons when no deadline is set
+                if (presetsEl) {
+                    const presetBtns = presetsEl.querySelectorAll('.deadline-preset-btn');
+                    presetBtns.forEach(btn => btn.style.display = '');
+                }
+                // Hide change button when no deadline
+                if (changeBtn) changeBtn.style.display = 'none';
                 return;
             }
             const iconClass = status.status === 'overdue' ? 'exclamation-circle' : status.status === 'due-soon' ? 'clock' : 'check-circle';
@@ -7383,6 +7433,14 @@
                     ${status.label}
                 </span>
             `;
+
+            // Hide preset buttons when deadline is set (but keep change and clear buttons visible)
+            if (presetsEl) {
+                const presetBtns = presetsEl.querySelectorAll('.deadline-preset-btn');
+                presetBtns.forEach(btn => btn.style.display = 'none');
+            }
+            // Show change button when deadline is set
+            if (changeBtn) changeBtn.style.display = '';
         }
 
         async function deleteTask(taskId) {
