@@ -1468,25 +1468,38 @@
             align-items: flex-start;
         }
 
+        .task-property-deadline .task-property-label {
+            padding-top: 0.05rem;
+        }
+
         .task-property-deadline .task-property-value {
             flex-direction: column;
             align-items: stretch;
             gap: 0.5rem;
+            width: 100%;
         }
 
         .task-property-scheduled {
             align-items: flex-start;
         }
 
+        .task-property-scheduled .task-property-label {
+            padding-top: 0.05rem;
+        }
+
         .task-property-scheduled .task-property-value {
             align-items: flex-start;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
         }
 
         /* Scheduled Dates (read-only) */
         .panel-scheduled-dates {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: 0.35rem;
+            width: 100%;
         }
 
         .scheduled-date-chip {
@@ -5679,14 +5692,12 @@
                             </span>
                         </div>
                         <div class="task-property-value">
-                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                                <div class="panel-scheduled-dates" id="panel-scheduled-dates">
-                                    <!-- Scheduled dates will be populated by JavaScript -->
-                                </div>
-                                <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days" style="align-self: flex-start;">
-                                    Remove from Calendar
-                                </button>
+                            <div class="panel-scheduled-dates" id="panel-scheduled-dates">
+                                <!-- Scheduled dates will be populated by JavaScript -->
                             </div>
+                            <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days">
+                                Remove from Calendar
+                            </button>
                         </div>
                     </div>
                 </div>
