@@ -1021,6 +1021,16 @@
             opacity: 1;
         }
 
+        /* Left-align tooltips in settings dropdowns to prevent clipping */
+        .settings-section-header .has-tooltip .custom-tooltip {
+            left: 0;
+            transform: none;
+        }
+
+        .settings-section-header .has-tooltip .custom-tooltip::after {
+            left: 10px;
+        }
+
         .panel-close {
             background: none;
             border: none;
