@@ -5669,8 +5669,13 @@
                             </span>
                         </div>
                         <div class="task-property-value">
-                            <div class="panel-scheduled-dates" id="panel-scheduled-dates">
-                                <!-- Scheduled dates will be populated by JavaScript -->
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                                <div class="panel-scheduled-dates" id="panel-scheduled-dates">
+                                    <!-- Scheduled dates will be populated by JavaScript -->
+                                </div>
+                                <button type="button" class="deadline-clear-btn" id="panel-unschedule-all" title="Remove from all days" style="align-self: flex-start;">
+                                    Unschedule All
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -7375,6 +7380,12 @@
             this.style.display = 'none';
         });
 
+        // Panel unschedule all button
+        document.getElementById('panel-unschedule-all').addEventListener('click', async function() {
+            if (!currentTaskId) return;
+            await unscheduleAllDates(currentTaskId);
+        });
+
         async function updateTaskDeadline(taskId, deadline) {
             try {
                 const response = await fetch(`/tasks/api/${taskId}/update/`, {
@@ -8881,9 +8892,9 @@
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
                 </div>
                 ${isScheduled ? `
-                <div class="task-context-menu-item" onclick="removeFromCalendar(${taskId})">
+                <div class="task-context-menu-item" onclick="unscheduleAllDates(${taskId}); closeContextMenu();">
                     <i class="bi bi-calendar-x"></i>
-                    Remove from Calendar
+                    Unschedule All
                 </div>
                 ` : ''}
                 <div class="task-context-menu-divider"></div>
@@ -14349,6 +14360,42 @@
                 }
             } catch (error) {
                 console.error('Error removing schedule from calendar:', error);
+            }
+        }
+
+        // Remove all schedules for a task (unschedule from all future days)
+        async function unscheduleAllDates(taskId) {
+            const schedules = taskSchedulesMap[taskId] || [];
+            if (schedules.length === 0) return;
+
+            try {
+                // Delete all schedules
+                const deletePromises = schedules.map(schedule =>
+                    fetch(`/tasks/api/schedules/${schedule.id}/delete/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': csrfToken
+                        }
+                    })
+                );
+
+                await Promise.all(deletePromises);
+
+                // Clear local taskSchedulesMap
+                taskSchedulesMap[taskId] = [];
+
+                // Update task card scheduled class
+                updateTaskScheduledClass(taskId);
+
+                // Update panel if open
+                if (currentTaskId === taskId) {
+                    renderPanelScheduledDates(taskId);
+                }
+
+                renderScheduledTasks();
+                initializeScheduledIcons();
+            } catch (error) {
+                console.error('Error unscheduling all dates:', error);
             }
         }
 
