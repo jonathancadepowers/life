@@ -1021,14 +1021,14 @@
             opacity: 1;
         }
 
-        /* Position tooltips to the right in dropdowns */
+        /* Position tooltips below icons in wider dropdowns */
         .settings-section-header .has-tooltip .custom-tooltip,
         .filter-section-title .has-tooltip .custom-tooltip {
-            left: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            margin-left: 8px;
-            margin-top: 0;
+            left: 0;
+            top: 100%;
+            transform: none;
+            margin-top: 5px;
+            margin-left: 0;
             white-space: nowrap;
             max-width: none;
             z-index: 99999;
@@ -1036,14 +1036,14 @@
 
         .settings-section-header .has-tooltip .custom-tooltip::after,
         .filter-section-title .has-tooltip .custom-tooltip::after {
-            left: auto;
-            right: 100%;
-            top: 50%;
-            bottom: auto;
-            transform: translateY(-50%);
+            left: 10px;
+            right: auto;
+            top: auto;
+            bottom: 100%;
+            transform: none;
             margin-top: 0;
-            margin-right: -5px;
-            border-color: transparent #333 transparent transparent;
+            margin-bottom: -5px;
+            border-color: transparent transparent #333 transparent;
         }
 
         .panel-close {
@@ -2053,8 +2053,8 @@
             border-radius: 10px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
             padding: 0;
-            min-width: 260px;
-            max-width: 280px;
+            min-width: 340px;
+            max-width: 360px;
             z-index: 1100;
             display: none;
             overflow: visible;
@@ -2480,8 +2480,8 @@
             border-radius: 10px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
             padding: 0;
-            min-width: 280px;
-            max-width: 320px;
+            min-width: 360px;
+            max-width: 380px;
             z-index: 1100;
             display: none;
             overflow: visible;
