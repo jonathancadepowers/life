@@ -1021,19 +1021,29 @@
             opacity: 1;
         }
 
-        /* Left-align tooltips in settings dropdowns to prevent clipping */
+        /* Position tooltips to the right in dropdowns */
         .settings-section-header .has-tooltip .custom-tooltip,
         .filter-section-title .has-tooltip .custom-tooltip {
-            left: 0;
-            transform: none;
-            white-space: normal;
-            max-width: 240px;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 8px;
+            margin-top: 0;
+            white-space: nowrap;
+            max-width: none;
             z-index: 99999;
         }
 
         .settings-section-header .has-tooltip .custom-tooltip::after,
         .filter-section-title .has-tooltip .custom-tooltip::after {
-            left: 10px;
+            left: auto;
+            right: 100%;
+            top: 50%;
+            bottom: auto;
+            transform: translateY(-50%);
+            margin-top: 0;
+            margin-right: -5px;
+            border-color: transparent #333 transparent transparent;
         }
 
         .panel-close {
