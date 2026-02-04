@@ -1046,10 +1046,21 @@
             border-color: transparent transparent #333 transparent;
         }
 
-        /* Allow Auto-Abandon tooltip to wrap text */
+        /* Position Auto-Abandon tooltip above icon */
         .auto-abandon-tooltip {
-            white-space: normal !important;
-            max-width: 250px !important;
+            white-space: nowrap !important;
+            top: auto !important;
+            bottom: 100% !important;
+            margin-bottom: 5px !important;
+            margin-top: 0 !important;
+        }
+
+        .auto-abandon-tooltip::after {
+            top: 100% !important;
+            bottom: auto !important;
+            margin-top: -5px !important;
+            margin-bottom: 0 !important;
+            border-color: #333 transparent transparent transparent !important;
         }
 
         .panel-close {
@@ -1501,11 +1512,10 @@
         }
 
         /* Scheduled Dates (read-only) */
-        .panel-scheduled-dates {
+        .scheduled-container {
             display: flex;
             flex-wrap: wrap;
             gap: 0.35rem;
-            width: 100%;
         }
 
         .scheduled-date-chip {
@@ -2499,8 +2509,8 @@
             border-radius: 10px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
             padding: 0;
-            min-width: 400px;
-            max-width: 420px;
+            min-width: 460px;
+            max-width: 480px;
             z-index: 1100;
             display: none;
             overflow: visible;
@@ -5698,12 +5708,14 @@
                             </span>
                         </div>
                         <div class="task-property-value">
-                            <div class="panel-scheduled-dates" id="panel-scheduled-dates">
+                            <div class="scheduled-container" id="panel-scheduled-dates">
                                 <!-- Scheduled dates will be populated by JavaScript -->
                             </div>
-                            <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days">
-                                Remove from Calendar
-                            </button>
+                            <div class="deadline-presets">
+                                <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days">
+                                    Remove from Calendar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -9690,6 +9702,7 @@
         function renderPanelScheduledDates(taskId) {
             const section = document.getElementById('panel-scheduled-section');
             const container = document.getElementById('panel-scheduled-dates');
+            console.log('renderPanelScheduledDates called', {section, container, taskId});
             if (!section || !container) return;
 
             const schedules = taskSchedulesMap[taskId] || [];
@@ -9700,7 +9713,11 @@
             }
 
             section.style.display = 'block';
-            container.innerHTML = '';
+
+            // Remove existing chips
+            const existingChips = container.querySelectorAll('.scheduled-date-chip');
+            console.log('Existing chips to remove:', existingChips.length);
+            existingChips.forEach(chip => chip.remove());
 
             // Get today's date for comparison
             const today = new Date();
@@ -9769,6 +9786,7 @@
                     }, 100);
                 });
 
+                // Append chip to container
                 container.appendChild(chip);
             });
         }
