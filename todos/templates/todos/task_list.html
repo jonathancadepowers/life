@@ -1046,6 +1046,12 @@
             border-color: transparent transparent #333 transparent;
         }
 
+        /* Allow Auto-Abandon tooltip to wrap text */
+        .auto-abandon-tooltip {
+            white-space: normal !important;
+            max-width: 250px !important;
+        }
+
         .panel-close {
             background: none;
             border: none;
@@ -5551,7 +5557,7 @@
                         <i class="bi bi-archive"></i> Auto-Abandon
                         <span class="has-tooltip settings-info-icon" style="font-size: 0.75rem;">
                             <i class="bi bi-info-circle"></i>
-                            <span class="custom-tooltip">Auto-move unscheduled tasks to abandoned</span>
+                            <span class="custom-tooltip auto-abandon-tooltip">Auto-move unscheduled tasks to abandoned</span>
                         </span>
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
