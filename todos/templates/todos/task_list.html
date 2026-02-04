@@ -1464,6 +1464,14 @@
             gap: 0.5rem;
         }
 
+        .task-property-scheduled {
+            align-items: flex-start;
+        }
+
+        .task-property-scheduled .task-property-value {
+            align-items: flex-start;
+        }
+
         /* Scheduled Dates (read-only) */
         .panel-scheduled-dates {
             display: flex;
@@ -2039,6 +2047,7 @@
             max-width: 280px;
             z-index: 1100;
             display: none;
+            overflow: visible;
         }
 
         .filter-dropdown.active {
@@ -2465,6 +2474,7 @@
             max-width: 320px;
             z-index: 1100;
             display: none;
+            overflow: visible;
         }
 
         .settings-dropdown.active {
@@ -5648,24 +5658,21 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Scheduled Dates Section (read-only) -->
-            <div class="task-panel-section" id="panel-scheduled-section" style="display: none;">
-                <div class="task-panel-section-header">
-                    <div style="display: flex; align-items: center; gap: 0.35rem;">
-                        <i class="bi bi-calendar-check" style="font-size: 0.85rem;"></i>
-                        <span>Scheduled Dates</span>
-                        <span class="has-tooltip" style="font-size: 0.7rem; color: #6c757d;">
-                            <i class="bi bi-info-circle"></i>
-                            <span class="custom-tooltip">Click dates to jump to calendar</span>
-                        </span>
-                    </div>
-                </div>
-                <div class="task-panel-section-content">
-                    <div class="panel-scheduled-dates" id="panel-scheduled-dates">
-                        <!-- Scheduled dates will be populated by JavaScript -->
+                    <!-- Scheduled Dates (read-only) -->
+                    <div class="task-property-row task-property-scheduled" id="panel-scheduled-section" style="display: none;">
+                        <div class="task-property-label">
+                            <i class="bi bi-calendar-check"></i>
+                            <span>Scheduled</span>
+                            <span class="has-tooltip" style="font-size: 0.7rem; color: #6c757d;">
+                                <i class="bi bi-info-circle"></i>
+                                <span class="custom-tooltip">Click dates to jump to calendar</span>
+                            </span>
+                        </div>
+                        <div class="task-property-value">
+                            <div class="panel-scheduled-dates" id="panel-scheduled-dates">
+                                <!-- Scheduled dates will be populated by JavaScript -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
