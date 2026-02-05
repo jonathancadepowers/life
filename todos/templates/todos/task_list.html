@@ -921,6 +921,11 @@
             justify-content: space-between;
         }
 
+        /* Hide filter summary when panel is collapsed */
+        .panel.collapsed .filter-summary {
+            display: none !important;
+        }
+
         .filter-summary-text {
             flex: 1;
             font-weight: 400;
@@ -1024,10 +1029,11 @@
         /* Position tooltips below icons in wider dropdowns */
         .settings-section-header .has-tooltip .custom-tooltip,
         .filter-section-title .has-tooltip .custom-tooltip {
-            left: 0;
-            top: 100%;
+            position: fixed;
+            left: auto;
+            top: auto;
             transform: none;
-            margin-top: 5px;
+            margin-top: 0;
             margin-left: 0;
             white-space: nowrap;
             max-width: none;
@@ -1046,21 +1052,9 @@
             border-color: transparent transparent #333 transparent;
         }
 
-        /* Position Auto-Abandon tooltip above icon */
+        /* Auto-Abandon tooltip styling */
         .auto-abandon-tooltip {
             white-space: nowrap !important;
-            top: auto !important;
-            bottom: 100% !important;
-            margin-bottom: 5px !important;
-            margin-top: 0 !important;
-        }
-
-        .auto-abandon-tooltip::after {
-            top: 100% !important;
-            bottom: auto !important;
-            margin-top: -5px !important;
-            margin-bottom: 0 !important;
-            border-color: #333 transparent transparent transparent !important;
         }
 
         .panel-close {
@@ -1513,6 +1507,34 @@
         }
 
 
+        /* New Property Card Design */
+        .property-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #e9ecef;
+        }
+
+        .property-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #495057;
+            margin-bottom: 0.75rem;
+        }
+
+        .property-card-header i {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+
+        .property-card-body {
+            display: flex;
+            flex-direction: column;
+        }
+
         /* Scheduled Dates (read-only) */
         .scheduled-container {
             display: flex;
@@ -1523,28 +1545,35 @@
         .scheduled-date-chip {
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
             padding: 0.35rem 0.65rem;
-            background: #e8f4fd;
-            color: #1976d2;
-            border-radius: 16px;
+            background: #f0f0f0;
+            color: #000;
+            border-radius: 12px;
             font-size: 0.8rem;
             font-weight: 500;
         }
 
-        .scheduled-date-chip i {
-            font-size: 0.75rem;
-        }
-
         .scheduled-date-chip.is-today {
-            background: #fff3e0;
-            color: #e65100;
+            background: #f0f0f0;
+            color: #000;
         }
 
         /* Ensure scheduled section aligns with other controls */
         #panel-scheduled-section .deadline-presets {
             margin-left: 0;
             padding-left: 0;
+        }
+
+        #panel-scheduled-dates {
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+
+        .deadline-presets {
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
         }
 
         .panel-no-scheduled-dates {
@@ -1641,16 +1670,6 @@
         /* Deadline presets in properties */
         .task-property-deadline .deadline-presets {
             gap: 0.5rem;
-        }
-
-        .task-property-deadline .deadline-preset-btn {
-            padding: 0.35rem 0.65rem;
-            font-size: 0.8rem;
-        }
-
-        .task-property-deadline .deadline-clear-btn {
-            padding: 0.35rem 0.5rem;
-            font-size: 0.8rem;
         }
 
         /* Compact template button */
@@ -1982,7 +2001,7 @@
             border-radius: 12px;
             background: white;
             color: #6c757d;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             cursor: pointer;
             transition: all 0.15s;
             white-space: nowrap;
@@ -2022,7 +2041,7 @@
             border-radius: 12px;
             background: transparent;
             color: #6c757d;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             cursor: pointer;
             transition: all 0.15s;
         }
@@ -2043,7 +2062,7 @@
             border-radius: 12px;
             background: transparent;
             color: #6c757d;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             cursor: pointer;
             transition: all 0.15s;
             white-space: nowrap;
@@ -2057,28 +2076,27 @@
         }
 
         .deadline-status {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             padding: 0.35rem 0.6rem;
             border-radius: 12px;
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
             font-weight: 500;
         }
 
         .deadline-status.overdue {
-            background: #fee;
-            color: #c92a2a;
+            background: #f0f0f0;
+            color: #000;
         }
 
         .deadline-status.due-soon {
-            background: #fff9db;
-            color: #e67700;
+            background: #f0f0f0;
+            color: #000;
         }
 
         .deadline-status.on-track {
-            background: #d4edda;
-            color: #155724;
+            background: #f0f0f0;
+            color: #000;
         }
 
         /* Filter dropdown */
@@ -2090,8 +2108,8 @@
             border-radius: 10px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
             padding: 0;
-            min-width: 340px;
-            max-width: 360px;
+            min-width: 240px;
+            max-width: 260px;
             z-index: 1100;
             display: none;
             overflow: visible;
@@ -2517,8 +2535,8 @@
             border-radius: 10px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
             padding: 0;
-            min-width: 460px;
-            max-width: 480px;
+            min-width: 240px;
+            max-width: 260px;
             z-index: 1100;
             display: none;
             overflow: visible;
@@ -3260,6 +3278,7 @@
 
             .settings-dropdown {
                 left: 1rem;
+                min-width: 240px;
                 max-width: calc(100% - 2rem);
             }
 
@@ -3651,7 +3670,8 @@
             border-radius: 8px;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-y: hidden;
+            overflow-x: visible;
             transition: height 0.3s ease;
             position: relative;
             flex: 1;
@@ -4182,6 +4202,10 @@
             animation: highlightGlow 4.5s ease-out;
         }
 
+        .calendar-scheduled-task.highlight-new {
+            animation: highlightGlow 4.5s ease-out;
+        }
+
         @keyframes highlightGlow {
             0% {
                 background: #fff9c4;
@@ -4198,6 +4222,10 @@
         }
 
         .task-card.critical.highlight-new {
+            animation: highlightGlowCritical 4.5s ease-out;
+        }
+
+        .calendar-scheduled-task.critical.highlight-new {
             animation: highlightGlowCritical 4.5s ease-out;
         }
 
@@ -4281,7 +4309,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             padding: 0.3rem 0.6rem;
             border-radius: 12px;
             background: transparent;
@@ -4863,6 +4891,9 @@
         .hourly-grid {
             flex: 1;
             overflow-y: auto;
+            overflow-x: visible;
+            position: relative;
+            padding-right: 20px;
         }
 
         .hour-row {
@@ -4920,12 +4951,88 @@
             cursor: grabbing;
         }
 
+        /* Current time indicator line */
+        .current-time-line {
+            position: absolute;
+            left: 50px;
+            right: 17.5px;
+            height: 0;
+            border: none;
+            border-top: 1px solid rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .current-time-now-label {
+            position: absolute;
+            right: 0px;
+            font-size: 0.65rem;
+            color: rgba(0, 0, 0, 0.7);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            z-index: 101;
+            pointer-events: none;
+            transform: translateY(-50%);
+        }
+
+        .hour-row {
+            overflow: visible;
+        }
+
         .hour-event-content {
             display: flex;
             align-items: center;
             gap: 4px;
             white-space: nowrap;
+            overflow: visible;
+            position: relative;
+        }
+
+        .hour-event-subject {
             overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Instant tooltip for calendar events */
+        .hour-event[data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 0;
+            background: #333;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.1s;
+            pointer-events: none;
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .hour-event[data-tooltip]::before {
+            content: "";
+            position: absolute;
+            bottom: calc(100% - 1px);
+            left: 10px;
+            border: 5px solid transparent;
+            border-top-color: #333;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.1s;
+            pointer-events: none;
+            z-index: 1001;
+        }
+
+        .hour-event[data-tooltip]:hover::after,
+        .hour-event[data-tooltip]:hover::before {
+            opacity: 1;
+            visibility: visible;
         }
 
         .hour-event-subject {
@@ -5657,40 +5764,43 @@
             <!-- Properties Section -->
             <div class="task-panel-section">
                 <div class="task-panel-section-header">Properties</div>
-                <div class="task-panel-section-content task-properties-grid">
+                <div class="task-panel-section-content" style="display: flex; flex-direction: column; gap: 1rem;">
+
                     <!-- Critical -->
-                    <div class="task-property-row">
-                        <div class="task-property-label">
+                    <div class="property-card">
+                        <div class="property-card-header">
                             <i class="bi bi-exclamation-circle"></i>
                             <span>Critical</span>
                         </div>
-                        <div class="task-property-value">
+                        <div class="property-card-body">
                             <label class="task-toggle">
                                 <input type="checkbox" id="panel-critical">
                                 <span class="task-toggle-slider"></span>
                             </label>
                         </div>
                     </div>
+
                     <!-- Tags -->
-                    <div class="task-property-row">
-                        <div class="task-property-label">
+                    <div class="property-card">
+                        <div class="property-card-header">
                             <i class="bi bi-tags"></i>
                             <span>Tags</span>
                         </div>
-                        <div class="task-property-value task-property-tags">
+                        <div class="property-card-body">
                             <div class="panel-tags-container" id="panel-tags-container">
                                 <!-- Tags will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
+
                     <!-- Deadline -->
-                    <div class="task-property-row task-property-deadline">
-                        <div class="task-property-label">
+                    <div class="property-card">
+                        <div class="property-card-header">
                             <i class="bi bi-calendar-event"></i>
                             <span>Deadline</span>
                         </div>
-                        <div class="task-property-value">
-                            <div id="panel-deadline-status"></div>
+                        <div class="property-card-body">
+                            <div id="panel-deadline-status" style="margin-bottom: 0.75rem;"></div>
                             <div class="deadline-presets">
                                 <button type="button" class="deadline-preset-btn" data-preset="tomorrow">Tomorrow</button>
                                 <button type="button" class="deadline-preset-btn" data-preset="next-week">Next Week</button>
@@ -5705,25 +5815,27 @@
                             </div>
                         </div>
                     </div>
+
                     <!-- Scheduled Dates (read-only) -->
-                    <div class="task-property-row" id="panel-scheduled-section" style="display: none;">
-                        <div class="task-property-label">
+                    <div class="property-card" id="panel-scheduled-section" style="display: none;">
+                        <div class="property-card-header">
                             <i class="bi bi-calendar-check"></i>
                             <span>Scheduled</span>
-                            <span class="has-tooltip" style="font-size: 0.7rem; color: #6c757d;">
+                            <span class="has-tooltip" style="font-size: 0.7rem; color: #6c757d; margin-left: 0.25rem;">
                                 <i class="bi bi-info-circle"></i>
                                 <span class="custom-tooltip">Click dates to jump to calendar</span>
                             </span>
                         </div>
-                        <div class="task-property-value" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
-                            <div id="panel-scheduled-dates" style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                        <div class="property-card-body">
+                            <div id="panel-scheduled-dates" style="margin-bottom: 0.75rem;">
                                 <!-- Date chips will be inserted here by JavaScript -->
                             </div>
-                            <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days">
+                            <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days" style="align-self: flex-start;">
                                 Remove from Calendar
                             </button>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -7507,10 +7619,8 @@
                 if (changeBtn) changeBtn.style.display = 'none';
                 return;
             }
-            const iconClass = status.status === 'overdue' ? 'exclamation-circle' : status.status === 'due-soon' ? 'clock' : 'check-circle';
             statusEl.innerHTML = `
                 <span class="deadline-status ${status.status}">
-                    <i class="bi bi-${iconClass}"></i>
                     ${status.label}
                 </span>
             `;
@@ -8668,6 +8778,11 @@
                             updateKanbanCounts();
                             return;
                         }
+
+                        // Update task everywhere (including calendar)
+                        if (data.task) {
+                            handleTaskStateChange(data.task);
+                        }
                     } catch (error) {
                         console.error('Error updating task state:', error);
                         oldBody.appendChild(draggedKanbanCard);
@@ -9708,7 +9823,6 @@
         function renderPanelScheduledDates(taskId) {
             const section = document.getElementById('panel-scheduled-section');
             const container = document.getElementById('panel-scheduled-dates');
-            console.log('renderPanelScheduledDates called', {section, container, taskId});
             if (!section || !container) return;
 
             const schedules = taskSchedulesMap[taskId] || [];
@@ -9722,7 +9836,6 @@
 
             // Remove existing chips
             const existingChips = container.querySelectorAll('.scheduled-date-chip');
-            console.log('Existing chips to remove:', existingChips.length);
             existingChips.forEach(chip => chip.remove());
 
             // Get today's date for comparison
@@ -9763,7 +9876,7 @@
                 const options = { weekday: 'short', month: 'short', day: 'numeric' };
                 const formattedDate = isToday ? 'Today' : dateOnly.toLocaleDateString('en-US', options);
 
-                chip.innerHTML = `<i class="bi bi-calendar3"></i> ${formattedDate}`;
+                chip.innerHTML = formattedDate;
 
                 // Click handler to jump to calendar date
                 chip.addEventListener('click', function() {
@@ -9787,7 +9900,7 @@
                             taskEl.classList.add('highlight-new');
                             setTimeout(() => {
                                 taskEl.classList.remove('highlight-new');
-                            }, 2000);
+                            }, 4500);
                         });
                     }, 100);
                 });
@@ -10552,6 +10665,18 @@
             });
         });
 
+        // Position fixed tooltips in filter dropdown and settings dropdown
+        document.querySelectorAll('.filter-section-title .has-tooltip, .settings-section-header .has-tooltip').forEach(tooltipWrapper => {
+            tooltipWrapper.addEventListener('mouseenter', function() {
+                const tooltip = this.querySelector('.custom-tooltip');
+                if (tooltip) {
+                    const rect = this.getBoundingClientRect();
+                    tooltip.style.left = rect.left + 'px';
+                    tooltip.style.top = (rect.bottom + 5) + 'px';
+                }
+            });
+        });
+
         // Toggle deadline warning dropdown
         const deadlineWarningIcon = document.getElementById('deadline-warning-icon');
         const deadlineDropdown = document.getElementById('deadline-dropdown');
@@ -10632,7 +10757,12 @@
         const clearFiltersLink = document.getElementById('clear-filters-link');
         if (clearFiltersLink) {
             clearFiltersLink.addEventListener('click', function() {
-                clearViewAndFilters();
+                // If search is active, clear search; otherwise clear filters
+                if (searchText) {
+                    clearSearch();
+                } else {
+                    clearViewAndFilters();
+                }
             });
         }
 
@@ -10676,7 +10806,10 @@
         }
 
         if (tasksSearchClear) {
-            tasksSearchClear.addEventListener('click', clearSearch);
+            tasksSearchClear.addEventListener('click', function(e) {
+                e.stopPropagation();
+                clearSearch();
+            });
         }
 
         function performSearch() {
@@ -10745,10 +10878,16 @@
         }
 
         if (tasksSearchBtn) {
-            tasksSearchBtn.addEventListener('click', performSearch);
+            tasksSearchBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                performSearch();
+            });
         }
 
         if (tasksSearchInput) {
+            tasksSearchInput.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
             tasksSearchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -10757,6 +10896,12 @@
                 if (e.key === 'Escape') {
                     clearSearch();
                 }
+            });
+        }
+
+        if (tasksSearchResults) {
+            tasksSearchResults.addEventListener('click', function(e) {
+                e.stopPropagation();
             });
         }
 
@@ -11621,7 +11766,10 @@
                 totalTaskCount.textContent = totalTasks;
 
                 // Show filter summary if there are active filters OR if in a filtered view
-                const showFilterSummary = (hasActiveFilters && displayVisibleCount < totalTasks) || isFilteredView;
+                // But hide it if the tasks panel is collapsed or minimized
+                const tasksPanel = document.getElementById('tasks-panel');
+                const isPanelCollapsed = tasksPanel && (tasksPanel.classList.contains('collapsed') || tasksPanel.classList.contains('minimized'));
+                const showFilterSummary = ((hasActiveFilters && displayVisibleCount < totalTasks) || isFilteredView) && !isPanelCollapsed;
 
                 if (showFilterSummary) {
                     filterSummary.classList.add('active');
@@ -11659,6 +11807,12 @@
                         } else {
                             filterTooltip.innerHTML = 'No additional filters active';
                         }
+                    }
+
+                    // Update clear filters link text based on whether search is active
+                    const clearFiltersLink = document.getElementById('clear-filters-link');
+                    if (clearFiltersLink) {
+                        clearFiltersLink.textContent = searchText ? 'Clear search' : 'Clear filters';
                     }
                 } else {
                     filterSummary.classList.remove('active');
@@ -11864,11 +12018,11 @@
                 }
             });
 
-            // Hide filter summary when Tasks panel is minimized
+            // Hide filter summary when Tasks panel is minimized or collapsed
             const tasksPanel = document.getElementById('tasks-panel');
             const filterSummary = document.getElementById('filter-summary');
             if (tasksPanel && filterSummary) {
-                if (tasksPanel.classList.contains('minimized')) {
+                if (tasksPanel.classList.contains('minimized') || tasksPanel.classList.contains('collapsed')) {
                     filterSummary.style.display = 'none';
                 } else {
                     // Show filter summary only if filters are active
@@ -11959,6 +12113,56 @@
                 `;
 
                 grid.appendChild(hourRow);
+            }
+
+            // Add current time indicator line
+            const timeLine = document.createElement('div');
+            timeLine.className = 'current-time-line';
+            timeLine.id = 'current-time-line';
+            grid.appendChild(timeLine);
+
+            // Add NOW label
+            const nowLabel = document.createElement('div');
+            nowLabel.className = 'current-time-now-label';
+            nowLabel.id = 'current-time-now-label';
+            nowLabel.textContent = 'NOW';
+            grid.appendChild(nowLabel);
+        }
+
+        // Update current time line position
+        function updateCurrentTimeLine() {
+            const timeLine = document.getElementById('current-time-line');
+            const nowLabel = document.getElementById('current-time-now-label');
+            const grid = document.getElementById('hourly-grid');
+            if (!timeLine || !grid) return;
+
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinutes = now.getMinutes();
+
+            // Hide line if outside calendar hours (7am-6pm)
+            if (currentHour < 7 || currentHour >= 19) {
+                timeLine.style.display = 'none';
+                if (nowLabel) nowLabel.style.display = 'none';
+                return;
+            }
+
+            // Show line
+            timeLine.style.display = 'block';
+            if (nowLabel) nowLabel.style.display = 'block';
+
+            // Calculate position
+            // Each hour row is 60px tall (from min-height in CSS)
+            const hourRowHeight = 60;
+            const hoursSince7am = currentHour - 7;
+            const minuteOffset = (currentMinutes / 60) * hourRowHeight;
+            const topPosition = (hoursSince7am * hourRowHeight) + minuteOffset;
+
+            timeLine.style.top = `${topPosition}px`;
+
+            // Position NOW label
+            if (nowLabel) {
+                nowLabel.style.top = `${topPosition - 1}px`;
             }
         }
 
@@ -12058,11 +12262,26 @@
                 eventEl.style.height = `${heightPx}px`;
                 eventEl.style.zIndex = '1';
                 eventEl.style.borderRadius = '4px';
-                eventEl.style.overflow = 'hidden';
                 eventEl.style.cursor = 'grab';
 
                 // Show visual indicator if this event has been moved locally
                 const hasOverride = event.override_start || event.override_end;
+
+                // Format time for tooltip
+                const formatTime = (date) => {
+                    let hours = date.getHours();
+                    const minutes = date.getMinutes();
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12 || 12;
+                    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+                    return `${hours}:${minutesStr} ${ampm}`;
+                };
+
+                const actualDurationMinutes = Math.round((endDate - startDate) / (1000 * 60));
+                const timeInfo = `${formatTime(startDate)} to ${formatTime(endDate)} (${actualDurationMinutes} mins)`;
+                const tooltipText = `${timeInfo}${event.location ? '\n' + event.location : ''}${hasOverride ? '\n(Moved locally - resets on next import)' : ''}`;
+
+                eventEl.dataset.tooltip = tooltipText;
 
                 eventEl.innerHTML = `
                     <div class="hour-event-content">
@@ -12073,8 +12292,6 @@
                     </div>
                     ${hasOverride ? '<div class="hour-event-override-indicator" title="Moved locally - will reset on next import"></div>' : ''}
                 `;
-
-                eventEl.title = `${event.subject}${event.location ? '\n' + event.location : ''}${hasOverride ? '\n(Moved locally - resets on next import)' : ''}`;
 
                 // Add drag event handlers
                 eventEl.addEventListener('dragstart', function(e) {
@@ -15554,11 +15771,8 @@
                                 });
                                 const data = await response.json();
                                 if (data.success && data.task) {
-                                    // Update local maps with new updated_at
-                                    taskUpdatedAtMap[taskId] = data.task.updated_at;
-                                    if (taskDeadlinesMap[taskId]) {
-                                        taskDeadlinesMap[taskId].state_id = newStateId;
-                                    }
+                                    // Update task everywhere (including calendar)
+                                    handleTaskStateChange(data.task);
                                 }
                             } catch (error) {
                                 console.error('Error updating task state:', error);
@@ -15716,11 +15930,8 @@
                                 });
                                 const data = await response.json();
                                 if (data.success && data.task) {
-                                    // Update local maps with new updated_at
-                                    taskUpdatedAtMap[taskId] = data.task.updated_at;
-                                    if (taskDeadlinesMap[taskId]) {
-                                        taskDeadlinesMap[taskId].state_id = newStateId;
-                                    }
+                                    // Update task everywhere (including calendar)
+                                    handleTaskStateChange(data.task);
                                 }
                             } catch (error) {
                                 console.error('Error updating task state:', error);
@@ -15875,10 +16086,8 @@
                                 });
                                 const data = await response.json();
                                 if (data.success && data.task) {
-                                    taskUpdatedAtMap[taskId] = data.task.updated_at;
-                                    if (taskDeadlinesMap[taskId]) {
-                                        taskDeadlinesMap[taskId].state_id = newStateId;
-                                    }
+                                    // Update task everywhere (including calendar)
+                                    handleTaskStateChange(data.task);
                                 }
                             } catch (error) {
                                 console.error('Error updating task state:', error);
@@ -16038,10 +16247,8 @@
                             });
                             const data = await response.json();
                             if (data.success && data.task) {
-                                taskUpdatedAtMap[taskId] = data.task.updated_at;
-                                if (taskDeadlinesMap[taskId]) {
-                                    taskDeadlinesMap[taskId].state_id = newStateId;
-                                }
+                                // Update task everywhere (including calendar)
+                                handleTaskStateChange(data.task);
                             }
                         } catch (error) {
                             console.error('Error updating task state:', error);
@@ -16104,11 +16311,15 @@
 
         // Initialize two-panel layout
         generateHourlyCalendar();
+        updateCurrentTimeLine();
         setCalendarDate();
         renderCalendarEvents();
         renderTimeBlocks();
         setupCalendarDropZones();
         renderScheduledTasks();
+
+        // Update current time line every 15 minutes
+        setInterval(updateCurrentTimeLine, 15 * 60 * 1000);
         initScheduledTaskIndicators();
         setupTaskToCalendarDrag();
         updateCollapsedMetricsForStates();  // Rebuild metrics excluding terminal state
