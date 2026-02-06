@@ -15321,6 +15321,8 @@
                         group.style.display = 'none';
                     } else {
                         group.style.display = '';
+                        // Auto-collapse empty state groups
+                        group.classList.add('collapsed');
                         if (!emptyMsg) {
                             emptyMsg = document.createElement('div');
                             emptyMsg.className = 'state-group-empty';
@@ -15349,6 +15351,8 @@
                 let emptyMsg = body.querySelector('.state-group-empty');
                 if (visibleCards === 0) {
                     group.style.display = '';
+                    // Auto-collapse empty tag groups
+                    group.classList.add('collapsed');
                     if (!emptyMsg) {
                         emptyMsg = document.createElement('div');
                         emptyMsg.className = 'state-group-empty';
@@ -15381,6 +15385,8 @@
                 let emptyMsg = body.querySelector('.state-group-empty');
                 if (visibleCards === 0) {
                     group.style.display = '';
+                    // Auto-collapse empty schedule groups
+                    group.classList.add('collapsed');
                     if (!emptyMsg) {
                         emptyMsg = document.createElement('div');
                         emptyMsg.className = 'state-group-empty';
