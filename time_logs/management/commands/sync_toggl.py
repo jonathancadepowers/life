@@ -16,7 +16,7 @@ from time_logs.models import TimeLog
 from goals.models import Goal
 from projects.models import Project
 from time_logs.services.toggl_client import TogglAPIClient
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.utils import timezone as django_timezone
 
 
@@ -49,7 +49,7 @@ class Command(BaseCommand):
             client = TogglAPIClient()
 
             # Calculate date range
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
             start_date = end_date - timedelta(days=days)
 
             self.stdout.write(f'Date range: {start_date.date()} to {end_date.date()}')

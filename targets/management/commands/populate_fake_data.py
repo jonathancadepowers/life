@@ -160,7 +160,7 @@ class Command(BaseCommand):
         num_workouts = random.choices([1, 2], weights=[0.8, 0.2])[0]
 
         for i in range(num_workouts):
-            sport_id, sport_name = random.choice(sport_choices)
+            sport_id, _sport_name = random.choice(sport_choices)
 
             # Random start time
             hour = random.randint(6, 18)
@@ -288,7 +288,7 @@ class Command(BaseCommand):
             start = current_time
             end = start + timedelta(minutes=duration_minutes)
 
-            time_log, created = TimeLog.objects.update_or_create(
+            time_log, _ = TimeLog.objects.update_or_create(
                 source='Test',
                 source_id=f'test-timelog-{current_date}-{i}',
                 defaults={

@@ -52,7 +52,7 @@ def set_agenda(request):
 
     if request.method == 'POST':
         # Get or create today's agenda
-        agenda, created = DailyAgenda.objects.get_or_create(date=today)
+        agenda, _ = DailyAgenda.objects.get_or_create(date=today)
 
         # Process each target
         for i in range(1, 4):
@@ -185,7 +185,7 @@ def save_agenda(request):
             agenda_date = get_user_today(request)[0]
 
         # Get or create agenda for the specified date
-        agenda, created = DailyAgenda.objects.get_or_create(date=agenda_date)
+        agenda, _ = DailyAgenda.objects.get_or_create(date=agenda_date)
 
         # Process each target
         for i in range(1, 4):
@@ -1027,7 +1027,7 @@ def _get_todays_activity(request, sport_names_dict):
     from weight.models import WeighIn
     from workouts.models import Workout
 
-    today, today_start, today_end = get_user_today(request)
+    _today, today_start, today_end = get_user_today(request)
 
     todays_time_logs = TimeLog.objects.filter(
         start__gte=today_start, start__lte=today_end

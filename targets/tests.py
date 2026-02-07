@@ -2309,8 +2309,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
             alert = self.selenium.switch_to.alert
             alert.accept()
         except Exception:
-            # If no alert, that's okay - deletion might work differently
-            pass
+            pass  # No alert present - deletion handled differently
 
         # Wait for flash message or page update
         time.sleep(1)
@@ -2321,8 +2320,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
             table_label = self.selenium.find_element(By.XPATH, "//td[contains(text(), 'To Be Deleted')]")
             self.fail("Objective should have been deleted from table")
         except Exception:
-            # Not finding it is the expected behavior
-            pass
+            pass  # Element not found = objective was deleted (expected)
 
     def test_multiple_objectives_display(self):
         """Test that multiple objectives are displayed correctly."""
