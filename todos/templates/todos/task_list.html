@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta name="description" content="Task management and to-do list">
+    <meta name="keywords" content="tasks, todos, productivity">
     <title>Tasks</title>
     <script>
         // Read cookie immediately to prevent flash of rollup metrics
@@ -5774,7 +5776,7 @@
     <div class="slide-panel" id="slide-panel">
         <div class="panel-header">
             <span><i class="bi bi-pencil-square" style="margin-right: 0.4rem;"></i>Task Details</span>
-            <button class="panel-close" id="panel-close">&times;</button>
+            <button class="panel-close" id="panel-close">×</button>
         </div>
         <div class="panel-body" style="padding: 0;">
             <!-- Title Section -->
@@ -5927,7 +5929,7 @@
     <div class="timeslot-panel" id="timeslot-panel">
         <div class="panel-header">
             <span style="font-weight: 500;" id="timeslot-panel-title">Time Slot Tasks</span>
-            <button class="panel-close" id="timeslot-panel-close">&times;</button>
+            <button class="panel-close" id="timeslot-panel-close">×</button>
         </div>
         <div class="timeslot-task-list" id="timeslot-task-list">
             <!-- Tasks will be populated here -->
