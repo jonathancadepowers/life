@@ -123,6 +123,54 @@ def log_fast(request):
         }, status=500)
 
 
+def _strip_ansi(text):
+    """Remove ANSI escape codes from text."""
+    import re
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    return ansi_escape.sub('', text)
+
+
+def _extract_sync_summary(output_text, error_text):
+    """Extract the SYNC SUMMARY section from command output, or return full output."""
+    summary_start = output_text.find('SYNC SUMMARY')
+    if summary_start == -1:
+        full_output = output_text
+        if error_text:
+            full_output += f"\n\nErrors/Warnings:\n{error_text}"
+        return full_output
+
+    lines = output_text[:summary_start].split('\n')
+    # Go back to find the === line
+    summary_start_line = len(lines) - 1
+    for i in range(len(lines) - 1, -1, -1):
+        if '=' * 20 in lines[i]:
+            summary_start_line = i
+            break
+
+    all_lines = output_text.split('\n')
+    return '\n'.join(all_lines[summary_start_line:])
+
+
+def _detect_auth_errors(full_output):
+    """Detect authentication errors for each service from sync output."""
+    auth_errors = {}
+    if 'Whoop refresh token expired' in full_output or 'python manage.py whoop_auth' in full_output:
+        auth_errors['whoop'] = True
+
+    output_lower = full_output.lower()
+    withings_mentioned = 'withings' in output_lower
+    withings_auth_issue = (
+        'refresh token' in output_lower
+        or 'python manage.py withings_auth' in full_output
+        or 'invalid_token' in output_lower
+        or 'access token provided is invalid' in output_lower
+    )
+    if withings_mentioned and withings_auth_issue:
+        auth_errors['withings'] = True
+
+    return auth_errors
+
+
 @require_http_methods(["POST"])
 def master_sync(_request):
     """
@@ -137,77 +185,26 @@ def master_sync(_request):
         - output: string (command output if successful)
     """
     try:
-        import re
-
-        # Import models to count records
         from workouts.models import Workout
         from weight.models import WeighIn
         from time_logs.models import TimeLog
 
-        # Count records before sync
         before_count = Workout.objects.count() + WeighIn.objects.count() + TimeLog.objects.count()
 
-        # Capture command output (both stdout and stderr)
         output = StringIO()
         error_output = StringIO()
-
-        # Run the sync_all command
         call_command('sync_all', '--days=30', stdout=output, stderr=error_output)
 
-        # Count records after sync
         after_count = Workout.objects.count() + WeighIn.objects.count() + TimeLog.objects.count()
         new_entries = after_count - before_count
 
-        output_text = output.getvalue()
-        error_text = error_output.getvalue()
+        output_text = _strip_ansi(output.getvalue())
+        error_text = _strip_ansi(error_output.getvalue())
 
-        # Strip ANSI escape codes from output (they don't render in HTML)
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-        output_text = ansi_escape.sub('', output_text)
-        error_text = ansi_escape.sub('', error_text)
+        full_output = _extract_sync_summary(output_text, error_text)
+        has_errors = '\u2717' in full_output or bool(error_text)
+        auth_errors = _detect_auth_errors(full_output)
 
-        # Extract only the SYNC SUMMARY section
-        summary_start = output_text.find('SYNC SUMMARY')
-        if summary_start != -1:
-            # Find the start of the summary box (the line with = signs before "SYNC SUMMARY")
-            lines = output_text[:summary_start].split('\n')
-            # Go back to find the === line
-            for i in range(len(lines) - 1, -1, -1):
-                if '=' * 20 in lines[i]:
-                    summary_start_line = i
-                    break
-            else:
-                summary_start_line = len(lines) - 1
-
-            # Reconstruct from the summary section onwards
-            all_lines = output_text.split('\n')
-            full_output = '\n'.join(all_lines[summary_start_line:])
-        else:
-            # Fallback: show all output if summary not found
-            full_output = output_text
-            if error_text:
-                full_output += f"\n\nErrors/Warnings:\n{error_text}"
-
-        # Detect if there were any errors by checking for the ✗ symbol in the output
-        has_errors = '✗' in full_output or bool(error_text)
-
-        # Detect authentication errors and which services need re-auth
-        auth_errors = {}
-        if 'Whoop refresh token expired' in full_output or 'python manage.py whoop_auth' in full_output:
-            auth_errors['whoop'] = True
-
-        # Check for Withings auth errors (refresh token expired, invalid_token, or access token issues)
-        withings_in_output = 'Withings' in full_output or 'WITHINGS' in full_output
-        withings_auth_error = (
-            'refresh token' in full_output.lower() or
-            'python manage.py withings_auth' in full_output or
-            'invalid_token' in full_output.lower() or
-            'access token provided is invalid' in full_output.lower()
-        )
-        if withings_in_output and withings_auth_error:
-            auth_errors['withings'] = True
-
-        # Create message with count
         message = f'Synced {new_entries} new {"entry" if new_entries == 1 else "entries"}!'
 
         return JsonResponse({

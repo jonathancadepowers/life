@@ -17,6 +17,10 @@ _OBJECTIVE_NOT_FOUND = 'Objective not found'
 _INVALID_JSON = 'Invalid JSON data'
 
 
+class TogglRateLimitError(Exception):
+    """Raised when the Toggl API rate limit is reached and no cached data is available."""
+
+
 def get_user_timezone(request):
     """
     Get the user's timezone from the cookie set by JavaScript.
@@ -169,71 +173,57 @@ def sync_toggl_projects_goals(_request):
         }, status=500)
 
 
+def _compute_day_score(agenda):
+    """Calculate the overall day score from targets 1-3 on an agenda."""
+    targets_set = 0
+    total_score = 0
+
+    for i in range(1, 4):
+        target = getattr(agenda, f'target_{i}')
+        target_score = getattr(agenda, f'target_{i}_score')
+        if target:
+            targets_set += 1
+            if target_score is not None:
+                total_score += target_score
+
+    return total_score / targets_set if targets_set > 0 else None
+
+
+def _apply_agenda_target(agenda, i, post_data):
+    """Set or clear a single target (i) on the agenda from POST data."""
+    project_id = post_data.get(f'project_{i}')
+    goal_id = post_data.get(f'goal_{i}')
+    target_input = post_data.get(f'target_{i}')
+
+    if project_id and target_input:
+        setattr(agenda, f'project_{i}_id', project_id)
+        setattr(agenda, f'goal_{i}_id', goal_id if goal_id else None)
+        setattr(agenda, f'target_{i}', target_input)
+    else:
+        setattr(agenda, f'project_{i}_id', None)
+        setattr(agenda, f'goal_{i}_id', None)
+        setattr(agenda, f'target_{i}', None)
+        setattr(agenda, f'target_{i}_score', None)
+
+
 @require_http_methods(["POST"])
 def save_agenda(request):
     """AJAX endpoint to save agenda for a specific date (or today if not specified)."""
     try:
-        # Check if a specific date was provided (for editing past agendas)
         date_str = request.POST.get('date')
-
         if date_str:
-            # Parse the provided date
             from datetime import datetime
             agenda_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         else:
-            # Use user's timezone to determine "today"
             agenda_date = get_user_today(request)[0]
 
-        # Get or create agenda for the specified date
         agenda, _ = DailyAgenda.objects.get_or_create(date=agenda_date)
 
-        # Process each target
         for i in range(1, 4):
-            project_id = request.POST.get(f'project_{i}')
-            goal_id = request.POST.get(f'goal_{i}')
-            target_input = request.POST.get(f'target_{i}')
+            _apply_agenda_target(agenda, i, request.POST)
 
-            # Save if we have project and target (goal is optional)
-            if project_id and target_input:
-                # Set agenda fields directly with text
-                setattr(agenda, f'project_{i}_id', project_id)
-                setattr(agenda, f'goal_{i}_id', goal_id if goal_id else None)
-                setattr(agenda, f'target_{i}', target_input)
-            else:
-                # Clear fields if not provided
-                setattr(agenda, f'project_{i}_id', None)
-                setattr(agenda, f'goal_{i}_id', None)
-                setattr(agenda, f'target_{i}', None)
-                # Also clear the score if target is removed
-                setattr(agenda, f'target_{i}_score', None)
-
-        # Save other plans if provided
-        other_plans = request.POST.get('other_plans', '')
-        agenda.other_plans = other_plans
-
-        # Calculate and save overall day score
-        # Count how many targets are set (only targets 1-3, not other_plans)
-        targets_set = 0
-        total_score = 0
-
-        # Check targets 1-3
-        for i in range(1, 4):
-            target = getattr(agenda, f'target_{i}')
-            target_score = getattr(agenda, f'target_{i}_score')
-
-            # Target is set if it exists
-            if target:
-                targets_set += 1
-                # Add score if it exists (0, 0.5, or 1)
-                if target_score is not None:
-                    total_score += target_score
-
-        # Calculate day score if any targets are set (excluding other_plans)
-        if targets_set > 0:
-            agenda.day_score = total_score / targets_set
-        else:
-            agenda.day_score = None
-
+        agenda.other_plans = request.POST.get('other_plans', '')
+        agenda.day_score = _compute_day_score(agenda)
         agenda.save()
 
         return JsonResponse({
@@ -292,7 +282,7 @@ def _fetch_toggl_entries_cached(today_start, now):
         if '402' in error_str or '429' in error_str or 'rate' in error_str.lower():
             time_entries = cache.get(cache_key, [])
             if not time_entries:
-                raise Exception("Toggl API rate limit reached. Please wait a moment and refresh.")
+                raise TogglRateLimitError("Toggl API rate limit reached. Please wait a moment and refresh.")
             return time_entries
         raise
 
@@ -559,6 +549,26 @@ def get_agenda_for_date(request):
         }, status=500)
 
 
+def _validate_target_num(raw_value):
+    """Validate and return target_num as int, or None if invalid."""
+    try:
+        target_num = int(raw_value)
+        return target_num if target_num in (1, 2, 3, 4) else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _validate_score(raw_value):
+    """Validate and return score as float or None. Returns (score, is_valid)."""
+    if raw_value == 'null':
+        return None, True
+    try:
+        score = float(raw_value)
+        return (score, True) if score in (0, 0.5, 1) else (None, False)
+    except (ValueError, TypeError):
+        return None, False
+
+
 @require_http_methods(["POST"])
 def save_target_score(request):
     """
@@ -571,85 +581,36 @@ def save_target_score(request):
     """
     try:
         date_str = request.POST.get('date')
-        target_num = request.POST.get('target_num')
-        score = request.POST.get('score')
+        raw_target_num = request.POST.get('target_num')
+        raw_score = request.POST.get('score')
 
-        if not date_str or not target_num or score is None:
-            return JsonResponse({
-                'success': False,
-                'error': 'Missing required parameters'
-            }, status=400)
+        if not date_str or not raw_target_num or raw_score is None:
+            return JsonResponse({'success': False, 'error': 'Missing required parameters'}, status=400)
 
-        # Validate target_num (1-3 for targets, 4 for other_plans)
-        try:
-            target_num = int(target_num)
-            if target_num not in [1, 2, 3, 4]:
-                raise ValueError()
-        except (ValueError, TypeError):
-            return JsonResponse({
-                'success': False,
-                'error': 'target_num must be 1, 2, 3, or 4'
-            }, status=400)
+        target_num = _validate_target_num(raw_target_num)
+        if target_num is None:
+            return JsonResponse({'success': False, 'error': 'target_num must be 1, 2, 3, or 4'}, status=400)
 
-        # Validate score (allow "null" string to clear the score)
-        if score == 'null':
-            score = None
-        else:
-            try:
-                score = float(score)
-                if score not in [0, 0.5, 1]:
-                    raise ValueError()
-            except (ValueError, TypeError):
-                return JsonResponse({
-                    'success': False,
-                    'error': 'score must be 0, 0.5, 1, or null'
-                }, status=400)
+        score, score_valid = _validate_score(raw_score)
+        if not score_valid:
+            return JsonResponse({'success': False, 'error': 'score must be 0, 0.5, 1, or null'}, status=400)
 
-        # Parse the date
-        from datetime import datetime as dt
-        agenda_date = dt.strptime(date_str, '%Y-%m-%d').date()
-
-        # Get the agenda for this date
-        try:
-            agenda = DailyAgenda.objects.get(date=agenda_date)
-        except DailyAgenda.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'error': 'No agenda found for this date'
-            }, status=404)
-
-        # Set the score for the specified target (only targets 1-3)
-        if target_num < 1 or target_num > 3:
+        if target_num not in (1, 2, 3):
             return JsonResponse({
                 'success': False,
                 'error': f'Invalid target number: {target_num}. Only targets 1-3 can be scored.'
             }, status=400)
 
+        from datetime import datetime as dt
+        agenda_date = dt.strptime(date_str, '%Y-%m-%d').date()
+
+        try:
+            agenda = DailyAgenda.objects.get(date=agenda_date)
+        except DailyAgenda.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'No agenda found for this date'}, status=404)
+
         setattr(agenda, f'target_{target_num}_score', score)
-
-        # Calculate and save overall day score
-        # Count how many targets are set (only targets 1-3, not other_plans)
-        targets_set = 0
-        total_score = 0
-
-        # Check targets 1-3
-        for i in range(1, 4):
-            target = getattr(agenda, f'target_{i}')
-            target_score = getattr(agenda, f'target_{i}_score')
-
-            # Target is set if it exists
-            if target:
-                targets_set += 1
-                # Add score if it exists (0, 0.5, or 1)
-                if target_score is not None:
-                    total_score += target_score
-
-        # Calculate day score if any targets are set (excluding other_plans)
-        if targets_set > 0:
-            agenda.day_score = total_score / targets_set
-        else:
-            agenda.day_score = None
-
+        agenda.day_score = _compute_day_score(agenda)
         agenda.save()
 
         return JsonResponse({
@@ -659,10 +620,7 @@ def save_target_score(request):
         })
 
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 def _parse_report_date_range(request):
     """Parse date range from query params or default to current week."""
@@ -820,6 +778,44 @@ def _get_workouts_by_sport(start_datetime, end_datetime, sport_names_dict):
     ))
 
 
+def _resolve_project_name(project_id):
+    """Resolve a project_id to its display name, falling back to a generic label."""
+    try:
+        return Project.objects.get(project_id=project_id).display_string
+    except Project.DoesNotExist:
+        return f"Project {project_id}"
+
+
+def _accumulate_time_by_project(time_logs):
+    """Accumulate hours per project and goal from time log entries."""
+    time_by_project = {}
+    for log in time_logs:
+        project_name = _resolve_project_name(log.project_id)
+        duration_hours = (log.end - log.start).total_seconds() / 3600
+
+        if project_name not in time_by_project:
+            time_by_project[project_name] = {'total_hours': 0, 'goals': {}}
+
+        time_by_project[project_name]['total_hours'] += duration_hours
+        for goal in log.goals.all():
+            goals = time_by_project[project_name]['goals']
+            goals[goal.display_string] = goals.get(goal.display_string, 0) + duration_hours
+    return time_by_project
+
+
+def _apply_time_percentages(time_by_project, total_time_hours):
+    """Add percentage fields to each project and goal entry."""
+    for project_data in time_by_project.values():
+        project_data['percentage'] = round((project_data['total_hours'] / total_time_hours) * 100) if total_time_hours > 0 else 0
+        project_data['goals'] = {
+            name: {
+                'hours': hours,
+                'percentage': round((hours / total_time_hours) * 100) if total_time_hours > 0 else 0,
+            }
+            for name, hours in project_data['goals'].items()
+        }
+
+
 def _get_time_by_project(start_datetime, end_datetime):
     """Group time logs by project and goal, returning sorted data with percentages."""
     time_logs = TimeLog.objects.filter(
@@ -827,27 +823,7 @@ def _get_time_by_project(start_datetime, end_datetime):
         start__lte=end_datetime
     ).prefetch_related('goals')
 
-    time_by_project = {}
-
-    for log in time_logs:
-        try:
-            project = Project.objects.get(project_id=log.project_id)
-            project_name = project.display_string
-        except Project.DoesNotExist:
-            project_name = f"Project {log.project_id}"
-
-        duration_hours = (log.end - log.start).total_seconds() / 3600
-
-        if project_name not in time_by_project:
-            time_by_project[project_name] = {'total_hours': 0, 'goals': {}}
-
-        time_by_project[project_name]['total_hours'] += duration_hours
-
-        for goal in log.goals.all():
-            goal_name = goal.display_string
-            if goal_name not in time_by_project[project_name]['goals']:
-                time_by_project[project_name]['goals'][goal_name] = 0
-            time_by_project[project_name]['goals'][goal_name] += duration_hours
+    time_by_project = _accumulate_time_by_project(time_logs)
 
     # Sort projects and goals by hours descending
     time_by_project = dict(sorted(
@@ -858,18 +834,8 @@ def _get_time_by_project(start_datetime, end_datetime):
             time_by_project[project_name]['goals'].items(), key=lambda x: x[1], reverse=True
         ))
 
-    # Calculate percentages
     total_time_hours = sum(pd['total_hours'] for pd in time_by_project.values())
-
-    for project_data in time_by_project.values():
-        project_data['percentage'] = round((project_data['total_hours'] / total_time_hours) * 100) if total_time_hours > 0 else 0
-
-        for goal_name in project_data['goals']:
-            goal_hours = project_data['goals'][goal_name]
-            project_data['goals'][goal_name] = {
-                'hours': goal_hours,
-                'percentage': round((goal_hours / total_time_hours) * 100) if total_time_hours > 0 else 0
-            }
+    _apply_time_percentages(time_by_project, total_time_hours)
 
     return time_by_project, total_time_hours
 
@@ -1082,6 +1048,19 @@ def activity_report(request):
     return render(request, 'targets/activity_report.html', context)
 
 
+def _format_template_value(value):
+    """Format a value for display in a details template."""
+    from decimal import Decimal
+
+    if not isinstance(value, (int, float, Decimal)):
+        return str(value)
+    if isinstance(value, Decimal):
+        value = float(value)
+    if isinstance(value, float) and value.is_integer():
+        return f'{int(value):,}'
+    return f'{value:,}'
+
+
 def parse_details_template(template, data_dict):
     """
     Parse a details display template and replace {field_name} placeholders with actual values.
@@ -1094,7 +1073,6 @@ def parse_details_template(template, data_dict):
         Parsed string with placeholders replaced
     """
     import re
-    from decimal import Decimal
 
     if not template:
         return ''
@@ -1105,170 +1083,117 @@ def parse_details_template(template, data_dict):
 
     for placeholder in placeholders:
         value = data_dict.get(placeholder, '')
-        # Format the value appropriately
         if value is not None:
-            # Format numbers with commas for thousands separator
-            if isinstance(value, (int, float, Decimal)):
-                # Convert Decimal to float for processing
-                if isinstance(value, Decimal):
-                    value = float(value)
-
-                # Check if it's a whole number (even if stored as float)
-                if isinstance(value, float) and value.is_integer():
-                    formatted_value = f'{int(value):,}'
-                else:
-                    formatted_value = f'{value:,}'
-            else:
-                formatted_value = str(value)
-
+            formatted_value = _format_template_value(value)
             result = result.replace(f'{{{placeholder}}}', formatted_value)
 
     return result
+
+
+def _fetch_workout_records(day_start, day_end, user_tz, sql_query):
+    """Fetch workout records for a given day."""
+    import re
+    from workouts.models import Workout
+
+    sport_match = re.search(r'sport_id\s*=\s*(\d+)', sql_query, re.IGNORECASE)
+    query = Workout.objects.filter(start__gte=day_start, start__lte=day_end)
+    if sport_match:
+        query = query.filter(sport_id=int(sport_match.group(1)))
+
+    return [{
+        'start': w.start.astimezone(user_tz).strftime(_TIME_FORMAT),
+        'end': w.end.astimezone(user_tz).strftime(_TIME_FORMAT),
+        'sport_id': w.sport_id,
+        'average_heart_rate': w.average_heart_rate,
+        'max_heart_rate': w.max_heart_rate,
+        'calories_burned': w.calories_burned,
+        'distance_in_miles': w.distance_in_miles,
+    } for w in query]
+
+
+def _fetch_fasting_records(day_start, day_end, user_tz):
+    """Fetch fasting session records for a given day."""
+    from fasting.models import FastingSession
+    return [{
+        'duration': f.duration,
+        'fast_end_date': f.fast_end_date.astimezone(user_tz).strftime(_TIME_FORMAT),
+    } for f in FastingSession.objects.filter(fast_end_date__gte=day_start, fast_end_date__lte=day_end)]
+
+
+def _fetch_writing_records(current_date):
+    """Fetch writing log records for a given date."""
+    from writing.models import WritingLog
+    return [{
+        'log_date': log.log_date.strftime(_DATE_FORMAT),
+        'duration': log.duration,
+    } for log in WritingLog.objects.filter(log_date=current_date)]
+
+
+def _fetch_weight_records(day_start, day_end, user_tz):
+    """Fetch weigh-in records for a given day."""
+    from weight.models import WeighIn
+    return [{
+        'measurement_time': w.measurement_time.astimezone(user_tz).strftime(_TIME_FORMAT),
+        'weight': w.weight,
+    } for w in WeighIn.objects.filter(measurement_time__gte=day_start, measurement_time__lte=day_end)]
+
+
+def _fetch_nutrition_records(day_start, day_end, user_tz):
+    """Fetch nutrition entry records for a given day."""
+    from nutrition.models import NutritionEntry
+    return [{
+        'consumption_date': e.consumption_date.astimezone(user_tz).strftime('%b %-d'),
+        'calories': e.calories,
+        'fat': e.fat,
+        'carbs': e.carbs,
+        'protein': e.protein,
+    } for e in NutritionEntry.objects.filter(consumption_date__gte=day_start, consumption_date__lte=day_end)]
+
+
+def _fetch_youtube_records(current_date):
+    """Fetch YouTube avoidance log records for a given date."""
+    from youtube_avoidance.models import YouTubeAvoidanceLog
+    return [{
+        'log_date': log.log_date.strftime(_DATE_FORMAT),
+    } for log in YouTubeAvoidanceLog.objects.filter(log_date=current_date)]
+
+
+def _fetch_waist_records(current_date):
+    """Fetch waist circumference measurement records for a given date."""
+    from waist_measurements.models import WaistCircumferenceMeasurement
+    return [{
+        'log_date': m.log_date.strftime(_DATE_FORMAT),
+        'measurement': m.measurement,
+    } for m in WaistCircumferenceMeasurement.objects.filter(log_date=current_date)]
 
 
 def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_query):
     """
     Fetch all data records for a specific column and day using the configured SQL query.
 
-    Args:
-        column_name: Name of the column
-        day_start: Start of day (timezone-aware)
-        day_end: End of day (timezone-aware)
-        current_date: Current date
-        user_tz: User's timezone for formatting timestamps
-        sql_query: The configured SQL query for this column
-
     Returns a list of dictionaries (one per record), or empty list if no data found.
     """
-    from workouts.models import Workout
-    from fasting.models import FastingSession
-    from writing.models import WritingLog
-    from weight.models import WeighIn
-    from nutrition.models import NutritionEntry
     import re
 
     try:
-        records = []
-
-        # Parse table name from SQL query
         table_match = re.search(r'FROM\s+(\w+)', sql_query, re.IGNORECASE)
         if not table_match:
             return []
 
         table_name = table_match.group(1)
 
-        # Map table names to models and fetch data
-        if table_name == 'workouts_workout':
-            # Parse sport_id filter if present
-            sport_match = re.search(r'sport_id\s*=\s*(\d+)', sql_query, re.IGNORECASE)
+        _TABLE_FETCHERS = {
+            'workouts_workout': lambda: _fetch_workout_records(day_start, day_end, user_tz, sql_query),
+            'fasting_fastingsession': lambda: _fetch_fasting_records(day_start, day_end, user_tz),
+            'writing_logs': lambda: _fetch_writing_records(current_date),
+            'weight_weighin': lambda: _fetch_weight_records(day_start, day_end, user_tz),
+            'nutrition_nutritionentry': lambda: _fetch_nutrition_records(day_start, day_end, user_tz),
+            'youtube_avoidance_logs': lambda: _fetch_youtube_records(current_date),
+            'waist_circumference_measurements': lambda: _fetch_waist_records(current_date),
+        }
 
-            query = Workout.objects.filter(
-                start__gte=day_start,
-                start__lte=day_end
-            )
-
-            if sport_match:
-                sport_id = int(sport_match.group(1))
-                query = query.filter(sport_id=sport_id)
-
-            for workout in query:
-                # Convert to user's timezone
-                start_local = workout.start.astimezone(user_tz)
-                end_local = workout.end.astimezone(user_tz)
-
-                records.append({
-                    'start': start_local.strftime(_TIME_FORMAT),
-                    'end': end_local.strftime(_TIME_FORMAT),
-                    'sport_id': workout.sport_id,
-                    'average_heart_rate': workout.average_heart_rate,
-                    'max_heart_rate': workout.max_heart_rate,
-                    'calories_burned': workout.calories_burned,
-                    'distance_in_miles': workout.distance_in_miles,
-                })
-
-        elif table_name == 'fasting_fastingsession':
-            fasts = FastingSession.objects.filter(
-                fast_end_date__gte=day_start,
-                fast_end_date__lte=day_end
-            )
-
-            for fast in fasts:
-                # Convert to user's timezone
-                fast_end_local = fast.fast_end_date.astimezone(user_tz)
-
-                records.append({
-                    'duration': fast.duration,
-                    'fast_end_date': fast_end_local.strftime(_TIME_FORMAT),
-                })
-
-        elif table_name == 'writing_logs':
-            logs = WritingLog.objects.filter(
-                log_date=current_date
-            )
-
-            for log in logs:
-                records.append({
-                    'log_date': log.log_date.strftime(_DATE_FORMAT),
-                    'duration': log.duration,
-                })
-
-        elif table_name == 'weight_weighin':
-            weigh_ins = WeighIn.objects.filter(
-                measurement_time__gte=day_start,
-                measurement_time__lte=day_end
-            )
-
-            for weigh_in in weigh_ins:
-                # Convert to user's timezone
-                measurement_local = weigh_in.measurement_time.astimezone(user_tz)
-
-                records.append({
-                    'measurement_time': measurement_local.strftime(_TIME_FORMAT),
-                    'weight': weigh_in.weight,
-                })
-
-        elif table_name == 'nutrition_nutritionentry':
-            entries = NutritionEntry.objects.filter(
-                consumption_date__gte=day_start,
-                consumption_date__lte=day_end
-            )
-
-            for entry in entries:
-                # Convert to user's timezone
-                consumption_local = entry.consumption_date.astimezone(user_tz)
-
-                records.append({
-                    'consumption_date': consumption_local.strftime('%b %-d'),
-                    'calories': entry.calories,
-                    'fat': entry.fat,
-                    'carbs': entry.carbs,
-                    'protein': entry.protein,
-                })
-
-        elif table_name == 'youtube_avoidance_logs':
-            from youtube_avoidance.models import YouTubeAvoidanceLog
-            logs = YouTubeAvoidanceLog.objects.filter(
-                log_date=current_date
-            )
-
-            for log in logs:
-                records.append({
-                    'log_date': log.log_date.strftime(_DATE_FORMAT),
-                })
-
-        elif table_name == 'waist_circumference_measurements':
-            from waist_measurements.models import WaistCircumferenceMeasurement
-            measurements = WaistCircumferenceMeasurement.objects.filter(
-                log_date=current_date
-            )
-
-            for measurement in measurements:
-                records.append({
-                    'log_date': measurement.log_date.strftime(_DATE_FORMAT),
-                    'measurement': measurement.measurement,
-                })
-
-        return records
+        fetcher = _TABLE_FETCHERS.get(table_name)
+        return fetcher() if fetcher else []
 
     except Exception as e:
         print(f"Error fetching data for {column_name}: {e}")
@@ -1322,6 +1247,24 @@ def _prepare_sql_params(query, current_date, day_start, day_end):
     return query, params
 
 
+def _is_eat_clean_hidden(col_name, current_date, user_tz):
+    """Return True if eat_clean data should be hidden (before 6 PM on that day)."""
+    if col_name != 'eat_clean':
+        return False
+    now_in_user_tz = datetime.now(user_tz)
+    six_pm = user_tz.localize(datetime.combine(current_date, datetime.min.time().replace(hour=18)))
+    return now_in_user_tz < six_pm
+
+
+def _build_column_details(column, day_start, day_end, current_date, user_tz):
+    """Build the details string for a column with data."""
+    records = get_column_data(column.column_name, day_start, day_end, current_date, user_tz, column.sql_query)
+    if not records:
+        return ''
+    parsed_details = [parse_details_template(column.details_display, record) for record in records]
+    return ', '.join(parsed_details)
+
+
 def _query_column_for_day(column, current_date, day_start, day_end, user_tz, day_data):
     """Execute a column's SQL query for a single day and populate day_data."""
     col_name = column.column_name
@@ -1331,26 +1274,14 @@ def _query_column_for_day(column, current_date, day_start, day_end, user_tz, day
             cursor.execute(query, params)
             result = cursor.fetchone()
             count = result[0] if result and result[0] is not None else 0
-            has_data = count > 0
-
-            # Special rule for eat_clean: only show after 6pm on that day
-            if col_name == 'eat_clean' and has_data:
-                now_in_user_tz = datetime.now(user_tz)
-                six_pm = user_tz.localize(datetime.combine(current_date, datetime.min.time().replace(hour=18)))
-                if now_in_user_tz < six_pm:
-                    has_data = False
+            has_data = count > 0 and not _is_eat_clean_hidden(col_name, current_date, user_tz)
 
             day_data[f'has_{col_name}'] = has_data
-
-            if has_data and column.details_display:
-                records = get_column_data(col_name, day_start, day_end, current_date, user_tz, column.sql_query)
-                if records:
-                    parsed_details = [parse_details_template(column.details_display, record) for record in records]
-                    day_data[f'details_{col_name}'] = ', '.join(parsed_details)
-                else:
-                    day_data[f'details_{col_name}'] = ''
-            else:
-                day_data[f'details_{col_name}'] = ''
+            day_data[f'details_{col_name}'] = (
+                _build_column_details(column, day_start, day_end, current_date, user_tz)
+                if has_data and column.details_display
+                else ''
+            )
 
     except Exception as e:
         day_data[f'has_{col_name}'] = False
@@ -1511,7 +1442,7 @@ def _build_objective_id_query(sql, table_name, date_col_sql, objective):
     import re
 
     pk_column = 'id'
-    where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
+    where_match = re.search(r'\bWHERE\b((?:(?!\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b).)+)', sql, re.IGNORECASE | re.DOTALL)
 
     if where_match:
         where_clause = where_match.group(1).strip()
@@ -1579,6 +1510,27 @@ def _make_objective_response(objective, entries):
     })
 
 
+def _fetch_objective_detail_rows(table_name, id_rows, date_col_sql):
+    """Fetch full row details for objective entries by their IDs."""
+    ids_str = ','.join(str(row[0]) for row in id_rows)
+    detail_query = f"SELECT * FROM {table_name} WHERE id IN ({ids_str}) ORDER BY {date_col_sql} DESC"
+
+    with connection.cursor() as cursor:
+        cursor.execute(detail_query)
+        columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+def _format_objective_entries(row_dicts, objective, table_name, user_timezone):
+    """Format a list of row dicts into display strings using the objective's display template."""
+    formatter = (
+        (lambda rd: _format_entry_with_custom_display(objective.historical_display, rd, user_timezone))
+        if objective.historical_display
+        else (lambda rd: _format_entry_default(table_name, rd, user_timezone))
+    )
+    return [formatter(rd) for rd in row_dicts]
+
+
 def get_objective_entries(request):
     """
     API endpoint to fetch the last entries contributing to a monthly objective.
@@ -1618,37 +1570,15 @@ def get_objective_entries(request):
         _date_col_display, date_col_sql = _OBJECTIVE_TABLE_DATE_COLS.get(table_name, ('created_at', 'created_at'))
         id_query = _build_objective_id_query(sql, table_name, date_col_sql, objective)
 
-        print(f"OBJECTIVE ENTRIES DEBUG for {objective.label}:")
-        print(f"  Table: {table_name}")
-        print(f"  Query: {id_query}")
-
         with connection.cursor() as cursor:
             cursor.execute(id_query)
             id_rows = cursor.fetchall()
 
-        print(f"  Returned {len(id_rows)} rows")
-        if id_rows:
-            print(f"  First 3 rows: {id_rows[:3]}")
-
         if not id_rows:
             return _make_objective_response(objective, [])
 
-        # Fetch full row details
-        ids_str = ','.join(str(row[0]) for row in id_rows)
-        detail_query = f"SELECT * FROM {table_name} WHERE id IN ({ids_str}) ORDER BY {date_col_sql} DESC"
-
-        with connection.cursor() as cursor:
-            cursor.execute(detail_query)
-            columns = [col[0] for col in cursor.description]
-            rows = cursor.fetchall()
-
-        entries = []
-        for row in rows:
-            row_dict = dict(zip(columns, row))
-            if objective.historical_display:
-                entries.append(_format_entry_with_custom_display(objective.historical_display, row_dict, user_timezone))
-            else:
-                entries.append(_format_entry_default(table_name, row_dict, user_timezone))
+        row_dicts = _fetch_objective_detail_rows(table_name, id_rows, date_col_sql)
+        entries = _format_objective_entries(row_dicts, objective, table_name, user_timezone)
 
         return _make_objective_response(objective, entries)
 

@@ -33,80 +33,74 @@ class Command(BaseCommand):
             help='Clear existing test data before generating new data'
         )
 
+    def _clear_test_data(self):
+        """Delete all data previously created with source='Test'."""
+        Workout.objects.filter(source='Test').delete()
+        WeighIn.objects.filter(source='Test').delete()
+        FastingSession.objects.filter(source='Test').delete()
+        NutritionEntry.objects.filter(source='Test').delete()
+        TimeLog.objects.filter(source='Test').delete()
+        DailyAgenda.objects.filter(notes__contains='[TEST]').delete()
+        self.stdout.write(self.style.SUCCESS('\u2713 Cleared test data'))
+
+    def _generate_day(self, current_date, projects, goals, counts):
+        """Generate all data types for a single day, updating counts in place."""
+        # Probability table: (threshold, counter_key, generator_method, extra_args)
+        generators = [
+            (0.6, 'workouts', self._create_workouts, (current_date,)),
+            (0.8, 'weight', self._create_weight_entry, (current_date,)),
+            (0.7, 'fasting', self._create_fasting_session, (current_date,)),
+            (0.85, 'nutrition', self._create_nutrition_entries, (current_date,)),
+        ]
+
+        for threshold, key, method, args in generators:
+            if random.random() < threshold:
+                counts[key] += method(*args)
+
+        # Time logs depend on weekday/weekend
+        is_weekday = current_date.weekday() < 5
+        time_log_prob = 0.9 if is_weekday else 0.2
+        if random.random() < time_log_prob:
+            counts['time_logs'] += self._create_time_logs(current_date, projects, goals)
+
+        # Daily agendas
+        if random.random() < 0.7:
+            counts['agendas'] += self._create_daily_agenda(current_date, projects, goals)
+
     def handle(self, *_args, **options):
         days = options['days']
-        clear = options['clear']
 
-        if clear:
+        if options['clear']:
             self.stdout.write('Clearing existing test data...')
-            # Only delete 'Manual' or 'Test' source data
-            Workout.objects.filter(source='Test').delete()
-            WeighIn.objects.filter(source='Test').delete()
-            FastingSession.objects.filter(source='Test').delete()
-            NutritionEntry.objects.filter(source='Test').delete()
-            TimeLog.objects.filter(source='Test').delete()
-            DailyAgenda.objects.filter(notes__contains='[TEST]').delete()
-            self.stdout.write(self.style.SUCCESS('✓ Cleared test data'))
+            self._clear_test_data()
 
         self.stdout.write(f'\nGenerating {days} days of fake data...\n')
 
-        # Get or create test projects and goals
         projects, goals = self._create_projects_and_goals()
 
-        # Generate data for each day
         today = date.today()
         start_date = today - timedelta(days=days)
 
-        created_counts = {
-            'workouts': 0,
-            'weight': 0,
-            'fasting': 0,
-            'nutrition': 0,
-            'time_logs': 0,
-            'agendas': 0
+        counts = {
+            'workouts': 0, 'weight': 0, 'fasting': 0,
+            'nutrition': 0, 'time_logs': 0, 'agendas': 0
         }
 
         for day_offset in range(days):
-            current_date = start_date + timedelta(days=day_offset)
-
-            # Skip some days randomly to make it realistic
-            if random.random() < 0.15:  # 15% chance to skip a day
+            if random.random() < 0.15:
                 continue
-
-            # Generate workouts (60% of days have workouts)
-            if random.random() < 0.6:
-                created_counts['workouts'] += self._create_workouts(current_date)
-
-            # Generate weight entries (80% of days)
-            if random.random() < 0.8:
-                created_counts['weight'] += self._create_weight_entry(current_date)
-
-            # Generate fasting sessions (70% of days)
-            if random.random() < 0.7:
-                created_counts['fasting'] += self._create_fasting_session(current_date)
-
-            # Generate nutrition entries (85% of days)
-            if random.random() < 0.85:
-                created_counts['nutrition'] += self._create_nutrition_entries(current_date)
-
-            # Generate time logs (weekdays mostly - 90% on weekdays, 20% on weekends)
-            is_weekday = current_date.weekday() < 5
-            if (is_weekday and random.random() < 0.9) or (not is_weekday and random.random() < 0.2):
-                created_counts['time_logs'] += self._create_time_logs(current_date, projects, goals)
-
-            # Generate daily agendas (70% of days)
-            if random.random() < 0.7:
-                created_counts['agendas'] += self._create_daily_agenda(current_date, projects, goals)
+            current_date = start_date + timedelta(days=day_offset)
+            self._generate_day(current_date, projects, goals, counts)
 
         self.stdout.write('\n' + '='*60)
-        self.stdout.write(self.style.SUCCESS('✓ Data generation complete!'))
+        self.stdout.write(self.style.SUCCESS('\u2713 Data generation complete!'))
         self.stdout.write('='*60)
-        self.stdout.write(f"Workouts created:        {created_counts['workouts']}")
-        self.stdout.write(f"Weight entries:          {created_counts['weight']}")
-        self.stdout.write(f"Fasting sessions:        {created_counts['fasting']}")
-        self.stdout.write(f"Nutrition entries:       {created_counts['nutrition']}")
-        self.stdout.write(f"Time logs:               {created_counts['time_logs']}")
-        self.stdout.write(f"Daily agendas:           {created_counts['agendas']}")
+        self.stdout.write(f"Workouts created:        {counts['workouts']}")
+        self.stdout.write(f"Weight entries:          {counts['weight']}")
+        self.stdout.write(f"Fasting sessions:        {counts['fasting']}")
+        self.stdout.write(f"Nutrition entries:       {counts['nutrition']}")
+        self.stdout.write(f"Time logs:               {counts['time_logs']}")
+        self.stdout.write(f"Daily agendas:           {counts['agendas']}")
         self.stdout.write('='*60 + '\n')
 
     def _create_projects_and_goals(self):

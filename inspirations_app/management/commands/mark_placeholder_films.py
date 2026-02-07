@@ -3,52 +3,56 @@ from inspirations_app.models import Inspiration
 from PIL import Image
 
 
+def _is_placeholder_gray(pixel):
+    """Check if a pixel is the gray placeholder color (approx #cccccc)."""
+    if not isinstance(pixel, tuple) or len(pixel) < 3:
+        return False
+    r, g, b = pixel[:3]
+    tolerance = 10
+    channel_diff = 5
+    return (abs(r - 204) <= tolerance and abs(g - 204) <= tolerance and
+            abs(b - 204) <= tolerance and abs(r - g) <= channel_diff and
+            abs(g - b) <= channel_diff)
+
+
 class Command(BaseCommand):
     help = 'Add * to titles of Film inspirations with gray placeholder images'
 
+    def _process_inspiration(self, inspiration):
+        """Check one inspiration and mark it if placeholder. Returns 'updated', 'skipped', or 'error'."""
+        if inspiration.title.startswith('*'):
+            self.stdout.write(f'Skipping "{inspiration.title}" - already has *')
+            return 'skipped'
+
+        try:
+            img = Image.open(inspiration.image)
+            width, height = img.size
+            center_pixel = img.getpixel((width // 2, height // 2))
+
+            if _is_placeholder_gray(center_pixel):
+                inspiration.title = '*' + inspiration.title
+                inspiration.save()
+                self.stdout.write(self.style.SUCCESS(f'Updated "{inspiration.title}"'))
+                return 'updated'
+
+            self.stdout.write(f'Skipping "{inspiration.title}" - has custom image')
+            return 'skipped'
+
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'Error processing "{inspiration.title}": {str(e)}'))
+            return 'error'
+
     def handle(self, *_args, **_options):
-        # Get all Film inspirations
         film_inspirations = Inspiration.objects.filter(type='Film')
 
         updated_count = 0
         skipped_count = 0
 
         for inspiration in film_inspirations:
-            # Skip if title already has *
-            if inspiration.title.startswith('*'):
-                self.stdout.write(f'Skipping "{inspiration.title}" - already has *')
-                skipped_count += 1
-                continue
-
-            try:
-                # Open the image and check if it's a gray placeholder
-                # Placeholder images are solid gray #cccccc (RGB: 204, 204, 204)
-                img = Image.open(inspiration.image)
-
-                # Sample a few pixels to check if it's the gray placeholder
-                # Get pixel at center of image
-                width, height = img.size
-                center_pixel = img.getpixel((width // 2, height // 2))
-
-                # Check if it's gray (all RGB values equal and around 204)
-                if isinstance(center_pixel, tuple) and len(center_pixel) >= 3:
-                    r, g, b = center_pixel[:3]
-                    # Check if it's the placeholder gray color (allow some tolerance for JPEG compression)
-                    if abs(r - 204) <= 10 and abs(g - 204) <= 10 and abs(b - 204) <= 10 and abs(r - g) <= 5 and abs(g - b) <= 5:
-                        # It's a placeholder - add * to title
-                        inspiration.title = '*' + inspiration.title
-                        inspiration.save()
-                        self.stdout.write(self.style.SUCCESS(f'Updated "{inspiration.title}"'))
-                        updated_count += 1
-                    else:
-                        self.stdout.write(f'Skipping "{inspiration.title}" - has custom image')
-                        skipped_count += 1
-                else:
-                    self.stdout.write(f'Skipping "{inspiration.title}" - unexpected pixel format')
-                    skipped_count += 1
-
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f'Error processing "{inspiration.title}": {str(e)}'))
+            result = self._process_inspiration(inspiration)
+            if result == 'updated':
+                updated_count += 1
+            else:
                 skipped_count += 1
 
         self.stdout.write(self.style.SUCCESS(f'\nDone! Updated {updated_count} films, skipped {skipped_count}.'))

@@ -2476,69 +2476,59 @@ class MonthlyObjectivesCustomCategoryTests(TestCase):
         all_objectives = monthly_obj_context['objectives']
         self.assertEqual(len(all_objectives), 3, "Should include all 3 objectives")
     
+    def _create_ordering_test_objectives(self):
+        """Create objectives with various categories for ordering tests."""
+        from monthly_objectives.models import MonthlyObjective
+        from datetime import date
+
+        test_objectives = [
+            ('test_zcustom', 'Z Category (should be last)', 'ZCustom'),
+            ('test_acustom', 'A Category (should be before Z)', 'ACustom'),
+            ('test_nutrition', 'Nutrition Test', 'Nutrition'),
+        ]
+        for obj_id, label, category in test_objectives:
+            MonthlyObjective.objects.create(
+                objective_id=obj_id,
+                label=label,
+                category=category,
+                start=date(2025, 11, 1),
+                end=date(2025, 11, 30),
+                objective_value=50,
+                objective_definition='SELECT 25'
+            )
+
+    def _assert_predefined_before_custom(self, all_categories, predefined):
+        """Assert that all predefined categories appear before any custom ones."""
+        predefined_in_response = [cat for cat in all_categories if cat in predefined]
+        custom_categories = [cat for cat in all_categories if cat not in predefined]
+
+        if predefined_in_response and custom_categories:
+            last_predefined_idx = max(all_categories.index(cat) for cat in predefined_in_response)
+            first_custom_idx = min(all_categories.index(cat) for cat in custom_categories)
+            self.assertLess(last_predefined_idx, first_custom_idx,
+                "Predefined categories should appear before custom categories")
+
     def test_category_display_order(self):
         """
         Test that categories are displayed in the correct order:
         1. Predefined categories first (Exercise, Nutrition, Weight, Time Mgmt)
         2. Custom categories alphabetically after predefined ones
         """
-        from monthly_objectives.models import MonthlyObjective
-        from datetime import date
         from django.test import Client
-        
-        # Create additional objectives to test ordering
-        MonthlyObjective.objects.create(
-            objective_id='test_zcustom',
-            label='Z Category (should be last)',
-            category='ZCustom',
-            start=date(2025, 11, 1),
-            end=date(2025, 11, 30),
-            objective_value=50,
-            objective_definition='SELECT 25'
-        )
-        
-        MonthlyObjective.objects.create(
-            objective_id='test_acustom',
-            label='A Category (should be before Z)',
-            category='ACustom',
-            start=date(2025, 11, 1),
-            end=date(2025, 11, 30),
-            objective_value=50,
-            objective_definition='SELECT 25'
-        )
-        
-        MonthlyObjective.objects.create(
-            objective_id='test_nutrition',
-            label='Nutrition Test',
-            category='Nutrition',  # Predefined
-            start=date(2025, 11, 1),
-            end=date(2025, 11, 30),
-            objective_value=50,
-            objective_definition='SELECT 25'
-        )
-        
+
+        self._create_ordering_test_objectives()
+
         client = Client()
         response = client.get('/activity-report/', {
             'start_date': '2025-11-01',
             'end_date': '2025-11-30'
         })
-        
+
         all_categories = response.context['monthly_objectives']['all_categories']
-        
-        # Predefined categories should come first
         predefined = ['Exercise', 'Nutrition', 'Weight', 'Time Mgmt']
-        predefined_in_response = [cat for cat in all_categories if cat in predefined]
-        
-        # Check that predefined categories appear before custom ones
-        if predefined_in_response:
-            last_predefined_idx = max(all_categories.index(cat) for cat in predefined_in_response)
-            custom_categories = [cat for cat in all_categories if cat not in predefined]
-            if custom_categories:
-                first_custom_idx = min(all_categories.index(cat) for cat in custom_categories)
-                self.assertLess(last_predefined_idx, first_custom_idx,
-                    "Predefined categories should appear before custom categories")
-        
-        # Custom categories should be alphabetically sorted
+
+        self._assert_predefined_before_custom(all_categories, predefined)
+
         custom_categories = [cat for cat in all_categories if cat not in predefined]
         self.assertEqual(custom_categories, sorted(custom_categories),
             "Custom categories should be sorted alphabetically")

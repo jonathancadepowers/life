@@ -96,8 +96,9 @@ class CronometerClient:
             ]
 
         Raises:
-            subprocess.CalledProcessError: If the CLI command fails.
-            json.JSONDecodeError: If the CLI output is not valid JSON.
+            RuntimeError: If the CLI command fails.
+            ValueError: If the CLI output is not valid JSON.
+            TimeoutError: If the CLI command times out.
         """
         if end_date is None:
             end_date = datetime.now()
@@ -130,11 +131,11 @@ class CronometerClient:
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
-            raise Exception(f"Failed to export Cronometer data: {error_msg}")
+            raise RuntimeError(f"Failed to export Cronometer data: {error_msg}") from e
         except json.JSONDecodeError as e:
-            raise Exception(f"Failed to parse Cronometer export data: {e}\nOutput: {result.stdout}")
-        except subprocess.TimeoutExpired:
-            raise Exception("Cronometer export timed out after 60 seconds")
+            raise ValueError(f"Failed to parse Cronometer export data: {e}\nOutput: {result.stdout}") from e
+        except subprocess.TimeoutExpired as e:
+            raise TimeoutError("Cronometer export timed out after 60 seconds") from e
 
     def get_daily_nutrition_for_days(self, days: int = 30) -> List[Dict]:
         """

@@ -153,5 +153,5 @@ set.ignored = true
 # B110: try/except/pass in Selenium test cleanup is acceptable.
 [[triage]]
 match.rules = ["bandit:B110"]
-match.file_patterns = ["**/tests/**", "**/test_*.*"]
+match.file_patterns = ["**/tests/**", "**/tests.py", "**/test_*.*"]
 set.ignored = true

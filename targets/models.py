@@ -1,5 +1,8 @@
 from django.db import models
 
+PROJECT_MODEL = 'projects.Project'
+GOAL_MODEL = 'goals.Goal'
+
 
 class DailyAgenda(models.Model):
     """
@@ -12,7 +15,7 @@ class DailyAgenda(models.Model):
 
     # Target 1
     project_1 = models.ForeignKey(
-        'projects.Project',
+        PROJECT_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -20,7 +23,7 @@ class DailyAgenda(models.Model):
         help_text="Project for target 1"
     )
     goal_1 = models.ForeignKey(
-        'goals.Goal',
+        GOAL_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -36,7 +39,7 @@ class DailyAgenda(models.Model):
 
     # Target 2
     project_2 = models.ForeignKey(
-        'projects.Project',
+        PROJECT_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -44,7 +47,7 @@ class DailyAgenda(models.Model):
         help_text="Project for target 2"
     )
     goal_2 = models.ForeignKey(
-        'goals.Goal',
+        GOAL_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -60,7 +63,7 @@ class DailyAgenda(models.Model):
 
     # Target 3
     project_3 = models.ForeignKey(
-        'projects.Project',
+        PROJECT_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -68,7 +71,7 @@ class DailyAgenda(models.Model):
         help_text="Project for target 3"
     )
     goal_3 = models.ForeignKey(
-        'goals.Goal',
+        GOAL_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

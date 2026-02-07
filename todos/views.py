@@ -19,6 +19,11 @@ _START_TIME_EMPTY = 'Start time cannot be empty'
 _END_TIME_EMPTY = 'End time cannot be empty'
 
 
+def _isoformat_or_none(value):
+    """Return isoformat() of a value, or None if the value is falsy."""
+    return value.isoformat() if value else None
+
+
 def serialize_task(task):
     """Serialize a task to a dictionary for JSON responses."""
     schedules = list(task.schedules.all())
@@ -32,11 +37,11 @@ def serialize_task(task):
         'state_id': task.state_id,
         'state_name': task.state.name if task.state else None,
         'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
-        'deadline': task.deadline.isoformat() if task.deadline else None,
+        'deadline': _isoformat_or_none(task.deadline),
         'deadline_dismissed': task.deadline_dismissed,
-        'state_changed_at': task.state_changed_at.isoformat() if task.state_changed_at else None,
-        'updated_at': task.updated_at.isoformat() if task.updated_at else None,
-        'done_for_day': task.done_for_day.isoformat() if task.done_for_day else None,
+        'state_changed_at': _isoformat_or_none(task.state_changed_at),
+        'updated_at': _isoformat_or_none(task.updated_at),
+        'done_for_day': _isoformat_or_none(task.done_for_day),
         'calendar_start_time': first_schedule.start_time.isoformat() if first_schedule else None,
         'calendar_end_time': first_schedule.end_time.isoformat() if first_schedule else None,
         'schedules': [
@@ -154,6 +159,39 @@ def create_task(request):
         return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
+def _apply_task_simple_fields(task, data):
+    """Apply simple field updates (title, details, critical, deadline_dismissed) to a task."""
+    if 'title' in data:
+        task.title = data['title'].strip()
+    if 'details' in data:
+        task.details = data['details']
+    if 'critical' in data:
+        task.critical = data['critical']
+    if 'deadline_dismissed' in data:
+        task.deadline_dismissed = data['deadline_dismissed']
+
+
+def _apply_task_state(task, data):
+    """Apply state_id update to a task. Raises TaskState.DoesNotExist if invalid."""
+    if 'state_id' not in data:
+        return
+    new_state_id = data['state_id']
+    if new_state_id != task.state_id:
+        task.state_changed_at = timezone.now()
+    task.state = TaskState.objects.get(id=new_state_id) if new_state_id else None
+
+
+def _apply_task_deadline(task, data):
+    """Apply deadline update to a task."""
+    if 'deadline' not in data:
+        return
+    if data['deadline']:
+        from datetime import date
+        task.deadline = date.fromisoformat(data['deadline'])
+    else:
+        task.deadline = None
+
+
 @require_http_methods(["PATCH"])
 def update_task(request, task_id):
     """Update a task via AJAX."""
@@ -161,29 +199,9 @@ def update_task(request, task_id):
         task = Task.objects.get(id=task_id)
         data = json.loads(request.body)
 
-        if 'title' in data:
-            task.title = data['title'].strip()
-        if 'details' in data:
-            task.details = data['details']
-        if 'critical' in data:
-            task.critical = data['critical']
-        if 'state_id' in data:
-            new_state_id = data['state_id']
-            old_state_id = task.state_id
-            if new_state_id != old_state_id:  # State actually changed
-                task.state_changed_at = timezone.now()
-            if new_state_id:
-                task.state = TaskState.objects.get(id=new_state_id)
-            else:
-                task.state = None
-        if 'deadline' in data:
-            if data['deadline']:
-                from datetime import date
-                task.deadline = date.fromisoformat(data['deadline'])
-            else:
-                task.deadline = None
-        if 'deadline_dismissed' in data:
-            task.deadline_dismissed = data['deadline_dismissed']
+        _apply_task_simple_fields(task, data)
+        _apply_task_state(task, data)
+        _apply_task_deadline(task, data)
 
         task.save()
         return JsonResponse({
@@ -915,6 +933,47 @@ def delete_view(_request, view_id):
 
 # ========== Abandoned Tasks ==========
 
+def _get_or_create_abandoned_state():
+    """Get or create the Abandoned system state."""
+    abandoned_state, _ = TaskState.objects.get_or_create(
+        name='Abandoned',
+        defaults={
+            'order': 999,
+            'bootstrap_icon': 'bi-archive',
+            'is_system': True
+        }
+    )
+    return abandoned_state
+
+
+def _abandoned_state_id_if_populated(abandoned_state):
+    """Return the abandoned state ID only if it has tasks, else None."""
+    return abandoned_state.id if abandoned_state.tasks.exists() else None
+
+
+def _build_abandon_queryset(abandoned_days, abandoned_state, terminal_state,
+                            excluded_tag_ids, excluded_state_ids):
+    """Build the queryset of tasks eligible for abandonment."""
+    threshold_date = timezone.now() - timedelta(days=abandoned_days)
+
+    qs = Task.objects.filter(
+        updated_at__lt=threshold_date
+    ).exclude(
+        state=terminal_state
+    ).exclude(
+        state=abandoned_state
+    ).exclude(
+        state__isnull=True
+    )
+
+    if excluded_tag_ids:
+        qs = qs.exclude(tags__id__in=excluded_tag_ids)
+    if excluded_state_ids:
+        qs = qs.exclude(state_id__in=excluded_state_ids)
+
+    return qs
+
+
 @require_POST
 def process_abandoned_tasks(request):
     """Process tasks that should be marked as abandoned based on time threshold."""
@@ -924,15 +983,7 @@ def process_abandoned_tasks(request):
         excluded_tag_ids = [int(tid) for tid in data.get('excluded_tag_ids', []) if str(tid).isdigit()]
         excluded_state_ids = [int(sid) for sid in data.get('excluded_state_ids', []) if str(sid).isdigit()]
 
-        # Get or create the Abandoned state (system state)
-        abandoned_state, _ = TaskState.objects.get_or_create(
-            name='Abandoned',
-            defaults={
-                'order': 999,  # Very high to ensure it's always last
-                'bootstrap_icon': 'bi-archive',
-                'is_system': True
-            }
-        )
+        abandoned_state = _get_or_create_abandoned_state()
 
         # Find terminal state (last non-system state by order)
         terminal_state = TaskState.objects.filter(
@@ -943,29 +994,13 @@ def process_abandoned_tasks(request):
             return JsonResponse({
                 'success': True,
                 'abandoned_count': 0,
-                'abandoned_state_id': abandoned_state.id if abandoned_state.tasks.exists() else None
+                'abandoned_state_id': _abandoned_state_id_if_populated(abandoned_state)
             })
 
-        # Find tasks that should be abandoned
-        # Tasks where updated_at < (now - X days) - any edit resets the timer
-        # Excluding: terminal state, already abandoned, no state
-        threshold_date = timezone.now() - timedelta(days=abandoned_days)
-
-        tasks_to_abandon = Task.objects.filter(
-            updated_at__lt=threshold_date
-        ).exclude(
-            state=terminal_state  # Not already completed
-        ).exclude(
-            state=abandoned_state  # Not already abandoned
-        ).exclude(
-            state__isnull=True  # Has a state
+        tasks_to_abandon = _build_abandon_queryset(
+            abandoned_days, abandoned_state, terminal_state,
+            excluded_tag_ids, excluded_state_ids
         )
-
-        # Exclude tasks with excluded tags or in excluded states
-        if excluded_tag_ids:
-            tasks_to_abandon = tasks_to_abandon.exclude(tags__id__in=excluded_tag_ids)
-        if excluded_state_ids:
-            tasks_to_abandon = tasks_to_abandon.exclude(state_id__in=excluded_state_ids)
 
         # Move them to abandoned state
         abandoned_task_ids = list(tasks_to_abandon.values_list('id', flat=True))
@@ -980,7 +1015,7 @@ def process_abandoned_tasks(request):
             'success': True,
             'abandoned_count': count,
             'abandoned_task_ids': abandoned_task_ids,
-            'abandoned_state_id': abandoned_state.id if abandoned_state.tasks.exists() else None
+            'abandoned_state_id': _abandoned_state_id_if_populated(abandoned_state)
         })
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)

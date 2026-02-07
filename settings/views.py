@@ -302,63 +302,70 @@ def life_tracker_settings(request):
     return render(request, 'settings/life_tracker_settings.html', context)
 
 
+def _load_image_from_source(uploaded_image, image_url):
+    """
+    Load an image and filename from either an uploaded file or a URL.
+    Returns (PIL.Image, filename) or raises an exception on failure.
+    """
+    if uploaded_image:
+        return Image.open(uploaded_image), uploaded_image.name
+
+    import requests
+    response = requests.get(image_url, timeout=10)
+    response.raise_for_status()
+    img = Image.open(io.BytesIO(response.content))
+    filename = image_url.split('/')[-1].split('?')[0] or 'image.jpg'
+    valid_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
+    if not filename.lower().endswith(valid_extensions):
+        filename += '.jpg'
+    return img, filename
+
+
+def _process_inspiration_image(uploaded_image, image_url):
+    """
+    Load, resize, and return a ContentFile for an inspiration image.
+    Returns the resized ContentFile, or raises an exception on failure.
+    """
+    img, filename = _load_image_from_source(uploaded_image, image_url)
+    img = resize_image_with_padding(img, 256, 362)
+    output = io.BytesIO()
+    img.save(output, format='JPEG', quality=85)
+    output.seek(0)
+    return ContentFile(output.read(), name=filename)
+
+
 def add_inspiration(request):
     """Add a new inspiration."""
-    if request.method == 'POST':
-        uploaded_image = request.FILES.get('image')
-        image_url = request.POST.get('image_url', '').strip()
-        title = request.POST.get('title', '').strip()
-        flip_text = request.POST.get('flip_text', '')
-        type_value = request.POST.get('type')
+    if request.method != 'POST':
+        return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
-        # Check for duplicate title
-        if title and Inspiration.objects.filter(title__iexact=title).exists():
-            messages.error(request, f'An inspiration with the title "{title}" already exists. Please use a different title.')
-            return redirect('life_tracker_settings')
+    uploaded_image = request.FILES.get('image')
+    image_url = request.POST.get('image_url', '').strip()
+    title = request.POST.get('title', '').strip()
+    flip_text = request.POST.get('flip_text', '')
+    type_value = request.POST.get('type')
 
-        # Check that we have either an uploaded image or image URL
-        if (uploaded_image or image_url) and title and type_value:
-            try:
-                # Process image from upload or URL
-                if uploaded_image:
-                    img = Image.open(uploaded_image)
-                    filename = uploaded_image.name
-                elif image_url:
-                    import requests
-                    response = requests.get(image_url, timeout=10)
-                    response.raise_for_status()
-                    img = Image.open(io.BytesIO(response.content))
-                    # Generate filename from URL
-                    filename = image_url.split('/')[-1].split('?')[0] or 'image.jpg'
-                    if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
-                        filename += '.jpg'
+    if not ((uploaded_image or image_url) and title and type_value):
+        messages.error(request, 'Please fill in all required fields (Image or Image URL, Title, and Type).')
+        return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
-                # Resize image to 256x362 maintaining aspect ratio with padding
-                img = resize_image_with_padding(img, 256, 362)
+    if Inspiration.objects.filter(title__iexact=title).exists():
+        messages.error(request, f'An inspiration with the title "{title}" already exists. Please use a different title.')
+        return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
-                # Save to BytesIO
-                output = io.BytesIO()
-                img.save(output, format='JPEG', quality=85)
-                output.seek(0)
-
-                # Create ContentFile with resized image
-                resized_image = ContentFile(output.read(), name=filename)
-
-                # Get URL from form
-                url = request.POST.get('url', '').strip() or None
-
-                Inspiration.objects.create(
-                    image=resized_image,
-                    title=title,
-                    flip_text=flip_text,
-                    type=type_value,
-                    url=url
-                )
-                messages.success(request, 'Inspiration added successfully!')
-            except Exception as e:
-                messages.error(request, f'Error processing image: {str(e)}')
-        else:
-            messages.error(request, 'Please fill in all required fields (Image or Image URL, Title, and Type).')
+    try:
+        resized_image = _process_inspiration_image(uploaded_image, image_url)
+        url = request.POST.get('url', '').strip() or None
+        Inspiration.objects.create(
+            image=resized_image,
+            title=title,
+            flip_text=flip_text,
+            type=type_value,
+            url=url
+        )
+        messages.success(request, 'Inspiration added successfully!')
+    except Exception as e:
+        messages.error(request, f'Error processing image: {str(e)}')
 
     return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
@@ -366,64 +373,41 @@ def add_inspiration(request):
 def edit_inspiration(request, inspiration_id):
     """Edit an existing inspiration."""
     inspiration = get_object_or_404(Inspiration, id=inspiration_id)
+    redirect_url = reverse('life_tracker_settings') + f'#inspiration-{inspiration_id}'
 
-    if request.method == 'POST':
-        title = request.POST.get('title', '').strip()
-        flip_text = request.POST.get('flip_text', '')
-        type_value = request.POST.get('type')
-        url = request.POST.get('url', '').strip() or None
-        uploaded_image = request.FILES.get('image')
-        image_url = request.POST.get('image_url', '').strip()
+    if request.method != 'POST':
+        return redirect(redirect_url)
 
-        # Check for duplicate title (excluding current inspiration)
-        if title and Inspiration.objects.filter(title__iexact=title).exclude(id=inspiration_id).exists():
-            messages.error(request, f'An inspiration with the title "{title}" already exists. Please use a different title.')
+    title = request.POST.get('title', '').strip()
+    type_value = request.POST.get('type')
+
+    if not (title and type_value):
+        messages.error(request, 'Title and Type are required.')
+        return redirect(redirect_url)
+
+    if Inspiration.objects.filter(title__iexact=title).exclude(id=inspiration_id).exists():
+        messages.error(request, f'An inspiration with the title "{title}" already exists. Please use a different title.')
+        return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
+
+    inspiration.title = title
+    inspiration.flip_text = request.POST.get('flip_text', '')
+    inspiration.type = type_value
+    inspiration.url = request.POST.get('url', '').strip() or None
+
+    uploaded_image = request.FILES.get('image')
+    image_url = request.POST.get('image_url', '').strip()
+
+    if uploaded_image or image_url:
+        try:
+            inspiration.image = _process_inspiration_image(uploaded_image, image_url)
+        except Exception as e:
+            messages.error(request, f'Error processing image: {str(e)}')
             return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
-        if title and type_value:
-            inspiration.title = title
-            inspiration.flip_text = flip_text
-            inspiration.type = type_value
-            inspiration.url = url
+    inspiration.save()
+    messages.success(request, 'Inspiration updated successfully!')
 
-            # Handle image upload or URL if provided
-            if uploaded_image or image_url:
-                try:
-                    # Process image from upload or URL
-                    if uploaded_image:
-                        img = Image.open(uploaded_image)
-                        filename = uploaded_image.name
-                    elif image_url:
-                        import requests
-                        response = requests.get(image_url, timeout=10)
-                        response.raise_for_status()
-                        img = Image.open(io.BytesIO(response.content))
-                        # Generate filename from URL
-                        filename = image_url.split('/')[-1].split('?')[0] or 'image.jpg'
-                        if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
-                            filename += '.jpg'
-
-                    # Resize image to 256x362 maintaining aspect ratio with padding
-                    img = resize_image_with_padding(img, 256, 362)
-
-                    # Save to BytesIO
-                    output = io.BytesIO()
-                    img.save(output, format='JPEG', quality=85)
-                    output.seek(0)
-
-                    # Create ContentFile with resized image
-                    resized_image = ContentFile(output.read(), name=filename)
-                    inspiration.image = resized_image
-                except Exception as e:
-                    messages.error(request, f'Error processing image: {str(e)}')
-                    return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
-
-            inspiration.save()
-            messages.success(request, 'Inspiration updated successfully!')
-        else:
-            messages.error(request, 'Title and Type are required.')
-
-    return redirect(reverse('life_tracker_settings') + f'#inspiration-{inspiration_id}')
+    return redirect(redirect_url)
 
 
 def delete_inspiration(request, inspiration_id):
@@ -513,10 +497,41 @@ def _redirect_life_tracker():
     return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
 
 
-def add_habit(request):
-    """Add a new habit (Life Tracker Column)."""
+def _resolve_parent_habit(parent_id_str):
+    """Resolve a parent habit from a string ID. Returns the parent column or None."""
+    if not parent_id_str:
+        return None
+    try:
+        return LifeTrackerColumn.objects.get(id=int(parent_id_str))
+    except (ValueError, LifeTrackerColumn.DoesNotExist):
+        return None
+
+
+def _validate_habit_dates(post_data):
+    """
+    Parse and validate start_date and end_date from POST data.
+    Returns (start_date, end_date_str, error_message).
+    error_message is None on success.
+    """
     from datetime import date
 
+    start_date_str = post_data.get('start_date', '').strip()
+    habit_start_date, start_err = _parse_and_validate_start_date(start_date_str)
+    if start_err:
+        return None, None, f'{start_err}.'
+    if habit_start_date is None:
+        habit_start_date = date.today()
+
+    end_date = post_data.get('end_date', 'ongoing').strip() or 'ongoing'
+    end_err = _parse_and_validate_end_date(end_date)
+    if end_err:
+        return None, None, f'{end_err}.'
+
+    return habit_start_date, end_date, None
+
+
+def add_habit(request):
+    """Add a new habit (Life Tracker Column)."""
     if request.method != 'POST':
         return _redirect_life_tracker()
 
@@ -533,46 +548,24 @@ def add_habit(request):
         messages.error(request, f'A habit with column name "{column_name}" already exists.')
         return _redirect_life_tracker()
 
+    habit_start_date, end_date, date_err = _validate_habit_dates(request.POST)
+    if date_err:
+        messages.error(request, date_err)
+        return _redirect_life_tracker()
+
+    create_endpoint = request.POST.get('create_endpoint', '').strip()
+    endpoint_err = _validate_create_endpoint(create_endpoint)
+    if endpoint_err:
+        messages.error(request, endpoint_err)
+        return _redirect_life_tracker()
+
     try:
-        # Parse and validate start_date
-        start_date_str = request.POST.get('start_date', '').strip()
-        habit_start_date, start_err = _parse_and_validate_start_date(start_date_str)
-        if start_err:
-            messages.error(request, f'{start_err}.')
-            return _redirect_life_tracker()
-        if habit_start_date is None:
-            habit_start_date = date.today()
+        _validate_sql_query(sql_query)
+    except Exception as e:
+        messages.error(request, f'SQL Query Error: {str(e)}')
+        return _redirect_life_tracker()
 
-        # Parse and validate end_date
-        end_date = request.POST.get('end_date', 'ongoing').strip() or 'ongoing'
-        end_err = _parse_and_validate_end_date(end_date)
-        if end_err:
-            messages.error(request, f'{end_err}.')
-            return _redirect_life_tracker()
-
-        # Resolve parent
-        parent_id = request.POST.get('parent', '').strip()
-        parent_habit = None
-        if parent_id:
-            try:
-                parent_habit = LifeTrackerColumn.objects.get(id=int(parent_id))
-            except (ValueError, LifeTrackerColumn.DoesNotExist):
-                parent_habit = None
-
-        # Validate create_endpoint
-        create_endpoint = request.POST.get('create_endpoint', '').strip()
-        endpoint_err = _validate_create_endpoint(create_endpoint)
-        if endpoint_err:
-            messages.error(request, endpoint_err)
-            return _redirect_life_tracker()
-
-        # Validate SQL query
-        try:
-            _validate_sql_query(sql_query)
-        except Exception as e:
-            messages.error(request, f'SQL Query Error: {str(e)}')
-            return _redirect_life_tracker()
-
+    try:
         LifeTrackerColumn.objects.create(
             column_name=column_name,
             display_name=display_name,
@@ -583,7 +576,7 @@ def add_habit(request):
             start_date=habit_start_date,
             end_date=end_date,
             icon=request.POST.get('icon', 'bi-circle').strip() or 'bi-circle',
-            parent=parent_habit,
+            parent=_resolve_parent_habit(request.POST.get('parent', '').strip()),
             has_add_button=request.POST.get('has_add_button') == 'on',
             modal_type=request.POST.get('modal_type', '').strip(),
             modal_title=request.POST.get('modal_title', '').strip(),
