@@ -9,6 +9,8 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 import secrets
 
+_REDIRECT_URL = 'fasting:activity_logger'
+
 
 @require_http_methods(["GET"])
 def whoop_authorize(request):
@@ -33,7 +35,7 @@ def whoop_authorize(request):
 
     except Exception as e:
         messages.error(request, f'Failed to initiate Whoop authentication: {e}')
-        return redirect('fasting:activity_logger')
+        return redirect(_REDIRECT_URL)
 
 
 @require_http_methods(["GET"])
@@ -53,13 +55,13 @@ def whoop_callback(request):
         if not code:
             error = request.GET.get('error', 'Unknown error')
             messages.error(request, f'Whoop authentication failed: {error}')
-            return redirect('fasting:activity_logger')
+            return redirect(_REDIRECT_URL)
 
         # Verify state parameter (CSRF protection)
         expected_state = request.session.get('whoop_oauth_state')
         if state != expected_state:
             messages.error(request, 'Invalid state parameter. Please try again.')
-            return redirect('fasting:activity_logger')
+            return redirect(_REDIRECT_URL)
 
         # Exchange code for tokens
         client = WhoopAPIClient()
@@ -75,18 +77,18 @@ def whoop_callback(request):
         if 'whoop_oauth_state' in request.session:
             del request.session['whoop_oauth_state']
 
-        return redirect('fasting:activity_logger')
+        return redirect(_REDIRECT_URL)
 
     except ValueError as e:
         # Specific handling for token exchange errors
         messages.error(request, f'Whoop authentication error: {str(e)}')
-        return redirect('fasting:activity_logger')
+        return redirect(_REDIRECT_URL)
     except Exception as e:
         # General error handling
         messages.error(request, f'Failed to complete Whoop authentication: {str(e)}')
         import traceback
         print(f'OAuth callback error: {traceback.format_exc()}')
-        return redirect('fasting:activity_logger')
+        return redirect(_REDIRECT_URL)
 
 
 @require_http_methods(["GET"])
@@ -112,7 +114,7 @@ def withings_authorize(request):
 
     except Exception as e:
         messages.error(request, f'Failed to initiate Withings authentication: {e}')
-        return redirect('fasting:activity_logger')
+        return redirect(_REDIRECT_URL)
 
 
 @require_http_methods(["GET"])
@@ -132,13 +134,13 @@ def withings_callback(request):
         if not code:
             error = request.GET.get('error', 'Unknown error')
             messages.error(request, f'Withings authentication failed: {error}')
-            return redirect('fasting:activity_logger')
+            return redirect(_REDIRECT_URL)
 
         # Verify state parameter (CSRF protection)
         expected_state = request.session.get('withings_oauth_state')
         if state != expected_state:
             messages.error(request, 'Invalid state parameter. Please try again.')
-            return redirect('fasting:activity_logger')
+            return redirect(_REDIRECT_URL)
 
         # Exchange code for tokens
         client = WithingsAPIClient()
@@ -154,15 +156,15 @@ def withings_callback(request):
         if 'withings_oauth_state' in request.session:
             del request.session['withings_oauth_state']
 
-        return redirect('fasting:activity_logger')
+        return redirect(_REDIRECT_URL)
 
     except ValueError as e:
         # Specific handling for token exchange errors
         messages.error(request, f'Withings authentication error: {str(e)}')
-        return redirect('fasting:activity_logger')
+        return redirect(_REDIRECT_URL)
     except Exception as e:
         # General error handling
         messages.error(request, f'Failed to complete Withings authentication: {str(e)}')
         import traceback
         print(f'OAuth callback error: {traceback.format_exc()}')
-        return redirect('fasting:activity_logger')
+        return redirect(_REDIRECT_URL)

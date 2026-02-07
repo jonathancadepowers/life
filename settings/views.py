@@ -11,6 +11,13 @@ from writing.models import WritingPageImage, BookCover
 from PIL import Image
 import io
 
+_ANCHOR_LIFE_TRACKER = '#lifeTrackerSection'
+_ANCHOR_INSPIRATIONS = '#inspirationsSection'
+_ANCHOR_DATA_IMPORTS = '#dataImportsSection'
+_TMPL_CURRENT_DATE = ':current_date'
+_TMPL_DAY_END = ':day_end'
+_TMPL_DAY_START = ':day_start'
+
 
 def resize_image_with_padding(img, target_width=256, target_height=362):
     """
@@ -151,11 +158,11 @@ def life_tracker_settings(request):
                         test_query = column.sql_query
                         params = []
 
-                        if ':current_date' in test_query:
-                            test_query = test_query.replace(':current_date', '%s')
+                        if _TMPL_CURRENT_DATE in test_query:
+                            test_query = test_query.replace(_TMPL_CURRENT_DATE, '%s')
                             params.append(test_date)
-                        elif ':day_start' in test_query or ':day_end' in test_query:
-                            test_query = test_query.replace(':day_start', '%s').replace(':day_end', '%s')
+                        elif _TMPL_DAY_START in test_query or _TMPL_DAY_END in test_query:
+                            test_query = test_query.replace(_TMPL_DAY_START, '%s').replace(_TMPL_DAY_END, '%s')
                             params.extend([day_start, day_end])
                         elif ':day' in test_query:
                             test_query = test_query.replace(':day', '%s')
@@ -288,7 +295,7 @@ def add_inspiration(request):
         else:
             messages.error(request, 'Please fill in all required fields (Image or Image URL, Title, and Type).')
 
-    return redirect(reverse('life_tracker_settings') + '#inspirationsSection')
+    return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
 
 def edit_inspiration(request, inspiration_id):
@@ -306,7 +313,7 @@ def edit_inspiration(request, inspiration_id):
         # Check for duplicate title (excluding current inspiration)
         if title and Inspiration.objects.filter(title__iexact=title).exclude(id=inspiration_id).exists():
             messages.error(request, f'An inspiration with the title "{title}" already exists. Please use a different title.')
-            return redirect(reverse('life_tracker_settings') + '#inspirationsSection')
+            return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
         if title and type_value:
             inspiration.title = title
@@ -344,7 +351,7 @@ def edit_inspiration(request, inspiration_id):
                     inspiration.image = resized_image
                 except Exception as e:
                     messages.error(request, f'Error processing image: {str(e)}')
-                    return redirect(reverse('life_tracker_settings') + '#inspirationsSection')
+                    return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
             inspiration.save()
             messages.success(request, 'Inspiration updated successfully!')
@@ -362,7 +369,7 @@ def delete_inspiration(request, inspiration_id):
         inspiration.delete()
         messages.success(request, 'Inspiration deleted successfully!')
 
-    return redirect(reverse('life_tracker_settings') + '#inspirationsSection')
+    return redirect(reverse('life_tracker_settings') + _ANCHOR_INSPIRATIONS)
 
 
 def add_writing_image(request):
@@ -464,7 +471,7 @@ def add_habit(request):
         # Check if column_name already exists
         if column_name and LifeTrackerColumn.objects.filter(column_name=column_name).exists():
             messages.error(request, f'A habit with column name "{column_name}" already exists.')
-            return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+            return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
 
         if column_name and display_name and tooltip_text and sql_query:
             try:
@@ -475,10 +482,10 @@ def add_habit(request):
                         # Validate that start_date is a Monday (weekday() == 0)
                         if habit_start_date.weekday() != 0:
                             messages.error(request, 'Start date must be a Monday.')
-                            return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+                            return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
                     except ValueError:
                         messages.error(request, 'Invalid start date format. Use YYYY-MM-DD.')
-                        return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+                        return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
                 else:
                     habit_start_date = date.today()
 
@@ -489,10 +496,10 @@ def add_habit(request):
                         # Validate that end_date is a Sunday (weekday() == 6)
                         if parsed_end_date.weekday() != 6:
                             messages.error(request, 'End date must be a Sunday or "ongoing".')
-                            return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+                            return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
                     except ValueError:
                         messages.error(request, 'Invalid end date format. Use YYYY-MM-DD or "ongoing".')
-                        return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+                        return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
 
                 # Handle parent
                 parent_habit = None
@@ -509,7 +516,7 @@ def add_habit(request):
                         url_reverse(create_endpoint)
                     except NoReverseMatch:
                         messages.error(request, f'Create endpoint "{create_endpoint}" is not a valid URL name. Make sure the URL pattern exists and follows the format "app_name:url_name" (e.g., "fasting:log_fast")')
-                        return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+                        return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
 
                 # Validate SQL query
                 try:
@@ -525,11 +532,11 @@ def add_habit(request):
                         test_query = sql_query
                         params = []
 
-                        if ':current_date' in test_query:
-                            test_query = test_query.replace(':current_date', '%s')
+                        if _TMPL_CURRENT_DATE in test_query:
+                            test_query = test_query.replace(_TMPL_CURRENT_DATE, '%s')
                             params.append(test_date)
-                        elif ':day_start' in test_query or ':day_end' in test_query:
-                            test_query = test_query.replace(':day_start', '%s').replace(':day_end', '%s')
+                        elif _TMPL_DAY_START in test_query or _TMPL_DAY_END in test_query:
+                            test_query = test_query.replace(_TMPL_DAY_START, '%s').replace(_TMPL_DAY_END, '%s')
                             params.extend([day_start, day_end])
                         elif ':day' in test_query:
                             test_query = test_query.replace(':day', '%s')
@@ -547,7 +554,7 @@ def add_habit(request):
 
                 except Exception as e:
                     messages.error(request, f'SQL Query Error: {str(e)}')
-                    return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+                    return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
 
                 LifeTrackerColumn.objects.create(
                     column_name=column_name,
@@ -574,7 +581,7 @@ def add_habit(request):
         else:
             messages.error(request, 'Please fill in all required fields.')
 
-    return redirect(reverse('life_tracker_settings') + '#lifeTrackerSection')
+    return redirect(reverse('life_tracker_settings') + _ANCHOR_LIFE_TRACKER)
 
 
 
@@ -588,11 +595,11 @@ def import_outlook_calendar(request):
 
     if not file:
         messages.error(request, 'Please select a JSON file to upload.')
-        return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
+        return redirect(reverse('life_tracker_settings') + _ANCHOR_DATA_IMPORTS)
 
     if not file.name.endswith('.json'):
         messages.error(request, 'Please upload a JSON file.')
-        return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
+        return redirect(reverse('life_tracker_settings') + _ANCHOR_DATA_IMPORTS)
 
     try:
         # Parse JSON file
@@ -612,7 +619,7 @@ def import_outlook_calendar(request):
     except Exception as e:
         messages.error(request, f'Error importing calendar: {str(e)}')
 
-    return redirect(reverse('life_tracker_settings') + '#dataImportsSection')
+    return redirect(reverse('life_tracker_settings') + _ANCHOR_DATA_IMPORTS)
 
 
 @require_POST

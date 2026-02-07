@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+_WORKSPACE_ID_ERROR = "TOGGL_WORKSPACE_ID must be set in environment variables"
+
 
 class TogglAPIClient:
     """Client for interacting with the Toggl Track API v9 and Reports API v3."""
@@ -140,7 +142,7 @@ class TogglAPIClient:
             List of time entry dictionaries including any running timer
         """
         if not self.workspace_id:
-            raise ValueError("TOGGL_WORKSPACE_ID must be set in environment variables")
+            raise ValueError(_WORKSPACE_ID_ERROR)
 
         if start_date is None:
             start_date = datetime.utcnow() - timedelta(days=30)
@@ -217,7 +219,7 @@ class TogglAPIClient:
             List of tag dictionaries with id and name
         """
         if not self.workspace_id:
-            raise ValueError("TOGGL_WORKSPACE_ID must be set in environment variables")
+            raise ValueError(_WORKSPACE_ID_ERROR)
 
         return self._make_request(f'/workspaces/{self.workspace_id}/tags')
 
@@ -229,6 +231,6 @@ class TogglAPIClient:
             List of project dictionaries with id and name
         """
         if not self.workspace_id:
-            raise ValueError("TOGGL_WORKSPACE_ID must be set in environment variables")
+            raise ValueError(_WORKSPACE_ID_ERROR)
 
         return self._make_request(f'/workspaces/{self.workspace_id}/projects')

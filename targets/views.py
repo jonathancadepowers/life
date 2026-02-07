@@ -11,6 +11,11 @@ from time_logs.models import TimeLog
 from time_logs.services.toggl_client import TogglAPIClient
 import pytz
 
+_TIME_FORMAT = '%I:%M %p'
+_DATE_FORMAT = '%b %-d, %Y'
+_OBJECTIVE_NOT_FOUND = 'Objective not found'
+_INVALID_JSON = 'Invalid JSON data'
+
 
 def get_user_timezone(request):
     """
@@ -1265,8 +1270,8 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_
                 end_local = workout.end.astimezone(user_tz)
 
                 records.append({
-                    'start': start_local.strftime('%I:%M %p'),
-                    'end': end_local.strftime('%I:%M %p'),
+                    'start': start_local.strftime(_TIME_FORMAT),
+                    'end': end_local.strftime(_TIME_FORMAT),
                     'sport_id': workout.sport_id,
                     'average_heart_rate': workout.average_heart_rate,
                     'max_heart_rate': workout.max_heart_rate,
@@ -1286,7 +1291,7 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_
 
                 records.append({
                     'duration': fast.duration,
-                    'fast_end_date': fast_end_local.strftime('%I:%M %p'),
+                    'fast_end_date': fast_end_local.strftime(_TIME_FORMAT),
                 })
 
         elif table_name == 'writing_logs':
@@ -1296,7 +1301,7 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_
 
             for log in logs:
                 records.append({
-                    'log_date': log.log_date.strftime('%b %-d, %Y'),
+                    'log_date': log.log_date.strftime(_DATE_FORMAT),
                     'duration': log.duration,
                 })
 
@@ -1311,7 +1316,7 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_
                 measurement_local = weigh_in.measurement_time.astimezone(user_tz)
 
                 records.append({
-                    'measurement_time': measurement_local.strftime('%I:%M %p'),
+                    'measurement_time': measurement_local.strftime(_TIME_FORMAT),
                     'weight': weigh_in.weight,
                 })
 
@@ -1341,7 +1346,7 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_
 
             for log in logs:
                 records.append({
-                    'log_date': log.log_date.strftime('%b %-d, %Y'),
+                    'log_date': log.log_date.strftime(_DATE_FORMAT),
                 })
 
         elif table_name == 'waist_circumference_measurements':
@@ -1352,7 +1357,7 @@ def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_
 
             for measurement in measurements:
                 records.append({
-                    'log_date': measurement.log_date.strftime('%b %-d, %Y'),
+                    'log_date': measurement.log_date.strftime(_DATE_FORMAT),
                     'measurement': measurement.measurement,
                 })
 
@@ -1654,7 +1659,7 @@ def get_objective_entries(request):
         # Fetch the objective
         objective = MonthlyObjective.objects.get(objective_id=objective_id)
     except MonthlyObjective.DoesNotExist:
-        return JsonResponse({'error': 'Objective not found'}, status=404)
+        return JsonResponse({'error': _OBJECTIVE_NOT_FOUND}, status=404)
 
     try:
         sql = objective.objective_definition.strip()
@@ -2025,7 +2030,7 @@ def create_objective(request):
 
     except json.JSONDecodeError:
         return JsonResponse({
-            'error': 'Invalid JSON data'
+            'error': _INVALID_JSON
         }, status=400)
     except Exception as e:
         return JsonResponse({
@@ -2078,7 +2083,7 @@ def update_objective(request):
             objective = MonthlyObjective.objects.get(objective_id=objective_id)
         except MonthlyObjective.DoesNotExist:
             return JsonResponse({
-                'error': 'Objective not found'
+                'error': _OBJECTIVE_NOT_FOUND
             }, status=404)
 
         # Parse month and year
@@ -2186,7 +2191,7 @@ def update_objective(request):
 
     except json.JSONDecodeError:
         return JsonResponse({
-            'error': 'Invalid JSON data'
+            'error': _INVALID_JSON
         }, status=400)
     except Exception as e:
         return JsonResponse({
@@ -2219,7 +2224,7 @@ def delete_objective(request):
             objective.delete()
         except MonthlyObjective.DoesNotExist:
             return JsonResponse({
-                'error': 'Objective not found'
+                'error': _OBJECTIVE_NOT_FOUND
             }, status=404)
 
         return JsonResponse({
@@ -2229,7 +2234,7 @@ def delete_objective(request):
 
     except json.JSONDecodeError:
         return JsonResponse({
-            'error': 'Invalid JSON data'
+            'error': _INVALID_JSON
         }, status=400)
     except Exception as e:
         return JsonResponse({
