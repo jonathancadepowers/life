@@ -5231,16 +5231,218 @@
             font-size: 0.75rem;
             color: #6B9080;
         }
+
+        /* === Classes extracted from inline styles === */
+
+        /* Sidebar icon wrapper - position relative */
+        .sidebar-icon-wrapper {
+            position: relative;
+        }
+
+        /* Filter dropdown layout row */
+        .filter-layout-row {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Flex: 1 utility for layout button */
+        .flex-1 {
+            flex: 1;
+        }
+
+        /* Small tooltip icon (0.7rem) */
+        .tooltip-icon-sm {
+            font-size: 0.7rem;
+        }
+
+        /* Filter/settings section title inner span */
+        .section-title-inner {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Critical icon color */
+        .icon-critical {
+            color: #dc3545;
+        }
+
+        /* Today icon color */
+        .icon-today {
+            color: #ffc107;
+        }
+
+        /* Hidden by default (JS-controlled visibility) */
+        .initially-hidden {
+            display: none;
+        }
+
+        /* Clickable panel header */
+        .panel-header-clickable {
+            cursor: pointer;
+        }
+
+        /* Filter info icon in summary */
+        .filter-info-icon-style {
+            margin-left: 0.3rem;
+            cursor: help;
+        }
+
+        /* No states empty item */
+        .no-states-empty {
+            color: #6c757d;
+            justify-content: center;
+            background: transparent;
+        }
+
+        /* Abandon settings - no tags placeholder */
+        .abandon-no-tags {
+            color: #aaa;
+            font-size: 0.75rem;
+            font-style: italic;
+        }
+
+        /* State icon in abandon exclusion chips */
+        .abandon-chip-icon {
+            font-size: 0.7rem;
+        }
+
+        /* Panel header title icon margin */
+        .panel-title-icon {
+            margin-right: 0.4rem;
+        }
+
+        /* Panel body with no padding */
+        .panel-body-flush {
+            padding: 0;
+        }
+
+        /* Details header flex container */
+        .details-header-flex {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        /* Properties section content layout */
+        .properties-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Deadline status spacing */
+        .deadline-status-spacing {
+            margin-bottom: 0.75rem;
+        }
+
+        /* Scheduled section tooltip */
+        .scheduled-tooltip {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-left: 0.25rem;
+        }
+
+        /* Remove from calendar button alignment */
+        .align-self-start {
+            align-self: flex-start;
+        }
+
+        /* Timeslot panel title */
+        .timeslot-title {
+            font-weight: 500;
+        }
+
+        /* Custom date input full width */
+        .custom-date-input-full {
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 1rem;
+        }
+
+        /* Modal field group spacing */
+        .modal-field-group {
+            margin-bottom: 0.75rem;
+        }
+
+        /* Modal field label */
+        .modal-field-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Modal field label with flex */
+        .modal-field-label-flex {
+            font-size: 0.8rem;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Modal input with no bottom margin */
+        .modal-input-compact {
+            margin-bottom: 0;
+        }
+
+        /* Modal tip paragraph */
+        .modal-tip {
+            font-size: 0.7rem;
+            color: #6b9080;
+            margin-top: 0.75rem;
+            margin-bottom: 0;
+            padding: 8px;
+            background: #f0f7f4;
+            border-radius: 4px;
+        }
+
+        /* Modal field header (flex with space-between) */
+        .modal-field-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Template modal content wider */
+        .modal-content-template {
+            width: 450px;
+        }
+
+        /* Template content preview box */
+        .template-preview-box {
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 0.75rem;
+        }
+
+        /* State drag handle hidden */
+        .drag-handle-hidden {
+            visibility: hidden;
+        }
+
+        /* Settings info icon size (0.75rem) */
+        .settings-info-icon-size {
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body>
     <!-- Sidebar icons -->
-    <div id="sidebar-icons" style="position: fixed !important; top: 1.5rem !important; left: 1.5rem !important; z-index: 10000 !important; display: flex !important; flex-direction: column !important; gap: 0.75rem !important;">
+    <div id="sidebar-icons" class="sidebar-icons">
         <!-- Deadline warning icon -->
-        <div style="position: relative;">
+        <div class="sidebar-icon-wrapper">
             <i class="bi bi-exclamation-triangle-fill deadline-warning-icon" id="deadline-warning-icon" title="Things to Worry About"></i>
         </div>
-        <div style="position: relative;">
+        <div class="sidebar-icon-wrapper">
             <i class="bi bi-binoculars-fill sidebar-icon" id="filter-icon" title="Filter"></i>
             <span class="filter-badge" id="filter-badge"></span>
         </div>
@@ -5272,12 +5474,12 @@
         </div>
 
         <!-- Panel Layout Button -->
-        <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; gap: 0.5rem;">
-            <button class="layout-mode-btn" id="filter-layout-btn" style="flex: 1;">
+        <div class="filter-layout-row">
+            <button class="layout-mode-btn flex-1" id="filter-layout-btn">
                 <i class="bi bi-columns"></i>
                 <span>Choose Layout</span>
             </button>
-            <span class="has-tooltip" style="font-size: 0.7rem;">
+            <span class="has-tooltip tooltip-icon-sm">
                 <i class="bi bi-info-circle"></i>
                 <span class="custom-tooltip">Select panel layout configuration</span>
             </span>
@@ -5287,9 +5489,9 @@
             <!-- Saved Views Section -->
             <div class="saved-views-section collapsed">
                 <div class="saved-views-header">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;">
+                    <span class="section-title-inner">
                         <span class="saved-views-title">Saved Views</span>
-                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                        <span class="has-tooltip tooltip-icon-sm">
                             <i class="bi bi-info-circle"></i>
                             <span class="custom-tooltip">Save and restore filter configurations</span>
                         </span>
@@ -5309,8 +5511,8 @@
             <!-- Group By -->
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;">Group By
-                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                    <span class="section-title-inner">Group By
+                        <span class="has-tooltip tooltip-icon-sm">
                             <i class="bi bi-info-circle"></i>
                             <span class="custom-tooltip">Organize by states or tags</span>
                         </span>
@@ -5338,8 +5540,8 @@
             <!-- Filters -->
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;">Show Only
-                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                    <span class="section-title-inner">Show Only
+                        <span class="has-tooltip tooltip-icon-sm">
                             <i class="bi bi-info-circle"></i>
                             <span class="custom-tooltip">Filter by critical or today's tasks</span>
                         </span>
@@ -5350,11 +5552,11 @@
                     <div class="filter-options-row">
                         <label class="filter-option-inline" id="filter-critical-label">
                             <input type="checkbox" id="filter-critical">
-                            <i class="bi bi-exclamation-circle" style="color: #dc3545;"></i> Critical
+                            <i class="bi bi-exclamation-circle icon-critical"></i> Critical
                         </label>
                         <label class="filter-option-inline" id="filter-today-label">
                             <input type="checkbox" id="filter-today">
-                            <i class="bi bi-sun" style="color: #ffc107;"></i> Today
+                            <i class="bi bi-sun icon-today"></i> Today
                         </label>
                     </div>
                 </div>
@@ -5363,8 +5565,8 @@
             <!-- Tags -->
             <div class="filter-section collapsed" id="filter-tags-section">
                 <div class="filter-section-title">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;">Tags
-                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                    <span class="section-title-inner">Tags
+                        <span class="has-tooltip tooltip-icon-sm">
                             <i class="bi bi-info-circle"></i>
                             <span class="custom-tooltip">Filter tasks by one or more tags</span>
                         </span>
@@ -5382,8 +5584,8 @@
             <!-- Options -->
             <div class="filter-section collapsed">
                 <div class="filter-section-title">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;">Options
-                        <span class="has-tooltip" style="font-size: 0.7rem;">
+                    <span class="section-title-inner">Options
+                        <span class="has-tooltip tooltip-icon-sm">
                             <i class="bi bi-info-circle"></i>
                             <span class="custom-tooltip">Toggle completed tasks and metrics</span>
                         </span>
@@ -5391,7 +5593,7 @@
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </div>
                 <div class="filter-section-content">
-                    <label class="filter-option" id="show-completed-label" style="display: none;">
+                    <label class="filter-option initially-hidden" id="show-completed-label">
                         <input type="checkbox" id="show-completed-toggle">
                         Include Completed
                     </label>
@@ -5424,7 +5626,7 @@
     </div>
 
     <!-- Layout Modal -->
-    <div class="layout-modal" id="layout-modal" style="display: none;">
+    <div class="layout-modal initially-hidden" id="layout-modal">
         <div class="layout-modal-overlay" id="layout-modal-overlay"></div>
         <div class="layout-modal-content" id="layout-modal-content">
             <!-- Mode Selection View -->
@@ -5446,7 +5648,7 @@
             </div>
 
             <!-- Focus Mode View -->
-            <div class="layout-view layout-focus-view" id="layout-focus-view" style="display: none;">
+            <div class="layout-view layout-focus-view initially-hidden" id="layout-focus-view">
                 <div class="layout-panel-options">
                     <button class="layout-panel-card" data-panel="tasks">
                         <i class="bi bi-check2-circle"></i>
@@ -5464,7 +5666,7 @@
             </div>
 
             <!-- Side by Side Mode View -->
-            <div class="layout-view layout-sidebyside-view" id="layout-sidebyside-view" style="display: none;">
+            <div class="layout-view layout-sidebyside-view initially-hidden" id="layout-sidebyside-view">
                 <div class="layout-panel-checkboxes">
                     <label class="layout-panel-checkbox">
                         <input type="checkbox" name="panel" value="tasks">
@@ -5493,7 +5695,7 @@
             <div class="tasks-panel-wrapper" id="tasks-panel-wrapper">
             <!-- Tasks Panel -->
             <div class="panel tasks-panel collapsed" id="tasks-panel">
-                <div class="panel-header" id="tasks-panel-header" style="cursor: pointer;">
+                <div class="panel-header panel-header-clickable" id="tasks-panel-header">
                     <div class="panel-header-left">
                         <i class="bi bi-check2-circle panel-header-icon"></i>
                         <span class="panel-header-title">Tasks</span>
@@ -5510,7 +5712,7 @@
                     <span class="filter-summary-text" id="filter-summary-text">
                         Showing <span id="visible-task-count">0</span> of <span id="total-task-count">0</span> tasks
                         <span class="filter-info-wrapper">
-                            <i class="bi bi-info-circle" id="filter-info-icon" style="margin-left: 0.3rem; cursor: help;"></i>
+                            <i class="bi bi-info-circle filter-info-icon-style" id="filter-info-icon"></i>
                             <span class="filter-info-tooltip" id="filter-info-tooltip"></span>
                         </span>
                     </span>
@@ -5576,9 +5778,9 @@
                         </div>
                     </div>
                     <!-- Tags grouping (hidden by default) -->
-                    <div id="tags-content" style="display: none;"></div>
+                    <div id="tags-content" class="initially-hidden"></div>
                     <!-- Schedules grouping (hidden by default) -->
-                    <div id="schedules-content" style="display: none;"></div>
+                    <div id="schedules-content" class="initially-hidden"></div>
                 </div>
                 <div class="tasks-search-bar" id="tasks-search-bar">
                     <i class="bi bi-search tasks-search-icon" id="tasks-search-icon" title="Search tasks"></i>
@@ -5594,7 +5796,7 @@
 
             <!-- Calendar Panel -->
             <div class="panel calendar-panel collapsed" id="calendar-panel">
-                <div class="panel-header" id="calendar-panel-header" style="cursor: pointer;">
+                <div class="panel-header panel-header-clickable" id="calendar-panel-header">
                     <div class="panel-header-left">
                         <i class="bi bi-calendar3 panel-header-icon"></i>
                         <span class="panel-header-title">Calendar</span>
@@ -5630,7 +5832,7 @@
 
             <!-- Notes Panel -->
             <div class="panel notes-panel collapsed" id="notes-panel">
-                <div class="panel-header" id="notes-panel-header" style="cursor: pointer;">
+                <div class="panel-header panel-header-clickable" id="notes-panel-header">
                     <div class="panel-header-left">
                         <i class="bi bi-journal-text panel-header-icon"></i>
                         <span class="panel-header-title">Notes</span>
@@ -5658,9 +5860,9 @@
             <!-- States Section -->
             <div class="settings-section collapsed">
                 <div class="settings-section-header">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;">
+                    <span class="section-title-inner">
                         <i class="bi bi-collection"></i> States
-                        <span class="has-tooltip settings-info-icon" style="font-size: 0.75rem;">
+                        <span class="has-tooltip settings-info-icon settings-info-icon-size">
                             <i class="bi bi-info-circle"></i>
                             <span class="custom-tooltip">Manage workflow states for tasks</span>
                         </span>
@@ -5693,7 +5895,7 @@
                         </div>
                     </li>
                     {% empty %}
-                    <li class="state-item" id="no-states" style="color: #6c757d; justify-content: center; background: transparent;">
+                    <li class="state-item no-states-empty" id="no-states">
                         No states yet
                     </li>
                     {% endfor %}
@@ -5704,9 +5906,9 @@
             <!-- Task Detail Templates Section -->
             <div class="settings-section collapsed">
                 <div class="settings-section-header">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;">
+                    <span class="section-title-inner">
                         <i class="bi bi-file-earmark-text"></i> Templates
-                        <span class="has-tooltip settings-info-icon" style="font-size: 0.75rem;">
+                        <span class="has-tooltip settings-info-icon settings-info-icon-size">
                             <i class="bi bi-info-circle"></i>
                             <span class="custom-tooltip">Reusable templates for task details</span>
                         </span>
@@ -5726,9 +5928,9 @@
             <!-- Auto-Abandon Section -->
             <div class="settings-section collapsed">
                 <div class="settings-section-header">
-                    <span style="display: flex; align-items: center; gap: 0.3rem;">
+                    <span class="section-title-inner">
                         <i class="bi bi-archive"></i> Auto-Abandon
-                        <span class="has-tooltip settings-info-icon" style="font-size: 0.75rem;">
+                        <span class="has-tooltip settings-info-icon settings-info-icon-size">
                             <i class="bi bi-info-circle"></i>
                             <span class="custom-tooltip auto-abandon-tooltip">Auto-move unscheduled tasks to abandoned</span>
                         </span>
@@ -5752,7 +5954,7 @@
                             {% for tag in tags %}
                             <span class="abandon-exclusion-chip" data-tag-id="{{ tag.id }}" onclick="toggleAbandonExcludeTag(this)">{{ tag.name }}</span>
                             {% empty %}
-                            <span style="color: #aaa; font-size: 0.75rem; font-style: italic;">No tags</span>
+                            <span class="abandon-no-tags">No tags</span>
                             {% endfor %}
                         </div>
                     </div>
@@ -5761,7 +5963,7 @@
                         <div class="abandon-exclusion-chips" id="abandon-exclude-states-chips">
                             {% for state in states %}
                             {% if not state.is_system and not state.is_terminal %}
-                            <span class="abandon-exclusion-chip" data-state-id="{{ state.id }}" onclick="toggleAbandonExcludeState(this)">{% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }}" style="font-size: 0.7rem;"></i> {% endif %}{{ state.name }}</span>
+                            <span class="abandon-exclusion-chip" data-state-id="{{ state.id }}" onclick="toggleAbandonExcludeState(this)">{% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }} abandon-chip-icon"></i> {% endif %}{{ state.name }}</span>
                             {% endif %}
                             {% endfor %}
                         </div>
@@ -5775,10 +5977,10 @@
     <div class="panel-overlay" id="panel-overlay"></div>
     <div class="slide-panel" id="slide-panel">
         <div class="panel-header">
-            <span><i class="bi bi-pencil-square" style="margin-right: 0.4rem;"></i>Task Details</span>
+            <span><i class="bi bi-pencil-square panel-title-icon"></i>Task Details</span>
             <button class="panel-close" id="panel-close">×</button>
         </div>
-        <div class="panel-body" style="padding: 0;">
+        <div class="panel-body panel-body-flush">
             <!-- Title Section -->
             <div class="task-panel-section">
                 <div class="task-panel-section-header">Title</div>
@@ -5790,7 +5992,7 @@
             <!-- Details Section -->
             <div class="task-panel-section">
                 <div class="task-panel-section-header">
-                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <div class="details-header-flex">
                         <span>Details</span>
                         <span class="markdown-help-icon">
                             <i class="bi bi-question-circle"></i>
@@ -5824,7 +6026,7 @@
                 <div class="task-panel-section-content">
                     <div class="panel-details-container">
                         <textarea class="panel-details-input" id="panel-details" placeholder=""></textarea>
-                        <div class="panel-details-preview" id="panel-details-preview" style="display: none;"></div>
+                        <div class="panel-details-preview initially-hidden" id="panel-details-preview"></div>
                     </div>
                 </div>
             </div>
@@ -5832,7 +6034,7 @@
             <!-- Properties Section -->
             <div class="task-panel-section">
                 <div class="task-panel-section-header">Properties</div>
-                <div class="task-panel-section-content" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="task-panel-section-content properties-content">
 
                     <!-- Critical -->
                     <div class="property-card">
@@ -5868,13 +6070,13 @@
                             <span>Deadline</span>
                         </div>
                         <div class="property-card-body">
-                            <div id="panel-deadline-status" style="margin-bottom: 0.75rem;"></div>
+                            <div id="panel-deadline-status" class="deadline-status-spacing"></div>
                             <div class="deadline-presets">
                                 <button type="button" class="deadline-preset-btn" data-preset="tomorrow">Tomorrow</button>
                                 <button type="button" class="deadline-preset-btn" data-preset="next-week">Next Week</button>
                                 <button type="button" class="deadline-preset-btn" data-preset="two-weeks">2 Weeks</button>
                                 <button type="button" class="deadline-preset-btn" data-preset="custom" id="deadline-custom-btn">Custom</button>
-                                <button type="button" class="deadline-change-btn" id="panel-deadline-change" title="Change deadline" style="display: none;">
+                                <button type="button" class="deadline-change-btn initially-hidden" id="panel-deadline-change" title="Change deadline">
                                     Change
                                 </button>
                                 <button type="button" class="deadline-clear-btn" id="panel-deadline-clear" title="Remove deadline">
@@ -5885,20 +6087,20 @@
                     </div>
 
                     <!-- Scheduled Dates (read-only) -->
-                    <div class="property-card" id="panel-scheduled-section" style="display: none;">
+                    <div class="property-card initially-hidden" id="panel-scheduled-section">
                         <div class="property-card-header">
                             <i class="bi bi-calendar-check"></i>
                             <span>Scheduled</span>
-                            <span class="has-tooltip" style="font-size: 0.7rem; color: #6c757d; margin-left: 0.25rem;">
+                            <span class="has-tooltip scheduled-tooltip">
                                 <i class="bi bi-info-circle"></i>
                                 <span class="custom-tooltip">Click dates to jump to calendar</span>
                             </span>
                         </div>
                         <div class="property-card-body">
-                            <div id="panel-scheduled-dates" style="margin-bottom: 0.75rem;">
+                            <div id="panel-scheduled-dates" class="deadline-status-spacing">
                                 <!-- Date chips will be inserted here by JavaScript -->
                             </div>
-                            <button type="button" class="deadline-clear-btn" id="panel-remove-from-calendar" title="Remove from all scheduled days" style="align-self: flex-start;">
+                            <button type="button" class="deadline-clear-btn align-self-start" id="panel-remove-from-calendar" title="Remove from all scheduled days">
                                 Remove from Calendar
                             </button>
                         </div>
@@ -5928,7 +6130,7 @@
     <div class="timeslot-panel-overlay" id="timeslot-panel-overlay"></div>
     <div class="timeslot-panel" id="timeslot-panel">
         <div class="panel-header">
-            <span style="font-weight: 500;" id="timeslot-panel-title">Time Slot Tasks</span>
+            <span class="timeslot-title" id="timeslot-panel-title">Time Slot Tasks</span>
             <button class="panel-close" id="timeslot-panel-close">×</button>
         </div>
         <div class="timeslot-task-list" id="timeslot-task-list">
@@ -5943,15 +6145,15 @@
             <div class="modal-body" id="delete-state-modal-body">
                 <!-- Content will be populated dynamically -->
             </div>
-            <div id="delete-state-modal-select-container" style="display: none;">
+            <div id="delete-state-modal-select-container" class="initially-hidden">
                 <select class="modal-select" id="delete-state-move-to">
                     <!-- Options will be populated dynamically -->
                 </select>
             </div>
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" onclick="closeDeleteStateModal()">Cancel</button>
-                <button class="modal-btn modal-btn-danger" id="delete-state-confirm-btn" style="display: none;">Delete</button>
-                <button class="modal-btn modal-btn-primary" id="delete-state-ok-btn" style="display: none;" onclick="closeDeleteStateModal()">OK</button>
+                <button class="modal-btn modal-btn-danger initially-hidden" id="delete-state-confirm-btn">Delete</button>
+                <button class="modal-btn modal-btn-primary initially-hidden" id="delete-state-ok-btn" onclick="closeDeleteStateModal()">OK</button>
             </div>
         </div>
     </div>
@@ -5997,7 +6199,7 @@
         <div class="modal-content">
             <div class="modal-title">Deadline</div>
             <div class="modal-body">
-                <input type="date" class="deadline-date-input" id="custom-date-input" style="width: 100%; padding: 0.5rem; font-size: 1rem;">
+                <input type="date" class="deadline-date-input custom-date-input-full" id="custom-date-input">
             </div>
             <div class="modal-actions">
                 <button class="modal-btn modal-btn-cancel" id="custom-date-cancel">Cancel</button>
@@ -6022,16 +6224,16 @@
         <div class="modal-content">
             <div class="modal-title">Block Time</div>
             <div class="modal-body">
-                <div style="margin-bottom: 0.75rem;">
-                    <label for="event-name-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Name</label>
-                    <input type="text" class="modal-input" id="event-name-input" placeholder="Event name" style="margin-bottom: 0;">
+                <div class="modal-field-group">
+                    <label for="event-name-input" class="modal-field-label">Name</label>
+                    <input type="text" class="modal-input modal-input-compact" id="event-name-input" placeholder="Event name">
                 </div>
                 <div>
                     <div class="time-slot-buttons" id="time-slot-buttons">
                         <!-- Buttons will be populated dynamically -->
                     </div>
                 </div>
-                <p style="font-size: 0.7rem; color: #6b9080; margin-top: 0.75rem; margin-bottom: 0; padding: 8px; background: #f0f7f4; border-radius: 4px;">
+                <p class="modal-tip">
                     <strong>Tip:</strong> Hold <strong>COMMAND</strong> (on MacOS) or <strong>CTRL</strong> (on a PC) over an open space on the calendar to block time. That's like…way faster than using this clunky method that you're using now. :)
                 </p>
             </div>
@@ -6047,9 +6249,9 @@
         <div class="modal-content">
             <div class="modal-title">Edit Time Block</div>
             <div class="modal-body">
-                <div style="margin-bottom: 0.75rem;">
-                    <label for="edit-time-block-name-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Name</label>
-                    <input type="text" class="modal-input" id="edit-time-block-name-input" placeholder="Time block name" style="margin-bottom: 0;">
+                <div class="modal-field-group">
+                    <label for="edit-time-block-name-input" class="modal-field-label">Name</label>
+                    <input type="text" class="modal-input modal-input-compact" id="edit-time-block-name-input" placeholder="Time block name">
                 </div>
             </div>
             <div class="modal-actions">
@@ -6061,16 +6263,16 @@
 
     <!-- Task Detail Template Modal -->
     <div class="modal-overlay" id="template-modal">
-        <div class="modal-content" style="width: 450px;">
+        <div class="modal-content modal-content-template">
             <div class="modal-title" id="template-modal-title">New Template</div>
             <div class="modal-body">
-                <div style="margin-bottom: 0.75rem;">
-                    <label for="template-name-input" style="font-size: 0.8rem; color: #6c757d; display: block; margin-bottom: 0.25rem;">Template Name</label>
-                    <input type="text" class="modal-input" id="template-name-input" placeholder="e.g., Meeting Notes" style="margin-bottom: 0;">
+                <div class="modal-field-group">
+                    <label for="template-name-input" class="modal-field-label">Template Name</label>
+                    <input type="text" class="modal-input modal-input-compact" id="template-name-input" placeholder="e.g., Meeting Notes">
                 </div>
-                <div style="margin-bottom: 0.75rem;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
-                        <label for="template-content-input" style="font-size: 0.8rem; color: #6c757d; display: flex; align-items: center; gap: 0.25rem;">
+                <div class="modal-field-group">
+                    <div class="modal-field-header">
+                        <label for="template-content-input" class="modal-field-label-flex">
                             Content
                             <span class="markdown-help-icon">
                                 <i class="bi bi-question-circle"></i>
@@ -6093,7 +6295,7 @@
                     </div>
                     <div class="template-content-container">
                         <textarea class="modal-textarea" id="template-content-input" placeholder="## Overview&#10;&#10;## Action Items&#10;- [ ] &#10;&#10;## Notes" rows="10"></textarea>
-                        <div class="panel-details-preview" id="template-content-preview" style="display: none; min-height: 200px; max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 0.75rem;"></div>
+                        <div class="panel-details-preview initially-hidden template-preview-box" id="template-content-preview"></div>
                     </div>
                 </div>
                 <div class="template-default-toggle">

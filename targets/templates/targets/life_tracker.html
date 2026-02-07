@@ -164,17 +164,79 @@
             opacity: 1;
             display: block;
         }
+        /* Top-right fixed controls bar */
+        .top-right-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        /* Navigation menu hamburger icon */
+        .nav-menu-icon {
+            font-size: 1.2rem;
+        }
+        /* Day column header */
+        .day-column-header {
+            width: 20%;
+            cursor: default;
+        }
+        /* Column header content layout (left-aligned for day column) */
+        .th-content-start {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
+        }
+        /* Column header content layout (centered for data columns) */
+        .th-content-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        /* Table header icon size */
+        .th-icon {
+            font-size: 1.5rem;
+        }
+        /* Add button icon in empty cells */
+        .add-btn-icon {
+            cursor: pointer;
+            color: #6c757d;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        /* Abandon flag icon */
+        .abandon-icon {
+            cursor: pointer;
+            color: #dc3545;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            position: absolute;
+            top: 2px;
+            right: 5.5px;
+            font-size: 0.75rem;
+            z-index: 10;
+        }
+        /* Modal body with minimum height */
+        .modal-body-min-height {
+            min-height: 100px;
+        }
     </style>
 </head>
 <body>
     <!-- Top Right Controls - Fixed Position -->
-    <div style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; gap: 8px; align-items: center;">
+    <div class="top-right-controls">
         <button class="btn btn-warning btn-sm" onclick="runMasterSync()">
             <i class="bi bi-arrow-repeat"></i> Run Master Sync
         </button>
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm" type="button" id="navMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-list" style="font-size: 1.2rem;"></i>
+                <i class="bi bi-list nav-menu-icon"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navMenuButton">
                 <li><a class="dropdown-item active" href="/life-tracker/">Life Tracker</a></li>
@@ -216,16 +278,16 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 20%; cursor: default;">
-                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;">
-                                <i class="bi bi-brightness-high-fill" style="font-size: 1.5rem;"></i>
+                        <th class="day-column-header">
+                            <div class="th-content-start">
+                                <i class="bi bi-brightness-high-fill th-icon"></i>
                                 <span>Day (Date)</span>
                             </div>
                         </th>
                         {% for column in columns %}
                         <th style="width: {% widthratio 80 columns.count 1 %}%;" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ column.tooltip_text }}">
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
-                                <i class="bi {{ column.icon }}" style="font-size: 1.5rem;"></i>
+                            <div class="th-content-center">
+                                <i class="bi {{ column.icon }} th-icon"></i>
                                 <span>{{ column.display_name }}</span>
                             </div>
                         </th>
@@ -256,10 +318,10 @@
                                         {% endwith %}
                                     </div>
                                 {% elif column.has_add_button %}
-                                    <i class="bi bi-plus-circle add-btn-icon" style="cursor: pointer; color: #6c757d; visibility: hidden; opacity: 0; transition: opacity 0.2s;"></i>
+                                    <i class="bi bi-plus-circle add-btn-icon"></i>
                                 {% endif %}
                                 {% if column.allow_abandon %}
-                                    <i class="bi bi-flag-fill abandon-icon" style="cursor: pointer; color: #dc3545; display: none; opacity: 0; transition: opacity 0.2s; position: absolute; top: 2px; right: 5.5px; font-size: 0.75rem; z-index: 10;"></i>
+                                    <i class="bi bi-flag-fill abandon-icon"></i>
                                 {% endif %}
                             {% endwith %}
                         </td>
@@ -279,7 +341,7 @@
                     <h5 class="modal-title" id="simpleConfirmModalLabel">Confirm</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body text-center d-flex align-items-center justify-content-center" style="min-height: 100px;">
+                <div class="modal-body text-center d-flex align-items-center justify-content-center modal-body-min-height">
                     <p class="fs-5 mb-0" id="simpleConfirmBodyText"></p>
                 </div>
                 <div class="modal-footer justify-content-center">
@@ -351,7 +413,7 @@
                     <h5 class="modal-title" id="abandonModalLabel">Mark Day as Abandoned</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body text-center d-flex align-items-center justify-content-center" style="min-height: 100px;">
+                <div class="modal-body text-center d-flex align-items-center justify-content-center modal-body-min-height">
                     <p class="fs-5 mb-0" id="abandonModalText"></p>
                 </div>
                 <div class="modal-footer justify-content-center">
