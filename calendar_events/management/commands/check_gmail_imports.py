@@ -41,8 +41,86 @@ class Command(BaseCommand):
             help='Check for emails but do not import or mark as read'
         )
 
+    def _extract_json_attachment(self, msg):
+        """Extract the first valid JSON attachment from an email message."""
+        for part in msg.walk():
+            content_disposition = part.get('Content-Disposition', '')
+            if 'attachment' not in content_disposition:
+                continue
+            filename = part.get_filename()
+            if not filename or not filename.endswith('.json'):
+                continue
+            payload = part.get_payload(decode=True)
+            try:
+                json_data = json.loads(payload.decode('utf-8'))
+                self.stdout.write(f'  Found JSON attachment: {filename}')
+                return json_data
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                self.stderr.write(f'  Error parsing {filename}: {e}')
+        return None
+
+    def _derive_source_from_subject(self, subject):
+        """Derive source string from email subject by stripping brackets."""
+        source = subject.strip()
+        if source.startswith('[') and source.endswith(']'):
+            return source[1:-1]
+        return source
+
+    def _import_and_archive_email(self, mail, email_id, json_data, source):
+        """Import calendar events from JSON data and archive the email."""
+        created, updated, canceled = import_calendar_events(json_data, source=source)
+        self.stdout.write(self.style.SUCCESS(
+            f'  Imported: {created} created, {updated} updated, {canceled} canceled'
+        ))
+
+        mail.store(email_id, '+FLAGS', '\\Seen')
+
+        try:
+            mail.store(email_id, '+X-GM-LABELS', '"Oxy Calendar Imports"')
+            self.stdout.write('  Labeled: Oxy Calendar Imports')
+        except Exception as label_err:
+            self.stdout.write(self.style.WARNING(f'  Could not add label: {label_err}'))
+
+        try:
+            mail.store(email_id, '+FLAGS', '\\Deleted')
+            mail.expunge()
+            self.stdout.write('  Archived (removed from Inbox)')
+        except Exception as archive_err:
+            self.stdout.write(self.style.WARNING(f'  Could not archive: {archive_err}'))
+
+        return created, updated, canceled
+
+    def _process_single_email(self, mail, email_id, dry_run):
+        """Fetch, parse, and process a single email. Returns (created, updated, canceled) or None."""
+        status, msg_data = mail.fetch(email_id, '(RFC822)')
+        if status != 'OK':
+            return None
+
+        msg = email.message_from_bytes(msg_data[0][1])
+
+        subject, encoding = decode_header(msg['Subject'])[0]
+        if isinstance(subject, bytes):
+            subject = subject.decode(encoding or 'utf-8')
+
+        self.stdout.write(f'\nProcessing: "{subject}" from {msg["From"]}')
+
+        json_data = self._extract_json_attachment(msg)
+        if not json_data:
+            self.stdout.write(self.style.WARNING('  No valid JSON attachment found, skipping'))
+            return None
+
+        if dry_run:
+            self.stdout.write(self.style.WARNING('  [DRY RUN] Would import events from this email'))
+            return None
+
+        source = self._derive_source_from_subject(subject)
+        try:
+            return self._import_and_archive_email(mail, email_id, json_data, source)
+        except Exception as e:
+            self.stderr.write(self.style.ERROR(f'  Import error: {e}'))
+            return None
+
     def handle(self, *_args, **options):
-        # Get Gmail credentials from settings/env
         gmail_address = getattr(settings, 'GMAIL_IMPORT_ADDRESS', None)
         gmail_password = getattr(settings, 'GMAIL_IMPORT_APP_PASSWORD', None)
         default_subject = getattr(settings, 'GMAIL_CALENDAR_SUBJECT', '[Oxy Calendar Import]')
@@ -60,15 +138,11 @@ class Command(BaseCommand):
         self.stdout.write(f'Looking for emails with subject containing: "{subject_filter}"')
 
         try:
-            # Connect to Gmail IMAP
             mail = imaplib.IMAP4_SSL('imap.gmail.com')
             mail.login(gmail_address, gmail_password)
             mail.select('INBOX')
 
-            # Search for unread emails with the specified subject
-            search_criteria = f'(UNSEEN SUBJECT "{subject_filter}")'
-            status, message_ids = mail.search(None, search_criteria)
-
+            status, message_ids = mail.search(None, f'(UNSEEN SUBJECT "{subject_filter}")')
             if status != 'OK':
                 self.stderr.write(self.style.ERROR('Failed to search emails'))
                 return
@@ -87,85 +161,13 @@ class Command(BaseCommand):
             processed_count = 0
 
             for email_id in email_ids:
-                # Fetch the email
-                status, msg_data = mail.fetch(email_id, '(RFC822)')
-                if status != 'OK':
-                    continue
-
-                # Parse the email
-                raw_email = msg_data[0][1]
-                msg = email.message_from_bytes(raw_email)
-
-                # Decode subject
-                subject, encoding = decode_header(msg['Subject'])[0]
-                if isinstance(subject, bytes):
-                    subject = subject.decode(encoding or 'utf-8')
-
-                sender = msg['From']
-                self.stdout.write(f'\nProcessing: "{subject}" from {sender}')
-
-                # Look for JSON attachments
-                json_data = None
-
-                for part in msg.walk():
-                    content_disposition = part.get('Content-Disposition', '')
-                    if 'attachment' in content_disposition:
-                        filename = part.get_filename()
-                        if filename and filename.endswith('.json'):
-                            payload = part.get_payload(decode=True)
-                            try:
-                                json_data = json.loads(payload.decode('utf-8'))
-                                self.stdout.write(f'  Found JSON attachment: {filename}')
-                                break
-                            except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                                self.stderr.write(f'  Error parsing {filename}: {e}')
-
-                if not json_data:
-                    self.stdout.write(self.style.WARNING('  No valid JSON attachment found, skipping'))
-                    continue
-
-                if dry_run:
-                    self.stdout.write(self.style.WARNING('  [DRY RUN] Would import events from this email'))
-                    continue
-
-                # Derive source from subject by removing brackets
-                # E.g., "[Oxy Calendar Import]" -> "Oxy Calendar Import"
-                source = subject.strip()
-                if source.startswith('[') and source.endswith(']'):
-                    source = source[1:-1]
-
-                # Import the calendar events
-                try:
-                    created, updated, canceled = import_calendar_events(json_data, source=source)
+                result = self._process_single_email(mail, email_id, dry_run)
+                if result:
+                    created, updated, canceled = result
                     total_created += created
                     total_updated += updated
                     total_canceled += canceled
                     processed_count += 1
-                    self.stdout.write(self.style.SUCCESS(
-                        f'  Imported: {created} created, {updated} updated, {canceled} canceled'
-                    ))
-
-                    # Mark email as read
-                    mail.store(email_id, '+FLAGS', '\\Seen')
-
-                    # Add label "Oxy Calendar Imports" (Gmail-specific)
-                    try:
-                        mail.store(email_id, '+X-GM-LABELS', '"Oxy Calendar Imports"')
-                        self.stdout.write('  Labeled: Oxy Calendar Imports')
-                    except Exception as label_err:
-                        self.stdout.write(self.style.WARNING(f'  Could not add label: {label_err}'))
-
-                    # Archive (remove from Inbox - Gmail keeps in All Mail)
-                    try:
-                        # In Gmail, deleting from INBOX moves to All Mail (archives)
-                        mail.store(email_id, '+FLAGS', '\\Deleted')
-                        mail.expunge()
-                        self.stdout.write('  Archived (removed from Inbox)')
-                    except Exception as archive_err:
-                        self.stdout.write(self.style.WARNING(f'  Could not archive: {archive_err}'))
-
-                except Exception as e:
-                    self.stderr.write(self.style.ERROR(f'  Import error: {e}'))
 
             mail.logout()
 

@@ -199,7 +199,7 @@ def update_task(request, task_id):
 
 
 @require_http_methods(["DELETE"])
-def delete_task(request, task_id):
+def delete_task(_request, task_id):
     """Delete a task via AJAX."""
     try:
         task = Task.objects.get(id=task_id)
@@ -209,7 +209,7 @@ def delete_task(request, task_id):
         return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
 
 
-def get_task(request, task_id):
+def get_task(_request, task_id):
     """Get a task's details via AJAX."""
     try:
         task = Task.objects.select_related('state').prefetch_related('tags', 'schedules').get(id=task_id)
@@ -221,7 +221,7 @@ def get_task(request, task_id):
         return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
 
 
-def list_states(request):
+def list_states(_request):
     """List all task states."""
     states = TaskState.objects.all()
     return JsonResponse({
@@ -230,7 +230,7 @@ def list_states(request):
     })
 
 
-def get_state_info(request, state_id):
+def get_state_info(_request, state_id):
     """Get info about a state including task count."""
     try:
         state = TaskState.objects.get(id=state_id)
@@ -380,7 +380,7 @@ def reorder_tasks(request):
         return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
-def list_tags(request):
+def list_tags(_request):
     """List all task tags."""
     tags = TaskTag.objects.all()
     return JsonResponse({
@@ -468,7 +468,7 @@ def remove_tag_from_task(request, task_id):
 
 
 @require_http_methods(["DELETE"])
-def delete_tag(request, tag_id):
+def delete_tag(_request, tag_id):
     """Delete a tag."""
     try:
         tag = TaskTag.objects.get(id=tag_id)
@@ -587,7 +587,7 @@ def update_time_block(request, block_id):
 
 
 @require_http_methods(["DELETE"])
-def delete_time_block(request, block_id):
+def delete_time_block(_request, block_id):
     """Delete a time block via AJAX."""
     try:
         block = TimeBlock.objects.get(id=block_id)
@@ -720,7 +720,7 @@ def update_task_schedule(request, schedule_id):
 
 
 @require_http_methods(["DELETE"])
-def delete_task_schedule(request, schedule_id):
+def delete_task_schedule(_request, schedule_id):
     """Delete a task schedule via AJAX."""
     try:
         schedule = TaskSchedule.objects.select_related('task').get(id=schedule_id)
@@ -736,7 +736,7 @@ def delete_task_schedule(request, schedule_id):
 
 
 @require_http_methods(["DELETE"])
-def delete_task_schedules(request, task_id):
+def delete_task_schedules(_request, task_id):
     """Delete all schedules for a task via AJAX."""
     try:
         task = Task.objects.prefetch_related('schedules').get(id=task_id)
@@ -752,7 +752,7 @@ def delete_task_schedules(request, task_id):
 
 # ========== Task Detail Template Views ==========
 
-def list_templates(request):
+def list_templates(_request):
     """List all task detail templates."""
     templates = TaskDetailTemplate.objects.all()
     return JsonResponse({
@@ -838,7 +838,7 @@ def update_template(request, template_id):
 
 
 @require_http_methods(["DELETE"])
-def delete_template(request, template_id):
+def delete_template(_request, template_id):
     """Delete a task detail template via AJAX."""
     try:
         template = TaskDetailTemplate.objects.get(id=template_id)
@@ -849,7 +849,7 @@ def delete_template(request, template_id):
 
 
 # Task Views (saved filter configurations)
-def list_views(request):
+def list_views(_request):
     """List all saved task views."""
     views = TaskView.objects.all()
     return JsonResponse({
@@ -903,7 +903,7 @@ def create_view(request):
 
 
 @require_http_methods(["DELETE"])
-def delete_view(request, view_id):
+def delete_view(_request, view_id):
     """Delete a saved task view via AJAX."""
     try:
         view = TaskView.objects.get(id=view_id)
@@ -1032,7 +1032,7 @@ def move_calendar_event(request, event_id):
 
 
 @require_POST
-def hide_calendar_event(request, event_id):
+def hide_calendar_event(_request, event_id):
     """Hide a calendar event (local override, reset on next import)."""
     try:
         event = CalendarEvent.objects.get(id=event_id)
@@ -1079,7 +1079,7 @@ def mark_done_for_today(request, task_id):
 
 
 @require_POST
-def unmark_done_for_today(request, task_id):
+def unmark_done_for_today(_request, task_id):
     """Unmark a task as 'done for today' (clear the done_for_day field)."""
     try:
         task = Task.objects.get(id=task_id)

@@ -305,15 +305,32 @@ class Command(BaseCommand):
 
         return count
 
+    def _set_agenda_target(self, agenda, slot, project, goal):
+        """Set a single target slot (1, 2, or 3) on an agenda with a random score."""
+        setattr(agenda, f'project_{slot}', project)
+        setattr(agenda, f'goal_{slot}', goal)
+
+        if not goal:
+            return
+
+        target, _ = Target.objects.get_or_create(
+            target_id=f'test-target-{goal.goal_id}-{slot}',
+            defaults={
+                'target_name': f'Work on {goal.display_string}',
+                'goal_id': goal
+            }
+        )
+        setattr(agenda, f'target_{slot}', target)
+
+        if random.random() < 0.7:
+            setattr(agenda, f'target_{slot}_score', random.choice([0.0, 0.5, 1.0]))
+
     def _create_daily_agenda(self, current_date, projects, goals):
         """Create a daily agenda entry"""
-        # Skip if agenda already exists for this date (non-test)
         if DailyAgenda.objects.filter(date=current_date).exclude(notes__contains='[TEST]').exists():
             return 0
 
-        # Pick 1-3 targets for the day
         num_targets = random.randint(1, 3)
-
         selected_projects = random.sample(projects, k=min(num_targets, len(projects)))
         selected_goals = random.sample(goals, k=min(num_targets, len(goals)))
 
@@ -321,67 +338,17 @@ class Command(BaseCommand):
             date=current_date,
             defaults={'other_plans': f'[TEST] Daily agenda for {current_date}'}
         )
-
         if not created:
-            # Update existing test agenda
             agenda.other_plans = f'[TEST] Daily agenda for {current_date}'
 
-        # Set up targets
         for i in range(num_targets):
-            if i == 0:
-                agenda.project_1 = selected_projects[i] if i < len(selected_projects) else None
-                agenda.goal_1 = selected_goals[i] if i < len(selected_goals) else None
-                # Create or get target
-                if agenda.goal_1:
-                    target, _ = Target.objects.get_or_create(
-                        target_id=f'test-target-{agenda.goal_1.goal_id}-1',
-                        defaults={
-                            'target_name': f'Work on {agenda.goal_1.display_string}',
-                            'goal_id': agenda.goal_1
-                        }
-                    )
-                    agenda.target_1 = target
-                    # Random score (70% chance of having a score)
-                    if random.random() < 0.7:
-                        agenda.target_1_score = random.choice([0.0, 0.5, 1.0])
-            elif i == 1:
-                agenda.project_2 = selected_projects[i] if i < len(selected_projects) else None
-                agenda.goal_2 = selected_goals[i] if i < len(selected_goals) else None
-                if agenda.goal_2:
-                    target, _ = Target.objects.get_or_create(
-                        target_id=f'test-target-{agenda.goal_2.goal_id}-2',
-                        defaults={
-                            'target_name': f'Work on {agenda.goal_2.display_string}',
-                            'goal_id': agenda.goal_2
-                        }
-                    )
-                    agenda.target_2 = target
-                    if random.random() < 0.7:
-                        agenda.target_2_score = random.choice([0.0, 0.5, 1.0])
-            elif i == 2:
-                agenda.project_3 = selected_projects[i] if i < len(selected_projects) else None
-                agenda.goal_3 = selected_goals[i] if i < len(selected_goals) else None
-                if agenda.goal_3:
-                    target, _ = Target.objects.get_or_create(
-                        target_id=f'test-target-{agenda.goal_3.goal_id}-3',
-                        defaults={
-                            'target_name': f'Work on {agenda.goal_3.display_string}',
-                            'goal_id': agenda.goal_3
-                        }
-                    )
-                    agenda.target_3 = target
-                    if random.random() < 0.7:
-                        agenda.target_3_score = random.choice([0.0, 0.5, 1.0])
+            slot = i + 1
+            project = selected_projects[i] if i < len(selected_projects) else None
+            goal = selected_goals[i] if i < len(selected_goals) else None
+            self._set_agenda_target(agenda, slot, project, goal)
 
-        # Calculate day score
-        scores = []
-        if agenda.target_1_score is not None:
-            scores.append(agenda.target_1_score)
-        if agenda.target_2_score is not None:
-            scores.append(agenda.target_2_score)
-        if agenda.target_3_score is not None:
-            scores.append(agenda.target_3_score)
-
+        scores = [getattr(agenda, f'target_{s}_score') for s in range(1, 4)
+                   if getattr(agenda, f'target_{s}_score') is not None]
         if scores:
             agenda.day_score = sum(scores) / len(scores)
 
