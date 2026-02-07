@@ -58,7 +58,7 @@ class TestWhoopRobustness(TestCase):
         with mock.patch('requests.post', return_value=mock_refresh_response):
             with mock.patch('requests.request', side_effect=[mock_401_response, mock_success_response]) as mock_request:
                 # Make API request
-                result = client._make_authenticated_request('/developer/v1/activity/workout')
+                client._make_authenticated_request('/developer/v1/activity/workout')
 
                 # Assert: Two API requests made (first 401, second success)
                 self.assertEqual(mock_request.call_count, 2)

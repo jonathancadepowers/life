@@ -948,7 +948,7 @@ class ActivityReportViewsTestCase(TestCase):
         end_time = start_time + timedelta(hours=1)
 
         # Create a sport without distance tracking
-        yoga_sport = self.WhoopSportId.objects.create(sport_id=44, sport_name='Yoga')
+        self.WhoopSportId.objects.create(sport_id=44, sport_name='Yoga')
 
         self.Workout.objects.create(
             source='Whoop',
@@ -1103,7 +1103,7 @@ class ActivityReportViewsTestCase(TestCase):
         """Test that sections are collapsible"""
         # Create time tracking data so timeTrackingSection renders
         start_time = timezone.make_aware(datetime.combine(self.week_start, datetime.min.time()))
-        time_log = self.TimeLog.objects.create(
+        self.TimeLog.objects.create(
             source='Test',
             source_id='log-collapse-test',
             project_id=self.project.project_id,
@@ -1157,7 +1157,7 @@ class ActivityReportViewsTestCase(TestCase):
         """Test that Calories is shown when distance is not available"""
         # Create workout without distance
         start_time = timezone.make_aware(datetime.combine(self.week_start, datetime.min.time()))
-        yoga_sport = self.WhoopSportId.objects.create(sport_id=44, sport_name='Yoga')
+        self.WhoopSportId.objects.create(sport_id=44, sport_name='Yoga')
 
         self.Workout.objects.create(
             source='Whoop',
@@ -1287,7 +1287,7 @@ class ActivityReportViewsTestCase(TestCase):
                 sport_id=0  # Running
             )
 
-        objective = MonthlyObjective.objects.create(
+        MonthlyObjective.objects.create(
             objective_id='test_objective_nov_2025',
             label='15 Running Workouts',
             start=start_date,
@@ -1382,7 +1382,7 @@ class ActivityReportViewsTestCase(TestCase):
 
         # Create objective with SQL that counts these workouts
         # Using SQLite syntax since tests run on SQLite
-        objective = MonthlyObjective.objects.create(
+        MonthlyObjective.objects.create(
             objective_id='test_sql_execution',
             label='5 Running Workouts',
             start=target_month,
@@ -1662,7 +1662,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             )
 
         # Create objective that counts running workouts
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_update_calc',
             label='10 Running Workouts',
             start=self.start_date,
@@ -1784,7 +1784,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             )
 
         # Create objective with target of 10
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_achieved',
             label='10 Running Workouts',
             start=self.start_date,
@@ -1817,7 +1817,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
     def test_delete_objective_success(self):
         """Test successfully deleting an objective"""
         # Create objective
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_delete_success',
             label='To Be Deleted',
             start=self.start_date,
@@ -1893,7 +1893,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
     def test_objective_sql_execution_error_handling(self):
         """Test that SQL execution errors are handled gracefully"""
         # Create objective with invalid SQL
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_sql_error',
             label='Invalid SQL Test',
             start=self.start_date,
@@ -1925,7 +1925,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
 
     def test_objective_progress_division_by_zero(self):
         """Test that progress calculation handles zero objective_value"""
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_div_zero',
             label='Zero Target Test',
             start=self.start_date,
@@ -1970,7 +1970,6 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
         super().setUpClass()
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.chrome.service import Service
 
         # Try to use Chrome in headless mode
         chrome_options = Options()
@@ -2012,7 +2011,7 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
         last_day = monthrange(2025, 12)[1]
         end_date = date(2025, 12, last_day)
 
-        objective = MonthlyObjective.objects.create(
+        MonthlyObjective.objects.create(
             objective_id='test_objective_dec_2025',
             label='20 Cycling Workouts',
             start=start_date,
@@ -2036,7 +2035,7 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
             # Debug: save page source if page doesn't load
             with open('/tmp/selenium_debug_page.html', 'w') as f:
                 f.write(self.selenium.page_source)
-            raise AssertionError(f"Page did not load properly. Page source saved to /tmp/selenium_debug_page.html") from e
+            raise AssertionError("Page did not load properly. Page source saved to /tmp/selenium_debug_page.html") from e
 
         # The Monthly Objectives section is collapsed by default, so we need to expand it first
         try:
@@ -2050,7 +2049,7 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
             with open('/tmp/selenium_debug_no_header.html', 'w') as f:
                 f.write(self.selenium.page_source)
             raise unittest.SkipTest(
-                f"Monthly objectives header not found. Page source saved to /tmp/selenium_debug_no_header.html"
+                "Monthly objectives header not found. Page source saved to /tmp/selenium_debug_no_header.html"
             ) from e
 
         # Now check if the edit button exists and is clickable
@@ -2063,8 +2062,8 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
             with open('/tmp/selenium_debug_no_button.html', 'w') as f:
                 f.write(self.selenium.page_source)
             raise unittest.SkipTest(
-                f"Edit button not found or not clickable after expanding section. "
-                f"Page source saved to /tmp/selenium_debug_no_button.html"
+                "Edit button not found or not clickable after expanding section. "
+                "Page source saved to /tmp/selenium_debug_no_button.html"
             ) from e
 
         # Scroll element into view and click it
@@ -2171,7 +2170,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
                 EC.presence_of_element_located((By.CSS_SELECTOR, '#flashMessageContainer .alert'))
             )
             return flash_message.text
-        except:
+        except Exception:
             return None
 
     def test_create_objective_full_flow(self):
@@ -2265,7 +2264,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
         last_day = monthrange(2026, 3)[1]
         end_date = date(2026, 3, last_day)
 
-        objective = MonthlyObjective.objects.create(
+        MonthlyObjective.objects.create(
             objective_id='test_delete_flow_mar_2026',
             label='To Be Deleted',
             start=start_date,
@@ -2287,7 +2286,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
         try:
             table_label = self.selenium.find_element(By.XPATH, "//td[contains(text(), 'To Be Deleted')]")
             self.assertIsNotNone(table_label)
-        except:
+        except Exception:
             raise unittest.SkipTest("Objective not found in table")
 
         # Click delete button
@@ -2309,7 +2308,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
         try:
             alert = self.selenium.switch_to.alert
             alert.accept()
-        except:
+        except Exception:
             # If no alert, that's okay - deletion might work differently
             pass
 
@@ -2321,7 +2320,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
             # Try to find the deleted objective - should not exist
             table_label = self.selenium.find_element(By.XPATH, "//td[contains(text(), 'To Be Deleted')]")
             self.fail("Objective should have been deleted from table")
-        except:
+        except Exception:
             # Not finding it is the expected behavior
             pass
 
@@ -2329,8 +2328,6 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
         """Test that multiple objectives are displayed correctly."""
         from monthly_objectives.models import MonthlyObjective
         from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
         from calendar import monthrange
 
         # Create multiple objectives for May 2026
@@ -2371,7 +2368,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
                     f"//td[contains(text(), '{obj_data['label']}')]"
                 )
                 self.assertIsNotNone(label_element)
-            except:
+            except Exception:
                 self.fail(f"Objective '{obj_data['label']}' not found in table")
 
         # Verify all three have edit buttons
@@ -2438,7 +2435,6 @@ class MonthlyObjectivesCustomCategoryTests(TestCase):
         - No category (None or empty string)
         """
         from django.test import Client
-        from datetime import date
         
         client = Client()
         
@@ -2629,8 +2625,6 @@ class TodaysActivityTestCase(TestCase):
 
     def test_activity_only_shows_todays_data(self):
         """Test that only today's activities show, not yesterday's or tomorrow's"""
-        import pytz
-        cst = pytz.timezone('America/Chicago')
         now = timezone.now()
 
         # Yesterday's workout (should NOT appear)

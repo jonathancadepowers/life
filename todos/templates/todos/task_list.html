@@ -2853,6 +2853,52 @@
             border-color: #6B9080;
         }
 
+        .abandon-exclusion-row {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.35rem !important;
+            padding: 0.5rem 1rem;
+        }
+
+        .abandon-exclusion-row label {
+            color: #888;
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        .abandon-exclusion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .abandon-exclusion-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            background: #fff;
+            color: #6c757d;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .abandon-exclusion-chip.active {
+            background: #6B9080;
+            color: #fff;
+            border-color: #6B9080;
+        }
+
+        .abandon-exclusion-chip:hover {
+            border-color: #6B9080;
+        }
+
         /* Toast notification - reusable component */
         .toast-notification {
             position: fixed;
@@ -5698,6 +5744,26 @@
                         <label for="abandoned-days-input">Days until abandoned:</label>
                         <input type="number" id="abandoned-days-input" min="1" max="365" value="14" class="abandoned-days-input">
                     </div>
+                    <div class="settings-row abandon-exclusion-row" id="abandon-exclude-tags-row">
+                        <label>Exclude tags:</label>
+                        <div class="abandon-exclusion-chips" id="abandon-exclude-tags-chips">
+                            {% for tag in tags %}
+                            <span class="abandon-exclusion-chip" data-tag-id="{{ tag.id }}" onclick="toggleAbandonExcludeTag(this)">{{ tag.name }}</span>
+                            {% empty %}
+                            <span style="color: #aaa; font-size: 0.75rem; font-style: italic;">No tags</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="settings-row abandon-exclusion-row" id="abandon-exclude-states-row">
+                        <label>Exclude states:</label>
+                        <div class="abandon-exclusion-chips" id="abandon-exclude-states-chips">
+                            {% for state in states %}
+                            {% if not state.is_system and not state.is_terminal %}
+                            <span class="abandon-exclusion-chip" data-state-id="{{ state.id }}" onclick="toggleAbandonExcludeState(this)">{% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }}" style="font-size: 0.7rem;"></i> {% endif %}{{ state.name }}</span>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -6097,6 +6163,8 @@
         let abandonedStateId = null;
         let abandonedDays = 14;  // Default, will be loaded from cookie
         let autoAbandonEnabled = true;  // Default, will be loaded from cookie
+        let abandonExcludedTagIds = [];   // Tag IDs to exclude from auto-abandon
+        let abandonExcludedStateIds = []; // State IDs to exclude from auto-abandon
 
         // Saved views from database
         let savedViews = {{ saved_views|safe }};
@@ -6491,6 +6559,8 @@
         // Make ALL panel headers clickable to open layout modal
         document.querySelectorAll('.panel-header').forEach(header => {
             header.addEventListener('click', (e) => {
+                // Don't open layout modal when clicking buttons inside the header
+                if (e.target.closest('button')) return;
                 e.preventDefault();
                 e.stopPropagation();
                 layoutModal.style.display = 'block';
@@ -6623,6 +6693,7 @@
                     if (!updatedAt) continue;
                     if (isTaskInTerminalState(taskId)) continue;
                     if (isTaskInAbandonedState(taskId)) continue;
+                    if (isTaskExcludedFromAbandon(taskId)) continue;
 
                     const lastEditDate = new Date(updatedAt);
                     const daysSinceEdit = Math.floor((today - lastEditDate) / (1000 * 60 * 60 * 24));
@@ -6656,6 +6727,41 @@
             return taskData && taskData.state_id === abandonedStateId;
         }
 
+        function isTaskExcludedFromAbandon(taskId) {
+            if (abandonExcludedTagIds.length > 0) {
+                const tags = taskTagsMap[taskId] || [];
+                if (tags.some(tag => abandonExcludedTagIds.includes(tag.id))) return true;
+            }
+            if (abandonExcludedStateIds.length > 0) {
+                const taskData = taskDeadlinesMap[taskId];
+                if (taskData && abandonExcludedStateIds.includes(taskData.state_id)) return true;
+            }
+            return false;
+        }
+
+        function toggleAbandonExcludeTag(chipEl) {
+            const tagId = parseInt(chipEl.dataset.tagId);
+            chipEl.classList.toggle('active');
+            if (chipEl.classList.contains('active')) {
+                if (!abandonExcludedTagIds.includes(tagId)) abandonExcludedTagIds.push(tagId);
+            } else {
+                abandonExcludedTagIds = abandonExcludedTagIds.filter(id => id !== tagId);
+            }
+            saveFilterSettings();
+            updateDeadlineWarningIcon();
+        }
+
+        function toggleAbandonExcludeState(chipEl) {
+            const stateId = parseInt(chipEl.dataset.stateId);
+            chipEl.classList.toggle('active');
+            if (chipEl.classList.contains('active')) {
+                if (!abandonExcludedStateIds.includes(stateId)) abandonExcludedStateIds.push(stateId);
+            } else {
+                abandonExcludedStateIds = abandonExcludedStateIds.filter(id => id !== stateId);
+            }
+            saveFilterSettings();
+            updateDeadlineWarningIcon();
+        }
 
         async function processAbandonedTasks() {
             if (!autoAbandonEnabled || abandonedDays <= 0) return;
@@ -6667,7 +6773,11 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ abandoned_days: abandonedDays })
+                    body: JSON.stringify({
+                        abandoned_days: abandonedDays,
+                        excluded_tag_ids: abandonExcludedTagIds,
+                        excluded_state_ids: abandonExcludedStateIds
+                    })
                 });
 
                 const data = await response.json();
@@ -6677,6 +6787,21 @@
                     }
 
                     if (data.abandoned_count > 0) {
+                        // Move abandoned task cards to the Abandoned state group in the DOM
+                        const abandonedGroup = document.querySelector(`#states-content .state-group[data-state-id="${abandonedStateId}"]`);
+                        const abandonedBody = abandonedGroup ? abandonedGroup.querySelector('.state-group-body') : null;
+                        if (abandonedBody && data.abandoned_task_ids) {
+                            data.abandoned_task_ids.forEach(taskId => {
+                                const card = document.querySelector(`#states-content .task-card[data-task-id="${taskId}"]`);
+                                if (card) abandonedBody.appendChild(card);
+                                // Update local maps
+                                if (taskDeadlinesMap[taskId]) taskDeadlinesMap[taskId].state_id = abandonedStateId;
+                            });
+                            // Remove empty messages from abandoned body
+                            const emptyMsg = abandonedBody.querySelector('.state-group-empty');
+                            if (emptyMsg) emptyMsg.remove();
+                        }
+
                         // Show toast notification
                         const taskWord = data.abandoned_count === 1 ? 'Task' : 'Tasks';
                         showToast(`${data.abandoned_count} ${taskWord} Abandoned`, {
@@ -6684,6 +6809,8 @@
                             type: 'warning',
                             duration: 6000
                         });
+
+                        updatePanelCounts();
                     }
 
                     updateAbandonedStateVisibility();
@@ -10201,7 +10328,9 @@
                 showCompleted: showCompletedTasks,
                 hideRollups: hideRollups,
                 abandonedDays: abandonedDays,
-                autoAbandonEnabled: autoAbandonEnabled
+                autoAbandonEnabled: autoAbandonEnabled,
+                abandonExcludedTagIds: abandonExcludedTagIds,
+                abandonExcludedStateIds: abandonExcludedStateIds
             });
         }
 
@@ -11074,6 +11203,24 @@
                     // Update visibility of days input based on enabled state
                     const daysRow = document.getElementById('abandoned-days-row');
                     if (daysRow) daysRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
+                    const excludeTagsRow = document.getElementById('abandon-exclude-tags-row');
+                    const excludeStatesRow = document.getElementById('abandon-exclude-states-row');
+                    if (excludeTagsRow) excludeTagsRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
+                    if (excludeStatesRow) excludeStatesRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
+                }
+                if (saved.abandonExcludedTagIds !== undefined && Array.isArray(saved.abandonExcludedTagIds)) {
+                    abandonExcludedTagIds = saved.abandonExcludedTagIds;
+                    abandonExcludedTagIds.forEach(tagId => {
+                        const chip = document.querySelector(`#abandon-exclude-tags-chips .abandon-exclusion-chip[data-tag-id="${tagId}"]`);
+                        if (chip) chip.classList.add('active');
+                    });
+                }
+                if (saved.abandonExcludedStateIds !== undefined && Array.isArray(saved.abandonExcludedStateIds)) {
+                    abandonExcludedStateIds = saved.abandonExcludedStateIds;
+                    abandonExcludedStateIds.forEach(stateId => {
+                        const chip = document.querySelector(`#abandon-exclude-states-chips .abandon-exclusion-chip[data-state-id="${stateId}"]`);
+                        if (chip) chip.classList.add('active');
+                    });
                 }
 
                 // Switch to tags or schedules view if needed (after showCompleted is set)
@@ -11803,7 +11950,7 @@
                         }
 
                         if (filterDescriptions.length > 0) {
-                            filterTooltip.innerHTML = 'Active filters:<br>' + filterDescriptions.join('<br>');
+                            filterTooltip.innerHTML = 'Active filters:<br>' + filterDescriptions.map(d => '- ' + d).join('<br>');
                         } else {
                             filterTooltip.innerHTML = 'No additional filters active';
                         }
@@ -16906,6 +17053,10 @@
                 if (abandonedDaysRow) {
                     abandonedDaysRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
                 }
+                const excludeTagsRow = document.getElementById('abandon-exclude-tags-row');
+                const excludeStatesRow = document.getElementById('abandon-exclude-states-row');
+                if (excludeTagsRow) excludeTagsRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
+                if (excludeStatesRow) excludeStatesRow.style.opacity = autoAbandonEnabled ? '1' : '0.5';
                 saveFilterSettings();
                 updateDeadlineWarningIcon();
             });

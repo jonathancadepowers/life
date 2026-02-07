@@ -5,7 +5,6 @@ Usage:
     python manage.py sync_whoop [--days=30]
 """
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from datetime import datetime, timedelta
 from workouts.services.whoop_client import WhoopAPIClient
 from workouts.models import Workout
@@ -72,7 +71,7 @@ class Command(BaseCommand):
 
             # Summary
             self.stdout.write(self.style.SUCCESS(
-                f'\nSync completed successfully!'
+                '\nSync completed successfully!'
             ))
             self.stdout.write(f'  Created: {created_count}')
             self.stdout.write(f'  Updated: {updated_count}')
@@ -106,7 +105,7 @@ class Command(BaseCommand):
         # Extract workout ID
         workout_id = workout_data.get('id')
         if not workout_id:
-            self.stdout.write(self.style.WARNING(f'Skipping workout with no ID'))
+            self.stdout.write(self.style.WARNING('Skipping workout with no ID'))
             return 'skipped'
 
         # Check if workout has score (some workouts may not be scored yet)

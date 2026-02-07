@@ -73,7 +73,7 @@ def life_metrics(request):
     Renders the life metrics page with real habit data.
     """
     from settings.models import LifeTrackerColumn
-    from datetime import date, datetime, timedelta
+    from datetime import date, datetime
     from calendar import monthrange
     from django.db import connection
     from targets.views import get_column_data, parse_details_template

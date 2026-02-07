@@ -72,7 +72,7 @@ class Command(BaseCommand):
 
             # Summary
             self.stdout.write(self.style.SUCCESS(
-                f'\nSync completed successfully!'
+                '\nSync completed successfully!'
             ))
             self.stdout.write(f'  Created: {created_count}')
             self.stdout.write(f'  Updated: {updated_count}')
@@ -106,7 +106,7 @@ class Command(BaseCommand):
         # Extract group ID
         group_id = measurement_group.get('grpid')
         if not group_id:
-            self.stdout.write(self.style.WARNING(f'Skipping measurement with no group ID'))
+            self.stdout.write(self.style.WARNING('Skipping measurement with no group ID'))
             return 'skipped'
 
         # Extract measurement time

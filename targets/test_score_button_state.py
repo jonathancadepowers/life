@@ -2,7 +2,6 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from datetime import date, timedelta
 from targets.models import DailyAgenda
 from projects.models import Project
-from goals.models import Goal
 from unittest import skip
 import time
 

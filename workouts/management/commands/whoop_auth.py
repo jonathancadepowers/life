@@ -8,7 +8,6 @@ Usage:
 """
 from django.core.management.base import BaseCommand
 from workouts.services.whoop_client import WhoopAPIClient
-import os
 import secrets
 
 

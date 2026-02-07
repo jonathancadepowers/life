@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand
 from inspirations_app.models import Inspiration
 from PIL import Image
-from io import BytesIO
 
 
 class Command(BaseCommand):

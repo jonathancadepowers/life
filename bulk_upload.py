@@ -3,7 +3,6 @@
 Bulk upload inspirations to production database and Cloudinary.
 """
 import os
-import sys
 import psycopg2
 from PIL import Image
 import io

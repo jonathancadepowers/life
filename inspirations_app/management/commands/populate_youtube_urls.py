@@ -28,6 +28,6 @@ class Command(BaseCommand):
                 failed_count += 1
 
         self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS(f'Complete!'))
+        self.stdout.write(self.style.SUCCESS('Complete!'))
         self.stdout.write(f'  Updated: {updated_count}')
         self.stdout.write(f'  Failed: {failed_count}')

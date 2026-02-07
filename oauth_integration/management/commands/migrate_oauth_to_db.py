@@ -57,7 +57,7 @@ class Command(BaseCommand):
             # Check if credentials exist
             if not client_id or not client_secret:
                 self.stdout.write(self.style.WARNING(
-                    f"  ⊘ Skipped: Missing client_id or client_secret in environment variables"
+                    "  ⊘ Skipped: Missing client_id or client_secret in environment variables"
                 ))
                 skipped += 1
                 continue
@@ -76,11 +76,11 @@ class Command(BaseCommand):
 
             if created:
                 self.stdout.write(self.style.SUCCESS(
-                    f"  ✓ Created new credential entry"
+                    "  ✓ Created new credential entry"
                 ))
             else:
                 self.stdout.write(self.style.SUCCESS(
-                    f"  ✓ Updated existing credential entry"
+                    "  ✓ Updated existing credential entry"
                 ))
 
             # Show token status

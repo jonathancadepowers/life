@@ -177,12 +177,12 @@ class Command(BaseCommand):
                 'success': True,
                 'message': f'Successfully synced Cronometer data ({new_count} new/updated entries)'
             }
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             return {
                 'success': False,
                 'message': 'Cronometer CLI not built - see logs for build instructions'
             }
-        except ValueError as e:
+        except ValueError:
             # Missing credentials
             return {
                 'success': False,

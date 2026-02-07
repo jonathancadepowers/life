@@ -61,7 +61,7 @@ class TestWithingsRobustness(TestCase):
         with mock.patch('requests.post', return_value=mock_refresh_response):
             with mock.patch('requests.get', side_effect=[mock_401_response, mock_success_response]) as mock_request:
                 # Make API request
-                result = client._make_authenticated_request('/measure', {'action': 'getmeas'})
+                client._make_authenticated_request('/measure', {'action': 'getmeas'})
 
                 # Assert: Two API requests made (first 401, second success)
                 self.assertEqual(mock_request.call_count, 2)

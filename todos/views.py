@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import pytz
 
@@ -913,6 +912,8 @@ def process_abandoned_tasks(request):
     try:
         data = json.loads(request.body)
         abandoned_days = data.get('abandoned_days', 14)
+        excluded_tag_ids = [int(tid) for tid in data.get('excluded_tag_ids', []) if str(tid).isdigit()]
+        excluded_state_ids = [int(sid) for sid in data.get('excluded_state_ids', []) if str(sid).isdigit()]
 
         # Get or create the Abandoned state (system state)
         abandoned_state, created = TaskState.objects.get_or_create(
@@ -951,8 +952,15 @@ def process_abandoned_tasks(request):
             state__isnull=True  # Has a state
         )
 
+        # Exclude tasks with excluded tags or in excluded states
+        if excluded_tag_ids:
+            tasks_to_abandon = tasks_to_abandon.exclude(tags__id__in=excluded_tag_ids)
+        if excluded_state_ids:
+            tasks_to_abandon = tasks_to_abandon.exclude(state_id__in=excluded_state_ids)
+
         # Move them to abandoned state
-        count = tasks_to_abandon.count()
+        abandoned_task_ids = list(tasks_to_abandon.values_list('id', flat=True))
+        count = len(abandoned_task_ids)
         if count > 0:
             tasks_to_abandon.update(
                 state=abandoned_state,
@@ -962,6 +970,7 @@ def process_abandoned_tasks(request):
         return JsonResponse({
             'success': True,
             'abandoned_count': count,
+            'abandoned_task_ids': abandoned_task_ids,
             'abandoned_state_id': abandoned_state.id if abandoned_state.tasks.exists() else None
         })
     except json.JSONDecodeError:

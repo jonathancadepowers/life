@@ -63,7 +63,7 @@ def whoop_callback(request):
 
         # Exchange code for tokens
         client = WhoopAPIClient()
-        token_data = client.exchange_code_for_token(code)
+        client.exchange_code_for_token(code)
 
         # Save tokens (already handled by client)
         messages.success(
@@ -142,7 +142,7 @@ def withings_callback(request):
 
         # Exchange code for tokens
         client = WithingsAPIClient()
-        token_data = client.exchange_code_for_token(code)
+        client.exchange_code_for_token(code)
 
         # Save tokens (already handled by client)
         messages.success(

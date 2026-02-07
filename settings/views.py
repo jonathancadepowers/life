@@ -7,9 +7,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from .models import LifeTrackerColumn
 from inspirations_app.models import Inspiration
-from inspirations_app.utils import get_youtube_trailer_url
 from writing.models import WritingPageImage, BookCover
-from PIL import Image, ImageOps
+from PIL import Image
 import io
 
 

@@ -122,7 +122,7 @@ class Command(BaseCommand):
 
         # Summary
         self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS(f'Import complete!'))
+        self.stdout.write(self.style.SUCCESS('Import complete!'))
         self.stdout.write(f'  Imported: {imported_count}')
         self.stdout.write(f'  Skipped: {skipped_count}')
         self.stdout.write(f'  Errors: {error_count}')

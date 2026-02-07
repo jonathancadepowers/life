@@ -1,7 +1,6 @@
 # Generated migration to convert Goal primary keys from tag names to tag IDs
 
 from django.db import migrations
-import os
 
 
 def convert_goal_names_to_ids(apps, schema_editor):

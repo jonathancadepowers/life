@@ -5,8 +5,7 @@ Usage:
     python manage.py sync_cronometer [--days=30]
 """
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 import pytz
 

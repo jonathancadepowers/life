@@ -152,7 +152,7 @@ class Command(BaseCommand):
                 updated_count += 1
 
         self.stdout.write('='*60)
-        self.stdout.write(self.style.SUCCESS(f'✓ Populated Whoop Sport IDs'))
+        self.stdout.write(self.style.SUCCESS('✓ Populated Whoop Sport IDs'))
         self.stdout.write('='*60)
         self.stdout.write(f"Created: {created_count}")
         self.stdout.write(f"Updated: {updated_count}")

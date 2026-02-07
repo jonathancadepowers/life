@@ -1,8 +1,7 @@
 from django.test import TestCase, RequestFactory
 from django.contrib.auth.models import User
-from targets.models import DailyAgenda
 from fasting.models import FastingSession
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 
 
@@ -120,7 +119,6 @@ class MonthlyObjectivesTodayColumnTestCase(TestCase):
 
     def setUp(self):
         from monthly_objectives.models import MonthlyObjective
-        from projects.models import Project
 
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username='testuser', password='testpass')

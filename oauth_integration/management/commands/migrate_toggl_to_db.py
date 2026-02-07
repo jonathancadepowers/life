@@ -56,7 +56,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('\n✓ Created Toggl credentials in database'))
 
         self.stdout.write('\nCredentials stored:')
-        self.stdout.write(f'  Provider: toggl')
+        self.stdout.write('  Provider: toggl')
         self.stdout.write(f'  API Token: {api_token[:10]}...')
         self.stdout.write(f'  Workspace ID: {workspace_id}')
         self.stdout.write('\n' + '=' * 60)

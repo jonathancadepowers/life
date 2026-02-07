@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db import connection
 from datetime import date, datetime, timedelta
@@ -684,7 +683,7 @@ def save_target_score(request):
 
 def activity_report(request):
     """View for activity summary report across a date range."""
-    from django.db.models import Sum, Avg, Count, Min, Max
+    from django.db.models import Sum, Avg, Max
     from fasting.models import FastingSession
     from nutrition.models import NutritionEntry
     from weight.models import WeighIn
@@ -1369,7 +1368,6 @@ def life_tracker(request):
     from datetime import timedelta
     from settings.models import LifeTrackerColumn
     from django.db import connection
-    import pytz
 
     # Get date from query params or default to current week
     start_date_str = request.GET.get('start_date')
@@ -1548,7 +1546,6 @@ def get_objective_entries(request):
     API endpoint to fetch the last entries contributing to a monthly objective.
     Returns JSON with either entries or an error message.
     """
-    import json
     import re
     from monthly_objectives.models import MonthlyObjective
 
@@ -1608,7 +1605,6 @@ def get_objective_entries(request):
 
         return sql_text
 
-    from datetime import timedelta
 
     objective_id = request.GET.get('objective_id')
     user_timezone = request.GET.get('timezone', 'UTC')
@@ -1619,7 +1615,7 @@ def get_objective_entries(request):
     # Helper function to format datetime with timezone
     def format_datetime(dt_value, timezone_str):
         """Convert datetime to user timezone and format nicely"""
-        from datetime import datetime, date
+        from datetime import datetime
         from django.utils import timezone as django_tz
         import pytz
 
@@ -1635,7 +1631,7 @@ def get_objective_entries(request):
         if isinstance(dt_value, str):
             try:
                 dt = datetime.fromisoformat(str(dt_value).replace('Z', '+00:00'))
-            except:
+            except Exception:
                 return str(dt_value)
         else:
             dt = dt_value
@@ -1650,7 +1646,7 @@ def get_objective_entries(request):
             dt_local = dt.astimezone(user_tz)
             # Format: Mon, 11/3/25 @ 7:22 AM
             return dt_local.strftime('%a, %-m/%-d/%y @ %-I:%M %p')
-        except:
+        except Exception:
             # Fallback to simpler format if timezone conversion fails
             return dt.strftime('%a, %-m/%-d/%y @ %-I:%M %p')
 
@@ -1841,7 +1837,6 @@ def get_objective_available_fields(request):
     API endpoint to get available database fields for historical_display formatting.
     Takes an SQL definition and returns the table's column names.
     """
-    import json
     import re
     from django.db import connection
 
@@ -1985,7 +1980,7 @@ def create_objective(request):
                 result = cursor.fetchone()
                 objective.result = float(result[0]) if result and result[0] is not None else 0
                 objective.save()
-        except Exception as e:
+        except Exception:
             # If SQL execution fails, leave result as None
             objective.result = 0
             objective.save()
@@ -2042,7 +2037,6 @@ def create_objective(request):
 def update_objective(request):
     """API endpoint to update an existing monthly objective."""
     import json
-    import re
     from calendar import monthrange
     from monthly_objectives.models import MonthlyObjective
     from settings.models import Setting
@@ -2054,7 +2048,7 @@ def update_objective(request):
         # DEBUG: Log received data
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"=== UPDATE OBJECTIVE REQUEST ===")
+        logger.info("=== UPDATE OBJECTIVE REQUEST ===")
         logger.info(f"Received data keys: {data.keys()}")
         logger.info(f"historical_display in request: {data.get('historical_display')}")
 
@@ -2074,7 +2068,7 @@ def update_objective(request):
 
         # Validate required fields
         if not all([objective_id, label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
-            logger.error(f"Validation failed - missing required fields")
+            logger.error("Validation failed - missing required fields")
             return JsonResponse({
                 'error': 'All required fields must be filled: Label, Month, Year, Target Value, SQL Definition, Category, Description, and Unit of Measurement'
             }, status=400)
@@ -2151,7 +2145,7 @@ def update_objective(request):
                 row = cursor.fetchone()
                 if row:
                     result = float(row[0]) if row[0] is not None else 0
-        except Exception as e:
+        except Exception:
             # If SQL execution fails, result stays None
             pass
 
@@ -2247,7 +2241,6 @@ def delete_objective(request):
 def refresh_objective_cache(request):
     """Refresh cached results for all monthly objectives"""
     from monthly_objectives.models import MonthlyObjective
-    import json
 
     # Check authentication (return JSON error instead of redirect for AJAX)
     if not request.user.is_authenticated:

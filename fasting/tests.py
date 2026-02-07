@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from datetime import timedelta, datetime, time
+from datetime import datetime
 import json
 
 from fasting.models import FastingSession

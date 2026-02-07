@@ -8,7 +8,6 @@ Usage:
 """
 from django.core.management.base import BaseCommand
 from weight.services.withings_client import WithingsAPIClient
-import os
 import secrets
 
 

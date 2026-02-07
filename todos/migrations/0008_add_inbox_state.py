@@ -16,7 +16,8 @@ def create_inbox_state(apps, schema_editor):
         inbox.save()
 
     # Shift all other non-terminal states to have order >= 1
-    TaskState.objects.filter(is_terminal=False).exclude(name='Inbox').update(order=models.F('order') + 1)
+    from django.db.models import F
+    TaskState.objects.filter(is_terminal=False).exclude(name='Inbox').update(order=F('order') + 1)
 
 
 def create_inbox_state_fixed(apps, schema_editor):

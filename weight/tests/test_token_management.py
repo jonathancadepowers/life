@@ -8,7 +8,6 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
 from unittest import mock
-import requests
 
 from oauth_integration.models import OAuthCredential
 from weight.services.withings_client import WithingsAPIClient

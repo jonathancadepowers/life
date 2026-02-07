@@ -106,14 +106,12 @@ class Command(BaseCommand):
 
                 # Look for JSON attachments
                 json_data = None
-                attachment_name = None
 
                 for part in msg.walk():
                     content_disposition = part.get('Content-Disposition', '')
                     if 'attachment' in content_disposition:
                         filename = part.get_filename()
                         if filename and filename.endswith('.json'):
-                            attachment_name = filename
                             payload = part.get_payload(decode=True)
                             try:
                                 json_data = json.loads(payload.decode('utf-8'))

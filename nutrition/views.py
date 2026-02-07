@@ -1,6 +1,5 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.utils import timezone
 from datetime import datetime
 from .models import NutritionEntry
 import uuid

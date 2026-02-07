@@ -72,13 +72,13 @@ class Command(BaseCommand):
                 })
 
         # Print results
-        self.stdout.write(self.style.SUCCESS(f'\n=== Day Score Verification Results ==='))
+        self.stdout.write(self.style.SUCCESS('\n=== Day Score Verification Results ==='))
         self.stdout.write(f'Total records checked: {total_records}')
         self.stdout.write(f'Correct records: {total_records - incorrect_records}')
         self.stdout.write(f'Incorrect records: {incorrect_records}')
 
         if incorrect_records > 0:
-            self.stdout.write(self.style.ERROR(f'\n=== Errors Found ==='))
+            self.stdout.write(self.style.ERROR('\n=== Errors Found ==='))
             for error in errors[:10]:  # Show first 10 errors
                 self.stdout.write(f"\nID: {error['id']}, Date: {error['date']}")
                 self.stdout.write(f"  Expected: {error['expected']}")

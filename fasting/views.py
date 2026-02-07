@@ -1,8 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.utils import timezone
-from datetime import timedelta, datetime, time
+from datetime import datetime, time
 from .models import FastingSession
 from django.core.management import call_command
 from io import StringIO

@@ -65,7 +65,7 @@ class TogglAPIClient:
                 # Fall back to environment variables (for initial setup)
                 self.api_token = os.getenv('TOGGL_API_TOKEN')
                 self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
-        except Exception as e:
+        except Exception:
             # Fall back to environment variables
             self.api_token = os.getenv('TOGGL_API_TOKEN')
             self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
