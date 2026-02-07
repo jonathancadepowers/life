@@ -15,7 +15,7 @@ import os
 class Command(BaseCommand):
     help = 'Migrate OAuth credentials from environment variables to database'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         self.stdout.write(self.style.SUCCESS('=' * 60))
         self.stdout.write(self.style.SUCCESS('  MIGRATE OAUTH CREDENTIALS TO DATABASE'))
         self.stdout.write(self.style.SUCCESS('=' * 60))

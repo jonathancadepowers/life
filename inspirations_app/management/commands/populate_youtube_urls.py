@@ -6,7 +6,7 @@ from inspirations_app.utils import get_youtube_trailer_url
 class Command(BaseCommand):
     help = 'Populate YouTube URLs for existing films'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         films = Inspiration.objects.filter(type='Film', youtube_url__isnull=True)
 
         self.stdout.write(f'Found {films.count()} films without YouTube URLs')

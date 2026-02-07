@@ -124,7 +124,7 @@ def log_fast(request):
 
 
 @require_http_methods(["POST"])
-def master_sync(request):
+def master_sync(_request):
     """
     AJAX endpoint to trigger the master sync command.
 

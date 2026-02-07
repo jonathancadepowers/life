@@ -2,7 +2,7 @@
 from django.db import migrations, models
 
 
-def populate_id_field(apps, schema_editor):
+def populate_id_field(apps, _schema_editor):
     """Populate the new id field with sequential values"""
     LifeTrackerColumn = apps.get_model('settings', 'LifeTrackerColumn')
     for index, column in enumerate(LifeTrackerColumn.objects.all().order_by('column_name'), start=1):
@@ -10,7 +10,7 @@ def populate_id_field(apps, schema_editor):
         column.save(update_fields=['id'])
 
 
-def reverse_populate_id_field(apps, schema_editor):
+def reverse_populate_id_field(_apps, _schema_editor):
     """Reverse migration - nothing to do since we're removing the id field"""
     pass
 

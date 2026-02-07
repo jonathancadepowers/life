@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def create_inbox_state(apps, schema_editor):
+def create_inbox_state(apps, _schema_editor):
     TaskState = apps.get_model('todos', 'TaskState')
     # Create Inbox state if it doesn't exist
     inbox, created = TaskState.objects.get_or_create(
@@ -20,7 +20,7 @@ def create_inbox_state(apps, schema_editor):
     TaskState.objects.filter(is_terminal=False).exclude(name='Inbox').update(order=F('order') + 1)
 
 
-def create_inbox_state_fixed(apps, schema_editor):
+def create_inbox_state_fixed(apps, _schema_editor):
     TaskState = apps.get_model('todos', 'TaskState')
     Task = apps.get_model('todos', 'Task')
 
@@ -43,7 +43,7 @@ def create_inbox_state_fixed(apps, schema_editor):
     Task.objects.filter(state__isnull=True).update(state=inbox)
 
 
-def reverse_inbox_state(apps, schema_editor):
+def reverse_inbox_state(_apps, _schema_editor):
     # Don't delete Inbox on reverse - just leave it
     pass
 

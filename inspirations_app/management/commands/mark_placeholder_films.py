@@ -6,7 +6,7 @@ from PIL import Image
 class Command(BaseCommand):
     help = 'Add * to titles of Film inspirations with gray placeholder images'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         # Get all Film inspirations
         film_inspirations = Inspiration.objects.filter(type='Film')
 

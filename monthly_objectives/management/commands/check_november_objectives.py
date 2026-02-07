@@ -6,7 +6,7 @@ from datetime import date
 class Command(BaseCommand):
     help = 'Display all November 2025 objectives with descriptions and SQL queries'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         objectives = MonthlyObjective.objects.filter(
             start__gte=date(2025, 11, 1),
             end__lte=date(2025, 11, 30)

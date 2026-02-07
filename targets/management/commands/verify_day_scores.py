@@ -8,7 +8,7 @@ from targets.models import DailyAgenda
 class Command(BaseCommand):
     help = 'Verify that all day_scores are correctly calculated based on targets 1-3'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         total_records = 0
         incorrect_records = 0
         errors = []

@@ -27,7 +27,7 @@ class Command(BaseCommand):
             help='Preview what would be imported without actually importing'
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         json_file = options['json_file']
         dry_run = options['dry_run']
 

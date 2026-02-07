@@ -634,7 +634,7 @@ class DailyAgendaViewsTestCase(TestCase):
     @patch('django.core.cache.cache.get')
     @patch('django.core.cache.cache.set')
     @patch('time_logs.services.toggl_client.TogglAPIClient')
-    def test_goal_id_to_tag_name_conversion(self, mock_toggl_client, mock_cache_set, mock_cache_get):
+    def test_goal_id_to_tag_name_conversion(self, mock_toggl_client, _mock_cache_set, mock_cache_get):
         """
         Regression test: Ensure goal_id (tag ID) is converted to tag name before comparing with Toggl API results.
 

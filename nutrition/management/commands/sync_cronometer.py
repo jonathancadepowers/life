@@ -24,7 +24,7 @@ class Command(BaseCommand):
             help='Number of days in the past to sync data from (default: 30)'
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         days = options['days']
 
         self.stdout.write(f'Syncing Cronometer nutrition data for last {days} days...')

@@ -12,7 +12,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('directory', type=str, help='Directory containing images to import')
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         directory = options['directory']
 
         if not os.path.exists(directory):

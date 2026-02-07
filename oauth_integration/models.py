@@ -27,13 +27,13 @@ class APICredential(models.Model):
     workspace_id = models.CharField(
         max_length=100,
         blank=True,
-        null=True,
+        default='',
         help_text="Workspace/organization ID (if applicable)"
     )
     api_url = models.CharField(
         max_length=500,
         blank=True,
-        null=True,
+        default='',
         help_text="Base API URL (if different from default)"
     )
 
@@ -89,12 +89,12 @@ class OAuthCredential(models.Model):
     # OAuth tokens
     access_token = models.TextField(
         blank=True,
-        null=True,
+        default='',
         help_text="Current access token"
     )
     refresh_token = models.TextField(
         blank=True,
-        null=True,
+        default='',
         help_text="Refresh token for obtaining new access tokens"
     )
     token_expires_at = models.DateTimeField(

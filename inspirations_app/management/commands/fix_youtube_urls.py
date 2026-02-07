@@ -6,7 +6,7 @@ from inspirations_app.utils import get_youtube_trailer_url, validate_youtube_url
 class Command(BaseCommand):
     help = 'Fix broken YouTube URLs for films'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         films = Inspiration.objects.filter(type='Film')
 
         self.stdout.write(f'Checking {films.count()} films...\n')

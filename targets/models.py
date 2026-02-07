@@ -30,7 +30,7 @@ class DailyAgenda(models.Model):
     target_1 = models.CharField(
         max_length=255,
         blank=True,
-        null=True,
+        default='',
         help_text="Target 1 text"
     )
 
@@ -54,7 +54,7 @@ class DailyAgenda(models.Model):
     target_2 = models.CharField(
         max_length=255,
         blank=True,
-        null=True,
+        default='',
         help_text="Target 2 text"
     )
 
@@ -78,7 +78,7 @@ class DailyAgenda(models.Model):
     target_3 = models.CharField(
         max_length=255,
         blank=True,
-        null=True,
+        default='',
         help_text="Target 3 text"
     )
 
@@ -109,7 +109,7 @@ class DailyAgenda(models.Model):
     # Other plans field (supports markdown)
     other_plans = models.TextField(
         blank=True,
-        null=True,
+        default='',
         help_text="Other plans or notes for the day (supports Markdown)"
     )
 

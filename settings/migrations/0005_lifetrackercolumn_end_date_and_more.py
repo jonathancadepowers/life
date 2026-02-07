@@ -4,7 +4,7 @@ from django.db import migrations, models
 from datetime import date
 
 
-def set_default_start_dates(apps, schema_editor):
+def set_default_start_dates(apps, _schema_editor):
     """
     Set start_date = Nov 10, 2025 for all existing enabled habits.
     """
@@ -15,7 +15,7 @@ def set_default_start_dates(apps, schema_editor):
     LifeTrackerColumn.objects.filter(enabled=True).update(start_date=default_start_date)
 
 
-def reverse_start_dates(apps, schema_editor):
+def reverse_start_dates(apps, _schema_editor):
     """
     Reverse migration: set all start_dates back to NULL.
     """

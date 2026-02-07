@@ -32,7 +32,7 @@ class Command(BaseCommand):
             help='Only sync Whoop data (skip other sources)'
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         days = options['days']
         whoop_only = options['whoop_only']
 
@@ -194,7 +194,7 @@ class Command(BaseCommand):
                 'message': f'Failed: {str(e)}'
             }
 
-    def _sync_food(self, days):
+    def _sync_food(self, _days):
         """Sync food tracking data (placeholder for future implementation)."""
         self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing food data...'))
         self.stdout.write(self.style.WARNING('  Food tracking not yet implemented'))
@@ -203,7 +203,7 @@ class Command(BaseCommand):
             'message': 'Not yet implemented'
         }
 
-    def _sync_fasting(self, days):
+    def _sync_fasting(self, _days):
         """Sync fasting tracking data (placeholder for future implementation)."""
         self.stdout.write(self.style.HTTP_INFO('\n[4/4] Syncing fasting data...'))
         self.stdout.write(self.style.WARNING('  Fasting tracking not yet implemented'))

@@ -12,7 +12,7 @@ from oauth_integration.models import APICredential
 class Command(BaseCommand):
     help = 'Migrate Toggl API credentials from environment variables to database'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         self.stdout.write(self.style.SUCCESS('=' * 60))
         self.stdout.write(self.style.SUCCESS('  MIGRATE TOGGL CREDENTIALS TO DATABASE'))
         self.stdout.write(self.style.SUCCESS('=' * 60))

@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def fix_goal_id_type(apps, schema_editor):
+def fix_goal_id_type(_apps, schema_editor):
     """
     Fix goal_id field type from INTEGER to VARCHAR.
     SQLite doesn't support altering primary keys, so we need to recreate the table.

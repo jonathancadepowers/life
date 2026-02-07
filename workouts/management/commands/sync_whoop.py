@@ -26,7 +26,7 @@ class Command(BaseCommand):
             help='Sync all workouts (ignores --days parameter)'
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         days = options['days']
         sync_all = options['all']
 

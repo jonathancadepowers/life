@@ -3,7 +3,7 @@
 from django.db import migrations, models
 
 
-def set_default_terminal_state(apps, schema_editor):
+def set_default_terminal_state(apps, _schema_editor):
     """Set the last non-system state as terminal if no terminal state exists."""
     TaskState = apps.get_model('todos', 'TaskState')
     # Get the last non-system state by order

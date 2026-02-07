@@ -54,7 +54,7 @@ class Inspiration(models.Model):
     url = models.URLField(
         max_length=200,
         blank=True,
-        null=True,
+        default='',
         help_text="URL link (e.g., trailer, Goodreads, Spotify, etc.)"
     )
     created_at = models.DateTimeField(auto_now_add=True)

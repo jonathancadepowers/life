@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def populate_defaults(apps, schema_editor):
+def populate_defaults(apps, _schema_editor):
     LifeTrackerColumn = apps.get_model('settings', 'LifeTrackerColumn')
 
     columns = [
@@ -55,7 +55,7 @@ def populate_defaults(apps, schema_editor):
         LifeTrackerColumn.objects.create(**col_data)
 
 
-def reverse_populate(apps, schema_editor):
+def reverse_populate(apps, _schema_editor):
     LifeTrackerColumn = apps.get_model('settings', 'LifeTrackerColumn')
     LifeTrackerColumn.objects.all().delete()
 

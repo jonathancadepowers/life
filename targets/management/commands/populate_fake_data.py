@@ -33,7 +33,7 @@ class Command(BaseCommand):
             help='Clear existing test data before generating new data'
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         days = options['days']
         clear = options['clear']
 

@@ -41,7 +41,7 @@ class Command(BaseCommand):
             help='Check for emails but do not import or mark as read'
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         # Get Gmail credentials from settings/env
         gmail_address = getattr(settings, 'GMAIL_IMPORT_ADDRESS', None)
         gmail_password = getattr(settings, 'GMAIL_IMPORT_APP_PASSWORD', None)

@@ -36,7 +36,7 @@ class Command(BaseCommand):
             help='Sync all time entries (last 365 days)'
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         days = 365 if options['all'] else options['days']
 
         self.stdout.write(self.style.SUCCESS('=' * 60))

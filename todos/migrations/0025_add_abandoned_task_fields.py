@@ -3,7 +3,7 @@
 from django.db import migrations, models
 
 
-def set_default_state_changed_at(apps, schema_editor):
+def set_default_state_changed_at(apps, _schema_editor):
     """Set state_changed_at to created_at for all existing tasks."""
     Task = apps.get_model('todos', 'Task')
     for task in Task.objects.filter(state_changed_at__isnull=True):

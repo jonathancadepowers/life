@@ -19,8 +19,8 @@ class MonthlyObjective(models.Model):
         max_length=255,
         unique=True,
         db_index=True,
-        null=True,  # Temporarily allow null for migration
         blank=True,
+        default='',
         help_text="Unique identifier for this objective"
     )
     start = models.DateField(
@@ -41,8 +41,8 @@ class MonthlyObjective(models.Model):
         help_text="Name/description of the objective (e.g., '30 Running Workouts')"
     )
     description = models.TextField(
-        null=True,
         blank=True,
+        default='',
         help_text="Detailed, quantitative description of the objective (e.g., '13 Weigh-In Days')"
     )
     objective_value = models.FloatField(
@@ -52,20 +52,20 @@ class MonthlyObjective(models.Model):
         help_text="SQL query that defines how to measure this objective"
     )
     historical_display = models.TextField(
-        null=True,
         blank=True,
+        default='',
         help_text="SQL query or definition for displaying historical entries in the detail modal"
     )
     category = models.CharField(
         max_length=50,
-        null=True,
         blank=True,
+        default='',
         help_text="Category for this objective (e.g., 'Nutrition', 'Weight', 'Exercise', 'Time Management')"
     )
     unit_of_measurement = models.CharField(
         max_length=50,
-        null=True,
         blank=True,
+        default='',
         help_text="Unit of measurement for this objective (e.g., 'minutes', 'sessions', 'days', 'pounds')"
     )
     result = models.FloatField(

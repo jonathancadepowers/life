@@ -2,7 +2,7 @@
 from django.db import migrations, models
 
 
-def populate_icons(apps, schema_editor):
+def populate_icons(apps, _schema_editor):
     """Populate icon field for existing habits based on their column_name"""
     LifeTrackerColumn = apps.get_model('settings', 'LifeTrackerColumn')
 
@@ -22,7 +22,7 @@ def populate_icons(apps, schema_editor):
             column.save(update_fields=['icon'])
 
 
-def reverse_populate_icons(apps, schema_editor):
+def reverse_populate_icons(apps, _schema_editor):
     """Reverse migration - reset icons to default"""
     LifeTrackerColumn = apps.get_model('settings', 'LifeTrackerColumn')
     LifeTrackerColumn.objects.all().update(icon='bi-circle')

@@ -8,10 +8,10 @@ class WhoopSportIdAdmin(admin.ModelAdmin):
     search_fields = ('sport_id', 'sport_name')
     ordering = ('sport_id',)
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, _request):
         # Prevent manual additions - data should be populated via management command
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_delete_permission(self, _request, _obj=None):
         # Prevent deletions - reference data
         return False

@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def convert_goal_names_to_ids(apps, schema_editor):
+def convert_goal_names_to_ids(apps, _schema_editor):
     """
     Convert existing Goal records from using tag names as IDs to using tag IDs.
 

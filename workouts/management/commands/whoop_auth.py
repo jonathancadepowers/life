@@ -14,7 +14,7 @@ import secrets
 class Command(BaseCommand):
     help = 'Authenticate with Whoop API and obtain access tokens'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         self.stdout.write(self.style.SUCCESS('Whoop API Authentication'))
         self.stdout.write('=' * 50)
 

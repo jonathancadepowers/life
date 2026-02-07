@@ -4,7 +4,7 @@ from django.db import migrations
 import re
 
 
-def clean_target_timestamps(apps, schema_editor):
+def clean_target_timestamps(apps, _schema_editor):
     """
     Remove timestamp suffixes from target text fields.
 
