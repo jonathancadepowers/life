@@ -3,12 +3,15 @@ Whoop API Client for fetching workout and health data.
 
 This client handles OAuth 2.0 authentication and data fetching from the Whoop API v2.
 """
+import logging
 import os
 import requests
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 from urllib.parse import urlencode
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -45,7 +48,7 @@ class WhoopAPIClient:
                 return
         except Exception:
             # Database not available or model doesn't exist yet
-            pass
+            logger.debug("Could not load Whoop credentials from database, falling back to environment variables")
 
         # Fall back to environment variables
         self.client_id = os.getenv('WHOOP_CLIENT_ID')
@@ -105,7 +108,7 @@ class WhoopAPIClient:
             'redirect_uri': self.redirect_uri,
         }
 
-        response = requests.post(self.TOKEN_URL, data=data)
+        response = requests.post(self.TOKEN_URL, data=data, timeout=30)
         response.raise_for_status()
 
         token_data = response.json()
@@ -140,7 +143,7 @@ class WhoopAPIClient:
             'scope': 'offline read:profile read:workout read:cycles read:recovery read:sleep',
         }
 
-        response = requests.post(self.TOKEN_URL, data=data)
+        response = requests.post(self.TOKEN_URL, data=data, timeout=30)
 
         # Check for expired/invalid refresh token
         if response.status_code == 400:
@@ -202,14 +205,14 @@ class WhoopAPIClient:
         }
 
         url = f"{self.BASE_URL}{endpoint}"
-        response = requests.request(method, url, headers=headers, params=params)
+        response = requests.request(method, url, headers=headers, params=params, timeout=30)
 
         # If token expired, try to refresh (fallback for edge cases)
         if response.status_code == 401:
             print("Access token expired (401 error), refreshing...")
             self.refresh_access_token()
             headers['Authorization'] = f'Bearer {self.access_token}'
-            response = requests.request(method, url, headers=headers, params=params)
+            response = requests.request(method, url, headers=headers, params=params, timeout=30)
 
         response.raise_for_status()
         return response.json()

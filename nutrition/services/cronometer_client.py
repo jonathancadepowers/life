@@ -5,11 +5,14 @@ This module provides a Python interface to export nutrition data from Cronometer
 using the Go CLI wrapper that uses the gocronometer library.
 """
 import json
+import logging
 import os
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class CronometerClient:
@@ -58,7 +61,7 @@ class CronometerClient:
             if result.returncode == 0 and result.stdout.strip():
                 return Path(result.stdout.strip())
         except Exception:
-            pass
+            logger.debug("Could not locate cronometer_export binary via 'which' command")
 
         raise FileNotFoundError(
             f"cronometer_export binary not found. "

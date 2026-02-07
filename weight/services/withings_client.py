@@ -155,7 +155,7 @@ class WithingsAPIClient:
             'redirect_uri': self.redirect_uri,
         }
 
-        response = requests.post(self.TOKEN_URL, data=data)
+        response = requests.post(self.TOKEN_URL, data=data, timeout=30)
         response.raise_for_status()
 
         result = response.json()
@@ -200,7 +200,7 @@ class WithingsAPIClient:
             'refresh_token': self.refresh_token,
         }
 
-        response = requests.post(self.TOKEN_URL, data=data)
+        response = requests.post(self.TOKEN_URL, data=data, timeout=30)
         response.raise_for_status()
 
         result = response.json()
@@ -265,14 +265,14 @@ class WithingsAPIClient:
         }
 
         url = f"{self.BASE_URL}{endpoint}"
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=30)
 
         # If token expired, try to refresh (fallback for edge cases)
         if response.status_code == 401:
             logger.info("Access token expired (401 error), refreshing...")
             self.refresh_access_token()
             headers['Authorization'] = f'Bearer {self.access_token}'
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=30)
 
         response.raise_for_status()
         result = response.json()
