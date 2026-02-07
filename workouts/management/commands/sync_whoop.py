@@ -5,7 +5,7 @@ Usage:
     python manage.py sync_whoop [--days=30]
 """
 from django.core.management.base import BaseCommand
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from workouts.services.whoop_client import WhoopAPIClient
 from workouts.models import Workout
 
@@ -41,10 +41,10 @@ class Command(BaseCommand):
                 self.stdout.write('Syncing all available workouts...')
                 start_date = datetime(2020, 1, 1)  # Whoop launched around 2015, use safe date
             else:
-                start_date = datetime.utcnow() - timedelta(days=days)
+                start_date = datetime.now(timezone.utc) - timedelta(days=days)
                 self.stdout.write(f'Syncing workouts from last {days} days...')
 
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
 
             # Fetch workouts from Whoop
             self.stdout.write('Fetching workouts from Whoop API...')

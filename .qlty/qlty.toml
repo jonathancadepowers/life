@@ -100,3 +100,37 @@ drivers = [
 
 [[plugin]]
 name = "trufflehog"
+
+# =============================================================================
+# Exclusions: files and rules that should not be flagged
+# =============================================================================
+
+# Django auto-generated migrations: variable naming conventions (e.g.,
+# LifeTrackerColumn) are normal for these files and should not be linted.
+[[exclude]]
+plugins = ["bandit", "ruff", "radarlint-python"]
+file_patterns = ["**/migrations/**"]
+
+# Go module for cronometer CLI is a separate concern; exclude from Python linters.
+[[exclude]]
+plugins = ["bandit", "ruff", "radarlint-python"]
+file_patterns = ["nutrition/cronometer_cli/**"]
+
+# Utility script — one-off, not worth linting strictly.
+[[exclude]]
+plugins = ["bandit", "ruff", "radarlint-python"]
+file_patterns = ["bulk_upload.py"]
+
+# Test passwords/hardcoded credentials are not real secrets (bandit B105/B106).
+[[triage]]
+match.rules = ["bandit:B105", "bandit:B106"]
+match.file_patterns = ["**/tests/**", "**/test_*.*"]
+set.ignored = true
+
+# The cronometer CLI intentionally uses subprocess for its Go binary.
+# B404 = import subprocess, B603 = subprocess call without shell=True,
+# B607 = subprocess call with partial path.
+[[triage]]
+match.rules = ["bandit:B404", "bandit:B603", "bandit:B607"]
+match.file_patterns = ["nutrition/cronometer_cli/**"]
+set.ignored = true

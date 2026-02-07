@@ -6,7 +6,7 @@ This client handles OAuth 2.0 authentication and data fetching from the Whoop AP
 import logging
 import os
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, List
 from urllib.parse import urlencode
 from dotenv import load_dotenv
@@ -237,9 +237,9 @@ class WhoopAPIClient:
             Dictionary containing workout records and pagination info
         """
         if start_date is None:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = datetime.now(timezone.utc) - timedelta(days=30)
         if end_date is None:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
 
         params = {
             'start': start_date.strftime('%Y-%m-%dT%H:%M:%S.000Z'),

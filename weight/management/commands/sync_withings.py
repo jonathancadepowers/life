@@ -5,8 +5,7 @@ Usage:
     python manage.py sync_withings [--days=30]
 """
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from weight.services.withings_client import WithingsAPIClient
 from weight.models import WeighIn
 
@@ -42,10 +41,10 @@ class Command(BaseCommand):
                 self.stdout.write('Syncing all available measurements...')
                 start_date = datetime(2010, 1, 1)  # Withings founded in 2008
             else:
-                start_date = datetime.utcnow() - timedelta(days=days)
+                start_date = datetime.now(timezone.utc) - timedelta(days=days)
                 self.stdout.write(f'Syncing measurements from last {days} days...')
 
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
 
             # Fetch measurements from Withings
             self.stdout.write('Fetching measurements from Withings API...')

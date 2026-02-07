@@ -10,7 +10,7 @@ Mapping:
 import logging
 import os
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, List
 from dotenv import load_dotenv
 
@@ -145,9 +145,9 @@ class TogglAPIClient:
             raise ValueError(_WORKSPACE_ID_ERROR)
 
         if start_date is None:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = datetime.now(timezone.utc) - timedelta(days=30)
         if end_date is None:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
 
         # Reports API uses different URL and POST method
         url = f"{self.REPORTS_BASE_URL}/workspace/{self.workspace_id}/search/time_entries"

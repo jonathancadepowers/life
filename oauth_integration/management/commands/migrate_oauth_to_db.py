@@ -63,7 +63,7 @@ class Command(BaseCommand):
                 continue
 
             # Create or update credential in database
-            credential, created = OAuthCredential.objects.update_or_create(
+            _, created = OAuthCredential.objects.update_or_create(
                 provider=provider_name,
                 defaults={
                     'client_id': client_id,

@@ -925,7 +925,7 @@ def process_abandoned_tasks(request):
         excluded_state_ids = [int(sid) for sid in data.get('excluded_state_ids', []) if str(sid).isdigit()]
 
         # Get or create the Abandoned state (system state)
-        abandoned_state, created = TaskState.objects.get_or_create(
+        abandoned_state, _ = TaskState.objects.get_or_create(
             name='Abandoned',
             defaults={
                 'order': 999,  # Very high to ensure it's always last

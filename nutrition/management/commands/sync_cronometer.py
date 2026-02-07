@@ -66,7 +66,7 @@ class Command(BaseCommand):
                     continue
 
                 # Create or update the nutrition entry
-                entry, created = NutritionEntry.objects.update_or_create(
+                _, created = NutritionEntry.objects.update_or_create(
                     source='Cronometer',
                     source_id=date_str,  # Use the date as the unique identifier
                     defaults={
