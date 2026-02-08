@@ -9,6 +9,7 @@ from projects.models import Project
 from goals.models import Goal
 from time_logs.models import TimeLog
 from time_logs.services.toggl_client import TogglAPIClient
+from lifetracker.timezone_utils import get_user_timezone, get_user_today
 import pytz
 
 _TIME_FORMAT = '%I:%M %p'
@@ -19,34 +20,6 @@ _INVALID_JSON = 'Invalid JSON data'
 
 class TogglRateLimitError(Exception):
     """Raised when the Toggl API rate limit is reached and no cached data is available."""
-
-
-def get_user_timezone(request):
-    """
-    Get the user's timezone from the cookie set by JavaScript.
-    Falls back to UTC if no timezone is set.
-    """
-    user_tz_name = request.COOKIES.get('user_timezone', 'UTC')
-    try:
-        return pytz.timezone(user_tz_name)
-    except pytz.exceptions.UnknownTimeZoneError:
-        return pytz.UTC
-
-
-def get_user_today(request):
-    """
-    Get today's date in the user's timezone.
-    Returns both the date object and timezone-aware start/end datetimes.
-    """
-    user_tz = get_user_timezone(request)
-    now_in_user_tz = timezone.now().astimezone(user_tz)
-    today = now_in_user_tz.date()
-
-    # Create timezone-aware start and end of day in user's timezone
-    today_start = user_tz.localize(datetime.combine(today, datetime.min.time()))
-    today_end = user_tz.localize(datetime.combine(today, datetime.max.time()))
-
-    return today, today_start, today_end
 
 
 def set_agenda(request):
@@ -347,11 +320,7 @@ def _compute_day_boundaries_utc(target_date, timezone_offset, request):
         next_local_midnight = local_midnight + timedelta(days=1)
         return local_midnight - offset_delta, next_local_midnight - offset_delta
 
-    user_tz_str = request.COOKIES.get('user_timezone', 'UTC')
-    try:
-        user_tz = pytz.timezone(user_tz_str)
-    except (pytz.exceptions.UnknownTimeZoneError, AttributeError):
-        user_tz = pytz.UTC
+    user_tz = get_user_timezone(request)
 
     day_start_utc = user_tz.localize(dt.combine(target_date, dt.min.time()))
     return day_start_utc, day_start_utc + timedelta(days=1)

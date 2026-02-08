@@ -38,7 +38,7 @@ Source values are **title-cased**: `'Whoop'`, `'Withings'`, `'Manual'`, `'Zero'`
 - **Database stores UTC** (`USE_TZ = True`, `TIME_ZONE = 'UTC'`)
 - **User timezone comes from a browser cookie**, not the database:
   ```python
-  from targets.views import get_user_timezone, get_user_today
+  from lifetracker.timezone_utils import get_user_timezone, get_user_today
   user_tz = get_user_timezone(request)        # reads request.COOKIES['user_timezone']
   today, day_start, day_end = get_user_today(request)  # timezone-aware day boundaries
   ```

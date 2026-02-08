@@ -2,8 +2,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from datetime import datetime
 from .models import NutritionEntry
+from lifetracker.timezone_utils import get_user_timezone
 import uuid
-import pytz
 
 
 @require_http_methods(["POST"])
@@ -66,12 +66,8 @@ def log_nutrition(request):
                 'message': 'Invalid date format. Use YYYY-MM-DD'
             }, status=400)
 
-        # Get user's timezone from cookie (set by browser), default to America/Chicago (CST)
-        user_tz_str = request.COOKIES.get('user_timezone', 'America/Chicago')
-        try:
-            user_tz = pytz.timezone(user_tz_str)
-        except pytz.exceptions.UnknownTimeZoneError:
-            user_tz = pytz.timezone('America/Chicago')
+        # Get user's timezone from cookie (set by browser)
+        user_tz = get_user_timezone(request)
 
         # Consumption date is at 12:00 PM (noon) on the selected date in user's timezone
         # Create a naive datetime at noon on the selected date

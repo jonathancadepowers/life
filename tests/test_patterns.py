@@ -16,7 +16,7 @@ from django.utils import timezone
 from workouts.models import Workout
 from fasting.models import FastingSession
 from oauth_integration.models import OAuthCredential
-from targets.views import get_user_timezone, get_user_today
+from lifetracker.timezone_utils import get_user_timezone, get_user_today
 
 
 class SourceDeduplicationTests(TestCase):
@@ -102,7 +102,7 @@ class TimezoneHandlingTests(TestCase):
 
     The user's timezone is read from `request.COOKIES['user_timezone']`.
     All datetimes are stored in UTC. Views convert to user timezone for display.
-    Use `get_user_timezone(request)` and `get_user_today(request)` from targets.views.
+    Use `get_user_timezone(request)` and `get_user_today(request)` from lifetracker.timezone_utils.
     """
 
     def setUp(self):
@@ -173,8 +173,8 @@ class OAuthTokenPersistenceTests(TestCase):
     PATTERN: OAuth Token Persistence
 
     After refreshing OAuth tokens, call credential.update_tokens() to persist
-    them to the database. Use oauth_integration.models.OAuthCredential, NOT
-    weight.models.OAuthCredential (deprecated).
+    them to the database. Use oauth_integration.models.OAuthCredential for all
+    OAuth credential storage.
     """
 
     def test_update_tokens_persists_to_database(self):
