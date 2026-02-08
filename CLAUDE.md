@@ -195,6 +195,24 @@ Each page is standalone (no shared base template). Templates use Bootstrap 5.3.0
 ### Sync Architecture
 `sync_all` command orchestrates Whoop, Withings, and Cronometer syncs. Toggl and fasting are synced separately. All sync commands extend `BaseSyncCommand` (in `lifetracker/sync_utils.py`) and return `SyncResult` objects. The `sync_all` orchestrator imports each command module directly and calls `sync()` — no `call_command`. The activity logger page (`/activity-logger/`) has a "Sync" button that calls `fasting/views.py:master_sync()`, which reads structured `SyncResult` objects (no string parsing).
 
+## UI/UX Requirements
+
+### Tasks Page (`/tasks/`) Real-Time Updates
+**CRITICAL:** Any change made to a task on the tasks page MUST immediately update all visible instances of that task without requiring a page refresh. This includes:
+- Task title, details, critical status, starred status, deadline, tags, state
+- Changes made via right-click menus, task detail slideout, drag-and-drop, or any other interface
+- Updates must be reflected across ALL views where the task appears:
+  - Task cards in the Tasks panel (States/Tags/Schedules views)
+  - Kanban cards in the Kanban view
+  - Scheduled tasks on the Calendar panel
+  - Any other UI element displaying task information
+
+When implementing task updates:
+- Update the task via API
+- Immediately update all DOM elements displaying that task (classes, text, icons, etc.)
+- Use the `handleTaskStateChange(task)` function which orchestrates updates across all views
+- Never leave stale data visible after a successful update
+
 ## Common Mistakes to Avoid
 
 1. **All OAuth credentials live in `oauth_integration.models.OAuthCredential`** — there is no other OAuthCredential
@@ -205,6 +223,7 @@ Each page is standalone (no shared base template). Templates use Bootstrap 5.3.0
 6. **Don't forget `credential.update_tokens()` after OAuth token refresh** — tokens won't persist
 7. **Don't create `Goal` or `Project` without specifying the ID** — they use custom primary keys
 8. **Don't add `null=True` to CharField/TextField** — use `blank=True, default=''` instead (Django convention)
+9. **Don't leave task UI elements stale after updates** — always update all visible instances immediately (see "Tasks Page Real-Time Updates" above)
 
 ## Testing
 

@@ -43,6 +43,7 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     details = models.TextField(blank=True, default='')
     critical = models.BooleanField(default=False)
+    starred = models.BooleanField(default=False)
     state = models.ForeignKey(
         TaskState,
         on_delete=models.SET_NULL,
