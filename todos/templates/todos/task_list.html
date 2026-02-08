@@ -5440,10 +5440,6 @@
             color: #dc3545;
         }
 
-        /* Starred icon color */
-        .icon-starred {
-            color: #ffc107;
-        }
 
         /* Today icon color */
         .icon-today {
@@ -5729,10 +5725,6 @@
                             <input type="checkbox" id="filter-critical">
                             <i class="bi bi-exclamation-circle icon-critical"></i> Critical
                         </label>
-                        <label class="filter-option-inline" id="filter-starred-label">
-                            <input type="checkbox" id="filter-starred">
-                            <i class="bi bi-star-fill icon-starred"></i> Starred
-                        </label>
                         <label class="filter-option-inline" id="filter-today-label">
                             <input type="checkbox" id="filter-today">
                             <i class="bi bi-sun icon-today"></i> Today
@@ -5949,12 +5941,12 @@
                             <div class="state-group-body" data-state-id="{{ state.id }}">
                                 {% for task in tasks %}
                                 {% if task.state == state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.starred %} starred{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                        {% if task.critical or task.starred %}<div class="task-card-icons">{% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>{% endif %}{% if task.starred %}<i class="bi bi-star-fill task-star-icon" title="Starred task"></i>{% endif %}</div>{% endif %}
+                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i></div>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -5978,12 +5970,12 @@
                             <div class="state-group-body" data-state-id="none">
                                 {% for task in tasks %}
                                 {% if not task.state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.starred %} starred{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
                                         {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                        {% if task.critical or task.starred %}<div class="task-card-icons">{% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>{% endif %}{% if task.starred %}<i class="bi bi-star-fill task-star-icon" title="Starred task"></i>{% endif %}</div>{% endif %}
+                                        {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i></div>{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -6294,20 +6286,6 @@
                         <div class="property-card-body">
                             <label class="task-toggle">
                                 <input type="checkbox" id="panel-critical">
-                                <span class="task-toggle-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Starred -->
-                    <div class="property-card">
-                        <div class="property-card-header">
-                            <i class="bi bi-star"></i>
-                            <span>Starred</span>
-                        </div>
-                        <div class="property-card-body">
-                            <label class="task-toggle">
-                                <input type="checkbox" id="panel-starred">
                                 <span class="task-toggle-slider"></span>
                             </label>
                         </div>
@@ -7748,20 +7726,15 @@
             function createTaskCard(withHighlight) {
                 const card = document.createElement('div');
                 const isScheduled = (taskSchedulesMap[task.id] || []).length > 0;
-                card.className = 'task-card' + (task.critical ? ' critical' : '') + (task.starred ? ' starred' : '') + (isScheduled ? ' scheduled' : '') + (withHighlight ? ' highlight-new' : '');
+                card.className = 'task-card' + (task.critical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (withHighlight ? ' highlight-new' : '');
                 card.dataset.taskId = task.id;
                 card.tabIndex = 0; // Make focusable
 
                 // Build icons HTML
                 let iconsHtml = '';
-                if (task.critical || task.starred) {
+                if (task.critical) {
                     iconsHtml = '<div class="task-card-icons">';
-                    if (task.critical) {
-                        iconsHtml += '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>';
-                    }
-                    if (task.starred) {
-                        iconsHtml += '<i class="bi bi-star-fill task-star-icon" title="Starred task"></i>';
-                    }
+                    iconsHtml += '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>';
                     iconsHtml += '</div>';
                 }
 
@@ -7947,7 +7920,7 @@
         });
 
         // Auto-save on changes
-        ['panel-title', 'panel-details', 'panel-critical', 'panel-starred'].forEach(id => {
+        ['panel-title', 'panel-details', 'panel-critical'].forEach(id => {
             const el = document.getElementById(id);
             const event = (el.type === 'checkbox') ? 'change' : 'input';
             el.addEventListener(event, () => {
@@ -7975,7 +7948,6 @@
             const title = document.getElementById('panel-title').value.trim();
             const details = document.getElementById('panel-details').value;
             const critical = document.getElementById('panel-critical').checked;
-            const starred = document.getElementById('panel-starred').checked;
 
             try {
                 const response = await fetch(`/tasks/api/${currentTaskId}/update/`, {
@@ -7984,7 +7956,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ title, details, critical, starred })
+                    body: JSON.stringify({ title, details, critical })
                 });
 
                 const data = await response.json();
@@ -9165,7 +9137,6 @@
                 if (data.success) {
                     document.getElementById('panel-title').value = data.task.title;
                     document.getElementById('panel-critical').checked = data.task.critical;
-                    document.getElementById('panel-starred').checked = data.task.starred;
 
                     // If task has no details, auto-populate with default template
                     let detailsContent = data.task.details || '';
@@ -9418,10 +9389,10 @@
         });
 
         function updateTaskCardIcons(card, task) {
-            // Update or create the icons div based on critical and starred states
+            // Update or create the icons div based on critical state
             let iconsDiv = card.querySelector('.task-card-icons');
 
-            if (task.critical || task.starred) {
+            if (task.critical) {
                 if (!iconsDiv) {
                     iconsDiv = document.createElement('div');
                     iconsDiv.className = 'task-card-icons';
@@ -9429,16 +9400,9 @@
                 }
 
                 // Build icons HTML
-                let iconsHtml = '';
-                if (task.critical) {
-                    iconsHtml += '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>';
-                }
-                if (task.starred) {
-                    iconsHtml += '<i class="bi bi-star-fill task-star-icon" title="Starred task"></i>';
-                }
-                iconsDiv.innerHTML = iconsHtml;
+                iconsDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>';
             } else {
-                // Remove icons div if neither critical nor starred
+                // Remove icons div if not critical
                 if (iconsDiv) {
                     iconsDiv.remove();
                 }
@@ -9457,9 +9421,6 @@
                 }
                 if (task.critical !== undefined) {
                     taskDeadlinesMap[task.id].critical = task.critical;
-                }
-                if (task.starred !== undefined) {
-                    taskDeadlinesMap[task.id].starred = task.starred;
                 }
             }
 
@@ -9499,9 +9460,8 @@
                 // Update title
                 const titleEl = statesTaskCard.querySelector('.task-card-title');
                 if (titleEl) titleEl.textContent = task.title;
-                // Update critical and starred classes
+                // Update critical class
                 statesTaskCard.classList.toggle('critical', task.critical);
-                statesTaskCard.classList.toggle('starred', task.starred);
                 // Update icons
                 updateTaskCardIcons(statesTaskCard, task);
                 // Move to correct state group if state changed
@@ -9557,7 +9517,6 @@
                 const titleEl = card.querySelector('.task-card-title');
                 if (titleEl) titleEl.textContent = task.title;
                 card.classList.toggle('critical', task.critical);
-                card.classList.toggle('starred', task.starred);
                 updateTaskCardIcons(card, task);
                 // Add completed class for strikethrough - task will be hidden on page reload
                 card.classList.toggle('completed', isCompleted || isAbandoned);
@@ -9568,7 +9527,6 @@
                 const titleEl = card.querySelector('.task-card-title');
                 if (titleEl) titleEl.textContent = task.title;
                 card.classList.toggle('critical', task.critical);
-                card.classList.toggle('starred', task.starred);
                 updateTaskCardIcons(card, task);
                 // Add completed class for strikethrough - task will be hidden on page reload
                 card.classList.toggle('completed', isCompleted || isAbandoned);
@@ -9584,8 +9542,7 @@
         function createKanbanCard(task) {
             const card = document.createElement('div');
             card.className = 'kanban-card' +
-                           (task.critical ? ' critical' : '') +
-                           (task.starred ? ' starred' : '');
+                           (task.critical ? ' critical' : '');
             card.dataset.taskId = task.id;
             card.draggable = true;
 
@@ -9609,8 +9566,7 @@
 
         function updateKanbanCard(card, task) {
             card.className = 'kanban-card' +
-                           (task.critical ? ' critical' : '') +
-                           (task.starred ? ' starred' : '');
+                           (task.critical ? ' critical' : '');
 
             // Update title
             const title = card.querySelector('.kanban-card-title');
@@ -9621,9 +9577,8 @@
             const tags = task.tags || taskTagsMap[task.id] || [];
             updateTaskCardTags(task.id, tags);
 
-            // Update critical and starred classes
+            // Update critical class
             card.classList.toggle('critical', task.critical);
-            card.classList.toggle('starred', task.starred);
         }
 
         // ========== Right-Click Context Menu ==========
@@ -9710,7 +9665,6 @@
                 card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
             }
             const isCritical = card ? card.classList.contains('critical') : false;
-            const isStarred = card ? card.classList.contains('starred') : false;
             const isScheduled = (taskSchedulesMap[taskId] || []).length > 0;
             const taskTags = taskTagsMap[taskId] || [];
             const terminalStateId = getTerminalStateId();
@@ -9733,10 +9687,6 @@
                 <div class="task-context-menu-item" onclick="toggleTaskCritical(${taskId})">
                     <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
-                </div>
-                <div class="task-context-menu-item" onclick="toggleTaskStarred(${taskId})">
-                    <i class="bi bi-star${isStarred ? '-fill' : ''}"></i>
-                    ${isStarred ? 'Unstar' : 'Star Task'}
                 </div>
                 ${isScheduled ? `
                 <div class="task-context-menu-item" onclick="confirmRemoveFromCalendar(${taskId}); closeContextMenu();">
@@ -10768,78 +10718,6 @@
             }
         }
 
-        async function toggleTaskStarred(taskId) {
-            closeContextMenu();
-
-            // Find the card (could be kanban-card, task-card, or calendar-scheduled-task)
-            let card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
-            let taskCard = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
-            let scheduledTask = document.querySelector(`.calendar-scheduled-task[data-task-id="${taskId}"]`);
-            const isStarred = (card && card.classList.contains('starred')) ||
-                              (taskCard && taskCard.classList.contains('starred')) ||
-                              (scheduledTask && scheduledTask.classList.contains('starred'));
-
-            try {
-                const response = await fetch(`/tasks/api/${taskId}/update/`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({ starred: !isStarred })
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    // Update the kanban card
-                    if (card) {
-                        updateKanbanCard(card, data.task);
-                    }
-                    // Update the task card
-                    if (taskCard) {
-                        if (data.task.starred) {
-                            taskCard.classList.add('starred');
-                            // Add star icon if not present
-                            let iconsDiv = taskCard.querySelector('.task-card-icons');
-                            if (!iconsDiv) {
-                                iconsDiv = document.createElement('div');
-                                iconsDiv.className = 'task-card-icons';
-                                taskCard.querySelector('.task-card-content').appendChild(iconsDiv);
-                            }
-                            if (!iconsDiv.querySelector('.task-star-icon')) {
-                                const icon = document.createElement('i');
-                                icon.className = 'bi bi-star-fill task-star-icon';
-                                icon.title = 'Starred task';
-                                iconsDiv.appendChild(icon);
-                            }
-                        } else {
-                            taskCard.classList.remove('starred');
-                            // Remove star icon
-                            const starIcon = taskCard.querySelector('.task-star-icon');
-                            if (starIcon) {
-                                starIcon.remove();
-                                // Remove icons div if empty
-                                const iconsDiv = taskCard.querySelector('.task-card-icons');
-                                if (iconsDiv && iconsDiv.children.length === 0) {
-                                    iconsDiv.remove();
-                                }
-                            }
-                        }
-                    }
-                    // Update the calendar scheduled task
-                    if (scheduledTask) {
-                        if (data.task.starred) {
-                            scheduledTask.classList.add('starred');
-                        } else {
-                            scheduledTask.classList.remove('starred');
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error toggling task starred:', error);
-            }
-        }
-
         // Toggle "Done for Today" status for a task (calendar only)
         async function toggleDoneForToday(taskId) {
             closeContextMenu();
@@ -10954,7 +10832,6 @@
         function saveFilterSettings() {
             setCookie('taskFilters', {
                 critical: activeFilters.critical,
-                starred: activeFilters.starred,
                 today: activeFilters.today,
                 tags: activeFilters.tags,
                 groupBy: currentGroupBy,
@@ -10984,14 +10861,12 @@
         const filterDropdown = document.getElementById('filter-dropdown');
         const filterBadge = document.getElementById('filter-badge');
         const filterCritical = document.getElementById('filter-critical');
-        const filterStarred = document.getElementById('filter-starred');
         const filterClear = document.getElementById('filter-clear');
         const filterTagsList = document.getElementById('filter-tags-list');
         const filterTagsSearch = document.getElementById('filter-tags-search');
 
         let activeFilters = {
             critical: false,
-            starred: false,
             today: false,
             tags: []  // Array of tag IDs to filter by
         };
@@ -11215,15 +11090,12 @@
 
             // Reset all filters to defaults
             activeFilters.critical = false;
-            activeFilters.starred = false;
             activeFilters.today = false;
             activeFilters.tags = [];
 
             document.getElementById('filter-critical').checked = false;
-            document.getElementById('filter-starred').checked = false;
             document.getElementById('filter-today').checked = false;
             document.getElementById('filter-critical-label').classList.remove('checked');
-            document.getElementById('filter-starred-label').classList.remove('checked');
             document.getElementById('filter-today-label').classList.remove('checked');
 
             // Reset show completed
@@ -11307,18 +11179,15 @@
 
             // Apply filters
             activeFilters.critical = settings.filter_critical || false;
-            activeFilters.starred = settings.filter_starred || false;
             activeFilters.today = settings.filter_today || false;
             // Filter out any null/undefined values that may have been saved
             activeFilters.tags = (settings.filter_tags || []).filter(id => id != null);
 
             document.getElementById('filter-critical').checked = activeFilters.critical;
-            document.getElementById('filter-starred').checked = activeFilters.starred;
             document.getElementById('filter-today').checked = activeFilters.today;
 
             // Update visual states
             document.getElementById('filter-critical-label').classList.toggle('checked', activeFilters.critical);
-            document.getElementById('filter-starred-label').classList.toggle('checked', activeFilters.starred);
             document.getElementById('filter-today-label').classList.toggle('checked', activeFilters.today);
 
             // Apply show completed
@@ -11482,14 +11351,6 @@
             saveFilterSettings();
         });
 
-        // Handle starred filter change
-        filterStarred.addEventListener('change', function() {
-            activeFilters.starred = this.checked;
-            document.getElementById('filter-starred-label').classList.toggle('checked', this.checked);
-            applyFilters();
-            saveFilterSettings();
-        });
-
         const filterToday = document.getElementById('filter-today');
         filterToday.addEventListener('change', function() {
             activeFilters.today = this.checked;
@@ -11612,17 +11473,15 @@
             });
 
             // Check if any filters would hide matching cards - if so, clear filters
-            const hasActiveFilters = activeFilters.critical || activeFilters.starred || activeFilters.today || activeFilters.tags.length > 0 || (currentGroupBy === 'tags' && !showCompletedTasks);
+            const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0 || (currentGroupBy === 'tags' && !showCompletedTasks);
 
             if (hasActiveFilters && matchingCards.length > 0) {
                 // Clear all filters to show all matching results
                 activeFilters.critical = false;
-                activeFilters.starred = false;
                 activeFilters.today = false;
                 activeFilters.tags = [];
                 showCompletedTasks = true;
                 filterCritical.checked = false;
-                filterStarred.checked = false;
                 filterToday.checked = false;
                 document.getElementById('show-completed-toggle').checked = true;
                 populateFilterTags();
@@ -11802,13 +11661,6 @@
                     activeFilters.critical = true;
                     filterCritical.checked = true;
                     document.getElementById('filter-critical-label').classList.add('checked');
-                }
-
-                // Restore starred filter
-                if (saved.starred) {
-                    activeFilters.starred = true;
-                    filterStarred.checked = true;
-                    document.getElementById('filter-starred-label').classList.add('checked');
                 }
 
                 // Restore today filter
@@ -12468,11 +12320,6 @@
                     show = false;
                 }
 
-                // Filter by starred
-                if (show && activeFilters.starred && !card.classList.contains('starred')) {
-                    show = false;
-                }
-
                 // Filter by today (only show tasks scheduled for today)
                 if (show && activeFilters.today) {
                     const schedules = taskSchedulesMap[taskId] || [];
@@ -12529,7 +12376,7 @@
             });
 
             // Update filter badge - no longer showing dot, using filter summary instead
-            const hasActiveFilters = activeFilters.critical || activeFilters.starred || activeFilters.today || activeFilters.tags.length > 0 || searchText;
+            const hasActiveFilters = activeFilters.critical || activeFilters.today || activeFilters.tags.length > 0 || searchText;
             // Badge display removed - filter summary bar now shows active filters
             if (!hasActiveFilters && !filterDropdown.classList.contains('active')) {
                 filterIcon.classList.remove('active');
@@ -14153,7 +14000,6 @@
             // Get task info
             let card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
             const isCritical = card ? card.classList.contains('critical') : false;
-            const isStarred = card ? card.classList.contains('starred') : false;
             const taskTags = taskTagsMap[taskId] || [];
             const terminalStateId = getTerminalStateId();
             const taskData = taskDeadlinesMap[taskId];
@@ -14180,10 +14026,6 @@
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); toggleTaskCritical(${taskId}); closeContextMenu();">
                     <i class="bi bi-exclamation-circle${isCritical ? '-fill' : ''}"></i>
                     ${isCritical ? 'Unmark Critical' : 'Mark Critical'}
-                </div>
-                <div class="task-context-menu-item" onclick="event.stopPropagation(); toggleTaskStarred(${taskId}); closeContextMenu();">
-                    <i class="bi bi-star${isStarred ? '-fill' : ''}"></i>
-                    ${isStarred ? 'Unstar' : 'Star Task'}
                 </div>
                 <div class="task-context-menu-item" onclick="event.stopPropagation(); toggleDoneForToday(${taskId}); closeContextMenu();">
                     <i class="bi bi-bookmark-check${isDoneForToday ? '-fill' : ''}"></i>
@@ -14775,8 +14617,7 @@
                     const taskEl = document.createElement('div');
                     taskEl.className = 'calendar-scheduled-task' +
                                       (isCompleted ? ' completed' : '') +
-                                      (taskCard.classList.contains('critical') ? ' critical' : '') +
-                                      (taskCard.classList.contains('starred') ? ' starred' : '');
+                                      (taskCard.classList.contains('critical') ? ' critical' : '');
                     taskEl.dataset.taskId = taskId;
                     taskEl.dataset.scheduleId = schedule.id;
                     taskEl.draggable = true;
@@ -14813,14 +14654,6 @@
                         criticalIcon.className = 'bi bi-exclamation-circle-fill task-critical-icon';
                         criticalIcon.title = 'Critical';
                         contentWrapper.appendChild(criticalIcon);
-                    }
-
-                    // Add star icon if task is starred
-                    if (taskCard.classList.contains('starred')) {
-                        const starIcon = document.createElement('i');
-                        starIcon.className = 'bi bi-star-fill task-star-icon';
-                        starIcon.title = 'Starred';
-                        contentWrapper.appendChild(starIcon);
                     }
 
                     taskEl.appendChild(contentWrapper);

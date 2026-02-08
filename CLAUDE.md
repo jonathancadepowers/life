@@ -215,7 +215,7 @@ Each page is standalone (no shared base template). Templates use Bootstrap 5.3.0
 
 ### Tasks Page (`/tasks/`) Real-Time Updates
 **CRITICAL:** Any change made to a task on the tasks page MUST immediately update all visible instances of that task without requiring a page refresh. This includes:
-- Task title, details, critical status, starred status, deadline, tags, state
+- Task title, details, critical status, deadline, tags, state
 - Changes made via right-click menus, task detail slideout, drag-and-drop, or any other interface
 - Updates must be reflected across ALL views where the task appears:
   - Task cards in the Tasks panel (States/Tags/Schedules views)

@@ -34,7 +34,6 @@ def serialize_task(task):
         "title": task.title,
         "details": task.details,
         "critical": task.critical,
-        "starred": task.starred,
         "state_id": task.state_id,
         "state_name": task.state.name if task.state else None,
         "tags": [{"id": t.id, "name": t.name} for t in task.tags.all()],
@@ -166,15 +165,13 @@ def create_task(request):
 
 
 def _apply_task_simple_fields(task, data):
-    """Apply simple field updates (title, details, critical, starred, deadline_dismissed) to a task."""
+    """Apply simple field updates (title, details, critical, deadline_dismissed) to a task."""
     if "title" in data:
         task.title = data["title"].strip()
     if "details" in data:
         task.details = data["details"]
     if "critical" in data:
         task.critical = data["critical"]
-    if "starred" in data:
-        task.starred = data["starred"]
     if "deadline_dismissed" in data:
         task.deadline_dismissed = data["deadline_dismissed"]
     if "is_signal" in data:

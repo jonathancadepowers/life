@@ -44,7 +44,6 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     details = models.TextField(blank=True, default="")
     critical = models.BooleanField(default=False)
-    starred = models.BooleanField(default=False)
     state = models.ForeignKey(TaskState, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
     tags = models.ManyToManyField(TaskTag, blank=True, related_name="tasks")
     order = models.IntegerField(default=0)
