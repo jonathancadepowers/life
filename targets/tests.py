@@ -563,8 +563,8 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertEqual(result['agenda']['date'], self.today.isoformat())
         self.assertEqual(len(result['agenda']['targets']), 3)
         self.assertIsNotNone(result['agenda']['targets'][0]['target_name'])
-        # other_plans is None by default (not set in setUp)
-        self.assertIsNone(result['agenda']['other_plans'])
+        # other_plans defaults to empty string (not set in setUp)
+        self.assertEqual(result['agenda']['other_plans'], '')
 
     @patch('time_logs.services.toggl_client.TogglAPIClient')
     def test_get_toggl_time_today(self, mock_toggl_client):
@@ -2413,7 +2413,7 @@ class MonthlyObjectivesCustomCategoryTests(TestCase):
         self.uncategorized_obj = MonthlyObjective.objects.create(
             objective_id='test_uncategorized',
             label='No Category Test',
-            category=None,  # No category
+            category='',  # No category
             start=date(2025, 11, 1),
             end=date(2025, 11, 30),
             objective_value=150,

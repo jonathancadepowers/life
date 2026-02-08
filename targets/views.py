@@ -202,7 +202,7 @@ def _apply_agenda_target(agenda, i, post_data):
     else:
         setattr(agenda, f'project_{i}_id', None)
         setattr(agenda, f'goal_{i}_id', None)
-        setattr(agenda, f'target_{i}', None)
+        setattr(agenda, f'target_{i}', '')
         setattr(agenda, f'target_{i}_score', None)
 
 

@@ -203,12 +203,12 @@ class MonthlyObjectiveUnitOfMeasurementTests(TestCase):
             # Note: unit_of_measurement not provided
         )
 
-        # Verify it's None/null
-        self.assertIsNone(objective.unit_of_measurement)
+        # Verify it defaults to empty string (not null)
+        self.assertEqual(objective.unit_of_measurement, '')
 
-        # Verify it persists as None after refresh
+        # Verify it persists as empty string after refresh
         objective.refresh_from_db()
-        self.assertIsNone(objective.unit_of_measurement)
+        self.assertEqual(objective.unit_of_measurement, '')
 
     def test_unit_of_measurement_various_values(self):
         """
