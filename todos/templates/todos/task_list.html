@@ -12811,6 +12811,18 @@
             const currentHour = now.getHours();
             const currentMinutes = now.getMinutes();
 
+            // Check if viewing today's date
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const isToday = currentCalendarDate.getTime() === today.getTime();
+
+            // Hide line if not viewing today
+            if (!isToday) {
+                timeLine.style.display = 'none';
+                if (nowLabel) nowLabel.style.display = 'none';
+                return;
+            }
+
             // Hide line if outside calendar hours (7am-6pm)
             if (currentHour < 7 || currentHour >= 19) {
                 timeLine.style.display = 'none';
@@ -17913,6 +17925,7 @@
             renderTimeBlocks();
             renderScheduledTasks();
             initializeScheduledIcons();
+            updateCurrentTimeLine();
         }
 
         // Check if we can navigate forward (max 4 days from today)
