@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import datetime
 import json
+import unittest.mock
 
 from fasting.models import FastingSession
 from projects.models import Project
@@ -18,128 +19,184 @@ class FastingAPITestCase(TestCase):
 
     def test_log_fast_today_12_hours(self):
         """Test logging a 12-hour fast"""
-        data = {"hours": "12", "date": "2025-10-28"}
+        data = {
+            'hours': '12',
+            'date': '2025-10-28'
+        }
 
-        response = self.client.post(reverse("fasting:log_fast"), data=data)
+        response = self.client.post(
+            reverse('fasting:log_fast'),
+            data=data
+        )
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
-        self.assertTrue(result["success"])
-        self.assertIn("12-hour fast logged successfully", result["message"])
-        self.assertEqual(result["duration"], 12.0)
+        self.assertTrue(result['success'])
+        self.assertIn('12-hour fast logged successfully', result['message'])
+        self.assertEqual(result['duration'], 12.0)
 
         # Verify fast was created
-        fast = FastingSession.objects.get(id=result["fast_id"])
+        fast = FastingSession.objects.get(id=result['fast_id'])
         self.assertEqual(fast.duration, 12)
-        self.assertEqual(fast.source, "Manual")
+        self.assertEqual(fast.source, 'Manual')
 
     def test_log_fast_today_16_hours(self):
         """Test logging a 16-hour fast"""
-        data = {"hours": "16", "date": "2025-10-28"}
+        data = {
+            'hours': '16',
+            'date': '2025-10-28'
+        }
 
-        response = self.client.post(reverse("fasting:log_fast"), data=data)
+        response = self.client.post(
+            reverse('fasting:log_fast'),
+            data=data
+        )
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
-        self.assertTrue(result["success"])
-        self.assertEqual(result["duration"], 16.0)
+        self.assertTrue(result['success'])
+        self.assertEqual(result['duration'], 16.0)
 
     def test_log_fast_today_18_hours(self):
         """Test logging an 18-hour fast"""
-        data = {"hours": "18", "date": "2025-10-28"}
+        data = {
+            'hours': '18',
+            'date': '2025-10-28'
+        }
 
-        response = self.client.post(reverse("fasting:log_fast"), data=data)
+        response = self.client.post(
+            reverse('fasting:log_fast'),
+            data=data
+        )
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
-        self.assertTrue(result["success"])
-        self.assertEqual(result["duration"], 18.0)
+        self.assertTrue(result['success'])
+        self.assertEqual(result['duration'], 18.0)
 
     def test_log_fast_past_date(self):
         """Test logging a fast for a past date"""
         import pytz
 
-        data = {"hours": "16", "date": "2025-10-27"}
+        data = {
+            'hours': '16',
+            'date': '2025-10-27'
+        }
 
         # Set timezone cookie so get_user_timezone returns America/Chicago
-        self.client.cookies["user_timezone"] = "America/Chicago"
+        self.client.cookies['user_timezone'] = 'America/Chicago'
 
-        response = self.client.post(reverse("fasting:log_fast"), data=data)
+        response = self.client.post(
+            reverse('fasting:log_fast'),
+            data=data
+        )
 
         self.assertEqual(response.status_code, 200)
         result = json.loads(response.content)
-        self.assertTrue(result["success"])
+        self.assertTrue(result['success'])
 
         # Verify the end date is at noon in America/Chicago timezone
-        fast = FastingSession.objects.get(id=result["fast_id"])
+        fast = FastingSession.objects.get(id=result['fast_id'])
         self.assertEqual(fast.fast_end_date.date(), datetime(2025, 10, 27).date())
 
         # Convert to America/Chicago timezone (matches the cookie we set)
-        chicago_tz = pytz.timezone("America/Chicago")
+        chicago_tz = pytz.timezone('America/Chicago')
         chicago_time = fast.fast_end_date.astimezone(chicago_tz)
         self.assertEqual(chicago_time.hour, 12)
 
     def test_log_fast_invalid_hours(self):
         """Test logging a fast with invalid duration"""
-        data = {"hours": "20", "date": "2025-10-28"}  # Invalid duration
+        data = {
+            'hours': '20',  # Invalid duration
+            'date': '2025-10-28'
+        }
 
-        response = self.client.post(reverse("fasting:log_fast"), data=data)
+        response = self.client.post(
+            reverse('fasting:log_fast'),
+            data=data
+        )
 
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result["success"])
-        self.assertIn("must be 12, 16, or 18", result["message"])
+        self.assertFalse(result['success'])
+        self.assertIn('must be 12, 16, or 18', result['message'])
 
     def test_log_fast_missing_hours(self):
         """Test logging a fast without duration"""
-        data = {"date": "2025-10-28"}
+        data = {
+            'date': '2025-10-28'
+        }
 
-        response = self.client.post(reverse("fasting:log_fast"), data=data)
+        response = self.client.post(
+            reverse('fasting:log_fast'),
+            data=data
+        )
 
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result["success"])
-        self.assertIn("required", result["message"])
+        self.assertFalse(result['success'])
+        self.assertIn('required', result['message'])
 
     def test_log_fast_invalid_date_format(self):
         """Test logging a fast with invalid date format"""
-        data = {"hours": "12", "date": "invalid-date"}  # Invalid date format
+        data = {
+            'hours': '12',
+            'date': 'invalid-date'  # Invalid date format
+        }
 
-        response = self.client.post(reverse("fasting:log_fast"), data=data)
+        response = self.client.post(
+            reverse('fasting:log_fast'),
+            data=data
+        )
 
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result["success"])
-        self.assertIn("date format", result["message"])
+        self.assertFalse(result['success'])
+        self.assertIn('date format', result['message'])
 
     def test_log_fast_non_numeric_hours(self):
         """Test logging a fast with non-numeric hours"""
-        data = {"hours": "abc", "date": "2025-10-28"}
+        data = {
+            'hours': 'abc',
+            'date': '2025-10-28'
+        }
 
-        response = self.client.post(reverse("fasting:log_fast"), data=data)
+        response = self.client.post(
+            reverse('fasting:log_fast'),
+            data=data
+        )
 
         self.assertEqual(response.status_code, 400)
         result = json.loads(response.content)
-        self.assertFalse(result["success"])
+        self.assertFalse(result['success'])
 
     def test_activity_logger_page_loads(self):
         """Test that the activity logger page loads successfully"""
         # Create a test project to avoid empty page issues
-        Project.objects.create(project_id=123, display_string="Test Project")
+        Project.objects.create(
+            project_id=123,
+            display_string='Test Project'
+        )
 
-        response = self.client.get(reverse("fasting:activity_logger"))
+        response = self.client.get(reverse('fasting:activity_logger'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Activity Logger")
-        self.assertContains(response, "Fasting")
+        self.assertContains(response, 'Activity Logger')
+        self.assertContains(response, 'Fasting')
 
     def test_activity_logger_with_agenda(self):
         """Test activity logger page with existing agenda"""
         # Create test data
-        project = Project.objects.create(project_id=123, display_string="Test Project")
+        project = Project.objects.create(
+            project_id=123,
+            display_string='Test Project'
+        )
         today = timezone.now().date()
-        DailyAgenda.objects.create(date=today, project_1=project)
+        DailyAgenda.objects.create(
+            date=today,
+            project_1=project
+        )
 
-        response = self.client.get(reverse("fasting:activity_logger"))
+        response = self.client.get(reverse('fasting:activity_logger'))
         self.assertEqual(response.status_code, 200)
 
     def test_activity_logger_does_not_pass_agenda_in_context(self):
@@ -154,20 +211,25 @@ class FastingAPITestCase(TestCase):
         failed for users in different timezones.
         """
         # Create test data
-        project = Project.objects.create(project_id=123, display_string="Test Project")
+        project = Project.objects.create(
+            project_id=123,
+            display_string='Test Project'
+        )
         today = timezone.now().date()
-        DailyAgenda.objects.create(date=today, project_1=project)
+        DailyAgenda.objects.create(
+            date=today,
+            project_1=project
+        )
 
         # Get the response
-        response = self.client.get(reverse("fasting:activity_logger"))
+        response = self.client.get(reverse('fasting:activity_logger'))
         self.assertEqual(response.status_code, 200)
 
         # CRITICAL: Verify that agenda is None in context
         # This forces JavaScript to fetch agenda based on user's browser timezone
-        self.assertIsNone(
-            response.context.get("agenda"),
+        self.assertIsNone(response.context.get('agenda'),
             "activity_logger view should NOT pass agenda in context. "
-            "JavaScript should fetch it based on user's local timezone to avoid timezone bugs.",
+            "JavaScript should fetch it based on user's local timezone to avoid timezone bugs."
         )
 
 
@@ -177,17 +239,110 @@ class FastingModelTestCase(TestCase):
     def test_create_fasting_session(self):
         """Test creating a fasting session"""
         now = timezone.now()
-        session = FastingSession.objects.create(source="Manual", source_id="test-123", duration=16, fast_end_date=now)
+        session = FastingSession.objects.create(
+            source='Manual',
+            source_id='test-123',
+            duration=16,
+            fast_end_date=now
+        )
 
-        self.assertEqual(session.source, "Manual")
+        self.assertEqual(session.source, 'Manual')
         self.assertEqual(session.duration, 16)
         self.assertEqual(session.fast_end_date, now)
 
     def test_unique_source_constraint(self):
         """Test that duplicate source entries are prevented"""
         now = timezone.now()
-        FastingSession.objects.create(source="Manual", source_id="test-123", duration=16, fast_end_date=now)
+        FastingSession.objects.create(
+            source='Manual',
+            source_id='test-123',
+            duration=16,
+            fast_end_date=now
+        )
 
         # Should raise error for duplicate source + source_id
         with self.assertRaises(Exception):
-            FastingSession.objects.create(source="Manual", source_id="test-123", duration=18, fast_end_date=now)
+            FastingSession.objects.create(
+                source='Manual',
+                source_id='test-123',
+                duration=18,
+                fast_end_date=now
+            )
+
+
+class MasterSyncViewTests(TestCase):
+    """Tests for the master_sync AJAX endpoint."""
+
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse('fasting:master_sync')
+
+    def test_master_sync_requires_post(self):
+        """GET should return 405."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+    @unittest.mock.patch('fasting.views.SyncAllCommand', create=True)
+    def test_master_sync_success(self, _MockCmd):
+        """POST triggers sync and returns structured results."""
+        from lifetracker.sync_utils import SyncResult
+        from unittest.mock import MagicMock
+
+        # Set up mock command instance
+        mock_cmd = MagicMock()
+        mock_cmd.sync_results = {
+            'whoop': SyncResult(source='Whoop', created=3, updated=1),
+            'withings': SyncResult(source='Withings', created=2),
+        }
+        # Patch the import inside master_sync
+        with unittest.mock.patch(
+            'workouts.management.commands.sync_all.Command'
+        ) as MockSyncAll:
+            MockSyncAll.return_value = mock_cmd
+            response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertIn('5 new entries', data['message'])
+        self.assertFalse(data['has_errors'])
+        self.assertEqual(data['results']['whoop']['created'], 3)
+        self.assertEqual(data['results']['withings']['created'], 2)
+
+    def test_master_sync_returns_auth_errors(self):
+        """Auth failures should be flagged in auth_errors."""
+        from lifetracker.sync_utils import SyncResult
+        from unittest.mock import MagicMock
+
+        mock_cmd = MagicMock()
+        mock_cmd.sync_results = {
+            'whoop': SyncResult(
+                source='Whoop', success=False,
+                error_message='Token expired', auth_error=True
+            ),
+            'withings': SyncResult(source='Withings', created=1),
+        }
+        with unittest.mock.patch(
+            'workouts.management.commands.sync_all.Command'
+        ) as MockSyncAll:
+            MockSyncAll.return_value = mock_cmd
+            response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['has_errors'])
+        self.assertIn('whoop', data['auth_errors'])
+        self.assertEqual(data['results']['whoop']['error'], 'Token expired')
+
+    def test_master_sync_handles_exception(self):
+        """Uncaught exceptions should return 500 with error message."""
+        with unittest.mock.patch(
+            'workouts.management.commands.sync_all.Command'
+        ) as MockSyncAll:
+            MockSyncAll.side_effect = RuntimeError('Sync exploded')
+            response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 500)
+        data = json.loads(response.content)
+        self.assertFalse(data['success'])
+        self.assertIn('Sync exploded', data['message'])
