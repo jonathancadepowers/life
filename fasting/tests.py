@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import datetime
 import json
+import unittest.mock
 
 from fasting.models import FastingSession
 from projects.models import Project
@@ -267,3 +268,81 @@ class FastingModelTestCase(TestCase):
                 duration=18,
                 fast_end_date=now
             )
+
+
+class MasterSyncViewTests(TestCase):
+    """Tests for the master_sync AJAX endpoint."""
+
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse('fasting:master_sync')
+
+    def test_master_sync_requires_post(self):
+        """GET should return 405."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+    @unittest.mock.patch('fasting.views.SyncAllCommand', create=True)
+    def test_master_sync_success(self, _MockCmd):
+        """POST triggers sync and returns structured results."""
+        from lifetracker.sync_utils import SyncResult
+        from unittest.mock import MagicMock
+
+        # Set up mock command instance
+        mock_cmd = MagicMock()
+        mock_cmd.sync_results = {
+            'whoop': SyncResult(source='Whoop', created=3, updated=1),
+            'withings': SyncResult(source='Withings', created=2),
+        }
+        # Patch the import inside master_sync
+        with unittest.mock.patch(
+            'workouts.management.commands.sync_all.Command'
+        ) as MockSyncAll:
+            MockSyncAll.return_value = mock_cmd
+            response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertIn('5 new entries', data['message'])
+        self.assertFalse(data['has_errors'])
+        self.assertEqual(data['results']['whoop']['created'], 3)
+        self.assertEqual(data['results']['withings']['created'], 2)
+
+    def test_master_sync_returns_auth_errors(self):
+        """Auth failures should be flagged in auth_errors."""
+        from lifetracker.sync_utils import SyncResult
+        from unittest.mock import MagicMock
+
+        mock_cmd = MagicMock()
+        mock_cmd.sync_results = {
+            'whoop': SyncResult(
+                source='Whoop', success=False,
+                error_message='Token expired', auth_error=True
+            ),
+            'withings': SyncResult(source='Withings', created=1),
+        }
+        with unittest.mock.patch(
+            'workouts.management.commands.sync_all.Command'
+        ) as MockSyncAll:
+            MockSyncAll.return_value = mock_cmd
+            response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['has_errors'])
+        self.assertIn('whoop', data['auth_errors'])
+        self.assertEqual(data['results']['whoop']['error'], 'Token expired')
+
+    def test_master_sync_handles_exception(self):
+        """Uncaught exceptions should return 500 with error message."""
+        with unittest.mock.patch(
+            'workouts.management.commands.sync_all.Command'
+        ) as MockSyncAll:
+            MockSyncAll.side_effect = RuntimeError('Sync exploded')
+            response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 500)
+        data = json.loads(response.content)
+        self.assertFalse(data['success'])
+        self.assertIn('Sync exploded', data['message'])
