@@ -4268,24 +4268,24 @@
             height: 18px;
             border: 1.5px dashed #d4d0cc;
             border-radius: 50%;
-            margin-right: 0.6rem;
             flex-shrink: 0;
-        }
-        .signal-placeholder-text {
-            font-style: italic;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
             color: #c0bbb5;
-            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .signal-placeholder * {
+            pointer-events: none;
         }
         .signal-noise-tasks.drag-over {
             background: #ffffff;
         }
         /* Signal zone: full-row highlight on drag target */
         .signal-noise-tasks[data-zone="signal"] > .signal-slot-highlight {
-            background: rgba(90, 156, 69, 0.35) !important;
-            transition: background 0.1s;
-        }
-        .signal-noise-tasks[data-zone="signal"] > .signal-slot-highlight.signal-placeholder {
-            background: rgba(90, 156, 69, 0.30) !important;
+            background: rgba(90, 156, 69, 0.18) !important;
+            box-shadow: inset 0 0 0 2px rgba(90, 156, 69, 0.45);
         }
         .signal-noise-state-checks {
             display: flex;
@@ -16558,8 +16558,7 @@
                         const ph = document.createElement('div');
                         ph.className = 'signal-placeholder';
                         ph.dataset.slot = String(i);
-                        const label = i === 0 ? 'Top priority' : '';
-                        ph.innerHTML = `<div class="signal-placeholder-circle"></div>${label ? `<span class="signal-placeholder-text">${label}</span>` : ''}`;
+                        ph.innerHTML = `<div class="signal-placeholder-circle">${i + 1}</div>`;
                         zone.appendChild(ph);
                     }
                 }
@@ -16743,6 +16742,8 @@
 
         // Drop handler for signal zone — slot-based with full-row highlight
         function setupSignalDropZone(dropZone) {
+            let currentHighlight = null;
+
             dropZone.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 if (!draggedTaskCard) return;
@@ -16761,22 +16762,32 @@
                     taskDropIndicator.remove();
                 }
 
-                // Find which slot child the cursor is over and highlight it
-                this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
+                // Find which slot child the cursor is over
+                let targetChild = null;
                 const children = [...this.children];
                 for (const child of children) {
                     if (child.classList.contains('dragging')) continue;
                     const rect = child.getBoundingClientRect();
                     if (e.clientY >= rect.top && e.clientY < rect.bottom) {
-                        child.classList.add('signal-slot-highlight');
+                        targetChild = child;
                         break;
                     }
+                }
+
+                // Only update DOM if the highlighted slot changed
+                if (targetChild !== currentHighlight) {
+                    if (currentHighlight) currentHighlight.classList.remove('signal-slot-highlight');
+                    if (targetChild) targetChild.classList.add('signal-slot-highlight');
+                    currentHighlight = targetChild;
                 }
             });
 
             dropZone.addEventListener('dragleave', function(e) {
                 if (!this.contains(e.relatedTarget)) {
-                    this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
+                    if (currentHighlight) {
+                        currentHighlight.classList.remove('signal-slot-highlight');
+                        currentHighlight = null;
+                    }
                 }
             });
 
