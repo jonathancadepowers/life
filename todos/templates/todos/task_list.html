@@ -7826,6 +7826,14 @@
 
 
         function closePanel() {
+            // Flush any pending auto-save before closing
+            if (saveTimeout) {
+                clearTimeout(saveTimeout);
+                saveTimeout = null;
+            }
+            if (currentTaskId) {
+                saveCurrentTask();
+            }
             document.getElementById('panel-overlay').classList.remove('active');
             document.getElementById('slide-panel').classList.remove('active');
             currentTaskId = null;
@@ -8004,11 +8012,8 @@
             closePanel();
         });
 
-        // Save and close button handler
-        document.getElementById('panel-save-close').addEventListener('click', async () => {
-            if (!currentTaskId) return;
-            // Trigger a save (even though auto-save handles it)
-            await saveCurrentTask();
+        // Save and close button handler (closePanel flushes pending saves)
+        document.getElementById('panel-save-close').addEventListener('click', () => {
             closePanel();
         });
 
