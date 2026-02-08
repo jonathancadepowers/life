@@ -2290,7 +2290,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showSyncOutputModal(data.output, data.has_errors, data.auth_errors);
+                    showSyncOutputModal(data.results, data.has_errors, data.auth_errors);
                 } else {
                     showFlashMessage(data.message || 'Error running sync', true);
                     if (data.traceback) {
@@ -2308,7 +2308,7 @@
             });
             }
 
-            window.showSyncOutputModal = function(output, hasErrors, authErrors = {}) {
+            window.showSyncOutputModal = function(results, hasErrors, authErrors = {}) {
             // Create modal if it doesn't exist
             let modal = document.getElementById('syncOutputModal');
             if (!modal) {
@@ -2324,7 +2324,7 @@
                             </div>
                             <div class="modal-body">
                                 <div id="authErrorsSection"></div>
-                                <pre id="syncOutputContent" style="background-color: #f8f9fa; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto;"></pre>
+                                <div id="syncResultsContent"></div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -2335,9 +2335,29 @@
                 document.body.appendChild(modal);
             }
 
-            // Update modal content
-            const outputContent = document.getElementById('syncOutputContent');
-            outputContent.textContent = output;
+            // Build results display from structured data
+            const resultsContent = document.getElementById('syncResultsContent');
+            if (results && Object.keys(results).length > 0) {
+                let html = '<table class="table table-sm mb-0">';
+                html += '<thead><tr><th>Source</th><th>Status</th><th>Created</th><th>Updated</th><th>Skipped</th></tr></thead><tbody>';
+                for (const [source, r] of Object.entries(results)) {
+                    const icon = r.success ? '✓' : '✗';
+                    const rowClass = r.success ? '' : 'table-danger';
+                    html += `<tr class="${rowClass}">`;
+                    html += `<td><strong>${icon} ${source.charAt(0).toUpperCase() + source.slice(1)}</strong></td>`;
+                    if (r.success) {
+                        html += `<td class="text-success">OK</td>`;
+                        html += `<td>${r.created}</td><td>${r.updated}</td><td>${r.skipped}</td>`;
+                    } else {
+                        html += `<td class="text-danger" colspan="4">${r.error || r.summary || 'Failed'}</td>`;
+                    }
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                resultsContent.innerHTML = html;
+            } else {
+                resultsContent.innerHTML = '<p class="text-muted">No sync results available.</p>';
+            }
 
             // Show authentication error section if there are auth errors
             const authErrorsSection = document.getElementById('authErrorsSection');
@@ -2350,6 +2370,9 @@
                 }
                 if (authErrors.withings) {
                     authHtml += '<a href="/oauth/withings/authorize/" class="btn btn-sm btn-primary me-2">Re-authenticate Withings</a>';
+                }
+                if (authErrors.cronometer) {
+                    authHtml += '<span class="btn btn-sm btn-outline-secondary me-2 disabled">Cronometer: check credentials</span>';
                 }
 
                 authHtml += '</div>';
