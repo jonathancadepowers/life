@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def migrate_calendar_times_to_schedules(apps, schema_editor):
+def migrate_calendar_times_to_schedules(apps, _schema_editor):
     """Migrate existing calendar_start_time/end_time to TaskSchedule records."""
     Task = apps.get_model('todos', 'Task')
     TaskSchedule = apps.get_model('todos', 'TaskSchedule')
@@ -19,7 +19,7 @@ def migrate_calendar_times_to_schedules(apps, schema_editor):
         )
 
 
-def reverse_migration(apps, schema_editor):
+def reverse_migration(apps, _schema_editor):
     """Reverse the migration by clearing TaskSchedule records."""
     TaskSchedule = apps.get_model('todos', 'TaskSchedule')
     TaskSchedule.objects.all().delete()

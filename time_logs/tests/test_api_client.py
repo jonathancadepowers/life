@@ -58,7 +58,7 @@ class TestTogglAPIClient(TestCase):
 
         # Make API request
         client = TogglAPIClient()
-        result = client._make_request('/me/time_entries')
+        client._make_request('/me/time_entries')
 
         # Assert: Request used correct basic auth
         call_args = mock_request.call_args

@@ -1,9 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
 import uuid
-import pytz
 
 from .models import WritingLog
 

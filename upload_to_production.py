@@ -16,7 +16,7 @@ os.environ['DATABASE_URL'] = os.getenv('HEROKU_DATABASE_URL', '')  # You'll need
 
 django.setup()
 
-from django.core.management import call_command
+from django.core.management import call_command  # noqa: E402
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:

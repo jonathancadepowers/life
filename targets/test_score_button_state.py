@@ -2,7 +2,6 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from datetime import date, timedelta
 from targets.models import DailyAgenda
 from projects.models import Project
-from goals.models import Goal
 from unittest import skip
 import time
 
@@ -14,11 +13,11 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
     This test catches the regression where score buttons retain their visual "active" state
     from previously viewed dates, making it appear that a date has been scored when it hasn't.
 
-    Bug scenario:
+    Regression scenario (now fixed):
     1. View a date with a scored "Other Plans" (button shows active with blue border)
     2. Navigate to a date without a score on "Other Plans"
-    3. BUG: Button still shows as active even though database has no score
-    4. FIX: Button should not show as active when there's no score in database
+    3. Previously broken: Button still showed as active even though database had no score
+    4. Expected: Button should not show as active when there's no score in database
     """
 
     @classmethod

@@ -8,7 +8,7 @@ from io import BytesIO
 class Command(BaseCommand):
     help = 'Import films from Letterboxd Top 100 list'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         # All 100 films from the Letterboxd list
         letterboxd_films = [
             "The Insider", "Kids", "The Silence of the Lambs", "Lost in Translation",

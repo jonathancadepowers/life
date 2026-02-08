@@ -5,7 +5,7 @@ from django.db import connection
 class Command(BaseCommand):
     help = 'Fix the auto-increment sequence for LifeTrackerColumn'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         with connection.cursor() as cursor:
             # For PostgreSQL
             if connection.vendor == 'postgresql':

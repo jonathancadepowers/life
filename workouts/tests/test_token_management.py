@@ -8,7 +8,6 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
 from unittest import mock
-import requests
 
 from oauth_integration.models import OAuthCredential
 from workouts.services.whoop_client import WhoopAPIClient

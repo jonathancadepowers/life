@@ -3,6 +3,81 @@ from datetime import datetime, timezone, timedelta
 from .models import CalendarEvent
 
 
+def _parse_event_times(event):
+    """Parse start and end datetime strings from an event dict.
+
+    Returns (start_dt, end_dt) as timezone-aware datetimes, or None if parsing fails.
+    """
+    start_str = event.get('start', '')
+    end_str = event.get('end', '')
+
+    if not start_str or not end_str:
+        return None
+
+    start_dt = datetime.fromisoformat(start_str[:19]).replace(tzinfo=timezone.utc)
+    end_dt = datetime.fromisoformat(end_str[:19]).replace(tzinfo=timezone.utc)
+    return start_dt, end_dt
+
+
+def _build_event_defaults(event, start_dt, end_dt, source):
+    """Build the defaults dict for creating/updating a CalendarEvent."""
+    defaults = {
+        'subject': event.get('subject', '')[:500],
+        'start': start_dt,
+        'end': end_dt,
+        'is_all_day': event.get('isAllDay', False),
+        'location': event.get('location', '')[:500],
+        'organizer': event.get('organizer', '')[:255],
+        'body_preview': event.get('bodyPreview', ''),
+        'is_active': True,
+        'override_start': None,
+        'override_end': None,
+        'is_hidden': False,
+    }
+    if source:
+        defaults['source'] = source
+    return defaults
+
+
+def _upsert_event(outlook_id, subject, start_dt, defaults):
+    """Find an existing event by outlook_id or (subject, start), then update or create.
+
+    Returns (db_id, action) where action is 'created' or 'updated'.
+    """
+    existing = CalendarEvent.objects.filter(outlook_id=outlook_id).first()
+    if existing:
+        for key, value in defaults.items():
+            setattr(existing, key, value)
+        existing.save()
+        return existing.id, 'updated'
+
+    existing = CalendarEvent.objects.filter(subject=subject, start=start_dt).first()
+    if existing:
+        for key, value in defaults.items():
+            setattr(existing, key, value)
+        existing.outlook_id = outlook_id
+        existing.save()
+        return existing.id, 'updated'
+
+    obj = CalendarEvent.objects.create(outlook_id=outlook_id, **defaults)
+    return obj.id, 'created'
+
+
+def _cancel_missing_events(min_date, max_date, processed_ids):
+    """Mark active events in the date range as canceled if they were not processed."""
+    if not min_date or not max_date:
+        return 0
+
+    range_start = datetime.combine(min_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+    range_end = datetime.combine(max_date + timedelta(days=1), datetime.min.time()).replace(tzinfo=timezone.utc)
+
+    return CalendarEvent.objects.filter(
+        start__gte=range_start,
+        start__lt=range_end,
+        is_active=True
+    ).exclude(id__in=processed_ids).update(is_active=False)
+
+
 def import_calendar_events(events_data, source=''):
     """
     Import calendar events from a list of event dictionaries.
@@ -19,13 +94,11 @@ def import_calendar_events(events_data, source=''):
     """
     created_count = 0
     updated_count = 0
-    canceled_count = 0
 
     events = events_data.get('body', [])
     if not events:
-        return created_count, updated_count, canceled_count
+        return created_count, updated_count, 0
 
-    # Track date range and processed event IDs
     processed_ids = set()
     min_date = None
     max_date = None
@@ -35,23 +108,10 @@ def import_calendar_events(events_data, source=''):
         if not outlook_id:
             continue
 
-        # Parse datetime strings (format: 2026-01-30T15:00:00.0000000)
-        # Outlook exports times in UTC
-        start_str = event.get('start', '')
-        end_str = event.get('end', '')
-
-        # Remove extra precision and parse as UTC
-        if start_str:
-            start_str = start_str[:19]  # Trim to 2026-01-30T15:00:00
-            start_dt = datetime.fromisoformat(start_str).replace(tzinfo=timezone.utc)
-        else:
+        parsed = _parse_event_times(event)
+        if not parsed:
             continue
-
-        if end_str:
-            end_str = end_str[:19]
-            end_dt = datetime.fromisoformat(end_str).replace(tzinfo=timezone.utc)
-        else:
-            continue
+        start_dt, end_dt = parsed
 
         # Track the date range of events in this import
         event_date = start_dt.date()
@@ -61,76 +121,15 @@ def import_calendar_events(events_data, source=''):
             max_date = event_date
 
         subject = event.get('subject', '')[:500]
+        defaults = _build_event_defaults(event, start_dt, end_dt, source)
 
-        # Build the defaults dict
-        # Clear override fields so Outlook's values take precedence
-        defaults = {
-            'subject': subject,
-            'start': start_dt,
-            'end': end_dt,
-            'is_all_day': event.get('isAllDay', False),
-            'location': event.get('location', '')[:500],
-            'organizer': event.get('organizer', '')[:255],
-            'body_preview': event.get('bodyPreview', ''),
-            'is_active': True,  # Re-activate in case it was previously canceled
-            'override_start': None,  # Clear local overrides
-            'override_end': None,
-            'is_hidden': False,
-        }
-        if source:
-            defaults['source'] = source
-
-        # Primary lookup: by outlook_id
-        # This preserves the event's database ID even if the time changes
-        existing_by_outlook_id = CalendarEvent.objects.filter(outlook_id=outlook_id).first()
-
-        if existing_by_outlook_id:
-            # Update existing event (handles time changes while preserving ID)
-            for key, value in defaults.items():
-                setattr(existing_by_outlook_id, key, value)
-            existing_by_outlook_id.save()
-            processed_ids.add(existing_by_outlook_id.id)
-            updated_count += 1
+        db_id, action = _upsert_event(outlook_id, subject, start_dt, defaults)
+        processed_ids.add(db_id)
+        if action == 'created':
+            created_count += 1
         else:
-            # New outlook_id - check for duplicate by (subject, start_time)
-            # This handles recurring meetings that may have different outlook_ids
-            existing_by_time = CalendarEvent.objects.filter(
-                subject=subject,
-                start=start_dt
-            ).first()
+            updated_count += 1
 
-            if existing_by_time:
-                # Update existing event found by subject+time
-                for key, value in defaults.items():
-                    setattr(existing_by_time, key, value)
-                # Also update the outlook_id to the new one
-                existing_by_time.outlook_id = outlook_id
-                existing_by_time.save()
-                processed_ids.add(existing_by_time.id)
-                updated_count += 1
-            else:
-                # Create new event
-                obj = CalendarEvent.objects.create(
-                    outlook_id=outlook_id,
-                    **defaults
-                )
-                processed_ids.add(obj.id)
-                created_count += 1
-
-    # Mark events as canceled if they're in the date range but weren't in the JSON
-    # This handles events that were deleted/canceled from the calendar
-    if min_date and max_date:
-        # Convert dates to datetime for filtering
-        range_start = datetime.combine(min_date, datetime.min.time()).replace(tzinfo=timezone.utc)
-        range_end = datetime.combine(max_date + timedelta(days=1), datetime.min.time()).replace(tzinfo=timezone.utc)
-
-        # Find active events in the date range that weren't processed
-        events_to_cancel = CalendarEvent.objects.filter(
-            start__gte=range_start,
-            start__lt=range_end,
-            is_active=True
-        ).exclude(id__in=processed_ids)
-
-        canceled_count = events_to_cancel.update(is_active=False)
+    canceled_count = _cancel_missing_events(min_date, max_date, processed_ids)
 
     return created_count, updated_count, canceled_count

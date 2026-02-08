@@ -33,80 +33,74 @@ class Command(BaseCommand):
             help='Clear existing test data before generating new data'
         )
 
-    def handle(self, *args, **options):
-        days = options['days']
-        clear = options['clear']
+    def _clear_test_data(self):
+        """Delete all data previously created with source='Test'."""
+        Workout.objects.filter(source='Test').delete()
+        WeighIn.objects.filter(source='Test').delete()
+        FastingSession.objects.filter(source='Test').delete()
+        NutritionEntry.objects.filter(source='Test').delete()
+        TimeLog.objects.filter(source='Test').delete()
+        DailyAgenda.objects.filter(notes__contains='[TEST]').delete()
+        self.stdout.write(self.style.SUCCESS('\u2713 Cleared test data'))
 
-        if clear:
+    def _generate_day(self, current_date, projects, goals, counts):
+        """Generate all data types for a single day, updating counts in place."""
+        # Probability table: (threshold, counter_key, generator_method, extra_args)
+        generators = [
+            (0.6, 'workouts', self._create_workouts, (current_date,)),
+            (0.8, 'weight', self._create_weight_entry, (current_date,)),
+            (0.7, 'fasting', self._create_fasting_session, (current_date,)),
+            (0.85, 'nutrition', self._create_nutrition_entries, (current_date,)),
+        ]
+
+        for threshold, key, method, args in generators:
+            if random.random() < threshold:
+                counts[key] += method(*args)
+
+        # Time logs depend on weekday/weekend
+        is_weekday = current_date.weekday() < 5
+        time_log_prob = 0.9 if is_weekday else 0.2
+        if random.random() < time_log_prob:
+            counts['time_logs'] += self._create_time_logs(current_date, projects, goals)
+
+        # Daily agendas
+        if random.random() < 0.7:
+            counts['agendas'] += self._create_daily_agenda(current_date, projects, goals)
+
+    def handle(self, *_args, **options):
+        days = options['days']
+
+        if options['clear']:
             self.stdout.write('Clearing existing test data...')
-            # Only delete 'Manual' or 'Test' source data
-            Workout.objects.filter(source='Test').delete()
-            WeighIn.objects.filter(source='Test').delete()
-            FastingSession.objects.filter(source='Test').delete()
-            NutritionEntry.objects.filter(source='Test').delete()
-            TimeLog.objects.filter(source='Test').delete()
-            DailyAgenda.objects.filter(notes__contains='[TEST]').delete()
-            self.stdout.write(self.style.SUCCESS('✓ Cleared test data'))
+            self._clear_test_data()
 
         self.stdout.write(f'\nGenerating {days} days of fake data...\n')
 
-        # Get or create test projects and goals
         projects, goals = self._create_projects_and_goals()
 
-        # Generate data for each day
         today = date.today()
         start_date = today - timedelta(days=days)
 
-        created_counts = {
-            'workouts': 0,
-            'weight': 0,
-            'fasting': 0,
-            'nutrition': 0,
-            'time_logs': 0,
-            'agendas': 0
+        counts = {
+            'workouts': 0, 'weight': 0, 'fasting': 0,
+            'nutrition': 0, 'time_logs': 0, 'agendas': 0
         }
 
         for day_offset in range(days):
-            current_date = start_date + timedelta(days=day_offset)
-
-            # Skip some days randomly to make it realistic
-            if random.random() < 0.15:  # 15% chance to skip a day
+            if random.random() < 0.15:
                 continue
-
-            # Generate workouts (60% of days have workouts)
-            if random.random() < 0.6:
-                created_counts['workouts'] += self._create_workouts(current_date)
-
-            # Generate weight entries (80% of days)
-            if random.random() < 0.8:
-                created_counts['weight'] += self._create_weight_entry(current_date)
-
-            # Generate fasting sessions (70% of days)
-            if random.random() < 0.7:
-                created_counts['fasting'] += self._create_fasting_session(current_date)
-
-            # Generate nutrition entries (85% of days)
-            if random.random() < 0.85:
-                created_counts['nutrition'] += self._create_nutrition_entries(current_date)
-
-            # Generate time logs (weekdays mostly - 90% on weekdays, 20% on weekends)
-            is_weekday = current_date.weekday() < 5
-            if (is_weekday and random.random() < 0.9) or (not is_weekday and random.random() < 0.2):
-                created_counts['time_logs'] += self._create_time_logs(current_date, projects, goals)
-
-            # Generate daily agendas (70% of days)
-            if random.random() < 0.7:
-                created_counts['agendas'] += self._create_daily_agenda(current_date, projects, goals)
+            current_date = start_date + timedelta(days=day_offset)
+            self._generate_day(current_date, projects, goals, counts)
 
         self.stdout.write('\n' + '='*60)
-        self.stdout.write(self.style.SUCCESS('✓ Data generation complete!'))
+        self.stdout.write(self.style.SUCCESS('\u2713 Data generation complete!'))
         self.stdout.write('='*60)
-        self.stdout.write(f"Workouts created:        {created_counts['workouts']}")
-        self.stdout.write(f"Weight entries:          {created_counts['weight']}")
-        self.stdout.write(f"Fasting sessions:        {created_counts['fasting']}")
-        self.stdout.write(f"Nutrition entries:       {created_counts['nutrition']}")
-        self.stdout.write(f"Time logs:               {created_counts['time_logs']}")
-        self.stdout.write(f"Daily agendas:           {created_counts['agendas']}")
+        self.stdout.write(f"Workouts created:        {counts['workouts']}")
+        self.stdout.write(f"Weight entries:          {counts['weight']}")
+        self.stdout.write(f"Fasting sessions:        {counts['fasting']}")
+        self.stdout.write(f"Nutrition entries:       {counts['nutrition']}")
+        self.stdout.write(f"Time logs:               {counts['time_logs']}")
+        self.stdout.write(f"Daily agendas:           {counts['agendas']}")
         self.stdout.write('='*60 + '\n')
 
     def _create_projects_and_goals(self):
@@ -160,7 +154,7 @@ class Command(BaseCommand):
         num_workouts = random.choices([1, 2], weights=[0.8, 0.2])[0]
 
         for i in range(num_workouts):
-            sport_id, sport_name = random.choice(sport_choices)
+            sport_id, _sport_name = random.choice(sport_choices)
 
             # Random start time
             hour = random.randint(6, 18)
@@ -288,7 +282,7 @@ class Command(BaseCommand):
             start = current_time
             end = start + timedelta(minutes=duration_minutes)
 
-            time_log, created = TimeLog.objects.update_or_create(
+            time_log, _ = TimeLog.objects.update_or_create(
                 source='Test',
                 source_id=f'test-timelog-{current_date}-{i}',
                 defaults={
@@ -305,15 +299,32 @@ class Command(BaseCommand):
 
         return count
 
+    def _set_agenda_target(self, agenda, slot, project, goal):
+        """Set a single target slot (1, 2, or 3) on an agenda with a random score."""
+        setattr(agenda, f'project_{slot}', project)
+        setattr(agenda, f'goal_{slot}', goal)
+
+        if not goal:
+            return
+
+        target, _ = Target.objects.get_or_create(
+            target_id=f'test-target-{goal.goal_id}-{slot}',
+            defaults={
+                'target_name': f'Work on {goal.display_string}',
+                'goal_id': goal
+            }
+        )
+        setattr(agenda, f'target_{slot}', target)
+
+        if random.random() < 0.7:
+            setattr(agenda, f'target_{slot}_score', random.choice([0.0, 0.5, 1.0]))
+
     def _create_daily_agenda(self, current_date, projects, goals):
         """Create a daily agenda entry"""
-        # Skip if agenda already exists for this date (non-test)
         if DailyAgenda.objects.filter(date=current_date).exclude(notes__contains='[TEST]').exists():
             return 0
 
-        # Pick 1-3 targets for the day
         num_targets = random.randint(1, 3)
-
         selected_projects = random.sample(projects, k=min(num_targets, len(projects)))
         selected_goals = random.sample(goals, k=min(num_targets, len(goals)))
 
@@ -321,67 +332,17 @@ class Command(BaseCommand):
             date=current_date,
             defaults={'other_plans': f'[TEST] Daily agenda for {current_date}'}
         )
-
         if not created:
-            # Update existing test agenda
             agenda.other_plans = f'[TEST] Daily agenda for {current_date}'
 
-        # Set up targets
         for i in range(num_targets):
-            if i == 0:
-                agenda.project_1 = selected_projects[i] if i < len(selected_projects) else None
-                agenda.goal_1 = selected_goals[i] if i < len(selected_goals) else None
-                # Create or get target
-                if agenda.goal_1:
-                    target, _ = Target.objects.get_or_create(
-                        target_id=f'test-target-{agenda.goal_1.goal_id}-1',
-                        defaults={
-                            'target_name': f'Work on {agenda.goal_1.display_string}',
-                            'goal_id': agenda.goal_1
-                        }
-                    )
-                    agenda.target_1 = target
-                    # Random score (70% chance of having a score)
-                    if random.random() < 0.7:
-                        agenda.target_1_score = random.choice([0.0, 0.5, 1.0])
-            elif i == 1:
-                agenda.project_2 = selected_projects[i] if i < len(selected_projects) else None
-                agenda.goal_2 = selected_goals[i] if i < len(selected_goals) else None
-                if agenda.goal_2:
-                    target, _ = Target.objects.get_or_create(
-                        target_id=f'test-target-{agenda.goal_2.goal_id}-2',
-                        defaults={
-                            'target_name': f'Work on {agenda.goal_2.display_string}',
-                            'goal_id': agenda.goal_2
-                        }
-                    )
-                    agenda.target_2 = target
-                    if random.random() < 0.7:
-                        agenda.target_2_score = random.choice([0.0, 0.5, 1.0])
-            elif i == 2:
-                agenda.project_3 = selected_projects[i] if i < len(selected_projects) else None
-                agenda.goal_3 = selected_goals[i] if i < len(selected_goals) else None
-                if agenda.goal_3:
-                    target, _ = Target.objects.get_or_create(
-                        target_id=f'test-target-{agenda.goal_3.goal_id}-3',
-                        defaults={
-                            'target_name': f'Work on {agenda.goal_3.display_string}',
-                            'goal_id': agenda.goal_3
-                        }
-                    )
-                    agenda.target_3 = target
-                    if random.random() < 0.7:
-                        agenda.target_3_score = random.choice([0.0, 0.5, 1.0])
+            slot = i + 1
+            project = selected_projects[i] if i < len(selected_projects) else None
+            goal = selected_goals[i] if i < len(selected_goals) else None
+            self._set_agenda_target(agenda, slot, project, goal)
 
-        # Calculate day score
-        scores = []
-        if agenda.target_1_score is not None:
-            scores.append(agenda.target_1_score)
-        if agenda.target_2_score is not None:
-            scores.append(agenda.target_2_score)
-        if agenda.target_3_score is not None:
-            scores.append(agenda.target_3_score)
-
+        scores = [getattr(agenda, f'target_{s}_score') for s in range(1, 4)
+                   if getattr(agenda, f'target_{s}_score') is not None]
         if scores:
             agenda.day_score = sum(scores) / len(scores)
 

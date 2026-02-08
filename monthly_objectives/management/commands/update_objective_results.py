@@ -13,7 +13,7 @@ class Command(BaseCommand):
             help='Update only a specific objective by its objective_id',
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         objective_id = options.get('objective_id')
 
         if objective_id:

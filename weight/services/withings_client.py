@@ -6,7 +6,7 @@ This client handles OAuth 2.0 authentication and data fetching from the Withings
 import os
 import requests
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, List
 from urllib.parse import urlencode
 from dotenv import load_dotenv
@@ -155,7 +155,7 @@ class WithingsAPIClient:
             'redirect_uri': self.redirect_uri,
         }
 
-        response = requests.post(self.TOKEN_URL, data=data)
+        response = requests.post(self.TOKEN_URL, data=data, timeout=30)
         response.raise_for_status()
 
         result = response.json()
@@ -200,7 +200,7 @@ class WithingsAPIClient:
             'refresh_token': self.refresh_token,
         }
 
-        response = requests.post(self.TOKEN_URL, data=data)
+        response = requests.post(self.TOKEN_URL, data=data, timeout=30)
         response.raise_for_status()
 
         result = response.json()
@@ -265,14 +265,14 @@ class WithingsAPIClient:
         }
 
         url = f"{self.BASE_URL}{endpoint}"
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=30)
 
         # If token expired, try to refresh (fallback for edge cases)
         if response.status_code == 401:
             logger.info("Access token expired (401 error), refreshing...")
             self.refresh_access_token()
             headers['Authorization'] = f'Bearer {self.access_token}'
-            response = requests.get(url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params, timeout=30)
 
         response.raise_for_status()
         result = response.json()
@@ -300,9 +300,9 @@ class WithingsAPIClient:
             Dictionary containing weight measurement records
         """
         if start_date is None:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = datetime.now(timezone.utc) - timedelta(days=30)
         if end_date is None:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
 
         params = {
             'action': 'getmeas',

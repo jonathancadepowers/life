@@ -3,12 +3,25 @@ from datetime import datetime, timedelta
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import pytz
 
 from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule, TaskDetailTemplate, TaskView
 from calendar_events.models import CalendarEvent
+
+_INVALID_JSON = 'Invalid JSON'
+_TASK_NOT_FOUND = 'Task not found'
+_STATE_NOT_FOUND = 'State not found'
+_NAME_REQUIRED = 'Name is required'
+_TAG_NOT_FOUND = 'Tag not found'
+_UTC_OFFSET = '+00:00'
+_START_TIME_EMPTY = 'Start time cannot be empty'
+_END_TIME_EMPTY = 'End time cannot be empty'
+
+
+def _isoformat_or_none(value):
+    """Return isoformat() of a value, or None if the value is falsy."""
+    return value.isoformat() if value else None
 
 
 def serialize_task(task):
@@ -24,11 +37,11 @@ def serialize_task(task):
         'state_id': task.state_id,
         'state_name': task.state.name if task.state else None,
         'tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()],
-        'deadline': task.deadline.isoformat() if task.deadline else None,
+        'deadline': _isoformat_or_none(task.deadline),
         'deadline_dismissed': task.deadline_dismissed,
-        'state_changed_at': task.state_changed_at.isoformat() if task.state_changed_at else None,
-        'updated_at': task.updated_at.isoformat() if task.updated_at else None,
-        'done_for_day': task.done_for_day.isoformat() if task.done_for_day else None,
+        'state_changed_at': _isoformat_or_none(task.state_changed_at),
+        'updated_at': _isoformat_or_none(task.updated_at),
+        'done_for_day': _isoformat_or_none(task.done_for_day),
         'calendar_start_time': first_schedule.start_time.isoformat() if first_schedule else None,
         'calendar_end_time': first_schedule.end_time.isoformat() if first_schedule else None,
         'schedules': [
@@ -143,7 +156,40 @@ def create_task(request):
             'task': serialize_task(task)
         })
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
+
+
+def _apply_task_simple_fields(task, data):
+    """Apply simple field updates (title, details, critical, deadline_dismissed) to a task."""
+    if 'title' in data:
+        task.title = data['title'].strip()
+    if 'details' in data:
+        task.details = data['details']
+    if 'critical' in data:
+        task.critical = data['critical']
+    if 'deadline_dismissed' in data:
+        task.deadline_dismissed = data['deadline_dismissed']
+
+
+def _apply_task_state(task, data):
+    """Apply state_id update to a task. Raises TaskState.DoesNotExist if invalid."""
+    if 'state_id' not in data:
+        return
+    new_state_id = data['state_id']
+    if new_state_id != task.state_id:
+        task.state_changed_at = timezone.now()
+    task.state = TaskState.objects.get(id=new_state_id) if new_state_id else None
+
+
+def _apply_task_deadline(task, data):
+    """Apply deadline update to a task."""
+    if 'deadline' not in data:
+        return
+    if data['deadline']:
+        from datetime import date
+        task.deadline = date.fromisoformat(data['deadline'])
+    else:
+        task.deadline = None
 
 
 @require_http_methods(["PATCH"])
@@ -153,29 +199,9 @@ def update_task(request, task_id):
         task = Task.objects.get(id=task_id)
         data = json.loads(request.body)
 
-        if 'title' in data:
-            task.title = data['title'].strip()
-        if 'details' in data:
-            task.details = data['details']
-        if 'critical' in data:
-            task.critical = data['critical']
-        if 'state_id' in data:
-            new_state_id = data['state_id']
-            old_state_id = task.state_id
-            if new_state_id != old_state_id:  # State actually changed
-                task.state_changed_at = timezone.now()
-            if new_state_id:
-                task.state = TaskState.objects.get(id=new_state_id)
-            else:
-                task.state = None
-        if 'deadline' in data:
-            if data['deadline']:
-                from datetime import date
-                task.deadline = date.fromisoformat(data['deadline'])
-            else:
-                task.deadline = None
-        if 'deadline_dismissed' in data:
-            task.deadline_dismissed = data['deadline_dismissed']
+        _apply_task_simple_fields(task, data)
+        _apply_task_state(task, data)
+        _apply_task_deadline(task, data)
 
         task.save()
         return JsonResponse({
@@ -183,25 +209,25 @@ def update_task(request, task_id):
             'task': serialize_task(task)
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
     except TaskState.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _STATE_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_http_methods(["DELETE"])
-def delete_task(request, task_id):
+def delete_task(_request, task_id):
     """Delete a task via AJAX."""
     try:
         task = Task.objects.get(id=task_id)
         task.delete()
         return JsonResponse({'success': True})
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
 
 
-def get_task(request, task_id):
+def get_task(_request, task_id):
     """Get a task's details via AJAX."""
     try:
         task = Task.objects.select_related('state').prefetch_related('tags', 'schedules').get(id=task_id)
@@ -210,10 +236,10 @@ def get_task(request, task_id):
             'task': serialize_task(task)
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
 
 
-def list_states(request):
+def list_states(_request):
     """List all task states."""
     states = TaskState.objects.all()
     return JsonResponse({
@@ -222,7 +248,7 @@ def list_states(request):
     })
 
 
-def get_state_info(request, state_id):
+def get_state_info(_request, state_id):
     """Get info about a state including task count."""
     try:
         state = TaskState.objects.get(id=state_id)
@@ -237,7 +263,7 @@ def get_state_info(request, state_id):
             'total_states': total_states
         })
     except TaskState.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _STATE_NOT_FOUND}, status=404)
 
 
 @require_POST
@@ -248,7 +274,7 @@ def create_state(request):
         name = data.get('name', '').strip()
 
         if not name:
-            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+            return JsonResponse({'success': False, 'error': _NAME_REQUIRED}, status=400)
 
         # Check if state already exists
         if TaskState.objects.filter(name=name).exists():
@@ -268,7 +294,7 @@ def create_state(request):
             }
         })
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_http_methods(["PATCH"])
@@ -300,9 +326,9 @@ def update_state(request, state_id):
             }
         })
     except TaskState.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _STATE_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_http_methods(["DELETE", "POST"])
@@ -337,9 +363,9 @@ def delete_state(request, state_id):
         state.delete()
         return JsonResponse({'success': True, 'task_count': task_count})
     except TaskState.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'State not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _STATE_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_POST
@@ -354,7 +380,7 @@ def reorder_states(request):
 
         return JsonResponse({'success': True})
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_POST
@@ -369,10 +395,10 @@ def reorder_tasks(request):
 
         return JsonResponse({'success': True})
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
-def list_tags(request):
+def list_tags(_request):
     """List all task tags."""
     tags = TaskTag.objects.all()
     return JsonResponse({
@@ -389,7 +415,7 @@ def create_tag(request):
         name = data.get('name', '').strip()
 
         if not name:
-            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+            return JsonResponse({'success': False, 'error': _NAME_REQUIRED}, status=400)
 
         tag, created = TaskTag.objects.get_or_create(name=name)
         return JsonResponse({
@@ -398,7 +424,7 @@ def create_tag(request):
             'created': created
         })
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_POST
@@ -426,11 +452,11 @@ def add_tag_to_task(request, task_id):
             'task_tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()]
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
     except TaskTag.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TAG_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_POST
@@ -452,22 +478,22 @@ def remove_tag_from_task(request, task_id):
             'task_tags': [{'id': t.id, 'name': t.name} for t in task.tags.all()]
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
     except TaskTag.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TAG_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_http_methods(["DELETE"])
-def delete_tag(request, tag_id):
+def delete_tag(_request, tag_id):
     """Delete a tag."""
     try:
         tag = TaskTag.objects.get(id=tag_id)
         tag.delete()
         return JsonResponse({'success': True})
     except TaskTag.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TAG_NOT_FOUND}, status=404)
 
 
 @require_http_methods(["PATCH"])
@@ -479,7 +505,7 @@ def rename_tag(request, tag_id):
         new_name = data.get('name', '').strip()
 
         if not new_name:
-            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+            return JsonResponse({'success': False, 'error': _NAME_REQUIRED}, status=400)
 
         # Check if tag name already exists
         if TaskTag.objects.filter(name=new_name).exclude(id=tag_id).exists():
@@ -489,9 +515,9 @@ def rename_tag(request, tag_id):
         tag.save()
         return JsonResponse({'success': True, 'tag': {'id': tag.id, 'name': tag.name}})
     except TaskTag.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Tag not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TAG_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 # ========== Time Block Views ==========
@@ -506,16 +532,16 @@ def create_time_block(request):
         end_time = data.get('end_time')  # Optional: if not provided, defaults to 30 min
 
         if not name:
-            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+            return JsonResponse({'success': False, 'error': _NAME_REQUIRED}, status=400)
         if not start_time:
             return JsonResponse({'success': False, 'error': 'Start time is required'}, status=400)
 
         # Parse start time
-        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        start_dt = datetime.fromisoformat(start_time.replace('Z', _UTC_OFFSET))
 
         # Use provided end_time or default to 30 minutes after start
         if end_time:
-            end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+            end_dt = datetime.fromisoformat(end_time.replace('Z', _UTC_OFFSET))
         else:
             end_dt = start_dt + timedelta(minutes=30)
 
@@ -535,7 +561,7 @@ def create_time_block(request):
             }
         })
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
     except ValueError as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -551,14 +577,14 @@ def update_time_block(request, block_id):
             block.name = data['name'].strip()
         if 'start_time' in data:
             if data['start_time']:
-                block.start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+                block.start_time = datetime.fromisoformat(data['start_time'].replace('Z', _UTC_OFFSET))
             else:
-                return JsonResponse({'success': False, 'error': 'Start time cannot be empty'}, status=400)
+                return JsonResponse({'success': False, 'error': _START_TIME_EMPTY}, status=400)
         if 'end_time' in data:
             if data['end_time']:
-                block.end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+                block.end_time = datetime.fromisoformat(data['end_time'].replace('Z', _UTC_OFFSET))
             else:
-                return JsonResponse({'success': False, 'error': 'End time cannot be empty'}, status=400)
+                return JsonResponse({'success': False, 'error': _END_TIME_EMPTY}, status=400)
 
         block.save()
         return JsonResponse({
@@ -573,13 +599,13 @@ def update_time_block(request, block_id):
     except TimeBlock.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Time block not found'}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
     except ValueError as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 @require_http_methods(["DELETE"])
-def delete_time_block(request, block_id):
+def delete_time_block(_request, block_id):
     """Delete a time block via AJAX."""
     try:
         block = TimeBlock.objects.get(id=block_id)
@@ -607,8 +633,8 @@ def create_task_schedule(request, task_id):
             return JsonResponse({'success': False, 'error': 'End time is required'}, status=400)
 
         # Parse times
-        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-        end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        start_dt = datetime.fromisoformat(start_time.replace('Z', _UTC_OFFSET))
+        end_dt = datetime.fromisoformat(end_time.replace('Z', _UTC_OFFSET))
 
         schedule = TaskSchedule.objects.create(
             task=task,
@@ -626,9 +652,9 @@ def create_task_schedule(request, task_id):
             'task': serialize_task(task)
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
     except ValueError as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -646,14 +672,14 @@ def update_task_first_schedule(request, task_id):
 
         if 'start_time' in data:
             if data['start_time']:
-                schedule.start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+                schedule.start_time = datetime.fromisoformat(data['start_time'].replace('Z', _UTC_OFFSET))
             else:
-                return JsonResponse({'success': False, 'error': 'Start time cannot be empty'}, status=400)
+                return JsonResponse({'success': False, 'error': _START_TIME_EMPTY}, status=400)
         if 'end_time' in data:
             if data['end_time']:
-                schedule.end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+                schedule.end_time = datetime.fromisoformat(data['end_time'].replace('Z', _UTC_OFFSET))
             else:
-                return JsonResponse({'success': False, 'error': 'End time cannot be empty'}, status=400)
+                return JsonResponse({'success': False, 'error': _END_TIME_EMPTY}, status=400)
 
         schedule.save()
 
@@ -667,9 +693,9 @@ def update_task_first_schedule(request, task_id):
             'task': serialize_task(task)
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
     except ValueError as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -683,14 +709,14 @@ def update_task_schedule(request, schedule_id):
 
         if 'start_time' in data:
             if data['start_time']:
-                schedule.start_time = datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
+                schedule.start_time = datetime.fromisoformat(data['start_time'].replace('Z', _UTC_OFFSET))
             else:
-                return JsonResponse({'success': False, 'error': 'Start time cannot be empty'}, status=400)
+                return JsonResponse({'success': False, 'error': _START_TIME_EMPTY}, status=400)
         if 'end_time' in data:
             if data['end_time']:
-                schedule.end_time = datetime.fromisoformat(data['end_time'].replace('Z', '+00:00'))
+                schedule.end_time = datetime.fromisoformat(data['end_time'].replace('Z', _UTC_OFFSET))
             else:
-                return JsonResponse({'success': False, 'error': 'End time cannot be empty'}, status=400)
+                return JsonResponse({'success': False, 'error': _END_TIME_EMPTY}, status=400)
 
         schedule.save()
 
@@ -706,13 +732,13 @@ def update_task_schedule(request, schedule_id):
     except TaskSchedule.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Schedule not found'}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
     except ValueError as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 @require_http_methods(["DELETE"])
-def delete_task_schedule(request, schedule_id):
+def delete_task_schedule(_request, schedule_id):
     """Delete a task schedule via AJAX."""
     try:
         schedule = TaskSchedule.objects.select_related('task').get(id=schedule_id)
@@ -728,7 +754,7 @@ def delete_task_schedule(request, schedule_id):
 
 
 @require_http_methods(["DELETE"])
-def delete_task_schedules(request, task_id):
+def delete_task_schedules(_request, task_id):
     """Delete all schedules for a task via AJAX."""
     try:
         task = Task.objects.prefetch_related('schedules').get(id=task_id)
@@ -739,12 +765,12 @@ def delete_task_schedules(request, task_id):
             'task': serialize_task(task)
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
 
 
 # ========== Task Detail Template Views ==========
 
-def list_templates(request):
+def list_templates(_request):
     """List all task detail templates."""
     templates = TaskDetailTemplate.objects.all()
     return JsonResponse({
@@ -772,7 +798,7 @@ def create_template(request):
         is_default = data.get('is_default', False)
 
         if not name:
-            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+            return JsonResponse({'success': False, 'error': _NAME_REQUIRED}, status=400)
 
         # Set order to be at the end
         max_order = TaskDetailTemplate.objects.count()
@@ -794,7 +820,7 @@ def create_template(request):
             }
         })
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_http_methods(["PATCH"])
@@ -826,11 +852,11 @@ def update_template(request, template_id):
     except TaskDetailTemplate.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Template not found'}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_http_methods(["DELETE"])
-def delete_template(request, template_id):
+def delete_template(_request, template_id):
     """Delete a task detail template via AJAX."""
     try:
         template = TaskDetailTemplate.objects.get(id=template_id)
@@ -841,7 +867,7 @@ def delete_template(request, template_id):
 
 
 # Task Views (saved filter configurations)
-def list_views(request):
+def list_views(_request):
     """List all saved task views."""
     views = TaskView.objects.all()
     return JsonResponse({
@@ -869,7 +895,7 @@ def create_view(request):
         is_default = data.get('is_default', False)
 
         if not name:
-            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+            return JsonResponse({'success': False, 'error': _NAME_REQUIRED}, status=400)
 
         # Set order to be at the end
         max_order = TaskView.objects.count()
@@ -891,11 +917,11 @@ def create_view(request):
             }
         })
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
 
 
 @require_http_methods(["DELETE"])
-def delete_view(request, view_id):
+def delete_view(_request, view_id):
     """Delete a saved task view via AJAX."""
     try:
         view = TaskView.objects.get(id=view_id)
@@ -907,22 +933,57 @@ def delete_view(request, view_id):
 
 # ========== Abandoned Tasks ==========
 
+def _get_or_create_abandoned_state():
+    """Get or create the Abandoned system state."""
+    abandoned_state, _ = TaskState.objects.get_or_create(
+        name='Abandoned',
+        defaults={
+            'order': 999,
+            'bootstrap_icon': 'bi-archive',
+            'is_system': True
+        }
+    )
+    return abandoned_state
+
+
+def _abandoned_state_id_if_populated(abandoned_state):
+    """Return the abandoned state ID only if it has tasks, else None."""
+    return abandoned_state.id if abandoned_state.tasks.exists() else None
+
+
+def _build_abandon_queryset(abandoned_days, abandoned_state, terminal_state,
+                            excluded_tag_ids, excluded_state_ids):
+    """Build the queryset of tasks eligible for abandonment."""
+    threshold_date = timezone.now() - timedelta(days=abandoned_days)
+
+    qs = Task.objects.filter(
+        updated_at__lt=threshold_date
+    ).exclude(
+        state=terminal_state
+    ).exclude(
+        state=abandoned_state
+    ).exclude(
+        state__isnull=True
+    )
+
+    if excluded_tag_ids:
+        qs = qs.exclude(tags__id__in=excluded_tag_ids)
+    if excluded_state_ids:
+        qs = qs.exclude(state_id__in=excluded_state_ids)
+
+    return qs
+
+
 @require_POST
 def process_abandoned_tasks(request):
     """Process tasks that should be marked as abandoned based on time threshold."""
     try:
         data = json.loads(request.body)
         abandoned_days = data.get('abandoned_days', 14)
+        excluded_tag_ids = [int(tid) for tid in data.get('excluded_tag_ids', []) if str(tid).isdigit()]
+        excluded_state_ids = [int(sid) for sid in data.get('excluded_state_ids', []) if str(sid).isdigit()]
 
-        # Get or create the Abandoned state (system state)
-        abandoned_state, created = TaskState.objects.get_or_create(
-            name='Abandoned',
-            defaults={
-                'order': 999,  # Very high to ensure it's always last
-                'bootstrap_icon': 'bi-archive',
-                'is_system': True
-            }
-        )
+        abandoned_state = _get_or_create_abandoned_state()
 
         # Find terminal state (last non-system state by order)
         terminal_state = TaskState.objects.filter(
@@ -933,26 +994,17 @@ def process_abandoned_tasks(request):
             return JsonResponse({
                 'success': True,
                 'abandoned_count': 0,
-                'abandoned_state_id': abandoned_state.id if abandoned_state.tasks.exists() else None
+                'abandoned_state_id': _abandoned_state_id_if_populated(abandoned_state)
             })
 
-        # Find tasks that should be abandoned
-        # Tasks where updated_at < (now - X days) - any edit resets the timer
-        # Excluding: terminal state, already abandoned, no state
-        threshold_date = timezone.now() - timedelta(days=abandoned_days)
-
-        tasks_to_abandon = Task.objects.filter(
-            updated_at__lt=threshold_date
-        ).exclude(
-            state=terminal_state  # Not already completed
-        ).exclude(
-            state=abandoned_state  # Not already abandoned
-        ).exclude(
-            state__isnull=True  # Has a state
+        tasks_to_abandon = _build_abandon_queryset(
+            abandoned_days, abandoned_state, terminal_state,
+            excluded_tag_ids, excluded_state_ids
         )
 
         # Move them to abandoned state
-        count = tasks_to_abandon.count()
+        abandoned_task_ids = list(tasks_to_abandon.values_list('id', flat=True))
+        count = len(abandoned_task_ids)
         if count > 0:
             tasks_to_abandon.update(
                 state=abandoned_state,
@@ -962,10 +1014,11 @@ def process_abandoned_tasks(request):
         return JsonResponse({
             'success': True,
             'abandoned_count': count,
-            'abandoned_state_id': abandoned_state.id if abandoned_state.tasks.exists() else None
+            'abandoned_task_ids': abandoned_task_ids,
+            'abandoned_state_id': _abandoned_state_id_if_populated(abandoned_state)
         })
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -984,8 +1037,8 @@ def move_calendar_event(request, event_id):
         event = CalendarEvent.objects.get(id=event_id)
 
         # Parse the times
-        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-        end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        start_dt = datetime.fromisoformat(start_time.replace('Z', _UTC_OFFSET))
+        end_dt = datetime.fromisoformat(end_time.replace('Z', _UTC_OFFSET))
 
         # Set override times
         event.override_start = start_dt
@@ -1008,13 +1061,13 @@ def move_calendar_event(request, event_id):
     except CalendarEvent.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Event not found'}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @require_POST
-def hide_calendar_event(request, event_id):
+def hide_calendar_event(_request, event_id):
     """Hide a calendar event (local override, reset on next import)."""
     try:
         event = CalendarEvent.objects.get(id=event_id)
@@ -1053,15 +1106,15 @@ def mark_done_for_today(request, task_id):
             'task': serialize_task(task)
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({'success': False, 'error': _INVALID_JSON}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @require_POST
-def unmark_done_for_today(request, task_id):
+def unmark_done_for_today(_request, task_id):
     """Unmark a task as 'done for today' (clear the done_for_day field)."""
     try:
         task = Task.objects.get(id=task_id)
@@ -1073,6 +1126,6 @@ def unmark_done_for_today(request, task_id):
             'task': serialize_task(task)
         })
     except Task.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+        return JsonResponse({'success': False, 'error': _TASK_NOT_FOUND}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)

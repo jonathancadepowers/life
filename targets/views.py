@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db import connection
 from datetime import date, datetime, timedelta
@@ -10,35 +9,17 @@ from projects.models import Project
 from goals.models import Goal
 from time_logs.models import TimeLog
 from time_logs.services.toggl_client import TogglAPIClient
+from lifetracker.timezone_utils import get_user_timezone, get_user_today
 import pytz
 
-
-def get_user_timezone(request):
-    """
-    Get the user's timezone from the cookie set by JavaScript.
-    Falls back to UTC if no timezone is set.
-    """
-    user_tz_name = request.COOKIES.get('user_timezone', 'UTC')
-    try:
-        return pytz.timezone(user_tz_name)
-    except pytz.exceptions.UnknownTimeZoneError:
-        return pytz.UTC
+_TIME_FORMAT = '%I:%M %p'
+_DATE_FORMAT = '%b %-d, %Y'
+_OBJECTIVE_NOT_FOUND = 'Objective not found'
+_INVALID_JSON = 'Invalid JSON data'
 
 
-def get_user_today(request):
-    """
-    Get today's date in the user's timezone.
-    Returns both the date object and timezone-aware start/end datetimes.
-    """
-    user_tz = get_user_timezone(request)
-    now_in_user_tz = timezone.now().astimezone(user_tz)
-    today = now_in_user_tz.date()
-
-    # Create timezone-aware start and end of day in user's timezone
-    today_start = user_tz.localize(datetime.combine(today, datetime.min.time()))
-    today_end = user_tz.localize(datetime.combine(today, datetime.max.time()))
-
-    return today, today_start, today_end
+class TogglRateLimitError(Exception):
+    """Raised when the Toggl API rate limit is reached and no cached data is available."""
 
 
 def set_agenda(request):
@@ -48,7 +29,7 @@ def set_agenda(request):
 
     if request.method == 'POST':
         # Get or create today's agenda
-        agenda, created = DailyAgenda.objects.get_or_create(date=today)
+        agenda, _ = DailyAgenda.objects.get_or_create(date=today)
 
         # Process each target
         for i in range(1, 4):
@@ -106,7 +87,7 @@ def get_goals_for_project(request):
 
 
 @require_http_methods(["POST"])
-def sync_toggl_projects_goals(request):
+def sync_toggl_projects_goals(_request):
     """AJAX endpoint to sync Projects and Goals from Toggl."""
     try:
         # Initialize Toggl client
@@ -165,71 +146,57 @@ def sync_toggl_projects_goals(request):
         }, status=500)
 
 
+def _compute_day_score(agenda):
+    """Calculate the overall day score from targets 1-3 on an agenda."""
+    targets_set = 0
+    total_score = 0
+
+    for i in range(1, 4):
+        target = getattr(agenda, f'target_{i}')
+        target_score = getattr(agenda, f'target_{i}_score')
+        if target:
+            targets_set += 1
+            if target_score is not None:
+                total_score += target_score
+
+    return total_score / targets_set if targets_set > 0 else None
+
+
+def _apply_agenda_target(agenda, i, post_data):
+    """Set or clear a single target (i) on the agenda from POST data."""
+    project_id = post_data.get(f'project_{i}')
+    goal_id = post_data.get(f'goal_{i}')
+    target_input = post_data.get(f'target_{i}')
+
+    if project_id and target_input:
+        setattr(agenda, f'project_{i}_id', project_id)
+        setattr(agenda, f'goal_{i}_id', goal_id if goal_id else None)
+        setattr(agenda, f'target_{i}', target_input)
+    else:
+        setattr(agenda, f'project_{i}_id', None)
+        setattr(agenda, f'goal_{i}_id', None)
+        setattr(agenda, f'target_{i}', '')
+        setattr(agenda, f'target_{i}_score', None)
+
+
 @require_http_methods(["POST"])
 def save_agenda(request):
     """AJAX endpoint to save agenda for a specific date (or today if not specified)."""
     try:
-        # Check if a specific date was provided (for editing past agendas)
         date_str = request.POST.get('date')
-
         if date_str:
-            # Parse the provided date
             from datetime import datetime
             agenda_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         else:
-            # Use user's timezone to determine "today"
             agenda_date = get_user_today(request)[0]
 
-        # Get or create agenda for the specified date
-        agenda, created = DailyAgenda.objects.get_or_create(date=agenda_date)
+        agenda, _ = DailyAgenda.objects.get_or_create(date=agenda_date)
 
-        # Process each target
         for i in range(1, 4):
-            project_id = request.POST.get(f'project_{i}')
-            goal_id = request.POST.get(f'goal_{i}')
-            target_input = request.POST.get(f'target_{i}')
+            _apply_agenda_target(agenda, i, request.POST)
 
-            # Save if we have project and target (goal is optional)
-            if project_id and target_input:
-                # Set agenda fields directly with text
-                setattr(agenda, f'project_{i}_id', project_id)
-                setattr(agenda, f'goal_{i}_id', goal_id if goal_id else None)
-                setattr(agenda, f'target_{i}', target_input)
-            else:
-                # Clear fields if not provided
-                setattr(agenda, f'project_{i}_id', None)
-                setattr(agenda, f'goal_{i}_id', None)
-                setattr(agenda, f'target_{i}', None)
-                # Also clear the score if target is removed
-                setattr(agenda, f'target_{i}_score', None)
-
-        # Save other plans if provided
-        other_plans = request.POST.get('other_plans', '')
-        agenda.other_plans = other_plans
-
-        # Calculate and save overall day score
-        # Count how many targets are set (only targets 1-3, not other_plans)
-        targets_set = 0
-        total_score = 0
-
-        # Check targets 1-3
-        for i in range(1, 4):
-            target = getattr(agenda, f'target_{i}')
-            target_score = getattr(agenda, f'target_{i}_score')
-
-            # Target is set if it exists
-            if target:
-                targets_set += 1
-                # Add score if it exists (0, 0.5, or 1)
-                if target_score is not None:
-                    total_score += target_score
-
-        # Calculate day score if any targets are set (excluding other_plans)
-        if targets_set > 0:
-            agenda.day_score = total_score / targets_set
-        else:
-            agenda.day_score = None
-
+        agenda.other_plans = request.POST.get('other_plans', '')
+        agenda.day_score = _compute_day_score(agenda)
         agenda.save()
 
         return JsonResponse({
@@ -245,6 +212,166 @@ def save_agenda(request):
         }, status=500)
 
 
+def _resolve_goal_tag_name(goal_id):
+    """Convert a goal_id to the corresponding Toggl tag name, or None."""
+    if not goal_id:
+        return None
+    try:
+        return Goal.objects.get(goal_id=goal_id).display_string
+    except Goal.DoesNotExist:
+        return None
+
+
+def _compute_today_start_utc(now, timezone_offset):
+    """Compute the UTC timestamp for the start of today using JS timezone offset."""
+    if timezone_offset:
+        offset_minutes = int(timezone_offset)
+        offset_delta = timedelta(minutes=-offset_minutes)
+        local_now = now + offset_delta
+        local_midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        return local_midnight - offset_delta
+    return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _fetch_toggl_entries_cached(today_start, now):
+    """Fetch Toggl time entries with caching to respect API rate limits."""
+    from time_logs.services.toggl_client import TogglAPIClient
+    from django.core.cache import cache
+
+    five_min_interval = now.minute // 5
+    cache_key = f"toggl_entries_{today_start.date()}_{now.hour}_{five_min_interval}"
+
+    time_entries = cache.get(cache_key)
+    if time_entries is not None:
+        return time_entries
+
+    try:
+        client = TogglAPIClient()
+        time_entries = client.get_time_entries(start_date=today_start, end_date=now)
+        cache.set(cache_key, time_entries, 60)
+        return time_entries
+    except Exception as api_error:
+        error_str = str(api_error)
+        if '402' in error_str or '429' in error_str or 'rate' in error_str.lower():
+            time_entries = cache.get(cache_key, [])
+            if not time_entries:
+                raise TogglRateLimitError("Toggl API rate limit reached. Please wait a moment and refresh.")
+            return time_entries
+        raise
+
+
+def _filter_toggl_entries(time_entries, project_id, goal_tag_name, now):
+    """Filter Toggl API entries by project and tag, returning total_seconds and debug entries."""
+    total_seconds = 0
+    matched_entries = []
+
+    for entry in time_entries:
+        if str(entry.get('project_id')) != str(project_id):
+            continue
+        if goal_tag_name and goal_tag_name not in entry.get('tags', []):
+            continue
+
+        entry_duration = entry.get('duration', 0)
+        entry_start = entry.get('start')
+        is_running = entry_duration < 0
+
+        if is_running and entry_start:
+            start_dt = datetime.fromisoformat(entry_start.replace('Z', '+00:00'))
+            entry_duration = int((now - start_dt).total_seconds())
+
+        total_seconds += entry_duration
+        matched_entries.append({
+            'start': entry_start,
+            'duration_seconds': entry_duration,
+            'is_running': is_running,
+            'tags': entry.get('tags', [])
+        })
+
+    return total_seconds, matched_entries
+
+
+def _query_toggl_today(project_id, goal_tag_name, timezone_offset, now):
+    """Query Toggl API for today's time data, returning total_seconds and debug_info."""
+    today_start = _compute_today_start_utc(now, timezone_offset)
+    time_entries = _fetch_toggl_entries_cached(today_start, now)
+    total_seconds, matched_entries = _filter_toggl_entries(time_entries, project_id, goal_tag_name, now)
+
+    debug_info = {
+        'query_start': today_start.isoformat(),
+        'query_end': now.isoformat(),
+        'timezone_offset': timezone_offset or 'UTC (not provided)',
+        'source': 'toggl_api',
+        'entries_count': len(matched_entries),
+        'entries': matched_entries
+    }
+    return total_seconds, debug_info
+
+
+def _compute_day_boundaries_utc(target_date, timezone_offset, request):
+    """Compute UTC day start/end boundaries for a past date."""
+    from datetime import datetime as dt
+
+    if timezone_offset:
+        offset_minutes = int(timezone_offset)
+        offset_delta = timedelta(minutes=-offset_minutes)
+        target_datetime = dt.combine(target_date, dt.min.time())
+        target_datetime_utc = timezone.make_aware(target_datetime)
+        local_midnight = target_datetime_utc + offset_delta
+        next_local_midnight = local_midnight + timedelta(days=1)
+        return local_midnight - offset_delta, next_local_midnight - offset_delta
+
+    user_tz = get_user_timezone(request)
+
+    day_start_utc = user_tz.localize(dt.combine(target_date, dt.min.time()))
+    return day_start_utc, day_start_utc + timedelta(days=1)
+
+
+def _query_toggl_historical(project_id, goal_id, target_date, timezone_offset, request):
+    """Query database for historical time log data, returning total_seconds and debug_info."""
+    from time_logs.models import TimeLog
+
+    day_start_utc, day_end_utc = _compute_day_boundaries_utc(target_date, timezone_offset, request)
+
+    time_logs = TimeLog.objects.filter(
+        project_id=int(project_id),
+        start__gte=day_start_utc,
+        start__lt=day_end_utc
+    )
+    if goal_id:
+        time_logs = time_logs.filter(goals__goal_id=goal_id).distinct()
+
+    total_seconds = 0
+    matched_entries = []
+    for log in time_logs:
+        duration = (log.end - log.start).total_seconds()
+        total_seconds += duration
+        matched_entries.append({
+            'start': log.start.isoformat(),
+            'end': log.end.isoformat(),
+            'duration_seconds': int(duration),
+            'source': log.source
+        })
+
+    debug_info = {
+        'query_start': day_start_utc.isoformat(),
+        'query_end': day_end_utc.isoformat(),
+        'timezone_offset': timezone_offset or 'UTC (not provided)',
+        'source': 'database',
+        'target_date': target_date.isoformat(),
+        'entries_count': len(matched_entries),
+        'entries': matched_entries
+    }
+    return total_seconds, debug_info
+
+
+def _format_time_display(total_seconds):
+    """Convert seconds to a human-readable hours/minutes display string."""
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    display = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+    return hours, minutes, display
+
+
 def get_toggl_time_today(request):
     """
     AJAX endpoint to get time spent on a project (and optionally a goal/tag).
@@ -253,213 +380,29 @@ def get_toggl_time_today(request):
     """
     try:
         project_id = request.GET.get('project_id')
-        goal_id = request.GET.get('goal_id')  # This is the tag ID from the goals table
-        timezone_offset = request.GET.get('timezone_offset')  # User's timezone offset in minutes
-        date_str = request.GET.get('date')  # Optional: specific date to query (YYYY-MM-DD)
+        goal_id = request.GET.get('goal_id')
+        timezone_offset = request.GET.get('timezone_offset')
+        date_str = request.GET.get('date')
 
         if not project_id:
             return JsonResponse({'error': 'project_id is required'}, status=400)
 
-        # Convert goal_id (tag ID) to tag name for Toggl API comparison
-        # The Toggl API returns tag names, not tag IDs
-        goal_tag_name = None
-        if goal_id:
-            from goals.models import Goal
-            try:
-                goal = Goal.objects.get(goal_id=goal_id)
-                goal_tag_name = goal.display_string
-            except Goal.DoesNotExist:
-                # If goal not found, skip tag filtering
-                pass
-
-        # Determine the target date
+        goal_tag_name = _resolve_goal_tag_name(goal_id)
         now = timezone.now()
 
         if date_str:
-            # Parse the provided date
-            from datetime import datetime as dt
-            target_date = dt.strptime(date_str, '%Y-%m-%d').date()
-            today_date = now.date()
-            is_today = (target_date == today_date)
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            is_today = (target_date == now.date())
         else:
-            # No date provided, use today
             target_date = now.date()
             is_today = True
 
-        # If it's today, query Toggl API for real-time data
         if is_today:
-            from time_logs.services.toggl_client import TogglAPIClient
-            from django.core.cache import cache
-
-            # Calculate today_start for cache key and API call
-            if timezone_offset:
-                # timezone_offset is in minutes (e.g., 480 for PST which is UTC-8)
-                # JavaScript's getTimezoneOffset() returns positive for west of UTC
-                offset_minutes = int(timezone_offset)
-                offset_delta = timedelta(minutes=-offset_minutes)  # Negate because JS uses opposite sign
-
-                # Calculate start of today in user's local timezone
-                local_now = now + offset_delta
-                local_midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-                today_start = local_midnight - offset_delta  # Convert back to UTC
-            else:
-                # Fallback to UTC
-                today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-
-            # Create cache key based on date and 5-minute interval to reduce API calls
-            # This groups all requests within the same 5-minute window to share cache
-            five_min_interval = now.minute // 5
-            cache_key = f"toggl_entries_{today_start.date()}_{now.hour}_{five_min_interval}"
-
-            # Try to get from cache first (5 minute cache to avoid hitting 30 req/hour limit)
-            time_entries = cache.get(cache_key)
-
-            if time_entries is None:
-                # Not in cache, fetch from Toggl API
-                try:
-                    client = TogglAPIClient()
-                    time_entries = client.get_time_entries(
-                        start_date=today_start,
-                        end_date=now
-                    )
-                    # Cache for 1 minute (60 seconds)
-                    # This balances freshness with Toggl's API rate limits (240 req/hour on Reports API)
-                    cache.set(cache_key, time_entries, 60)
-                except Exception as api_error:
-                    # Check if it's a rate limit error (402 or 429)
-                    error_str = str(api_error)
-                    if '402' in error_str or '429' in error_str or 'rate' in error_str.lower():
-                        # Return cached data if available (even if expired)
-                        time_entries = cache.get(cache_key, [])
-                        if not time_entries:
-                            # No cache, return friendly error
-                            raise Exception("Toggl API rate limit reached. Please wait a moment and refresh.")
-                    else:
-                        raise  # Re-raise non-rate-limit errors
-
-            # Filter entries by project_id and optionally goal_id (tag)
-            total_seconds = 0
-            matched_entries = []  # For debugging
-
-            for entry in time_entries:
-                entry_project_id = entry.get('project_id')
-                entry_tags = entry.get('tags', [])
-                entry_duration = entry.get('duration', 0)  # Duration in seconds (negative if running)
-                entry_start = entry.get('start')
-
-                # Check if this entry matches the project
-                if str(entry_project_id) != str(project_id):
-                    continue
-
-                # If goal_id is specified, check if entry has this tag (by tag name)
-                if goal_tag_name and goal_tag_name not in entry_tags:
-                    continue
-
-                # If duration is negative, it's a running timer
-                # Calculate actual duration from start time to now
-                is_running = entry_duration < 0
-                if is_running and entry_start:
-                    start_dt = datetime.fromisoformat(entry_start.replace('Z', '+00:00'))
-                    entry_duration = int((now - start_dt).total_seconds())
-
-                total_seconds += entry_duration
-
-                # Debug info
-                matched_entries.append({
-                    'start': entry_start,
-                    'duration_seconds': entry_duration,
-                    'is_running': is_running,
-                    'tags': entry_tags
-                })
-
-            debug_info = {
-                'query_start': today_start.isoformat(),
-                'query_end': now.isoformat(),
-                'timezone_offset': timezone_offset if timezone_offset else 'UTC (not provided)',
-                'source': 'toggl_api',
-                'entries_count': len(matched_entries),
-                'entries': matched_entries
-            }
-
+            total_seconds, debug_info = _query_toggl_today(project_id, goal_tag_name, timezone_offset, now)
         else:
-            # Past date - query database
-            from time_logs.models import TimeLog
-            from datetime import datetime as dt
+            total_seconds, debug_info = _query_toggl_historical(project_id, goal_id, target_date, timezone_offset, request)
 
-            # Calculate start and end of the target date in UTC
-            # Use timezone offset to determine the user's local day boundaries
-            if timezone_offset:
-                offset_minutes = int(timezone_offset)
-                offset_delta = timedelta(minutes=-offset_minutes)
-
-                # Convert target date to user's local timezone
-                target_datetime = dt.combine(target_date, dt.min.time())
-                target_datetime_utc = timezone.make_aware(target_datetime)
-
-                # Calculate local midnight
-                local_midnight = target_datetime_utc + offset_delta
-                next_local_midnight = local_midnight + timedelta(days=1)
-
-                # Convert back to UTC for database query
-                day_start_utc = local_midnight - offset_delta
-                day_end_utc = next_local_midnight - offset_delta
-            else:
-                # Fallback: try to get user timezone from cookie
-                user_tz_str = request.COOKIES.get('user_timezone', 'UTC')
-                try:
-                    import pytz
-                    user_tz = pytz.timezone(user_tz_str)
-                except (pytz.exceptions.UnknownTimeZoneError, AttributeError):
-                    user_tz = pytz.UTC
-
-                day_start_utc = user_tz.localize(dt.combine(target_date, dt.min.time()))
-                day_end_utc = day_start_utc + timedelta(days=1)
-
-            # Query time logs for this date and project
-            time_logs = TimeLog.objects.filter(
-                project_id=int(project_id),
-                start__gte=day_start_utc,
-                start__lt=day_end_utc
-            )
-
-            # If goal_id is specified, filter by goal
-            if goal_id:
-                time_logs = time_logs.filter(goals__goal_id=goal_id).distinct()
-
-            # Calculate total duration
-            total_seconds = 0
-            matched_entries = []
-
-            for log in time_logs:
-                duration = (log.end - log.start).total_seconds()
-                total_seconds += duration
-
-                matched_entries.append({
-                    'start': log.start.isoformat(),
-                    'end': log.end.isoformat(),
-                    'duration_seconds': int(duration),
-                    'source': log.source
-                })
-
-            debug_info = {
-                'query_start': day_start_utc.isoformat(),
-                'query_end': day_end_utc.isoformat(),
-                'timezone_offset': timezone_offset if timezone_offset else 'UTC (not provided)',
-                'source': 'database',
-                'target_date': target_date.isoformat(),
-                'entries_count': len(matched_entries),
-                'entries': matched_entries
-            }
-
-        # Convert to hours and minutes
-        hours = int(total_seconds // 3600)
-        minutes = int((total_seconds % 3600) // 60)
-
-        # Format the display string
-        if hours > 0:
-            time_display = f"{hours}h {minutes}m"
-        else:
-            time_display = f"{minutes}m"
+        hours, minutes, time_display = _format_time_display(total_seconds)
 
         return JsonResponse({
             'success': True,
@@ -472,10 +415,8 @@ def get_toggl_time_today(request):
 
     except Exception as e:
         import traceback
-        error_details = traceback.format_exc()
-        print(f"Error in get_toggl_time_today: {error_details}")
+        print(f"Error in get_toggl_time_today: {traceback.format_exc()}")
 
-        # Check if it's a Toggl API error
         error_msg = str(e)
         if '402' in error_msg or 'Payment Required' in error_msg:
             error_msg = "Toggl API payment required - please check your Toggl subscription"
@@ -486,7 +427,7 @@ def get_toggl_time_today(request):
         }, status=500)
 
 
-def get_available_agenda_dates(request):
+def get_available_agenda_dates(_request):
     """
     AJAX endpoint to get all dates that have agendas in the database.
     Returns list of dates in ISO format (YYYY-MM-DD).
@@ -577,6 +518,26 @@ def get_agenda_for_date(request):
         }, status=500)
 
 
+def _validate_target_num(raw_value):
+    """Validate and return target_num as int, or None if invalid."""
+    try:
+        target_num = int(raw_value)
+        return target_num if target_num in (1, 2, 3, 4) else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _validate_score(raw_value):
+    """Validate and return score as float or None. Returns (score, is_valid)."""
+    if raw_value == 'null':
+        return None, True
+    try:
+        score = float(raw_value)
+        return (score, True) if score in (0, 0.5, 1) else (None, False)
+    except (ValueError, TypeError):
+        return None, False
+
+
 @require_http_methods(["POST"])
 def save_target_score(request):
     """
@@ -589,85 +550,36 @@ def save_target_score(request):
     """
     try:
         date_str = request.POST.get('date')
-        target_num = request.POST.get('target_num')
-        score = request.POST.get('score')
+        raw_target_num = request.POST.get('target_num')
+        raw_score = request.POST.get('score')
 
-        if not date_str or not target_num or score is None:
-            return JsonResponse({
-                'success': False,
-                'error': 'Missing required parameters'
-            }, status=400)
+        if not date_str or not raw_target_num or raw_score is None:
+            return JsonResponse({'success': False, 'error': 'Missing required parameters'}, status=400)
 
-        # Validate target_num (1-3 for targets, 4 for other_plans)
-        try:
-            target_num = int(target_num)
-            if target_num not in [1, 2, 3, 4]:
-                raise ValueError()
-        except (ValueError, TypeError):
-            return JsonResponse({
-                'success': False,
-                'error': 'target_num must be 1, 2, 3, or 4'
-            }, status=400)
+        target_num = _validate_target_num(raw_target_num)
+        if target_num is None:
+            return JsonResponse({'success': False, 'error': 'target_num must be 1, 2, 3, or 4'}, status=400)
 
-        # Validate score (allow "null" string to clear the score)
-        if score == 'null':
-            score = None
-        else:
-            try:
-                score = float(score)
-                if score not in [0, 0.5, 1]:
-                    raise ValueError()
-            except (ValueError, TypeError):
-                return JsonResponse({
-                    'success': False,
-                    'error': 'score must be 0, 0.5, 1, or null'
-                }, status=400)
+        score, score_valid = _validate_score(raw_score)
+        if not score_valid:
+            return JsonResponse({'success': False, 'error': 'score must be 0, 0.5, 1, or null'}, status=400)
 
-        # Parse the date
-        from datetime import datetime as dt
-        agenda_date = dt.strptime(date_str, '%Y-%m-%d').date()
-
-        # Get the agenda for this date
-        try:
-            agenda = DailyAgenda.objects.get(date=agenda_date)
-        except DailyAgenda.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'error': 'No agenda found for this date'
-            }, status=404)
-
-        # Set the score for the specified target (only targets 1-3)
-        if target_num < 1 or target_num > 3:
+        if target_num not in (1, 2, 3):
             return JsonResponse({
                 'success': False,
                 'error': f'Invalid target number: {target_num}. Only targets 1-3 can be scored.'
             }, status=400)
 
+        from datetime import datetime as dt
+        agenda_date = dt.strptime(date_str, '%Y-%m-%d').date()
+
+        try:
+            agenda = DailyAgenda.objects.get(date=agenda_date)
+        except DailyAgenda.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'No agenda found for this date'}, status=404)
+
         setattr(agenda, f'target_{target_num}_score', score)
-
-        # Calculate and save overall day score
-        # Count how many targets are set (only targets 1-3, not other_plans)
-        targets_set = 0
-        total_score = 0
-
-        # Check targets 1-3
-        for i in range(1, 4):
-            target = getattr(agenda, f'target_{i}')
-            target_score = getattr(agenda, f'target_{i}_score')
-
-            # Target is set if it exists
-            if target:
-                targets_set += 1
-                # Add score if it exists (0, 0.5, or 1)
-                if target_score is not None:
-                    total_score += target_score
-
-        # Calculate day score if any targets are set (excluding other_plans)
-        if targets_set > 0:
-            agenda.day_score = total_score / targets_set
-        else:
-            agenda.day_score = None
-
+        agenda.day_score = _compute_day_score(agenda)
         agenda.save()
 
         return JsonResponse({
@@ -677,24 +589,10 @@ def save_target_score(request):
         })
 
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-def activity_report(request):
-    """View for activity summary report across a date range."""
-    from django.db.models import Sum, Avg, Count, Min, Max
-    from fasting.models import FastingSession
-    from nutrition.models import NutritionEntry
-    from weight.models import WeighIn
-    from workouts.models import Workout
-    from external_data.models import WhoopSportId
-
-    # Load sport ID to name mapping from database
-    sport_names_dict = {sport.sport_id: sport.sport_name for sport in WhoopSportId.objects.all()}
-
-    # Get date range from query params or default to current week
+def _parse_report_date_range(request):
+    """Parse date range from query params or default to current week."""
     start_date_str = request.GET.get('start_date')
     end_date_str = request.GET.get('end_date')
 
@@ -702,51 +600,52 @@ def activity_report(request):
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
     else:
-        # Default to current week (Monday-Sunday) using user's timezone
-        user_tz = get_user_timezone(request)
         today = get_user_today(request)[0]
         start_date = today - timedelta(days=today.weekday())
         end_date = start_date + timedelta(days=6)
 
-    # Get user's timezone if not already fetched
-    if 'user_tz' not in locals():
-        user_tz = get_user_timezone(request)
+    user_tz = get_user_timezone(request)
     start_datetime = user_tz.localize(datetime.combine(start_date, datetime.min.time()))
     end_datetime = user_tz.localize(datetime.combine(end_date, datetime.max.time()))
     days_in_range = (end_date - start_date).days + 1
 
-    # FASTING DATA
+    return start_date, end_date, start_datetime, end_datetime, days_in_range, user_tz
+
+
+def _get_fasting_stats(start_datetime, end_datetime, days_in_range):
+    """Gather fasting statistics for the given date range."""
+    from django.db.models import Sum, Avg, Max
+    from django.db.models.functions import TruncDate
+    from fasting.models import FastingSession
+
     fasting_sessions = FastingSession.objects.filter(
         fast_end_date__gte=start_datetime,
         fast_end_date__lte=end_datetime
     )
-    # Count unique days with fasts
-    from django.db.models.functions import TruncDate
     days_with_fasts = fasting_sessions.annotate(
         fast_date=TruncDate('fast_end_date')
     ).values('fast_date').distinct().count()
 
-    # Get total fasts from all time
-    year_fast_count = FastingSession.objects.count()
-
-    fasting_stats = {
+    return {
         'count': fasting_sessions.count(),
         'avg_duration': fasting_sessions.aggregate(Avg('duration'))['duration__avg'] or 0,
         'max_duration': fasting_sessions.aggregate(Max('duration'))['duration__max'] or 0,
         'total_hours': fasting_sessions.aggregate(Sum('duration'))['duration__sum'] or 0,
-        'year_count': year_fast_count,
+        'year_count': FastingSession.objects.count(),
         'percent_days_fasted': round((days_with_fasts / days_in_range * 100), 1) if days_in_range > 0 else 0,
     }
 
-    # NUTRITION DATA
+
+def _get_nutrition_stats(start_datetime, end_datetime, days_in_range):
+    """Gather nutrition statistics for the given date range."""
+    from django.db.models import Sum
+    from nutrition.models import NutritionEntry
+
     nutrition_entries = NutritionEntry.objects.filter(
         consumption_date__gte=start_datetime,
         consumption_date__lte=end_datetime
     )
-
-    # Count unique days with nutrition data
     days_tracked = nutrition_entries.values('consumption_date__date').distinct().count()
-    percent_tracked = round((days_tracked / days_in_range * 100), 1) if days_in_range > 0 else 0
 
     nutrition_agg = nutrition_entries.aggregate(
         total_calories=Sum('calories'),
@@ -755,24 +654,31 @@ def activity_report(request):
         total_fat=Sum('fat'),
     )
 
-    # Calculate averages per day tracked (not per day in range)
-    nutrition_stats = {
+    def _avg(field):
+        return float(nutrition_agg[field] or 0) / days_tracked if days_tracked > 0 else 0
+
+    return {
         'days_tracked': days_tracked,
         'days_in_range': days_in_range,
-        'percent_tracked': percent_tracked,
-        'avg_calories': float(nutrition_agg['total_calories'] or 0) / days_tracked if days_tracked > 0 else 0,
-        'avg_protein': float(nutrition_agg['total_protein'] or 0) / days_tracked if days_tracked > 0 else 0,
-        'avg_carbs': float(nutrition_agg['total_carbs'] or 0) / days_tracked if days_tracked > 0 else 0,
-        'avg_fat': float(nutrition_agg['total_fat'] or 0) / days_tracked if days_tracked > 0 else 0,
+        'percent_tracked': round((days_tracked / days_in_range * 100), 1) if days_in_range > 0 else 0,
+        'avg_calories': _avg('total_calories'),
+        'avg_protein': _avg('total_protein'),
+        'avg_carbs': _avg('total_carbs'),
+        'avg_fat': _avg('total_fat'),
     }
 
-    # WEIGHT DATA
+
+def _get_weight_stats(start_datetime, end_datetime):
+    """Gather weight statistics for the given date range."""
+    from django.db.models import Avg
+    from weight.models import WeighIn
+
     weigh_ins = WeighIn.objects.filter(
         measurement_time__gte=start_datetime,
         measurement_time__lte=end_datetime
     ).order_by('measurement_time')
 
-    weight_stats = {
+    stats = {
         'count': weigh_ins.count(),
         'start_weight': None,
         'end_weight': None,
@@ -781,19 +687,25 @@ def activity_report(request):
         'year_change': None
     }
 
-    if weigh_ins.exists():
-        weight_stats['start_weight'] = float(weigh_ins.first().weight)
-        weight_stats['end_weight'] = float(weigh_ins.last().weight)
-        weight_stats['change'] = weight_stats['end_weight'] - weight_stats['start_weight']
-        weight_stats['avg_weight'] = float(weigh_ins.aggregate(Avg('weight'))['weight__avg'])
+    if not weigh_ins.exists():
+        return stats
 
-        # Calculate change from earliest weight in database to current
-        earliest_weigh_in = WeighIn.objects.order_by('measurement_time').first()
-        if earliest_weigh_in:
-            earliest_weight = float(earliest_weigh_in.weight)
-            weight_stats['year_change'] = weight_stats['end_weight'] - earliest_weight
+    stats['start_weight'] = float(weigh_ins.first().weight)
+    stats['end_weight'] = float(weigh_ins.last().weight)
+    stats['change'] = stats['end_weight'] - stats['start_weight']
+    stats['avg_weight'] = float(weigh_ins.aggregate(Avg('weight'))['weight__avg'])
 
-    # WORKOUT DATA - Group by sport_id
+    earliest_weigh_in = WeighIn.objects.order_by('measurement_time').first()
+    if earliest_weigh_in:
+        stats['year_change'] = stats['end_weight'] - float(earliest_weigh_in.weight)
+
+    return stats
+
+
+def _get_workouts_by_sport(start_datetime, end_datetime, sport_names_dict):
+    """Group workouts by sport and compute per-sport statistics."""
+    from workouts.models import Workout
+
     workouts = Workout.objects.filter(
         start__gte=start_datetime,
         start__lte=end_datetime
@@ -801,7 +713,6 @@ def activity_report(request):
 
     workouts_by_sport = {}
     for workout in workouts:
-        # Normalize sport_id: -1 from Whoop should be treated as sauna (233)
         sport_id = 233 if workout.sport_id == -1 else workout.sport_id
         sport_name = sport_names_dict.get(sport_id, f'Sport {sport_id}')
 
@@ -814,250 +725,213 @@ def activity_report(request):
                 'avg_heart_rate': []
             }
 
-        workouts_by_sport[sport_name]['count'] += 1
+        entry = workouts_by_sport[sport_name]
+        entry['count'] += 1
         if workout.calories_burned:
-            workouts_by_sport[sport_name]['total_calories'] += float(workout.calories_burned)
+            entry['total_calories'] += float(workout.calories_burned)
         if workout.end:
-            duration = (workout.end - workout.start).total_seconds()
-            workouts_by_sport[sport_name]['total_seconds'] += duration
+            entry['total_seconds'] += (workout.end - workout.start).total_seconds()
         if workout.average_heart_rate:
-            workouts_by_sport[sport_name]['avg_heart_rate'].append(workout.average_heart_rate)
+            entry['avg_heart_rate'].append(workout.average_heart_rate)
 
-    # Calculate averages and format for each sport
-    for sport_name in workouts_by_sport:
-        sport_data = workouts_by_sport[sport_name]
+    for sport_data in workouts_by_sport.values():
         sport_data['total_hours'] = round(sport_data['total_seconds'] / 3600, 1)
-        if sport_data['avg_heart_rate']:
-            sport_data['avg_heart_rate'] = round(sum(sport_data['avg_heart_rate']) / len(sport_data['avg_heart_rate']))
-        else:
-            sport_data['avg_heart_rate'] = 0
-        del sport_data['total_seconds']  # Remove intermediate value
+        hr_list = sport_data['avg_heart_rate']
+        sport_data['avg_heart_rate'] = round(sum(hr_list) / len(hr_list)) if hr_list else 0
+        del sport_data['total_seconds']
 
-    # Sort by workout count (descending)
-    workouts_by_sport = dict(sorted(
+    return dict(sorted(
         workouts_by_sport.items(),
         key=lambda x: x[1]['count'],
         reverse=True
     ))
 
-    # TIME LOGS DATA - Group by project and goal
+
+def _resolve_project_name(project_id):
+    """Resolve a project_id to its display name, falling back to a generic label."""
+    try:
+        return Project.objects.get(project_id=project_id).display_string
+    except Project.DoesNotExist:
+        return f"Project {project_id}"
+
+
+def _accumulate_time_by_project(time_logs):
+    """Accumulate hours per project and goal from time log entries."""
+    time_by_project = {}
+    for log in time_logs:
+        project_name = _resolve_project_name(log.project_id)
+        duration_hours = (log.end - log.start).total_seconds() / 3600
+
+        if project_name not in time_by_project:
+            time_by_project[project_name] = {'total_hours': 0, 'goals': {}}
+
+        time_by_project[project_name]['total_hours'] += duration_hours
+        for goal in log.goals.all():
+            goals = time_by_project[project_name]['goals']
+            goals[goal.display_string] = goals.get(goal.display_string, 0) + duration_hours
+    return time_by_project
+
+
+def _apply_time_percentages(time_by_project, total_time_hours):
+    """Add percentage fields to each project and goal entry."""
+    for project_data in time_by_project.values():
+        project_data['percentage'] = round((project_data['total_hours'] / total_time_hours) * 100) if total_time_hours > 0 else 0
+        project_data['goals'] = {
+            name: {
+                'hours': hours,
+                'percentage': round((hours / total_time_hours) * 100) if total_time_hours > 0 else 0,
+            }
+            for name, hours in project_data['goals'].items()
+        }
+
+
+def _get_time_by_project(start_datetime, end_datetime):
+    """Group time logs by project and goal, returning sorted data with percentages."""
     time_logs = TimeLog.objects.filter(
         start__gte=start_datetime,
         start__lte=end_datetime
     ).prefetch_related('goals')
 
-    time_by_project = {}
+    time_by_project = _accumulate_time_by_project(time_logs)
 
-    for log in time_logs:
-        try:
-            project = Project.objects.get(project_id=log.project_id)
-            project_name = project.display_string
-        except Project.DoesNotExist:
-            project_name = f"Project {log.project_id}"
-
-        duration_hours = (log.end - log.start).total_seconds() / 3600
-
-        if project_name not in time_by_project:
-            time_by_project[project_name] = {
-                'total_hours': 0,
-                'goals': {}
-            }
-
-        time_by_project[project_name]['total_hours'] += duration_hours
-
-        # Add goal breakdown
-        for goal in log.goals.all():
-            goal_name = goal.display_string
-            if goal_name not in time_by_project[project_name]['goals']:
-                time_by_project[project_name]['goals'][goal_name] = 0
-            time_by_project[project_name]['goals'][goal_name] += duration_hours
-
-    # Sort projects by hours (descending)
+    # Sort projects and goals by hours descending
     time_by_project = dict(sorted(
-        time_by_project.items(),
-        key=lambda x: x[1]['total_hours'],
-        reverse=True
+        time_by_project.items(), key=lambda x: x[1]['total_hours'], reverse=True
     ))
-
-    # Sort goals within each project
     for project_name in time_by_project:
         time_by_project[project_name]['goals'] = dict(sorted(
-            time_by_project[project_name]['goals'].items(),
-            key=lambda x: x[1],
-            reverse=True
+            time_by_project[project_name]['goals'].items(), key=lambda x: x[1], reverse=True
         ))
 
-    # Calculate total hours across all projects
-    total_time_hours = sum(project_data['total_hours'] for project_data in time_by_project.values())
+    total_time_hours = sum(pd['total_hours'] for pd in time_by_project.values())
+    _apply_time_percentages(time_by_project, total_time_hours)
 
-    # Add percentage for each project and goal
-    for project_name, project_data in time_by_project.items():
-        # Calculate project percentage
-        if total_time_hours > 0:
-            project_data['percentage'] = round((project_data['total_hours'] / total_time_hours) * 100)
-        else:
-            project_data['percentage'] = 0
+    return time_by_project, total_time_hours
 
-        # Calculate goal percentages
-        project_total = project_data['total_hours']
-        for goal_name in project_data['goals']:
-            if project_total > 0:
-                goal_hours = project_data['goals'][goal_name]
-                project_data['goals'][goal_name] = {
-                    'hours': goal_hours,
-                    'percentage': round((goal_hours / total_time_hours) * 100)
-                }
+
+def _calculate_today_result_for_objective(obj, today, today_start, today_end):
+    """Execute a modified SQL query scoped to today's date for a single objective."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        with connection.cursor() as cursor:
+            sql = obj.objective_definition.strip()
+
+            date_columns = ['consumption_date', 'fast_end_date', 'measurement_time', 'start', 'created_at', 'date']
+            date_col = None
+            for col in date_columns:
+                if col in sql.lower():
+                    date_col = col
+                    break
+
+            if not date_col:
+                return 0
+
+            sql_upper = sql.upper()
+            insert_pos = len(sql)
+            for keyword in ['GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET']:
+                pos = sql_upper.find(keyword)
+                if 0 < pos < insert_pos:
+                    insert_pos = pos
+
+            if date_col == 'date':
+                date_filter = f"\nAND {date_col} = '{today.isoformat()}'\n"
             else:
-                project_data['goals'][goal_name] = {
-                    'hours': project_data['goals'][goal_name],
-                    'percentage': 0
-                }
+                date_filter = f"\nAND {date_col} >= '{today_start.isoformat()}' AND {date_col} < '{today_end.isoformat()}'\n"
 
-    # MONTHLY OBJECTIVES
-    from monthly_objectives.models import MonthlyObjective
+            modified_sql = sql[:insert_pos].rstrip() + " " + date_filter + sql[insert_pos:]
+            cursor.execute(modified_sql)
+            row = cursor.fetchone()
+            if row and row[0] is not None:
+                return float(row[0])
+    except Exception as e:
+        logger.warning(f"Could not calculate today's result for '{obj.label}': {e}")
+
+    return 0
+
+
+def _build_objective_data(obj, today, today_start, today_end):
+    """Build the template data dict for a single monthly objective."""
     from calendar import monthrange
 
-    # Check if date range crosses month boundaries
-    crosses_months = (start_date.year != end_date.year) or (start_date.month != end_date.month)
+    result = obj.result if obj.result is not None else 0
+    today_result = _calculate_today_result_for_objective(obj, today, today_start, today_end)
 
-    # Use end_date's month for objectives
-    target_month_first_day = end_date.replace(day=1)
-    last_day = monthrange(end_date.year, end_date.month)[1]
-    target_month_last_day = end_date.replace(day=last_day)
+    progress_pct = (result / obj.objective_value) * 100 if result is not None and obj.objective_value > 0 else 0
 
-    # Query objectives for the target month
-    monthly_objectives = MonthlyObjective.objects.filter(
-        start=target_month_first_day,
-        end=target_month_last_day
-    ).order_by('label')
+    days_in_month = monthrange(obj.start.year, obj.start.month)[1]
+    weeks_in_month = days_in_month / 7.0
+    target_per_week = obj.objective_value / weeks_in_month if weeks_in_month > 0 else 0
+    remaining = max(0, obj.objective_value - (result if result is not None else 0))
 
-    # Update objective results before displaying
+    return {
+        'objective_id': obj.objective_id,
+        'label': obj.label,
+        'description': obj.description,
+        'start': obj.start,
+        'target': obj.objective_value,
+        'result': result if result is not None else 0,
+        'today_result': round(today_result, 1),
+        'progress_pct': round(progress_pct, 1),
+        'achieved': result is not None and result >= obj.objective_value,
+        'objective_value': obj.objective_value,
+        'objective_definition': obj.objective_definition,
+        'category': obj.category,
+        'target_per_week': round(target_per_week, 1),
+        'days_in_month': days_in_month,
+        'remaining': round(remaining, 1),
+        'unit': obj.unit_of_measurement,
+        'historical_display': obj.historical_display,
+    }
+
+
+def _refresh_objective_results(monthly_objectives):
+    """Re-execute SQL definitions and update cached results for each objective."""
     for obj in monthly_objectives:
         try:
             with connection.cursor() as cursor:
                 cursor.execute(obj.objective_definition)
                 row = cursor.fetchone()
-
-                if row and row[0] is not None:
-                    result = float(row[0])
-                else:
-                    result = 0.0
-
-                # Update the result field in database
-                obj.result = result
+                obj.result = float(row[0]) if row and row[0] is not None else 0.0
                 obj.save(update_fields=['result'])
         except Exception:
-            # If SQL fails, keep existing result or set to 0
             if obj.result is None:
                 obj.result = 0.0
                 obj.save(update_fields=['result'])
 
-    # Get today's date boundaries in user's timezone for "Today" column calculation
-    today, today_start, today_end = get_user_today(request)
 
-    # Format objectives data for template
-    objectives_data = []
-    for obj in monthly_objectives:
-        # Use cached result from database
-        result = obj.result if obj.result is not None else 0
-
-        # Calculate today's contribution by executing SQL with today's date filter
-        today_result = 0
-        try:
-            with connection.cursor() as cursor:
-                sql = obj.objective_definition.strip()
-
-                # Identify the date column used in the query
-                date_columns = ['consumption_date', 'fast_end_date', 'measurement_time', 'start', 'created_at', 'date']
-                date_col = None
-                for col in date_columns:
-                    # Check if column exists in SQL (case-insensitive)
-                    if col in sql.lower():
-                        date_col = col
-                        break
-
-                if date_col:
-                    # For queries with existing WHERE clause, add additional date restrictions
-                    # Use a simpler approach: add the date filter at the end before any GROUP BY/ORDER BY/LIMIT
-                    sql_upper = sql.upper()
-
-                    # Find where to insert the date filter (before GROUP BY, ORDER BY, LIMIT, or at end)
-                    insert_pos = len(sql)
-                    for keyword in ['GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET']:
-                        pos = sql_upper.find(keyword)
-                        if pos > 0 and pos < insert_pos:
-                            insert_pos = pos
-
-                    # Build the date filter - use different format for DATE vs DATETIME columns
-                    # DATE columns (just 'date') should be compared with simple date strings
-                    # DATETIME columns should use timezone-aware datetime ranges
-                    if date_col == 'date':
-                        # For DATE columns, use simple date comparison
-                        date_filter = f"\nAND {date_col} = '{today.isoformat()}'\n"
-                    else:
-                        # For DATETIME/TIMESTAMP columns, use timezone-aware datetime range
-                        # This correctly handles timezones by filtering the actual timestamp range
-                        date_filter = f"\nAND {date_col} >= '{today_start.isoformat()}' AND {date_col} < '{today_end.isoformat()}'\n"
-
-                    # Insert the filter
-                    modified_sql = sql[:insert_pos].rstrip() + " " + date_filter + sql[insert_pos:]
-
-                    cursor.execute(modified_sql)
-                    row = cursor.fetchone()
-                    if row and row[0] is not None:
-                        today_result = float(row[0])
-        except Exception as e:
-            # If today calculation fails, log the error and use 0
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Could not calculate today's result for '{obj.label}': {e}")
-            today_result = 0
-
-        # Calculate progress
-        progress_pct = 0
-        if result is not None and obj.objective_value > 0:
-            progress_pct = (result / obj.objective_value) * 100
-
-        # Calculate target per week
-        days_in_month = monthrange(obj.start.year, obj.start.month)[1]
-        weeks_in_month = days_in_month / 7.0
-        target_per_week = obj.objective_value / weeks_in_month if weeks_in_month > 0 else 0
-
-        # Calculate remaining (0 if achieved or exceeded)
-        remaining = max(0, obj.objective_value - (result if result is not None else 0))
-
-        objectives_data.append({
-            'objective_id': obj.objective_id,
-            'label': obj.label,
-            'description': obj.description,
-            'start': obj.start,
-            'target': obj.objective_value,
-            'result': result if result is not None else 0,
-            'today_result': round(today_result, 1),  # Today's contribution
-            'progress_pct': round(progress_pct, 1),
-            'achieved': result is not None and result >= obj.objective_value,
-            'objective_value': obj.objective_value,
-            'objective_definition': obj.objective_definition,
-            'category': obj.category,
-            'target_per_week': round(target_per_week, 1),
-            'days_in_month': days_in_month,
-            'remaining': round(remaining, 1),
-            'unit': obj.unit_of_measurement,
-            'historical_display': obj.historical_display,
-        })
-
-    # Group objectives by category
+def _get_monthly_objectives_context(request, end_date, start_date):
+    """Build the full monthly objectives context dict."""
+    from monthly_objectives.models import MonthlyObjective
+    from calendar import monthrange
     from collections import defaultdict
+
+    crosses_months = (start_date.year != end_date.year) or (start_date.month != end_date.month)
+
+    target_month_first_day = end_date.replace(day=1)
+    last_day = monthrange(end_date.year, end_date.month)[1]
+    target_month_last_day = end_date.replace(day=last_day)
+
+    monthly_objectives = MonthlyObjective.objects.filter(
+        start=target_month_first_day,
+        end=target_month_last_day
+    ).order_by('label')
+
+    _refresh_objective_results(monthly_objectives)
+
+    today, today_start, today_end = get_user_today(request)
+    objectives_data = [_build_objective_data(obj, today, today_start, today_end) for obj in monthly_objectives]
+
+    # Group by category
     objectives_by_category = defaultdict(list)
     uncategorized = []
-
     for obj in objectives_data:
         if obj['category']:
             objectives_by_category[obj['category']].append(obj)
         else:
             uncategorized.append(obj)
 
-    # Define category display config for predefined categories (icons and colors)
     category_config = {
         'Exercise': {'icon': 'bi-lightning-charge-fill', 'color': 'danger'},
         'Nutrition': {'icon': 'bi-egg-fried', 'color': 'success'},
@@ -1065,49 +939,35 @@ def activity_report(request):
         'Time Mgmt': {'icon': 'bi-clock-fill', 'color': 'warning'},
     }
 
-    # Get all categories from the current month's objectives
-    # Start with predefined categories in order, then add any custom categories alphabetically
-    all_categories = []
     predefined_order = ['Exercise', 'Nutrition', 'Weight', 'Time Mgmt']
+    all_categories = [cat for cat in predefined_order if objectives_by_category.get(cat)]
+    all_categories.extend(sorted(cat for cat in objectives_by_category if cat not in predefined_order))
 
-    # Add predefined categories first (if they have objectives)
-    for cat in predefined_order:
-        if cat in objectives_by_category and objectives_by_category[cat]:
-            all_categories.append(cat)
-
-    # Add any custom categories (not in predefined list) alphabetically
-    custom_categories = sorted([cat for cat in objectives_by_category.keys() if cat not in predefined_order])
-    all_categories.extend(custom_categories)
-
-    monthly_objectives_context = {
+    return {
         'objectives': objectives_data,
         'objectives_by_category': dict(objectives_by_category),
         'uncategorized': uncategorized,
         'category_config': category_config,
-        'all_categories': all_categories,  # All categories with objectives (predefined + custom)
+        'all_categories': all_categories,
         'target_month': end_date.strftime('%b %Y').upper(),
         'crosses_months': crosses_months,
     }
 
-    # TODAY'S ACTIVITY DATA
-    # Get today's date and times based on the user's browser timezone
-    today, today_start, today_end = get_user_today(request)
-    user_tz = get_user_timezone(request)
 
-    # Today's workouts
-    todays_workouts = Workout.objects.filter(
-        start__gte=today_start,
-        start__lte=today_end
-    ).order_by('-start')
+def _get_todays_activity(request, sport_names_dict):
+    """Gather all of today's activity data for the report."""
+    import json
+    from fasting.models import FastingSession
+    from nutrition.models import NutritionEntry
+    from weight.models import WeighIn
+    from workouts.models import Workout
 
-    # Today's time logs with projects and goals
+    _today, today_start, today_end = get_user_today(request)
+
     todays_time_logs = TimeLog.objects.filter(
-        start__gte=today_start,
-        start__lte=today_end
+        start__gte=today_start, start__lte=today_end
     ).prefetch_related('goals').order_by('-start')
 
-    # Serialize time logs for JSON (for pie chart)
-    import json
     time_logs_json = []
     for log in todays_time_logs:
         try:
@@ -1115,60 +975,59 @@ def activity_report(request):
             project_name = project.display_string
         except Project.DoesNotExist:
             project_name = f"Project {log.project_id}"
-
         duration = (log.end - log.start).total_seconds() if log.end else 0
-        time_logs_json.append({
-            'project': project_name,
-            'duration': duration
-        })
+        time_logs_json.append({'project': project_name, 'duration': duration})
 
-    time_logs_json_str = json.dumps(time_logs_json)
-
-    # Today's fasting sessions
-    todays_fasts = FastingSession.objects.filter(
-        fast_end_date__gte=today_start,
-        fast_end_date__lte=today_end
-    ).order_by('-fast_end_date')
-
-    # Today's nutrition entries
-    todays_nutrition = NutritionEntry.objects.filter(
-        consumption_date__gte=today_start,
-        consumption_date__lte=today_end
-    ).order_by('-consumption_date')
-
-    # Today's weigh-ins
-    todays_weighins = WeighIn.objects.filter(
-        measurement_time__gte=today_start,
-        measurement_time__lte=today_end
-    ).order_by('-measurement_time')
-
-    todays_activity = {
-        'workouts': todays_workouts,
+    return {
+        'workouts': Workout.objects.filter(start__gte=today_start, start__lte=today_end).order_by('-start'),
         'time_logs': todays_time_logs,
-        'time_logs_json': time_logs_json_str,
-        'fasts': todays_fasts,
-        'nutrition': todays_nutrition,
-        'weighins': todays_weighins,
+        'time_logs_json': json.dumps(time_logs_json),
+        'fasts': FastingSession.objects.filter(fast_end_date__gte=today_start, fast_end_date__lte=today_end).order_by('-fast_end_date'),
+        'nutrition': NutritionEntry.objects.filter(consumption_date__gte=today_start, consumption_date__lte=today_end).order_by('-consumption_date'),
+        'weighins': WeighIn.objects.filter(measurement_time__gte=today_start, measurement_time__lte=today_end).order_by('-measurement_time'),
         'sport_names': sport_names_dict,
     }
+
+
+def activity_report(request):
+    """View for activity summary report across a date range."""
+    from external_data.models import WhoopSportId
+
+    sport_names_dict = {sport.sport_id: sport.sport_name for sport in WhoopSportId.objects.all()}
+    start_date, end_date, start_datetime, end_datetime, days_in_range, user_tz = _parse_report_date_range(request)
+
+    time_by_project, total_time_hours = _get_time_by_project(start_datetime, end_datetime)
 
     context = {
         'start_date': start_date,
         'end_date': end_date,
         'days_in_range': days_in_range,
-        'fasting': fasting_stats,
-        'nutrition': nutrition_stats,
-        'weight': weight_stats,
-        'workouts_by_sport': workouts_by_sport,
+        'fasting': _get_fasting_stats(start_datetime, end_datetime, days_in_range),
+        'nutrition': _get_nutrition_stats(start_datetime, end_datetime, days_in_range),
+        'weight': _get_weight_stats(start_datetime, end_datetime),
+        'workouts_by_sport': _get_workouts_by_sport(start_datetime, end_datetime, sport_names_dict),
         'time_by_project': time_by_project,
         'total_time_hours': round(total_time_hours, 1),
-        'monthly_objectives': monthly_objectives_context,
-        'todays_activity': todays_activity,
-        'today': today,
+        'monthly_objectives': _get_monthly_objectives_context(request, end_date, start_date),
+        'todays_activity': _get_todays_activity(request, sport_names_dict),
+        'today': get_user_today(request)[0],
         'user_timezone': user_tz,
     }
 
     return render(request, 'targets/activity_report.html', context)
+
+
+def _format_template_value(value):
+    """Format a value for display in a details template."""
+    from decimal import Decimal
+
+    if not isinstance(value, (int, float, Decimal)):
+        return str(value)
+    if isinstance(value, Decimal):
+        value = float(value)
+    if isinstance(value, float) and value.is_integer():
+        return f'{int(value):,}'
+    return f'{value:,}'
 
 
 def parse_details_template(template, data_dict):
@@ -1183,7 +1042,6 @@ def parse_details_template(template, data_dict):
         Parsed string with placeholders replaced
     """
     import re
-    from decimal import Decimal
 
     if not template:
         return ''
@@ -1194,330 +1052,267 @@ def parse_details_template(template, data_dict):
 
     for placeholder in placeholders:
         value = data_dict.get(placeholder, '')
-        # Format the value appropriately
         if value is not None:
-            # Format numbers with commas for thousands separator
-            if isinstance(value, (int, float, Decimal)):
-                # Convert Decimal to float for processing
-                if isinstance(value, Decimal):
-                    value = float(value)
-
-                # Check if it's a whole number (even if stored as float)
-                if isinstance(value, float) and value.is_integer():
-                    formatted_value = f'{int(value):,}'
-                else:
-                    formatted_value = f'{value:,}'
-            else:
-                formatted_value = str(value)
-
+            formatted_value = _format_template_value(value)
             result = result.replace(f'{{{placeholder}}}', formatted_value)
 
     return result
+
+
+def _fetch_workout_records(day_start, day_end, user_tz, sql_query):
+    """Fetch workout records for a given day."""
+    import re
+    from workouts.models import Workout
+
+    sport_match = re.search(r'sport_id\s*=\s*(\d+)', sql_query, re.IGNORECASE)
+    query = Workout.objects.filter(start__gte=day_start, start__lte=day_end)
+    if sport_match:
+        query = query.filter(sport_id=int(sport_match.group(1)))
+
+    return [{
+        'start': w.start.astimezone(user_tz).strftime(_TIME_FORMAT),
+        'end': w.end.astimezone(user_tz).strftime(_TIME_FORMAT),
+        'sport_id': w.sport_id,
+        'average_heart_rate': w.average_heart_rate,
+        'max_heart_rate': w.max_heart_rate,
+        'calories_burned': w.calories_burned,
+        'distance_in_miles': w.distance_in_miles,
+    } for w in query]
+
+
+def _fetch_fasting_records(day_start, day_end, user_tz):
+    """Fetch fasting session records for a given day."""
+    from fasting.models import FastingSession
+    return [{
+        'duration': f.duration,
+        'fast_end_date': f.fast_end_date.astimezone(user_tz).strftime(_TIME_FORMAT),
+    } for f in FastingSession.objects.filter(fast_end_date__gte=day_start, fast_end_date__lte=day_end)]
+
+
+def _fetch_writing_records(current_date):
+    """Fetch writing log records for a given date."""
+    from writing.models import WritingLog
+    return [{
+        'log_date': log.log_date.strftime(_DATE_FORMAT),
+        'duration': log.duration,
+    } for log in WritingLog.objects.filter(log_date=current_date)]
+
+
+def _fetch_weight_records(day_start, day_end, user_tz):
+    """Fetch weigh-in records for a given day."""
+    from weight.models import WeighIn
+    return [{
+        'measurement_time': w.measurement_time.astimezone(user_tz).strftime(_TIME_FORMAT),
+        'weight': w.weight,
+    } for w in WeighIn.objects.filter(measurement_time__gte=day_start, measurement_time__lte=day_end)]
+
+
+def _fetch_nutrition_records(day_start, day_end, user_tz):
+    """Fetch nutrition entry records for a given day."""
+    from nutrition.models import NutritionEntry
+    return [{
+        'consumption_date': e.consumption_date.astimezone(user_tz).strftime('%b %-d'),
+        'calories': e.calories,
+        'fat': e.fat,
+        'carbs': e.carbs,
+        'protein': e.protein,
+    } for e in NutritionEntry.objects.filter(consumption_date__gte=day_start, consumption_date__lte=day_end)]
+
+
+def _fetch_youtube_records(current_date):
+    """Fetch YouTube avoidance log records for a given date."""
+    from youtube_avoidance.models import YouTubeAvoidanceLog
+    return [{
+        'log_date': log.log_date.strftime(_DATE_FORMAT),
+    } for log in YouTubeAvoidanceLog.objects.filter(log_date=current_date)]
+
+
+def _fetch_waist_records(current_date):
+    """Fetch waist circumference measurement records for a given date."""
+    from waist_measurements.models import WaistCircumferenceMeasurement
+    return [{
+        'log_date': m.log_date.strftime(_DATE_FORMAT),
+        'measurement': m.measurement,
+    } for m in WaistCircumferenceMeasurement.objects.filter(log_date=current_date)]
 
 
 def get_column_data(column_name, day_start, day_end, current_date, user_tz, sql_query):
     """
     Fetch all data records for a specific column and day using the configured SQL query.
 
-    Args:
-        column_name: Name of the column
-        day_start: Start of day (timezone-aware)
-        day_end: End of day (timezone-aware)
-        current_date: Current date
-        user_tz: User's timezone for formatting timestamps
-        sql_query: The configured SQL query for this column
-
     Returns a list of dictionaries (one per record), or empty list if no data found.
     """
-    from workouts.models import Workout
-    from fasting.models import FastingSession
-    from writing.models import WritingLog
-    from weight.models import WeighIn
-    from nutrition.models import NutritionEntry
     import re
 
     try:
-        records = []
-
-        # Parse table name from SQL query
         table_match = re.search(r'FROM\s+(\w+)', sql_query, re.IGNORECASE)
         if not table_match:
             return []
 
         table_name = table_match.group(1)
 
-        # Map table names to models and fetch data
-        if table_name == 'workouts_workout':
-            # Parse sport_id filter if present
-            sport_match = re.search(r'sport_id\s*=\s*(\d+)', sql_query, re.IGNORECASE)
+        _TABLE_FETCHERS = {
+            'workouts_workout': lambda: _fetch_workout_records(day_start, day_end, user_tz, sql_query),
+            'fasting_fastingsession': lambda: _fetch_fasting_records(day_start, day_end, user_tz),
+            'writing_logs': lambda: _fetch_writing_records(current_date),
+            'weight_weighin': lambda: _fetch_weight_records(day_start, day_end, user_tz),
+            'nutrition_nutritionentry': lambda: _fetch_nutrition_records(day_start, day_end, user_tz),
+            'youtube_avoidance_logs': lambda: _fetch_youtube_records(current_date),
+            'waist_circumference_measurements': lambda: _fetch_waist_records(current_date),
+        }
 
-            query = Workout.objects.filter(
-                start__gte=day_start,
-                start__lte=day_end
-            )
-
-            if sport_match:
-                sport_id = int(sport_match.group(1))
-                query = query.filter(sport_id=sport_id)
-
-            for workout in query:
-                # Convert to user's timezone
-                start_local = workout.start.astimezone(user_tz)
-                end_local = workout.end.astimezone(user_tz)
-
-                records.append({
-                    'start': start_local.strftime('%I:%M %p'),
-                    'end': end_local.strftime('%I:%M %p'),
-                    'sport_id': workout.sport_id,
-                    'average_heart_rate': workout.average_heart_rate,
-                    'max_heart_rate': workout.max_heart_rate,
-                    'calories_burned': workout.calories_burned,
-                    'distance_in_miles': workout.distance_in_miles,
-                })
-
-        elif table_name == 'fasting_fastingsession':
-            fasts = FastingSession.objects.filter(
-                fast_end_date__gte=day_start,
-                fast_end_date__lte=day_end
-            )
-
-            for fast in fasts:
-                # Convert to user's timezone
-                fast_end_local = fast.fast_end_date.astimezone(user_tz)
-
-                records.append({
-                    'duration': fast.duration,
-                    'fast_end_date': fast_end_local.strftime('%I:%M %p'),
-                })
-
-        elif table_name == 'writing_logs':
-            logs = WritingLog.objects.filter(
-                log_date=current_date
-            )
-
-            for log in logs:
-                records.append({
-                    'log_date': log.log_date.strftime('%b %-d, %Y'),
-                    'duration': log.duration,
-                })
-
-        elif table_name == 'weight_weighin':
-            weigh_ins = WeighIn.objects.filter(
-                measurement_time__gte=day_start,
-                measurement_time__lte=day_end
-            )
-
-            for weigh_in in weigh_ins:
-                # Convert to user's timezone
-                measurement_local = weigh_in.measurement_time.astimezone(user_tz)
-
-                records.append({
-                    'measurement_time': measurement_local.strftime('%I:%M %p'),
-                    'weight': weigh_in.weight,
-                })
-
-        elif table_name == 'nutrition_nutritionentry':
-            entries = NutritionEntry.objects.filter(
-                consumption_date__gte=day_start,
-                consumption_date__lte=day_end
-            )
-
-            for entry in entries:
-                # Convert to user's timezone
-                consumption_local = entry.consumption_date.astimezone(user_tz)
-
-                records.append({
-                    'consumption_date': consumption_local.strftime('%b %-d'),
-                    'calories': entry.calories,
-                    'fat': entry.fat,
-                    'carbs': entry.carbs,
-                    'protein': entry.protein,
-                })
-
-        elif table_name == 'youtube_avoidance_logs':
-            from youtube_avoidance.models import YouTubeAvoidanceLog
-            logs = YouTubeAvoidanceLog.objects.filter(
-                log_date=current_date
-            )
-
-            for log in logs:
-                records.append({
-                    'log_date': log.log_date.strftime('%b %-d, %Y'),
-                })
-
-        elif table_name == 'waist_circumference_measurements':
-            from waist_measurements.models import WaistCircumferenceMeasurement
-            measurements = WaistCircumferenceMeasurement.objects.filter(
-                log_date=current_date
-            )
-
-            for measurement in measurements:
-                records.append({
-                    'log_date': measurement.log_date.strftime('%b %-d, %Y'),
-                    'measurement': measurement.measurement,
-                })
-
-        return records
+        fetcher = _TABLE_FETCHERS.get(table_name)
+        return fetcher() if fetcher else []
 
     except Exception as e:
         print(f"Error fetching data for {column_name}: {e}")
         return []
 
 
-def life_tracker(request):
-    """View for the weekly life tracker page."""
-    from datetime import timedelta
-    from settings.models import LifeTrackerColumn
-    from django.db import connection
-    import pytz
-
-    # Get date from query params or default to current week
+def _parse_tracker_week_range(request):
+    """Parse the week date range from request, capping at current week."""
     start_date_str = request.GET.get('start_date')
-
-    # Get user's timezone
-    user_tz = get_user_timezone(request)
-
-    # Get today in user's timezone for validation
     today = get_user_today(request)[0]
     current_week_start = today - timedelta(days=today.weekday())
 
     if start_date_str:
-        # User selected a specific date - find the Monday of that week
         selected_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        # Calculate the Monday of the week containing the selected date
-        days_since_monday = selected_date.weekday()
-        start_date = selected_date - timedelta(days=days_since_monday)
-
-        # Don't allow future weeks - cap at current week
+        start_date = selected_date - timedelta(days=selected_date.weekday())
         if start_date > current_week_start:
             start_date = current_week_start
-
-        end_date = start_date + timedelta(days=6)  # Sunday
     else:
-        # Default to current week (Monday-Sunday) using user's timezone
         start_date = current_week_start
-        end_date = start_date + timedelta(days=6)  # Sunday
 
-    # Get all columns from settings that are active during this week
-    # A column is active during the week if it's active on at least one day
-    all_columns = LifeTrackerColumn.objects.all()
+    return start_date, start_date + timedelta(days=6), current_week_start
+
+
+def _get_active_columns_for_week(start_date):
+    """Return columns that are active on at least one day of the week."""
+    from settings.models import LifeTrackerColumn
+
     columns = []
-    for col in all_columns:
-        # Check if column is active on any day of the week
-        active_on_any_day = False
+    for col in LifeTrackerColumn.objects.all():
         check_date = start_date
         for _ in range(7):
             if col.is_active_on(check_date):
-                active_on_any_day = True
+                columns.append(col)
                 break
             check_date += timedelta(days=1)
+    return columns
 
-        if active_on_any_day:
-            columns.append(col)
 
-    # Generate list of days for the week
+def _prepare_sql_params(query, current_date, day_start, day_end):
+    """Replace named SQL parameters with positional ones and return (query, params)."""
+    params = []
+    if ':current_date' in query:
+        query = query.replace(':current_date', '%s')
+        params.append(current_date)
+    elif ':day_start' in query or ':day_end' in query:
+        query = query.replace(':day_start', '%s').replace(':day_end', '%s')
+        params.extend([day_start, day_end])
+    elif ':day' in query:
+        query = query.replace(':day', '%s')
+        params.append(current_date)
+    return query, params
+
+
+def _is_eat_clean_hidden(col_name, current_date, user_tz):
+    """Return True if eat_clean data should be hidden (before 6 PM on that day)."""
+    if col_name != 'eat_clean':
+        return False
+    now_in_user_tz = datetime.now(user_tz)
+    six_pm = user_tz.localize(datetime.combine(current_date, datetime.min.time().replace(hour=18)))
+    return now_in_user_tz < six_pm
+
+
+def _build_column_details(column, day_start, day_end, current_date, user_tz):
+    """Build the details string for a column with data."""
+    records = get_column_data(column.column_name, day_start, day_end, current_date, user_tz, column.sql_query)
+    if not records:
+        return ''
+    parsed_details = [parse_details_template(column.details_display, record) for record in records]
+    return ', '.join(parsed_details)
+
+
+def _query_column_for_day(column, current_date, day_start, day_end, user_tz, day_data):
+    """Execute a column's SQL query for a single day and populate day_data."""
+    col_name = column.column_name
+    try:
+        with connection.cursor() as cursor:
+            query, params = _prepare_sql_params(column.sql_query, current_date, day_start, day_end)
+            cursor.execute(query, params)
+            result = cursor.fetchone()
+            count = result[0] if result and result[0] is not None else 0
+            has_data = count > 0 and not _is_eat_clean_hidden(col_name, current_date, user_tz)
+
+            day_data[f'has_{col_name}'] = has_data
+            day_data[f'details_{col_name}'] = (
+                _build_column_details(column, day_start, day_end, current_date, user_tz)
+                if has_data and column.details_display
+                else ''
+            )
+
+    except Exception as e:
+        day_data[f'has_{col_name}'] = False
+        day_data[f'details_{col_name}'] = ''
+        print(f"Error executing query for {col_name}: {e}")
+
+
+def _build_week_days(start_date, columns, user_tz):
+    """Build the list of day data dicts for each day in the week."""
+    day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     days = []
     current_date = start_date
-    day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
     for i in range(7):
-        # Create timezone-aware start and end of day for querying
         day_start = user_tz.localize(datetime.combine(current_date, datetime.min.time()))
         day_end = user_tz.localize(datetime.combine(current_date, datetime.max.time()))
 
         day_data = {
             'name': day_names[i],
             'date': current_date,
-            'date_str': current_date.strftime('%b %-d'),  # e.g., "Nov 1"
-            'date_iso': current_date.strftime('%Y-%m-%d'),  # For JavaScript use
+            'date_str': current_date.strftime('%b %-d'),
+            'date_iso': current_date.strftime('%Y-%m-%d'),
         }
 
-        # Execute SQL query for each column to determine checkbox state
         for column in columns:
-            try:
-                with connection.cursor() as cursor:
-                    # Replace named parameters with positional ones
-                    query = column.sql_query
-                    params = []
-
-                    # Check which parameters are used in the query
-                    if ':current_date' in query:
-                        query = query.replace(':current_date', '%s')
-                        params.append(current_date)
-                    elif ':day_start' in query or ':day_end' in query:
-                        query = query.replace(':day_start', '%s').replace(':day_end', '%s')
-                        params.extend([day_start, day_end])
-                    elif ':day' in query:
-                        query = query.replace(':day', '%s')
-                        params.append(current_date)
-
-                    cursor.execute(query, params)
-                    result = cursor.fetchone()
-
-                    # Checkbox appears if count > 0
-                    count = result[0] if result and result[0] is not None else 0
-                    has_data = count > 0
-
-                    # Special rule for Eat Clean column: only show after 6pm on that day
-                    if column.column_name == 'eat_clean' and has_data:
-                        # Get current time in user's timezone
-                        now_in_user_tz = datetime.now(user_tz)
-                        # Create 6pm datetime for the current_date
-                        six_pm = user_tz.localize(datetime.combine(current_date, datetime.min.time().replace(hour=18)))
-                        # Only show if current time is after 6pm on that day
-                        if now_in_user_tz < six_pm:
-                            has_data = False
-
-                    day_data[f'has_{column.column_name}'] = has_data
-
-                    # If there's data and a details template, fetch and parse it
-                    if has_data and column.details_display:
-                        records = get_column_data(column.column_name, day_start, day_end, current_date, user_tz, column.sql_query)
-                        if records:
-                            # Parse template for each record and join with ", "
-                            parsed_details = [parse_details_template(column.details_display, record) for record in records]
-                            day_data[f'details_{column.column_name}'] = ', '.join(parsed_details)
-                        else:
-                            day_data[f'details_{column.column_name}'] = ''
-                    else:
-                        day_data[f'details_{column.column_name}'] = ''
-
-            except Exception as e:
-                # If query fails, don't show checkbox
-                day_data[f'has_{column.column_name}'] = False
-                day_data[f'details_{column.column_name}'] = ''
-                print(f"Error executing query for {column.column_name}: {e}")
+            _query_column_for_day(column, current_date, day_start, day_end, user_tz, day_data)
 
         days.append(day_data)
         current_date += timedelta(days=1)
 
-    # Generate list of available weeks from launch week to current week
-    # Launch week: 2025-Nov-10 (Week 46)
-    from datetime import datetime as dt
-    launch_week_start = dt(2025, 11, 10).date()  # Monday, Nov 10, 2025
+    return days
 
-    available_weeks = []
 
-    # Calculate number of weeks between launch and current week
+def _build_available_weeks(current_week_start, start_date):
+    """Generate the list of available weeks from launch week to current week."""
+    launch_week_start = date(2025, 11, 10)  # Monday, Nov 10, 2025
     weeks_diff = (current_week_start - launch_week_start).days // 7
 
-    # Generate weeks from launch week to current week
+    available_weeks = []
     for i in range(weeks_diff + 1):
         week_start = launch_week_start + timedelta(weeks=i)
         week_num = week_start.isocalendar()[1]
-        week_label = f"{week_start.strftime('%Y-%b-%d')} (Week {week_num})"
-
         available_weeks.append({
             'start_date': week_start.strftime('%Y-%m-%d'),
-            'label': week_label,
+            'label': f"{week_start.strftime('%Y-%b-%d')} (Week {week_num})",
             'selected': week_start == start_date
         })
 
-    # Reverse the list so current week appears first
     available_weeks.reverse()
+    return available_weeks
 
-    # Serialize columns for JavaScript
+
+def life_tracker(request):
+    """View for the weekly life tracker page."""
     import json
+
+    user_tz = get_user_timezone(request)
+    start_date, end_date, current_week_start = _parse_tracker_week_range(request)
+    columns = _get_active_columns_for_week(start_date)
+    days = _build_week_days(start_date, columns, user_tz)
+    available_weeks = _build_available_weeks(current_week_start, start_date)
+
     columns_json = json.dumps([{
         'column_name': col.column_name,
         'display_name': col.display_name,
@@ -1543,72 +1338,175 @@ def life_tracker(request):
     return render(request, 'targets/life_tracker.html', context)
 
 
+def _quote_reserved_keywords(sql_text):
+    """Quote SQL reserved keywords (start, end, date) when used as column names."""
+    import re
+    for keyword in ['start', 'end', 'date']:
+        pattern = r'(?<!["\w])(' + keyword + r')(?!["\w])'
+        sql_text = re.sub(pattern, r'"\1"', sql_text, flags=re.IGNORECASE)
+    return sql_text
+
+
+def _convert_sqlite_to_postgres(sql_text):
+    """Convert SQLite-specific functions (julianday) to PostgreSQL equivalents."""
+    import re
+    if connection.vendor != 'postgresql':
+        return sql_text
+
+    # julianday difference in minutes: (julianday(a) - julianday(b)) * 24 * 60
+    pattern1 = r'\(julianday\(([^)]+)\)\s*-\s*julianday\(([^)]+)\)\)\s*\*\s*24\s*\*\s*60'
+    sql_text = re.sub(pattern1, r'EXTRACT(EPOCH FROM (\1 - \2)) / 60', sql_text, flags=re.IGNORECASE)
+
+    # julianday difference in days: (julianday(a) - julianday(b))
+    pattern2 = r'\(julianday\(([^)]+)\)\s*-\s*julianday\(([^)]+)\)\)'
+    sql_text = re.sub(pattern2, r'EXTRACT(EPOCH FROM (\1 - \2)) / 86400', sql_text, flags=re.IGNORECASE)
+
+    # Single julianday(col) to epoch days
+    pattern3 = r'julianday\(([^)]+)\)'
+    sql_text = re.sub(pattern3, r'EXTRACT(EPOCH FROM \1) / 86400', sql_text, flags=re.IGNORECASE)
+
+    return sql_text
+
+
+def _format_entry_datetime(dt_value, timezone_str):
+    """Convert a datetime or date value to a user-friendly localized string."""
+    from django.utils import timezone as django_tz
+
+    if not dt_value:
+        return ''
+
+    if isinstance(dt_value, date) and not isinstance(dt_value, datetime):
+        return dt_value.strftime('%a, %-m/%-d/%y')
+
+    if isinstance(dt_value, str):
+        try:
+            dt_value = datetime.fromisoformat(str(dt_value).replace('Z', '+00:00'))
+        except Exception:
+            return str(dt_value)
+
+    if not hasattr(dt_value, 'tzinfo') or dt_value.tzinfo is None:
+        dt_value = django_tz.make_aware(dt_value, pytz.UTC)
+
+    try:
+        user_tz = pytz.timezone(timezone_str)
+        dt_local = dt_value.astimezone(user_tz)
+        return dt_local.strftime('%a, %-m/%-d/%y @ %-I:%M %p')
+    except Exception:
+        return dt_value.strftime('%a, %-m/%-d/%y @ %-I:%M %p')
+
+
+# Table name -> (display_col, sql_col) for date/sort columns in objective entries
+_OBJECTIVE_TABLE_DATE_COLS = {
+    'fasting_session': ('fast_end_date', 'fast_end_date'),
+    'nutrition_entry': ('consumption_date', 'consumption_date'),
+    'weight_weighin': ('measurement_time', 'measurement_time'),
+    'workouts_workout': ('start', '"start"'),
+    'targets_dailyagenda': ('date', '"date"'),
+    'time_logs_timelog': ('start', '"start"'),
+}
+
+
+def _build_objective_id_query(sql, table_name, date_col_sql, objective):
+    """Build the SQL query to fetch IDs for objective entry rows."""
+    import re
+
+    pk_column = 'id'
+    where_match = re.search(r'\bWHERE\b((?:(?!\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b).)+)', sql, re.IGNORECASE | re.DOTALL)
+
+    if where_match:
+        where_clause = where_match.group(1).strip()
+        where_clause = _quote_reserved_keywords(where_clause)
+        where_clause = _convert_sqlite_to_postgres(where_clause)
+        return f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {where_clause} ORDER BY {date_col_sql} DESC LIMIT 50"
+
+    # No WHERE clause - filter by objective's month
+    if table_name == 'targets_dailyagenda':
+        date_range_filter = f"{date_col_sql} >= '{objective.start}' AND {date_col_sql} <= '{objective.end}'"
+    else:
+        date_range_filter = f"{date_col_sql}::date >= '{objective.start}' AND {date_col_sql}::date <= '{objective.end}'"
+    return f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {date_range_filter} ORDER BY {date_col_sql} DESC LIMIT 50"
+
+
+def _format_entry_with_custom_display(historical_display, row_dict, user_timezone):
+    """Format a row using a custom historical_display template string."""
+    entry_text = historical_display
+    date_columns_to_check = ['start', 'end', 'date', 'fast_end_date', 'consumption_date', 'measurement_time', 'created_at']
+    for date_col in date_columns_to_check:
+        if f'{{{date_col}}}' in entry_text and date_col in row_dict:
+            row_dict[date_col] = _format_entry_datetime(row_dict[date_col], user_timezone)
+
+    try:
+        return entry_text.format(**row_dict)
+    except KeyError as e:
+        return f"Format error: missing field {e}"
+    except Exception as e:
+        return f"Format error: {str(e)}"
+
+
+def _format_entry_default(table_name, row_dict, user_timezone):
+    """Format a row using default formatting based on the table type."""
+    _fmt = _format_entry_datetime
+
+    formatters = {
+        'fasting_session': lambda r: f"{_fmt(r.get('fast_end_date', ''), user_timezone)}: {r.get('duration_hours', 0):.1f} hour fast",
+        'nutrition_entry': lambda r: f"{_fmt(r.get('consumption_date', ''), user_timezone)}: {r.get('food_name', 'Food entry')}",
+        'weight_weighin': lambda r: f"{_fmt(r.get('measurement_time', ''), user_timezone)}: {r.get('weight_kg', 0):.1f} kg",
+        'workouts_workout': lambda r: f"{_fmt(r.get('start', ''), user_timezone)}: Sport {r.get('sport_id', 'Workout')} ({r.get('duration_minutes', 0)} min)",
+        'time_logs_timelog': lambda r: f"{_fmt(r.get('start', ''), user_timezone)}: Project {r.get('project_id', 'Unknown')} ({r.get('duration_minutes', 0) / 60:.1f} hours)",
+        'targets_dailyagenda': lambda r: f"{_fmt(r.get('date', ''), user_timezone)}: Agenda entry",
+    }
+
+    formatter = formatters.get(table_name)
+    if formatter:
+        return formatter(row_dict)
+
+    # Fallback: show first 3 non-id columns
+    display_cols = [k for k in row_dict.keys() if 'id' not in k.lower()][:3]
+    return " | ".join(f"{k}: {row_dict[k]}" for k in display_cols)
+
+
+def _make_objective_response(objective, entries):
+    """Build a successful JSON response for objective entries."""
+    return JsonResponse({
+        'success': True,
+        'objective_label': objective.label,
+        'description': objective.description or '',
+        'target': objective.objective_value,
+        'current': objective.result or 0,
+        'unit': objective.unit_of_measurement or '',
+        'entries': entries,
+        'count': len(entries)
+    })
+
+
+def _fetch_objective_detail_rows(table_name, id_rows, date_col_sql):
+    """Fetch full row details for objective entries by their IDs."""
+    ids_str = ','.join(str(row[0]) for row in id_rows)
+    detail_query = f"SELECT * FROM {table_name} WHERE id IN ({ids_str}) ORDER BY {date_col_sql} DESC"
+
+    with connection.cursor() as cursor:
+        cursor.execute(detail_query)
+        columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+def _format_objective_entries(row_dicts, objective, table_name, user_timezone):
+    """Format a list of row dicts into display strings using the objective's display template."""
+    formatter = (
+        (lambda rd: _format_entry_with_custom_display(objective.historical_display, rd, user_timezone))
+        if objective.historical_display
+        else (lambda rd: _format_entry_default(table_name, rd, user_timezone))
+    )
+    return [formatter(rd) for rd in row_dicts]
+
+
 def get_objective_entries(request):
     """
     API endpoint to fetch the last entries contributing to a monthly objective.
     Returns JSON with either entries or an error message.
     """
-    import json
     import re
     from monthly_objectives.models import MonthlyObjective
-
-    def quote_reserved_keywords(sql_text):
-        """
-        Quote SQL reserved keywords (start, end, date) in WHERE clauses.
-        Only quotes when used as column names, not in string literals or functions.
-        """
-        # Reserved keywords that need quoting in PostgreSQL
-        keywords = ['start', 'end', 'date']
-
-        for keyword in keywords:
-            # Pattern matches keyword as a column name (not in strings or already quoted)
-            # Look for keyword that is:
-            # - preceded by whitespace, comma, or opening paren
-            # - followed by whitespace, comparison operator, comma, closing paren, or arithmetic operator
-            # - not already quoted with double quotes
-            # - not inside single quotes (string literal)
-
-            # Replace unquoted instances
-            pattern = r'(?<!["\w])(' + keyword + r')(?!["\w])'
-            sql_text = re.sub(pattern, r'"\1"', sql_text, flags=re.IGNORECASE)
-
-        return sql_text
-
-    def convert_sqlite_to_postgres(sql_text):
-        """
-        Convert SQLite-specific functions to PostgreSQL equivalents.
-        This is needed because development uses SQLite but production uses PostgreSQL.
-        """
-        # Detect if we're using PostgreSQL
-        from django.db import connection
-        is_postgres = connection.vendor == 'postgresql'
-
-        if not is_postgres:
-            return sql_text  # No conversion needed for SQLite
-
-        # Convert julianday() date arithmetic to PostgreSQL
-        # SQLite: (julianday(end) - julianday(start)) * 24 * 60 > 20
-        # PostgreSQL: EXTRACT(EPOCH FROM ("end" - "start")) / 60 > 20
-
-        # Pattern: (julianday(col1) - julianday(col2)) * multiplier
-        # Replace with: EXTRACT(EPOCH FROM (col1 - col2)) / (86400 / multiplier)
-
-        # First, handle the specific pattern: julianday difference converted to minutes
-        # (julianday(col1) - julianday(col2)) * 24 * 60 becomes EXTRACT(EPOCH FROM (col1 - col2)) / 60
-        pattern1 = r'\(julianday\(([^)]+)\)\s*-\s*julianday\(([^)]+)\)\)\s*\*\s*24\s*\*\s*60'
-        sql_text = re.sub(pattern1, r'EXTRACT(EPOCH FROM (\1 - \2)) / 60', sql_text, flags=re.IGNORECASE)
-
-        # Handle general julianday(col1) - julianday(col2) pattern (in days)
-        pattern2 = r'\(julianday\(([^)]+)\)\s*-\s*julianday\(([^)]+)\)\)'
-        sql_text = re.sub(pattern2, r'EXTRACT(EPOCH FROM (\1 - \2)) / 86400', sql_text, flags=re.IGNORECASE)
-
-        # Handle single julianday(col) - convert to epoch days
-        pattern3 = r'julianday\(([^)]+)\)'
-        sql_text = re.sub(pattern3, r'EXTRACT(EPOCH FROM \1) / 86400', sql_text, flags=re.IGNORECASE)
-
-        return sql_text
-
-    from datetime import timedelta
 
     objective_id = request.GET.get('objective_id')
     user_timezone = request.GET.get('timezone', 'UTC')
@@ -1616,65 +1514,20 @@ def get_objective_entries(request):
     if not objective_id:
         return JsonResponse({'error': 'objective_id is required'}, status=400)
 
-    # Helper function to format datetime with timezone
-    def format_datetime(dt_value, timezone_str):
-        """Convert datetime to user timezone and format nicely"""
-        from datetime import datetime, date
-        from django.utils import timezone as django_tz
-        import pytz
-
-        if not dt_value:
-            return ''
-
-        # Handle date objects - format as date only without timezone conversion
-        if isinstance(dt_value, date) and not isinstance(dt_value, datetime):
-            # Date fields don't have time or timezone, just format the date
-            return dt_value.strftime('%a, %-m/%-d/%y')
-
-        # Parse the datetime if it's a string
-        if isinstance(dt_value, str):
-            try:
-                dt = datetime.fromisoformat(str(dt_value).replace('Z', '+00:00'))
-            except:
-                return str(dt_value)
-        else:
-            dt = dt_value
-
-        # Make it timezone-aware if it isn't
-        if not hasattr(dt, 'tzinfo') or dt.tzinfo is None:
-            dt = django_tz.make_aware(dt, pytz.UTC)
-
-        # Convert to user's timezone
-        try:
-            user_tz = pytz.timezone(timezone_str)
-            dt_local = dt.astimezone(user_tz)
-            # Format: Mon, 11/3/25 @ 7:22 AM
-            return dt_local.strftime('%a, %-m/%-d/%y @ %-I:%M %p')
-        except:
-            # Fallback to simpler format if timezone conversion fails
-            return dt.strftime('%a, %-m/%-d/%y @ %-I:%M %p')
-
     try:
-        # Fetch the objective
         objective = MonthlyObjective.objects.get(objective_id=objective_id)
     except MonthlyObjective.DoesNotExist:
-        return JsonResponse({'error': 'Objective not found'}, status=404)
+        return JsonResponse({'error': _OBJECTIVE_NOT_FOUND}, status=404)
 
     try:
         sql = objective.objective_definition.strip()
 
-        # New universal approach: Use a subquery to get IDs, then fetch details
-        # This works for ANY query structure - simple, complex, CTEs, etc.
-
-        # Check if this is a CTE query (starts with WITH)
         if re.match(r'\s*WITH\s+', sql, re.IGNORECASE):
             return JsonResponse({
                 'error': 'This objective uses a complex query (CTE) that cannot be displayed in detail view.',
                 'objective_label': objective.label
             })
 
-        # Wrap the original query in a subquery to get matching IDs
-        # First, find the main table being queried
         from_match = re.search(r'\bFROM\s+(\w+)', sql, re.IGNORECASE)
         if not from_match:
             return JsonResponse({
@@ -1683,149 +1536,20 @@ def get_objective_entries(request):
             })
 
         table_name = from_match.group(1)
+        _date_col_display, date_col_sql = _OBJECTIVE_TABLE_DATE_COLS.get(table_name, ('created_at', 'created_at'))
+        id_query = _build_objective_id_query(sql, table_name, date_col_sql, objective)
 
-        # Get primary key column name (usually 'id')
-        pk_column = 'id'
-
-        # Identify date/sort column for this table
-        date_columns = {
-            'fasting_session': ('fast_end_date', 'fast_end_date'),
-            'nutrition_entry': ('consumption_date', 'consumption_date'),
-            'weight_weighin': ('measurement_time', 'measurement_time'),
-            'workouts_workout': ('start', '"start"'),  # Quoted for SQL
-            'targets_dailyagenda': ('date', '"date"'),  # Quoted for SQL
-            'time_logs_timelog': ('start', '"start"'),  # Quoted for SQL
-        }
-
-        date_col_display, date_col_sql = date_columns.get(table_name, ('created_at', 'created_at'))
-
-        # Build a subquery that gets IDs from the original query's WHERE clause
-        # Extract just the WHERE clause from the original query
-        where_match = re.search(r'\bWHERE\b(.+?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|$)', sql, re.IGNORECASE | re.DOTALL)
-
-        if where_match:
-            where_clause = where_match.group(1).strip()
-            # Quote reserved keywords in the WHERE clause
-            where_clause = quote_reserved_keywords(where_clause)
-            # Convert SQLite functions to PostgreSQL equivalents
-            where_clause = convert_sqlite_to_postgres(where_clause)
-            # Use the original WHERE clause as-is (it already has the correct date filtering)
-            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {where_clause} ORDER BY {date_col_sql} DESC LIMIT 50"
-        else:
-            # No WHERE clause - filter by objective's month
-            if table_name == 'targets_dailyagenda':
-                date_range_filter = f"{date_col_sql} >= '{objective.start}' AND {date_col_sql} <= '{objective.end}'"
-            else:
-                date_range_filter = f"{date_col_sql}::date >= '{objective.start}' AND {date_col_sql}::date <= '{objective.end}'"
-            id_query = f"SELECT {pk_column}, {date_col_sql} FROM {table_name} WHERE {date_range_filter} ORDER BY {date_col_sql} DESC LIMIT 50"
-
-        # DEBUG: Print the actual query
-        print(f"OBJECTIVE ENTRIES DEBUG for {objective.label}:")
-        print(f"  Table: {table_name}")
-        print(f"  Query: {id_query}")
-
-        # Execute the ID query
         with connection.cursor() as cursor:
             cursor.execute(id_query)
             id_rows = cursor.fetchall()
 
-        print(f"  Returned {len(id_rows)} rows")
-        if id_rows:
-            print(f"  First 3 rows: {id_rows[:3]}")
-
         if not id_rows:
-            return JsonResponse({
-                'success': True,
-                'objective_label': objective.label,
-                'description': objective.description or '',
-                'target': objective.objective_value,
-                'current': objective.result or 0,
-                'unit': objective.unit_of_measurement or '',
-                'entries': [],
-                'count': 0
-            })
+            return _make_objective_response(objective, [])
 
-        # Get full details for these IDs
-        ids = [row[0] for row in id_rows]
-        ids_str = ','.join(str(id) for id in ids)
+        row_dicts = _fetch_objective_detail_rows(table_name, id_rows, date_col_sql)
+        entries = _format_objective_entries(row_dicts, objective, table_name, user_timezone)
 
-        detail_query = f"SELECT * FROM {table_name} WHERE {pk_column} IN ({ids_str}) ORDER BY {date_col_sql} DESC"
-
-        with connection.cursor() as cursor:
-            cursor.execute(detail_query)
-            columns = [col[0] for col in cursor.description]
-            rows = cursor.fetchall()
-
-        # Format entries for display
-        entries = []
-        for row in rows:
-            row_dict = dict(zip(columns, row))
-
-            # Check if custom historical_display format is provided
-            if objective.historical_display:
-                # Use custom format string with placeholders
-                entry_text = objective.historical_display
-
-                # Format datetime columns if referenced in the format string
-                date_columns_to_check = ['start', 'end', 'date', 'fast_end_date', 'consumption_date', 'measurement_time', 'created_at']
-                for date_col in date_columns_to_check:
-                    if f'{{{date_col}}}' in entry_text and date_col in row_dict:
-                        formatted_date = format_datetime(row_dict[date_col], user_timezone)
-                        row_dict[date_col] = formatted_date
-
-                # Replace placeholders with actual values from row
-                try:
-                    entry_text = entry_text.format(**row_dict)
-                    entries.append(entry_text)
-                except KeyError as e:
-                    # If a placeholder key is missing, show error and fall back to default
-                    entries.append(f"Format error: missing field {e}")
-                except Exception as e:
-                    # Other formatting errors
-                    entries.append(f"Format error: {str(e)}")
-            else:
-                # Use default format based on table type
-                if table_name == 'fasting_session':
-                    date_val = format_datetime(row_dict.get('fast_end_date', ''), user_timezone)
-                    duration = row_dict.get('duration_hours', 0)
-                    entries.append(f"{date_val}: {duration:.1f} hour fast")
-                elif table_name == 'nutrition_entry':
-                    date_val = format_datetime(row_dict.get('consumption_date', ''), user_timezone)
-                    food = row_dict.get('food_name', 'Food entry')
-                    entries.append(f"{date_val}: {food}")
-                elif table_name == 'weight_weighin':
-                    date_val = format_datetime(row_dict.get('measurement_time', ''), user_timezone)
-                    weight = row_dict.get('weight_kg', 0)
-                    entries.append(f"{date_val}: {weight:.1f} kg")
-                elif table_name == 'workouts_workout':
-                    date_val = format_datetime(row_dict.get('start', ''), user_timezone)
-                    sport = row_dict.get('sport_id', 'Workout')
-                    duration = row_dict.get('duration_minutes', 0)
-                    entries.append(f"{date_val}: Sport {sport} ({duration} min)")
-                elif table_name == 'time_logs_timelog':
-                    date_val = format_datetime(row_dict.get('start', ''), user_timezone)
-                    duration = row_dict.get('duration_minutes', 0) / 60
-                    project = row_dict.get('project_id', 'Unknown')
-                    entries.append(f"{date_val}: Project {project} ({duration:.1f} hours)")
-                elif table_name == 'targets_dailyagenda':
-                    date_val = format_datetime(row_dict.get('date', ''), user_timezone)
-                    entries.append(f"{date_val}: Agenda entry")
-                else:
-                    # Fallback
-                    display_cols = [k for k in row_dict.keys() if 'id' not in k.lower()][:3]
-                    entry_text = " | ".join([f"{k}: {row_dict[k]}" for k in display_cols])
-                    entries.append(entry_text)
-
-        return JsonResponse({
-            'success': True,
-            'objective_label': objective.label,
-            'description': objective.description or '',
-            'target': objective.objective_value,
-            'current': objective.result or 0,
-            'unit': objective.unit_of_measurement or '',
-            'entries': entries,
-            'count': len(entries)
-        })
+        return _make_objective_response(objective, entries)
 
     except Exception as e:
         import traceback
@@ -1841,7 +1565,6 @@ def get_objective_available_fields(request):
     API endpoint to get available database fields for historical_display formatting.
     Takes an SQL definition and returns the table's column names.
     """
-    import json
     import re
     from django.db import connection
 
@@ -1880,324 +1603,265 @@ def get_objective_available_fields(request):
         }, status=500)
 
 
+def _extract_objective_fields(data):
+    """Extract and return objective fields from request data dict."""
+    return {
+        'label': data.get('label', '').strip(),
+        'month': data.get('month', ''),
+        'year': data.get('year', ''),
+        'objective_value': data.get('objective_value', ''),
+        'objective_definition': data.get('objective_definition', '').strip(),
+        'category': data.get('category', '').strip() or None,
+        'description': data.get('description', '').strip() or None,
+        'unit_of_measurement': data.get('unit_of_measurement', '').strip() or None,
+        'historical_display': data.get('historical_display', '').strip() or None,
+    }
+
+
+_OBJECTIVE_REQUIRED_FIELDS_ERROR = (
+    'All required fields must be filled: Label, Month, Year, Target Value, '
+    'SQL Definition, Category, Description, and Unit of Measurement'
+)
+
+
+def _validate_objective_fields(fields):
+    """
+    Validate and parse objective fields. Returns (parsed_fields, error_response).
+    error_response is a JsonResponse if validation fails, or None on success.
+    parsed_fields includes parsed month, year, objective_value.
+    """
+    from calendar import monthrange
+    from settings.models import Setting
+
+    f = fields
+    required = [f['label'], f['month'], f['year'], f['objective_value'],
+                f['objective_definition'], f['category'], f['description'], f['unit_of_measurement']]
+    if not all(required):
+        return None, JsonResponse({'error': _OBJECTIVE_REQUIRED_FIELDS_ERROR}, status=400)
+
+    try:
+        month = int(f['month'])
+        year = int(f['year'])
+        if not (1 <= month <= 12):
+            raise ValueError("Month must be between 1 and 12")
+        if not (2020 <= year <= 2050):
+            raise ValueError("Year must be between 2020 and 2050")
+    except (ValueError, TypeError) as e:
+        return None, JsonResponse({'error': f'Invalid month or year: {str(e)}'}, status=400)
+
+    try:
+        objective_value = float(f['objective_value'])
+    except (ValueError, TypeError):
+        return None, JsonResponse({'error': 'Invalid objective value - must be a number'}, status=400)
+
+    if objective_value < 0:
+        return None, JsonResponse({'error': 'Objective value must be greater than or equal to zero'}, status=400)
+
+    timezone_str = Setting.get('default_timezone_for_monthly_objectives', 'America/Chicago')
+    start_date = datetime(year, month, 1).date()
+    last_day = monthrange(year, month)[1]
+    end_date = datetime(year, month, last_day).date()
+
+    parsed = dict(f)
+    parsed.update({
+        'month': month,
+        'year': year,
+        'objective_value': objective_value,
+        'timezone_str': timezone_str,
+        'start_date': start_date,
+        'end_date': end_date,
+    })
+    return parsed, None
+
+
+def _execute_objective_sql(sql_definition):
+    """Execute an objective's SQL and return the numeric result, or 0 on failure."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(sql_definition)
+            row = cursor.fetchone()
+            return float(row[0]) if row and row[0] is not None else 0
+    except Exception:
+        return 0
+
+
+def _compute_objective_derived_values(result, objective_value, month, year):
+    """Compute progress_pct, achieved, and target_per_week for an objective."""
+    from calendar import monthrange
+
+    progress_pct = round((result / objective_value) * 100, 1) if result is not None and objective_value > 0 else 0
+    achieved = result is not None and result >= objective_value
+
+    days_in_month = monthrange(year, month)[1]
+    weeks_in_month = days_in_month / 7.0
+    target_per_week = round(objective_value / weeks_in_month, 1) if weeks_in_month > 0 else 0
+
+    return progress_pct, achieved, target_per_week
+
+
 @require_http_methods(["POST"])
 def create_objective(request):
     """API endpoint to create a new monthly objective."""
     import json
     import re
-    from calendar import monthrange
     from monthly_objectives.models import MonthlyObjective
-    from settings.models import Setting
 
     try:
-        # Parse JSON data
         data = json.loads(request.body)
-
-        # Extract and validate fields
-        label = data.get('label', '').strip()
-        month = data.get('month', '')
-        year = data.get('year', '')
-        objective_value = data.get('objective_value', '')
-        objective_definition = data.get('objective_definition', '').strip()
-        category = data.get('category', '').strip() or None
-        description = data.get('description', '').strip() or None
-        unit_of_measurement = data.get('unit_of_measurement', '').strip() or None
-        historical_display = data.get('historical_display', '').strip() or None
-
-        # Validate required fields
-        if not all([label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
-            return JsonResponse({
-                'error': 'All required fields must be filled: Label, Month, Year, Target Value, SQL Definition, Category, Description, and Unit of Measurement'
-            }, status=400)
-
-        # Parse month and year
-        try:
-            month = int(month)
-            year = int(year)
-            if not (1 <= month <= 12):
-                raise ValueError("Month must be between 1 and 12")
-            if not (2020 <= year <= 2050):
-                raise ValueError("Year must be between 2020 and 2050")
-        except (ValueError, TypeError) as e:
-            return JsonResponse({
-                'error': f'Invalid month or year: {str(e)}'
-            }, status=400)
-
-        # Parse objective value
-        try:
-            objective_value = float(objective_value)
-        except (ValueError, TypeError):
-            return JsonResponse({
-                'error': 'Invalid objective value - must be a number'
-            }, status=400)
-
-        # Validate objective value is not negative
-        if objective_value < 0:
-            return JsonResponse({
-                'error': 'Objective value must be greater than or equal to zero'
-            }, status=400)
-
-        # Get timezone from Settings
-        timezone_str = Setting.get('default_timezone_for_monthly_objectives', 'America/Chicago')
-
-        # Calculate start and end dates
-        start_date = datetime(year, month, 1).date()
-        last_day = monthrange(year, month)[1]
-        end_date = datetime(year, month, last_day).date()
+        fields = _extract_objective_fields(data)
+        parsed, err = _validate_objective_fields(fields)
+        if err:
+            return err
 
         # Generate objective_id from label, month, and year
-        # Create slug from label
-        label_slug = re.sub(r'[^\w\s-]', '', label.lower())
+        label_slug = re.sub(r'[^\w\s-]', '', parsed['label'].lower())
         label_slug = re.sub(r'[-\s]+', '_', label_slug).strip('_')
+        month_abbrev = datetime(parsed['year'], parsed['month'], 1).strftime('%b').lower()
+        objective_id = f"{label_slug}_{month_abbrev}_{parsed['year']}"
 
-        # Get month abbreviation
-        month_abbrev = datetime(year, month, 1).strftime('%b').lower()
-
-        # Combine into objective_id
-        objective_id = f"{label_slug}_{month_abbrev}_{year}"
-
-        # Check if objective_id already exists
         if MonthlyObjective.objects.filter(objective_id=objective_id).exists():
             return JsonResponse({
-                'error': f'An objective with this label already exists for {month_abbrev.capitalize()} {year}. Please use a different label.'
+                'error': f'An objective with this label already exists for {month_abbrev.capitalize()} {parsed["year"]}. Please use a different label.'
             }, status=400)
 
-        # Create the objective
         objective = MonthlyObjective.objects.create(
             objective_id=objective_id,
-            label=label,
-            start=start_date,
-            end=end_date,
-            timezone=timezone_str,
-            objective_value=objective_value,
-            objective_definition=objective_definition,
-            category=category,
-            description=description,
-            unit_of_measurement=unit_of_measurement,
-            historical_display=historical_display,
-            result=None  # Will be calculated later
+            label=parsed['label'],
+            start=parsed['start_date'],
+            end=parsed['end_date'],
+            timezone=parsed['timezone_str'],
+            objective_value=parsed['objective_value'],
+            objective_definition=parsed['objective_definition'],
+            category=parsed['category'],
+            description=parsed['description'],
+            unit_of_measurement=parsed['unit_of_measurement'],
+            historical_display=parsed['historical_display'],
+            result=None
         )
 
-        # Execute the SQL query to get the result
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(objective.objective_definition)
-                result = cursor.fetchone()
-                objective.result = float(result[0]) if result and result[0] is not None else 0
-                objective.save()
-        except Exception as e:
-            # If SQL execution fails, leave result as None
-            objective.result = 0
-            objective.save()
+        objective.result = _execute_objective_sql(objective.objective_definition)
+        objective.save()
 
-        # Calculate progress percentage and other derived values
-        progress_pct = (objective.result / objective.objective_value * 100) if objective.objective_value > 0 else 0
-        achieved = objective.result >= objective.objective_value
-
-        # Calculate target per week (approximate)
-        days_in_month = (objective.end - objective.start).days + 1
-        weeks_in_month = days_in_month / 7
-        target_per_week = objective.objective_value / weeks_in_month if weeks_in_month > 0 else 0
-
-        # Always return objective data for dynamic insertion
-        objective_data = {
-            'objective_id': objective.objective_id,
-            'label': objective.label,
-            'category': objective.category,
-            'description': objective.description,
-            'unit': objective.unit_of_measurement,
-            'historical_display': objective.historical_display,
-            'target': objective.objective_value,
-            'result': objective.result,
-            'progress_pct': round(progress_pct, 1),
-            'achieved': achieved,
-            'target_per_week': round(target_per_week, 1),
-            'month': month,
-            'year': year,
-            'objective_value': objective.objective_value,
-            'objective_definition': objective.objective_definition,
-            'start': objective.start.isoformat(),
-            'end': objective.end.isoformat(),
-        }
+        progress_pct, achieved, target_per_week = _compute_objective_derived_values(
+            objective.result, objective.objective_value, parsed['month'], parsed['year']
+        )
 
         return JsonResponse({
             'success': True,
-            'message': f'Objective "{label}" created successfully!',
+            'message': f'Objective "{parsed["label"]}" created successfully!',
             'objective_id': objective.objective_id,
-            'in_current_range': True,  # Always show newly created objectives
-            'objective': objective_data
+            'in_current_range': True,
+            'objective': {
+                'objective_id': objective.objective_id,
+                'label': objective.label,
+                'category': objective.category,
+                'description': objective.description,
+                'unit': objective.unit_of_measurement,
+                'historical_display': objective.historical_display,
+                'target': objective.objective_value,
+                'result': objective.result,
+                'progress_pct': progress_pct,
+                'achieved': achieved,
+                'target_per_week': target_per_week,
+                'month': parsed['month'],
+                'year': parsed['year'],
+                'objective_value': objective.objective_value,
+                'objective_definition': objective.objective_definition,
+                'start': objective.start.isoformat(),
+                'end': objective.end.isoformat(),
+            }
         })
 
     except json.JSONDecodeError:
-        return JsonResponse({
-            'error': 'Invalid JSON data'
-        }, status=400)
+        return JsonResponse({'error': _INVALID_JSON}, status=400)
     except Exception as e:
-        return JsonResponse({
-            'error': f'Error creating objective: {str(e)}'
-        }, status=500)
+        return JsonResponse({'error': f'Error creating objective: {str(e)}'}, status=500)
 
 
 @require_http_methods(["POST"])
 def update_objective(request):
     """API endpoint to update an existing monthly objective."""
     import json
-    import re
-    from calendar import monthrange
+    import logging
     from monthly_objectives.models import MonthlyObjective
-    from settings.models import Setting
+
+    logger = logging.getLogger(__name__)
 
     try:
-        # Parse JSON data
         data = json.loads(request.body)
-
-        # DEBUG: Log received data
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"=== UPDATE OBJECTIVE REQUEST ===")
+        logger.info("=== UPDATE OBJECTIVE REQUEST ===")
         logger.info(f"Received data keys: {data.keys()}")
         logger.info(f"historical_display in request: {data.get('historical_display')}")
 
-        # Extract and validate fields
         objective_id = data.get('objective_id', '').strip()
-        label = data.get('label', '').strip()
-        month = data.get('month', '')
-        year = data.get('year', '')
-        objective_value = data.get('objective_value', '')
-        objective_definition = data.get('objective_definition', '').strip()
-        category = data.get('category', '').strip() or None
-        description = data.get('description', '').strip() or None
-        unit_of_measurement = data.get('unit_of_measurement', '').strip() or None
-        historical_display = data.get('historical_display', '').strip() or None
+        fields = _extract_objective_fields(data)
 
-        logger.info(f"Extracted historical_display: {repr(historical_display)}")
+        # objective_id is additionally required for updates
+        required_with_id = [objective_id] + [fields[k] for k in ['label', 'month', 'year', 'objective_value',
+                                                                   'objective_definition', 'category', 'description', 'unit_of_measurement']]
+        if not all(required_with_id):
+            logger.error("Validation failed - missing required fields")
+            return JsonResponse({'error': _OBJECTIVE_REQUIRED_FIELDS_ERROR}, status=400)
 
-        # Validate required fields
-        if not all([objective_id, label, month, year, objective_value, objective_definition, category, description, unit_of_measurement]):
-            logger.error(f"Validation failed - missing required fields")
-            return JsonResponse({
-                'error': 'All required fields must be filled: Label, Month, Year, Target Value, SQL Definition, Category, Description, and Unit of Measurement'
-            }, status=400)
-
-        # Get the existing objective
         try:
             objective = MonthlyObjective.objects.get(objective_id=objective_id)
         except MonthlyObjective.DoesNotExist:
-            return JsonResponse({
-                'error': 'Objective not found'
-            }, status=404)
+            return JsonResponse({'error': _OBJECTIVE_NOT_FOUND}, status=404)
 
-        # Parse month and year
-        try:
-            month = int(month)
-            year = int(year)
-            if not (1 <= month <= 12):
-                raise ValueError("Month must be between 1 and 12")
-            if not (2020 <= year <= 2050):
-                raise ValueError("Year must be between 2020 and 2050")
-        except (ValueError, TypeError) as e:
-            return JsonResponse({
-                'error': f'Invalid month or year: {str(e)}'
-            }, status=400)
+        parsed, err = _validate_objective_fields(fields)
+        if err:
+            return err
 
-        # Parse objective value
-        try:
-            objective_value = float(objective_value)
-        except (ValueError, TypeError):
-            return JsonResponse({
-                'error': 'Invalid objective value - must be a number'
-            }, status=400)
-
-        # Validate objective value is not negative
-        if objective_value < 0:
-            return JsonResponse({
-                'error': 'Objective value must be greater than or equal to zero'
-            }, status=400)
-
-        # Get timezone from Settings
-        timezone_str = Setting.get('default_timezone_for_monthly_objectives', 'America/Chicago')
-
-        # Calculate start and end dates
-        start_date = datetime(year, month, 1).date()
-        last_day = monthrange(year, month)[1]
-        end_date = datetime(year, month, last_day).date()
-
-        # Update the objective
         logger.info(f"BEFORE UPDATE - objective.historical_display: {repr(objective.historical_display)}")
-        objective.label = label
-        objective.start = start_date
-        objective.end = end_date
-        objective.timezone = timezone_str
-        objective.objective_value = objective_value
-        objective.objective_definition = objective_definition
-        objective.category = category
-        objective.description = description
-        objective.unit_of_measurement = unit_of_measurement
-        objective.historical_display = historical_display
+        objective.label = parsed['label']
+        objective.start = parsed['start_date']
+        objective.end = parsed['end_date']
+        objective.timezone = parsed['timezone_str']
+        objective.objective_value = parsed['objective_value']
+        objective.objective_definition = parsed['objective_definition']
+        objective.category = parsed['category']
+        objective.description = parsed['description']
+        objective.unit_of_measurement = parsed['unit_of_measurement']
+        objective.historical_display = parsed['historical_display']
         logger.info(f"AFTER ASSIGNMENT - objective.historical_display: {repr(objective.historical_display)}")
         objective.save()
         logger.info(f"AFTER SAVE - objective.historical_display: {repr(objective.historical_display)}")
 
-        # Refresh from database to verify it was saved
         objective.refresh_from_db()
         logger.info(f"AFTER REFRESH - objective.historical_display: {repr(objective.historical_display)}")
 
-        # Re-calculate the result by running the SQL query
-        from django.db import connection
-        result = None
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(objective_definition)
-                row = cursor.fetchone()
-                if row:
-                    result = float(row[0]) if row[0] is not None else 0
-        except Exception as e:
-            # If SQL execution fails, result stays None
-            pass
-
-        # Calculate progress
-        progress_pct = 0
-        achieved = False
-        if result is not None and objective_value > 0:
-            progress_pct = round((result / objective_value) * 100, 1)
-            achieved = result >= objective_value
-
-        # Calculate target per week
-        days_in_month = monthrange(year, month)[1]
-        weeks_in_month = days_in_month / 7.0
-        target_per_week = objective_value / weeks_in_month if weeks_in_month > 0 else 0
+        result = _execute_objective_sql(parsed['objective_definition'])
+        progress_pct, achieved, target_per_week = _compute_objective_derived_values(
+            result, parsed['objective_value'], parsed['month'], parsed['year']
+        )
 
         return JsonResponse({
             'success': True,
-            'message': f'Objective "{label}" updated successfully!',
+            'message': f'Objective "{parsed["label"]}" updated successfully!',
             'objective_id': objective.objective_id,
             'in_current_range': False,
             'objective': {
-                'label': label,
-                'target': objective_value,
+                'label': parsed['label'],
+                'target': parsed['objective_value'],
                 'result': result if result is not None else 0,
                 'progress_pct': progress_pct,
                 'achieved': achieved,
-                'month': month,
-                'year': year,
-                'objective_value': objective_value,
-                'objective_definition': objective_definition,
-                'category': category,
-                'description': description,
-                'unit': unit_of_measurement,
-                'historical_display': historical_display,
-                'target_per_week': round(target_per_week, 1)
+                'month': parsed['month'],
+                'year': parsed['year'],
+                'objective_value': parsed['objective_value'],
+                'objective_definition': parsed['objective_definition'],
+                'category': parsed['category'],
+                'description': parsed['description'],
+                'unit': parsed['unit_of_measurement'],
+                'historical_display': parsed['historical_display'],
+                'target_per_week': target_per_week
             }
         })
 
     except json.JSONDecodeError:
-        return JsonResponse({
-            'error': 'Invalid JSON data'
-        }, status=400)
+        return JsonResponse({'error': _INVALID_JSON}, status=400)
     except Exception as e:
-        return JsonResponse({
-            'error': f'Error updating objective: {str(e)}'
-        }, status=500)
+        return JsonResponse({'error': f'Error updating objective: {str(e)}'}, status=500)
 
 
 def delete_objective(request):
@@ -2225,7 +1889,7 @@ def delete_objective(request):
             objective.delete()
         except MonthlyObjective.DoesNotExist:
             return JsonResponse({
-                'error': 'Objective not found'
+                'error': _OBJECTIVE_NOT_FOUND
             }, status=404)
 
         return JsonResponse({
@@ -2235,7 +1899,7 @@ def delete_objective(request):
 
     except json.JSONDecodeError:
         return JsonResponse({
-            'error': 'Invalid JSON data'
+            'error': _INVALID_JSON
         }, status=400)
     except Exception as e:
         return JsonResponse({
@@ -2247,7 +1911,6 @@ def delete_objective(request):
 def refresh_objective_cache(request):
     """Refresh cached results for all monthly objectives"""
     from monthly_objectives.models import MonthlyObjective
-    import json
 
     # Check authentication (return JSON error instead of redirect for AJAX)
     if not request.user.is_authenticated:

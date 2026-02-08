@@ -27,7 +27,48 @@ class Command(BaseCommand):
             help='Preview what would be imported without actually importing'
         )
 
-    def handle(self, *args, **options):
+    def _load_fast_data(self, json_file):
+        """Load and validate fast_data from a JSON file.
+
+        Returns the fast_data list, or None if loading/validation fails.
+        """
+        if not os.path.exists(json_file):
+            self.stdout.write(self.style.ERROR(f'File not found: {json_file}'))
+            return None
+
+        self.stdout.write(f'Reading file: {json_file}')
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+
+        if 'fast_data' not in data:
+            self.stdout.write(self.style.ERROR(
+                'No "fast_data" key found in JSON file. '
+                'Make sure you are using the biodata.json file from Zero export.'
+            ))
+            return None
+
+        return data['fast_data']
+
+    def _count_results(self, fast_data, dry_run):
+        """Process all fast records and return (created, updated, skipped) counts."""
+        counts = {'created': 0, 'updated': 0, 'skipped': 0}
+        for fast_record in fast_data:
+            result = self._process_fast(fast_record, dry_run)
+            counts[result] = counts.get(result, 0) + 1
+        return counts['created'], counts['updated'], counts['skipped']
+
+    def _print_summary(self, dry_run, created_count, updated_count, skipped_count, total):
+        """Print the import summary."""
+        prefix = "DRY RUN " if dry_run else ""
+        self.stdout.write(self.style.SUCCESS(f'\n{prefix}Import completed!'))
+        label = "Would create" if dry_run else "Created"
+        self.stdout.write(f'  {label}: {created_count}')
+        label = "Would update" if dry_run else "Updated"
+        self.stdout.write(f'  {label}: {updated_count}')
+        self.stdout.write(f'  Skipped: {skipped_count}')
+        self.stdout.write(f'  Total processed: {total}')
+
+    def handle(self, *_args, **options):
         json_file = options['json_file']
         dry_run = options['dry_run']
 
@@ -36,50 +77,14 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('Starting Zero fasting data import...'))
 
-        # Check if file exists
-        if not os.path.exists(json_file):
-            self.stdout.write(self.style.ERROR(f'File not found: {json_file}'))
-            return
-
         try:
-            # Load JSON data
-            self.stdout.write(f'Reading file: {json_file}')
-            with open(json_file, 'r') as f:
-                data = json.load(f)
-
-            # Extract fast_data
-            if 'fast_data' not in data:
-                self.stdout.write(self.style.ERROR(
-                    'No "fast_data" key found in JSON file. '
-                    'Make sure you are using the biodata.json file from Zero export.'
-                ))
+            fast_data = self._load_fast_data(json_file)
+            if fast_data is None:
                 return
 
-            fast_data = data['fast_data']
             self.stdout.write(f'Found {len(fast_data)} fasting sessions in file')
-
-            # Process fasting sessions
-            created_count = 0
-            updated_count = 0
-            skipped_count = 0
-
-            for fast_record in fast_data:
-                result = self._process_fast(fast_record, dry_run)
-                if result == 'created':
-                    created_count += 1
-                elif result == 'updated':
-                    updated_count += 1
-                else:
-                    skipped_count += 1
-
-            # Summary
-            self.stdout.write(self.style.SUCCESS(
-                f'\n{"DRY RUN " if dry_run else ""}Import completed!'
-            ))
-            self.stdout.write(f'  Would create: {created_count}' if dry_run else f'  Created: {created_count}')
-            self.stdout.write(f'  Would update: {updated_count}' if dry_run else f'  Updated: {updated_count}')
-            self.stdout.write(f'  Skipped: {skipped_count}')
-            self.stdout.write(f'  Total processed: {len(fast_data)}')
+            created, updated, skipped = self._count_results(fast_data, dry_run)
+            self._print_summary(dry_run, created, updated, skipped, len(fast_data))
 
         except json.JSONDecodeError as e:
             self.stdout.write(self.style.ERROR(f'Invalid JSON file: {e}'))

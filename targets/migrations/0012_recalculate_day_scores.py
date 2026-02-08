@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def recalculate_day_scores(apps, schema_editor):
+def recalculate_day_scores(apps, _schema_editor):
     """
     Recalculate day_score for all DailyAgenda records.
     Now only considers targets 1-3, not other_plans.

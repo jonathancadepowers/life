@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from datetime import timedelta, datetime, time
+from datetime import datetime
 import json
 
 from fasting.models import FastingSession
@@ -82,6 +82,9 @@ class FastingAPITestCase(TestCase):
             'date': '2025-10-27'
         }
 
+        # Set timezone cookie so get_user_timezone returns America/Chicago
+        self.client.cookies['user_timezone'] = 'America/Chicago'
+
         response = self.client.post(
             reverse('fasting:log_fast'),
             data=data
@@ -92,11 +95,10 @@ class FastingAPITestCase(TestCase):
         self.assertTrue(result['success'])
 
         # Verify the end date is at noon in America/Chicago timezone
-        # (the default when no timezone cookie is set)
         fast = FastingSession.objects.get(id=result['fast_id'])
         self.assertEqual(fast.fast_end_date.date(), datetime(2025, 10, 27).date())
 
-        # Convert to America/Chicago timezone (the default used in views)
+        # Convert to America/Chicago timezone (matches the cookie we set)
         chicago_tz = pytz.timezone('America/Chicago')
         chicago_time = fast.fast_end_date.astimezone(chicago_tz)
         self.assertEqual(chicago_time.hour, 12)

@@ -10,10 +10,15 @@ Usage:
     python manage.py sync_all [--days=30]
 
 This command is ideal for scheduled jobs (cron, etc.)
+
+After running, access structured results via `cmd.sync_results` — a dict
+mapping source names to SyncResult objects. This is used by the master_sync
+AJAX view to avoid fragile string parsing of command output.
 """
 from django.core.management.base import BaseCommand
-from django.core.management import call_command
 from datetime import datetime
+
+from lifetracker.sync_utils import SyncResult
 
 
 class Command(BaseCommand):
@@ -32,7 +37,7 @@ class Command(BaseCommand):
             help='Only sync Whoop data (skip other sources)'
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         days = options['days']
         whoop_only = options['whoop_only']
 
@@ -44,15 +49,27 @@ class Command(BaseCommand):
         self.stdout.write(f'Started at: {start_time.strftime("%Y-%m-%d %H:%M:%S")}')
         self.stdout.write(f'Syncing last {days} days of data...\n')
 
-        results = {}
+        # Structured results accessible after execution
+        self.sync_results = {}
 
         # Sync Whoop workouts
-        results['whoop'] = self._sync_whoop(days)
+        self.stdout.write(self.style.HTTP_INFO('\n[1/3] Syncing Whoop workouts...'))
+        self.sync_results['whoop'] = self._run_sync_command(
+            'workouts.management.commands.sync_whoop', days
+        )
 
-        # Sync Withings weight measurements
         if not whoop_only:
-            results['withings'] = self._sync_withings(days)
-            results['cronometer'] = self._sync_cronometer(days)
+            # Sync Withings weight measurements
+            self.stdout.write(self.style.HTTP_INFO('\n[2/3] Syncing Withings weight measurements...'))
+            self.sync_results['withings'] = self._run_sync_command(
+                'weight.management.commands.sync_withings', days
+            )
+
+            # Sync Cronometer nutrition data
+            self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing Cronometer nutrition data...'))
+            self.sync_results['cronometer'] = self._run_sync_command(
+                'nutrition.management.commands.sync_cronometer', days
+            )
 
         # Summary
         end_time = datetime.now()
@@ -62,152 +79,37 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('  SYNC SUMMARY'))
         self.stdout.write('=' * 60)
 
-        for source, result in results.items():
-            if result['success']:
+        for source, result in self.sync_results.items():
+            if result.success:
                 self.stdout.write(self.style.SUCCESS(
-                    f'✓ {source.upper()}: {result["message"]}'
+                    f'✓ {source.upper()}: {result.summary}'
                 ))
             else:
                 self.stdout.write(self.style.ERROR(
-                    f'✗ {source.upper()}: {result["message"]}'
+                    f'✗ {source.upper()}: {result.summary}'
                 ))
 
         self.stdout.write(f'\nCompleted in {duration:.1f} seconds')
         self.stdout.write('=' * 60)
 
-    def _sync_whoop(self, days):
-        """Sync Whoop workout data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[1/3] Syncing Whoop workouts...'))
+    def _run_sync_command(self, module_path, days):
+        """
+        Import and run a sync command's sync() method directly,
+        returning its SyncResult.
 
+        Falls back to a failed SyncResult if the command raises.
+        """
         try:
-            from workouts.models import Workout
-
-            # Count records before sync
-            before_count = Workout.objects.count()
-
-            # Call the sync_whoop command
-            call_command('sync_whoop', days=days, verbosity=0)
-
-            # Count records after sync
-            after_count = Workout.objects.count()
-            new_count = after_count - before_count
-
-            return {
-                'success': True,
-                'message': f'Successfully synced Whoop data ({new_count} new workouts)'
-            }
+            from importlib import import_module
+            module = import_module(module_path)
+            cmd = module.Command()
+            cmd.stdout = self.stdout
+            cmd.style = self.style
+            return cmd.sync(days)
         except Exception as e:
-            return {
-                'success': False,
-                'message': f'Failed: {str(e)}'
-            }
-
-    def _sync_withings(self, days):
-        """Sync Withings weight data."""
-        self.stdout.write(self.style.HTTP_INFO('\n[2/3] Syncing Withings weight measurements...'))
-
-        try:
-            from weight.models import WeighIn
-
-            # Count records before sync
-            before_count = WeighIn.objects.count()
-
-            # Call the sync_withings command
-            call_command('sync_withings', days=days, verbosity=0)
-
-            # Count records after sync
-            after_count = WeighIn.objects.count()
-            new_count = after_count - before_count
-
-            return {
-                'success': True,
-                'message': f'Successfully synced Withings data ({new_count} new measurements)'
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'message': f'Failed: {str(e)}'
-            }
-
-    def _sync_toggl(self, days):
-        """Sync Toggl time entries."""
-        self.stdout.write(self.style.HTTP_INFO('\n[3/4] Syncing Toggl time entries...'))
-
-        try:
-            from time_logs.models import TimeLog
-
-            # Count records before sync
-            before_count = TimeLog.objects.count()
-
-            # Call the sync_toggl command
-            call_command('sync_toggl', days=days, verbosity=0)
-
-            # Count records after sync
-            after_count = TimeLog.objects.count()
-            new_count = after_count - before_count
-
-            return {
-                'success': True,
-                'message': f'Successfully synced Toggl data ({new_count} new time entries)'
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'message': f'Failed: {str(e)}'
-            }
-
-    def _sync_cronometer(self, days):
-        """Sync nutrition data from Cronometer."""
-        self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing Cronometer nutrition data...'))
-
-        try:
-            from nutrition.models import NutritionEntry
-
-            # Count records before sync
-            before_count = NutritionEntry.objects.filter(source='Cronometer').count()
-
-            # Call the sync_cronometer command
-            call_command('sync_cronometer', days=days, verbosity=0)
-
-            # Count records after sync
-            after_count = NutritionEntry.objects.filter(source='Cronometer').count()
-            new_count = after_count - before_count
-
-            return {
-                'success': True,
-                'message': f'Successfully synced Cronometer data ({new_count} new/updated entries)'
-            }
-        except FileNotFoundError as e:
-            return {
-                'success': False,
-                'message': 'Cronometer CLI not built - see logs for build instructions'
-            }
-        except ValueError as e:
-            # Missing credentials
-            return {
-                'success': False,
-                'message': 'Missing Cronometer credentials (CRONOMETER_USERNAME/PASSWORD)'
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'message': f'Failed: {str(e)}'
-            }
-
-    def _sync_food(self, days):
-        """Sync food tracking data (placeholder for future implementation)."""
-        self.stdout.write(self.style.HTTP_INFO('\n[3/3] Syncing food data...'))
-        self.stdout.write(self.style.WARNING('  Food tracking not yet implemented'))
-        return {
-            'success': True,
-            'message': 'Not yet implemented'
-        }
-
-    def _sync_fasting(self, days):
-        """Sync fasting tracking data (placeholder for future implementation)."""
-        self.stdout.write(self.style.HTTP_INFO('\n[4/4] Syncing fasting data...'))
-        self.stdout.write(self.style.WARNING('  Fasting tracking not yet implemented'))
-        return {
-            'success': True,
-            'message': 'Not yet implemented'
-        }
+            source = module_path.split('.')[-1].replace('sync_', '')
+            return SyncResult(
+                source=source,
+                success=False,
+                error_message=str(e),
+            )

@@ -1,7 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from datetime import datetime
 import json
 
 from nutrition.models import NutritionEntry

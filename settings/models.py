@@ -200,7 +200,7 @@ class Setting(models.Model):
             Setting.set('default_timezone_for_monthly_objectives', 'America/Chicago',
                        'Default timezone for new monthly objectives')
         """
-        obj, created = cls.objects.update_or_create(
+        obj, _ = cls.objects.update_or_create(
             key=key,
             defaults={'value': value, 'description': description}
         )

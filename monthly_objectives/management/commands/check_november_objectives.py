@@ -6,7 +6,7 @@ from datetime import date
 class Command(BaseCommand):
     help = 'Display all November 2025 objectives with descriptions and SQL queries'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         objectives = MonthlyObjective.objects.filter(
             start__gte=date(2025, 11, 1),
             end__lte=date(2025, 11, 30)
@@ -19,8 +19,8 @@ class Command(BaseCommand):
             self.stdout.write(f"\n\nObjective ID: {obj.objective_id}")
             self.stdout.write(f"Label: {obj.label}")
             self.stdout.write(f"Target: {obj.objective_value} {obj.unit_of_measurement or ''}")
-            self.stdout.write(f"\nDescription:")
+            self.stdout.write("\nDescription:")
             self.stdout.write(f"  {obj.description}")
-            self.stdout.write(f"\nSQL Query:")
+            self.stdout.write("\nSQL Query:")
             self.stdout.write(f"  {obj.objective_definition}")
             self.stdout.write("=" * 100)

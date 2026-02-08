@@ -1,5 +1,8 @@
 from django.db import models
 
+PROJECT_MODEL = 'projects.Project'
+GOAL_MODEL = 'goals.Goal'
+
 
 class DailyAgenda(models.Model):
     """
@@ -12,7 +15,7 @@ class DailyAgenda(models.Model):
 
     # Target 1
     project_1 = models.ForeignKey(
-        'projects.Project',
+        PROJECT_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -20,7 +23,7 @@ class DailyAgenda(models.Model):
         help_text="Project for target 1"
     )
     goal_1 = models.ForeignKey(
-        'goals.Goal',
+        GOAL_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -30,13 +33,13 @@ class DailyAgenda(models.Model):
     target_1 = models.CharField(
         max_length=255,
         blank=True,
-        null=True,
+        default='',
         help_text="Target 1 text"
     )
 
     # Target 2
     project_2 = models.ForeignKey(
-        'projects.Project',
+        PROJECT_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -44,7 +47,7 @@ class DailyAgenda(models.Model):
         help_text="Project for target 2"
     )
     goal_2 = models.ForeignKey(
-        'goals.Goal',
+        GOAL_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -54,13 +57,13 @@ class DailyAgenda(models.Model):
     target_2 = models.CharField(
         max_length=255,
         blank=True,
-        null=True,
+        default='',
         help_text="Target 2 text"
     )
 
     # Target 3
     project_3 = models.ForeignKey(
-        'projects.Project',
+        PROJECT_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -68,7 +71,7 @@ class DailyAgenda(models.Model):
         help_text="Project for target 3"
     )
     goal_3 = models.ForeignKey(
-        'goals.Goal',
+        GOAL_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -78,7 +81,7 @@ class DailyAgenda(models.Model):
     target_3 = models.CharField(
         max_length=255,
         blank=True,
-        null=True,
+        default='',
         help_text="Target 3 text"
     )
 
@@ -109,7 +112,7 @@ class DailyAgenda(models.Model):
     # Other plans field (supports markdown)
     other_plans = models.TextField(
         blank=True,
-        null=True,
+        default='',
         help_text="Other plans or notes for the day (supports Markdown)"
     )
 

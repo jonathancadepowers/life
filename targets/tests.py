@@ -563,8 +563,8 @@ class DailyAgendaViewsTestCase(TestCase):
         self.assertEqual(result['agenda']['date'], self.today.isoformat())
         self.assertEqual(len(result['agenda']['targets']), 3)
         self.assertIsNotNone(result['agenda']['targets'][0]['target_name'])
-        # other_plans is None by default (not set in setUp)
-        self.assertIsNone(result['agenda']['other_plans'])
+        # other_plans defaults to empty string (not set in setUp)
+        self.assertEqual(result['agenda']['other_plans'], '')
 
     @patch('time_logs.services.toggl_client.TogglAPIClient')
     def test_get_toggl_time_today(self, mock_toggl_client):
@@ -634,7 +634,7 @@ class DailyAgendaViewsTestCase(TestCase):
     @patch('django.core.cache.cache.get')
     @patch('django.core.cache.cache.set')
     @patch('time_logs.services.toggl_client.TogglAPIClient')
-    def test_goal_id_to_tag_name_conversion(self, mock_toggl_client, mock_cache_set, mock_cache_get):
+    def test_goal_id_to_tag_name_conversion(self, mock_toggl_client, _mock_cache_set, mock_cache_get):
         """
         Regression test: Ensure goal_id (tag ID) is converted to tag name before comparing with Toggl API results.
 
@@ -948,7 +948,7 @@ class ActivityReportViewsTestCase(TestCase):
         end_time = start_time + timedelta(hours=1)
 
         # Create a sport without distance tracking
-        yoga_sport = self.WhoopSportId.objects.create(sport_id=44, sport_name='Yoga')
+        self.WhoopSportId.objects.create(sport_id=44, sport_name='Yoga')
 
         self.Workout.objects.create(
             source='Whoop',
@@ -1103,7 +1103,7 @@ class ActivityReportViewsTestCase(TestCase):
         """Test that sections are collapsible"""
         # Create time tracking data so timeTrackingSection renders
         start_time = timezone.make_aware(datetime.combine(self.week_start, datetime.min.time()))
-        time_log = self.TimeLog.objects.create(
+        self.TimeLog.objects.create(
             source='Test',
             source_id='log-collapse-test',
             project_id=self.project.project_id,
@@ -1157,7 +1157,7 @@ class ActivityReportViewsTestCase(TestCase):
         """Test that Calories is shown when distance is not available"""
         # Create workout without distance
         start_time = timezone.make_aware(datetime.combine(self.week_start, datetime.min.time()))
-        yoga_sport = self.WhoopSportId.objects.create(sport_id=44, sport_name='Yoga')
+        self.WhoopSportId.objects.create(sport_id=44, sport_name='Yoga')
 
         self.Workout.objects.create(
             source='Whoop',
@@ -1287,7 +1287,7 @@ class ActivityReportViewsTestCase(TestCase):
                 sport_id=0  # Running
             )
 
-        objective = MonthlyObjective.objects.create(
+        MonthlyObjective.objects.create(
             objective_id='test_objective_nov_2025',
             label='15 Running Workouts',
             start=start_date,
@@ -1382,7 +1382,7 @@ class ActivityReportViewsTestCase(TestCase):
 
         # Create objective with SQL that counts these workouts
         # Using SQLite syntax since tests run on SQLite
-        objective = MonthlyObjective.objects.create(
+        MonthlyObjective.objects.create(
             objective_id='test_sql_execution',
             label='5 Running Workouts',
             start=target_month,
@@ -1662,7 +1662,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             )
 
         # Create objective that counts running workouts
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_update_calc',
             label='10 Running Workouts',
             start=self.start_date,
@@ -1784,7 +1784,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
             )
 
         # Create objective with target of 10
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_achieved',
             label='10 Running Workouts',
             start=self.start_date,
@@ -1817,7 +1817,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
     def test_delete_objective_success(self):
         """Test successfully deleting an objective"""
         # Create objective
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_delete_success',
             label='To Be Deleted',
             start=self.start_date,
@@ -1893,7 +1893,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
     def test_objective_sql_execution_error_handling(self):
         """Test that SQL execution errors are handled gracefully"""
         # Create objective with invalid SQL
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_sql_error',
             label='Invalid SQL Test',
             start=self.start_date,
@@ -1925,7 +1925,7 @@ class MonthlyObjectiveBackendTestCase(TestCase):
 
     def test_objective_progress_division_by_zero(self):
         """Test that progress calculation handles zero objective_value"""
-        obj = self.MonthlyObjective.objects.create(
+        self.MonthlyObjective.objects.create(
             objective_id='test_div_zero',
             label='Zero Target Test',
             start=self.start_date,
@@ -1970,7 +1970,6 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
         super().setUpClass()
         from selenium import webdriver
         from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.chrome.service import Service
 
         # Try to use Chrome in headless mode
         chrome_options = Options()
@@ -2012,7 +2011,7 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
         last_day = monthrange(2025, 12)[1]
         end_date = date(2025, 12, last_day)
 
-        objective = MonthlyObjective.objects.create(
+        MonthlyObjective.objects.create(
             objective_id='test_objective_dec_2025',
             label='20 Cycling Workouts',
             start=start_date,
@@ -2036,7 +2035,7 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
             # Debug: save page source if page doesn't load
             with open('/tmp/selenium_debug_page.html', 'w') as f:
                 f.write(self.selenium.page_source)
-            raise AssertionError(f"Page did not load properly. Page source saved to /tmp/selenium_debug_page.html") from e
+            raise AssertionError("Page did not load properly. Page source saved to /tmp/selenium_debug_page.html") from e
 
         # The Monthly Objectives section is collapsed by default, so we need to expand it first
         try:
@@ -2050,7 +2049,7 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
             with open('/tmp/selenium_debug_no_header.html', 'w') as f:
                 f.write(self.selenium.page_source)
             raise unittest.SkipTest(
-                f"Monthly objectives header not found. Page source saved to /tmp/selenium_debug_no_header.html"
+                "Monthly objectives header not found. Page source saved to /tmp/selenium_debug_no_header.html"
             ) from e
 
         # Now check if the edit button exists and is clickable
@@ -2063,8 +2062,8 @@ class MonthlyObjectiveEditModalSeleniumTestCase(StaticLiveServerTestCase):
             with open('/tmp/selenium_debug_no_button.html', 'w') as f:
                 f.write(self.selenium.page_source)
             raise unittest.SkipTest(
-                f"Edit button not found or not clickable after expanding section. "
-                f"Page source saved to /tmp/selenium_debug_no_button.html"
+                "Edit button not found or not clickable after expanding section. "
+                "Page source saved to /tmp/selenium_debug_no_button.html"
             ) from e
 
         # Scroll element into view and click it
@@ -2171,7 +2170,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
                 EC.presence_of_element_located((By.CSS_SELECTOR, '#flashMessageContainer .alert'))
             )
             return flash_message.text
-        except:
+        except Exception:
             return None
 
     def test_create_objective_full_flow(self):
@@ -2265,7 +2264,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
         last_day = monthrange(2026, 3)[1]
         end_date = date(2026, 3, last_day)
 
-        objective = MonthlyObjective.objects.create(
+        MonthlyObjective.objects.create(
             objective_id='test_delete_flow_mar_2026',
             label='To Be Deleted',
             start=start_date,
@@ -2287,7 +2286,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
         try:
             table_label = self.selenium.find_element(By.XPATH, "//td[contains(text(), 'To Be Deleted')]")
             self.assertIsNotNone(table_label)
-        except:
+        except Exception:
             raise unittest.SkipTest("Objective not found in table")
 
         # Click delete button
@@ -2309,9 +2308,8 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
         try:
             alert = self.selenium.switch_to.alert
             alert.accept()
-        except:
-            # If no alert, that's okay - deletion might work differently
-            pass
+        except Exception:
+            pass  # No alert present - deletion handled differently
 
         # Wait for flash message or page update
         time.sleep(1)
@@ -2321,16 +2319,13 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
             # Try to find the deleted objective - should not exist
             table_label = self.selenium.find_element(By.XPATH, "//td[contains(text(), 'To Be Deleted')]")
             self.fail("Objective should have been deleted from table")
-        except:
-            # Not finding it is the expected behavior
-            pass
+        except Exception:
+            pass  # Element not found = objective was deleted (expected)
 
     def test_multiple_objectives_display(self):
         """Test that multiple objectives are displayed correctly."""
         from monthly_objectives.models import MonthlyObjective
         from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
         from calendar import monthrange
 
         # Create multiple objectives for May 2026
@@ -2371,7 +2366,7 @@ class MonthlyObjectiveFullFlowSeleniumTestCase(StaticLiveServerTestCase):
                     f"//td[contains(text(), '{obj_data['label']}')]"
                 )
                 self.assertIsNotNone(label_element)
-            except:
+            except Exception:
                 self.fail(f"Objective '{obj_data['label']}' not found in table")
 
         # Verify all three have edit buttons
@@ -2418,7 +2413,7 @@ class MonthlyObjectivesCustomCategoryTests(TestCase):
         self.uncategorized_obj = MonthlyObjective.objects.create(
             objective_id='test_uncategorized',
             label='No Category Test',
-            category=None,  # No category
+            category='',  # No category
             start=date(2025, 11, 1),
             end=date(2025, 11, 30),
             objective_value=150,
@@ -2438,7 +2433,6 @@ class MonthlyObjectivesCustomCategoryTests(TestCase):
         - No category (None or empty string)
         """
         from django.test import Client
-        from datetime import date
         
         client = Client()
         
@@ -2482,69 +2476,59 @@ class MonthlyObjectivesCustomCategoryTests(TestCase):
         all_objectives = monthly_obj_context['objectives']
         self.assertEqual(len(all_objectives), 3, "Should include all 3 objectives")
     
+    def _create_ordering_test_objectives(self):
+        """Create objectives with various categories for ordering tests."""
+        from monthly_objectives.models import MonthlyObjective
+        from datetime import date
+
+        test_objectives = [
+            ('test_zcustom', 'Z Category (should be last)', 'ZCustom'),
+            ('test_acustom', 'A Category (should be before Z)', 'ACustom'),
+            ('test_nutrition', 'Nutrition Test', 'Nutrition'),
+        ]
+        for obj_id, label, category in test_objectives:
+            MonthlyObjective.objects.create(
+                objective_id=obj_id,
+                label=label,
+                category=category,
+                start=date(2025, 11, 1),
+                end=date(2025, 11, 30),
+                objective_value=50,
+                objective_definition='SELECT 25'
+            )
+
+    def _assert_predefined_before_custom(self, all_categories, predefined):
+        """Assert that all predefined categories appear before any custom ones."""
+        predefined_in_response = [cat for cat in all_categories if cat in predefined]
+        custom_categories = [cat for cat in all_categories if cat not in predefined]
+
+        if predefined_in_response and custom_categories:
+            last_predefined_idx = max(all_categories.index(cat) for cat in predefined_in_response)
+            first_custom_idx = min(all_categories.index(cat) for cat in custom_categories)
+            self.assertLess(last_predefined_idx, first_custom_idx,
+                "Predefined categories should appear before custom categories")
+
     def test_category_display_order(self):
         """
         Test that categories are displayed in the correct order:
         1. Predefined categories first (Exercise, Nutrition, Weight, Time Mgmt)
         2. Custom categories alphabetically after predefined ones
         """
-        from monthly_objectives.models import MonthlyObjective
-        from datetime import date
         from django.test import Client
-        
-        # Create additional objectives to test ordering
-        MonthlyObjective.objects.create(
-            objective_id='test_zcustom',
-            label='Z Category (should be last)',
-            category='ZCustom',
-            start=date(2025, 11, 1),
-            end=date(2025, 11, 30),
-            objective_value=50,
-            objective_definition='SELECT 25'
-        )
-        
-        MonthlyObjective.objects.create(
-            objective_id='test_acustom',
-            label='A Category (should be before Z)',
-            category='ACustom',
-            start=date(2025, 11, 1),
-            end=date(2025, 11, 30),
-            objective_value=50,
-            objective_definition='SELECT 25'
-        )
-        
-        MonthlyObjective.objects.create(
-            objective_id='test_nutrition',
-            label='Nutrition Test',
-            category='Nutrition',  # Predefined
-            start=date(2025, 11, 1),
-            end=date(2025, 11, 30),
-            objective_value=50,
-            objective_definition='SELECT 25'
-        )
-        
+
+        self._create_ordering_test_objectives()
+
         client = Client()
         response = client.get('/activity-report/', {
             'start_date': '2025-11-01',
             'end_date': '2025-11-30'
         })
-        
+
         all_categories = response.context['monthly_objectives']['all_categories']
-        
-        # Predefined categories should come first
         predefined = ['Exercise', 'Nutrition', 'Weight', 'Time Mgmt']
-        predefined_in_response = [cat for cat in all_categories if cat in predefined]
-        
-        # Check that predefined categories appear before custom ones
-        if predefined_in_response:
-            last_predefined_idx = max(all_categories.index(cat) for cat in predefined_in_response)
-            custom_categories = [cat for cat in all_categories if cat not in predefined]
-            if custom_categories:
-                first_custom_idx = min(all_categories.index(cat) for cat in custom_categories)
-                self.assertLess(last_predefined_idx, first_custom_idx,
-                    "Predefined categories should appear before custom categories")
-        
-        # Custom categories should be alphabetically sorted
+
+        self._assert_predefined_before_custom(all_categories, predefined)
+
         custom_categories = [cat for cat in all_categories if cat not in predefined]
         self.assertEqual(custom_categories, sorted(custom_categories),
             "Custom categories should be sorted alphabetically")
@@ -2629,8 +2613,6 @@ class TodaysActivityTestCase(TestCase):
 
     def test_activity_only_shows_todays_data(self):
         """Test that only today's activities show, not yesterday's or tomorrow's"""
-        import pytz
-        cst = pytz.timezone('America/Chicago')
         now = timezone.now()
 
         # Yesterday's workout (should NOT appear)

@@ -8,14 +8,13 @@ Usage:
 """
 from django.core.management.base import BaseCommand
 from weight.services.withings_client import WithingsAPIClient
-import os
 import secrets
 
 
 class Command(BaseCommand):
     help = 'Authenticate with Withings API and obtain access tokens'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         self.stdout.write(self.style.SUCCESS('Withings API Authentication'))
         self.stdout.write('=' * 50)
 

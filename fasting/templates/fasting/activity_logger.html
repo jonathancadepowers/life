@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta name="description" content="Activity logger and data sync">
+    <meta name="keywords" content="activity, logger, sync">
     <title>Activity Logger - Life Tracker</title>
 
     <!-- Bootstrap CSS -->
@@ -160,22 +162,96 @@
             border-radius: 4px;
             overflow-x: auto;
         }
+        .deprecation-banner {
+            border-radius: 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 1.5rem;
+        }
+        .top-right-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .nav-menu-icon {
+            font-size: 1.2rem;
+        }
+        .date-header-wrapper {
+            position: relative;
+        }
+        .date-header-bar {
+            position: relative;
+            margin-bottom: 0;
+            padding: 1rem 1rem 1rem 0;
+        }
+        .return-to-today {
+            position: absolute;
+            top: 50%;
+            right: 32px;
+            transform: translateY(-50%);
+        }
+        .calendar-toggle-btn {
+            position: absolute;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            color: #333;
+            padding: 0;
+            z-index: 10;
+        }
+        .agenda-section-flush {
+            margin-top: 0;
+        }
+        .day-score-box {
+            background-color: #e8f4f8;
+            border: 1px solid #bee5eb;
+        }
+        .day-score-text {
+            color: #0c5460;
+            font-weight: 600;
+        }
+        .target-card {
+            position: relative;
+        }
+        .target-checkbox-wrapper {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+        .tie-to-goal-label {
+            font-size: 0.9rem;
+        }
+        .fasting-row-compact {
+            margin-bottom: -8px;
+        }
+        .sync-output-pre {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
     <!-- Deprecation Banner -->
-    <div class="alert alert-danger text-center mb-0" role="alert" style="border-radius: 0; font-size: 1.2rem; font-weight: bold; padding: 1.5rem;">
+    <div class="alert alert-danger text-center mb-0 deprecation-banner" role="alert">
         <i class="bi bi-exclamation-triangle-fill"></i> This page has been deprecated and is no longer in use.
     </div>
 
     <!-- Top Right Controls - Fixed Position -->
-    <div style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; gap: 8px; align-items: center;">
+    <div class="top-right-controls">
         <button class="btn btn-warning btn-sm" onclick="runMasterSync()">
             <i class="bi bi-arrow-repeat"></i> Run Master Sync
         </button>
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm" type="button" id="navMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-list" style="font-size: 1.2rem;"></i>
+                <i class="bi bi-list nav-menu-icon"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navMenuButton">
                 <li><a class="dropdown-item active" href="/activity-logger/">Activity Logger</a></li>
@@ -202,26 +278,26 @@
                 {% endif %}
 
                 <!-- Today's Agenda Section -->
-                <div style="position: relative;">
+                <div class="date-header-wrapper">
                     <!-- Date label and calendar icon above the section -->
-                    <div class="bg-light rounded" style="position: relative; margin-bottom: 0; padding: 1rem 1rem 1rem 0;">
+                    <div class="bg-light rounded date-header-bar">
                         <h4 class="mb-0" id="today-date"></h4>
-                        <button id="return-to-today-btn" class="btn btn-sm btn-primary" onclick="returnToToday()" style="position: absolute; top: 50%; right: 32px; transform: translateY(-50%); display: none;">
+                        <button id="return-to-today-btn" class="btn btn-sm btn-primary d-none return-to-today" onclick="returnToToday()">
                             Return to Today
                         </button>
                         <!-- Calendar icon vertically centered with date text -->
-                        <button id="calendar-button" class="btn btn-link" onclick="showCalendarModal()" style="position: absolute; top: 50%; right: 0; transform: translateY(-50%); font-size: 1.5rem; color: #333; padding: 0; z-index: 10;" title="View past agendas">
+                        <button id="calendar-button" class="btn btn-link calendar-toggle-btn" onclick="showCalendarModal()" title="View past agendas">
                             <i class="bi bi-calendar3"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="activity-section" style="margin-top: 0;">
+                <div class="activity-section agenda-section-flush">
                     <h2 class="section-title">Agenda</h2>
 
                     <!-- Day Score Box (shown for past days only) -->
-                    <div id="day-score-box" class="mb-4 p-3 rounded" style="background-color: #e8f4f8; border: 1px solid #bee5eb; display: none;">
-                        <h5 class="mb-0" id="day-score-text" style="color: #0c5460; font-weight: 600;"></h5>
+                    <div id="day-score-box" class="mb-4 p-3 rounded d-none day-score-box">
+                        <h5 class="mb-0 day-score-text" id="day-score-text"></h5>
                     </div>
 
                     <!-- Sync Projects/Goals Button -->
@@ -233,11 +309,11 @@
 
                     <form id="agendaForm">
                         <!-- Target 1 -->
-                        <div class="mb-4 p-3 border rounded" style="position: relative;">
-                            <div style="position: absolute; top: 15px; right: 15px;">
+                        <div class="mb-4 p-3 border rounded target-card">
+                            <div class="target-checkbox-wrapper">
                                 <div class="form-check">
                                     <input class="form-check-input tie-to-goal-checkbox" type="checkbox" id="tie_to_goal_1" data-target="1" {% if agenda and agenda.goal_1 %}checked{% endif %}>
-                                    <label class="form-check-label" for="tie_to_goal_1" style="font-size: 0.9rem;">
+                                    <label class="form-check-label tie-to-goal-label" for="tie_to_goal_1">
                                         Tie to Goal
                                     </label>
                                 </div>
@@ -254,7 +330,7 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="mb-3 goal-section" id="goal_section_1" style="{% if not agenda or not agenda.goal_1 %}display: none;{% endif %}">
+                            <div class="mb-3 goal-section {% if not agenda or not agenda.goal_1 %}d-none{% endif %}" id="goal_section_1">
                                 <label for="goal_1" class="form-label">Goal:</label>
                                 <select name="goal_1" id="goal_1" class="form-select goal-select" data-target="1" disabled>
                                     <option value="">-- Select Goal --</option>
@@ -264,10 +340,10 @@
                                 <label for="target_1" class="form-label">Target:</label>
                                 <input type="text" name="target_1" id="target_1" class="form-control target-input" placeholder="Enter target" value="{% if agenda and agenda.target_1 %}{{ agenda.target_1.target_name }}{% endif %}" {% if not agenda or not agenda.project_1 %}disabled{% endif %}>
                             </div>
-                            <div class="mt-3 p-2 bg-light rounded" id="time_display_1" style="display: none;">
+                            <div class="mt-3 p-2 bg-light rounded d-none" id="time_display_1">
                                 <small class="text-muted"><strong>Time spent today:</strong> <span id="time_value_1" class="text-primary">--</span></small>
                             </div>
-                            <div class="mt-3 p-2 border-top score-section" id="score_section_1" style="{% if not agenda or not agenda.target_1 or not agenda.target_1.target_name %}display: none;{% endif %}">
+                            <div class="mt-3 p-2 border-top score-section {% if not agenda or not agenda.target_1 or not agenda.target_1.target_name %}d-none{% endif %}" id="score_section_1">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted"><strong>How did you do?</strong></small>
                                     <div class="score-buttons" data-target="1">
@@ -281,11 +357,11 @@
                         </div>
 
                         <!-- Target 2 -->
-                        <div class="mb-4 p-3 border rounded" style="position: relative;">
-                            <div style="position: absolute; top: 15px; right: 15px;">
+                        <div class="mb-4 p-3 border rounded target-card">
+                            <div class="target-checkbox-wrapper">
                                 <div class="form-check">
                                     <input class="form-check-input tie-to-goal-checkbox" type="checkbox" id="tie_to_goal_2" data-target="2" {% if agenda and agenda.goal_2 %}checked{% endif %}>
-                                    <label class="form-check-label" for="tie_to_goal_2" style="font-size: 0.9rem;">
+                                    <label class="form-check-label tie-to-goal-label" for="tie_to_goal_2">
                                         Tie to Goal
                                     </label>
                                 </div>
@@ -302,7 +378,7 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="mb-3 goal-section" id="goal_section_2" style="{% if not agenda or not agenda.goal_2 %}display: none;{% endif %}">
+                            <div class="mb-3 goal-section {% if not agenda or not agenda.goal_2 %}d-none{% endif %}" id="goal_section_2">
                                 <label for="goal_2" class="form-label">Goal:</label>
                                 <select name="goal_2" id="goal_2" class="form-select goal-select" data-target="2" disabled>
                                     <option value="">-- Select Goal --</option>
@@ -312,10 +388,10 @@
                                 <label for="target_2" class="form-label">Target:</label>
                                 <input type="text" name="target_2" id="target_2" class="form-control target-input" placeholder="Enter target" value="{% if agenda and agenda.target_2 %}{{ agenda.target_2.target_name }}{% endif %}" {% if not agenda or not agenda.project_2 %}disabled{% endif %}>
                             </div>
-                            <div class="mt-3 p-2 bg-light rounded" id="time_display_2" style="display: none;">
+                            <div class="mt-3 p-2 bg-light rounded d-none" id="time_display_2">
                                 <small class="text-muted"><strong>Time spent today:</strong> <span id="time_value_2" class="text-primary">--</span></small>
                             </div>
-                            <div class="mt-3 p-2 border-top score-section" id="score_section_2" style="{% if not agenda or not agenda.target_2 or not agenda.target_2.target_name %}display: none;{% endif %}">
+                            <div class="mt-3 p-2 border-top score-section {% if not agenda or not agenda.target_2 or not agenda.target_2.target_name %}d-none{% endif %}" id="score_section_2">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted"><strong>How did you do?</strong></small>
                                     <div class="score-buttons" data-target="2">
@@ -329,11 +405,11 @@
                         </div>
 
                         <!-- Target 3 -->
-                        <div class="mb-4 p-3 border rounded" style="position: relative;">
-                            <div style="position: absolute; top: 15px; right: 15px;">
+                        <div class="mb-4 p-3 border rounded target-card">
+                            <div class="target-checkbox-wrapper">
                                 <div class="form-check">
                                     <input class="form-check-input tie-to-goal-checkbox" type="checkbox" id="tie_to_goal_3" data-target="3" {% if agenda and agenda.goal_3 %}checked{% endif %}>
-                                    <label class="form-check-label" for="tie_to_goal_3" style="font-size: 0.9rem;">
+                                    <label class="form-check-label tie-to-goal-label" for="tie_to_goal_3">
                                         Tie to Goal
                                     </label>
                                 </div>
@@ -350,7 +426,7 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="mb-3 goal-section" id="goal_section_3" style="{% if not agenda or not agenda.goal_3 %}display: none;{% endif %}">
+                            <div class="mb-3 goal-section {% if not agenda or not agenda.goal_3 %}d-none{% endif %}" id="goal_section_3">
                                 <label for="goal_3" class="form-label">Goal:</label>
                                 <select name="goal_3" id="goal_3" class="form-select goal-select" data-target="3" disabled>
                                     <option value="">-- Select Goal --</option>
@@ -360,10 +436,10 @@
                                 <label for="target_3" class="form-label">Target:</label>
                                 <input type="text" name="target_3" id="target_3" class="form-control target-input" placeholder="Enter target" value="{% if agenda and agenda.target_3 %}{{ agenda.target_3.target_name }}{% endif %}" {% if not agenda or not agenda.project_3 %}disabled{% endif %}>
                             </div>
-                            <div class="mt-3 p-2 bg-light rounded" id="time_display_3" style="display: none;">
+                            <div class="mt-3 p-2 bg-light rounded d-none" id="time_display_3">
                                 <small class="text-muted"><strong>Time spent today:</strong> <span id="time_value_3" class="text-primary">--</span></small>
                             </div>
-                            <div class="mt-3 p-2 border-top score-section" id="score_section_3" style="{% if not agenda or not agenda.target_3 or not agenda.target_3.target_name %}display: none;{% endif %}">
+                            <div class="mt-3 p-2 border-top score-section {% if not agenda or not agenda.target_3 or not agenda.target_3.target_name %}d-none{% endif %}" id="score_section_3">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted"><strong>How did you do?</strong></small>
                                     <div class="score-buttons" data-target="3">
@@ -384,14 +460,14 @@
                                     <button type="button" id="notes-edit-btn" class="btn btn-sm btn-outline-primary" onclick="toggleNotesMode('edit')">
                                         <i class="bi bi-pencil"></i> Edit
                                     </button>
-                                    <button type="button" id="notes-view-btn" class="btn btn-sm btn-outline-secondary" onclick="toggleNotesMode('view')" style="display: none;">
+                                    <button type="button" id="notes-view-btn" class="btn btn-sm btn-outline-secondary d-none" onclick="toggleNotesMode('view')">
                                         <i class="bi bi-eye"></i> View
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Edit Mode -->
-                            <div id="notes-edit-mode" style="display: none;">
+                            <div id="notes-edit-mode" class="d-none">
                                 <textarea id="notes-textarea" name="other_plans" class="form-control" rows="6">{% if agenda and agenda.other_plans %}{{ agenda.other_plans }}{% endif %}</textarea>
                             </div>
 
@@ -415,7 +491,7 @@
                 <div class="activity-section">
                     <h2 class="section-title">Fasting</h2>
 
-                    <div class="row" style="margin-bottom: -8px;">
+                    <div class="row fasting-row-compact">
                         <div class="col-md-4">
                             <button class="btn btn-primary fast-btn" onclick="logFast(12)">
                                 <i class="bi bi-clock"></i> 12 Hours
@@ -701,7 +777,7 @@
             .then(data => {
                 if (data.success) {
                     // Show detailed output in a modal
-                    showSyncOutputModal(data.output, data.has_errors, data.auth_errors);
+                    showSyncOutputModal(data.results, data.has_errors, data.auth_errors);
                 } else {
                     showFlashMessage(data.message || 'Error running sync', false);
                     if (data.traceback) {
@@ -720,7 +796,7 @@
             });
         }
 
-        function showSyncOutputModal(output, hasErrors, authErrors = {}) {
+        function showSyncOutputModal(results, hasErrors, authErrors = {}) {
             // Create modal if it doesn't exist
             let modal = document.getElementById('syncOutputModal');
             if (!modal) {
@@ -736,7 +812,7 @@
                             </div>
                             <div class="modal-body">
                                 <div id="authErrorsSection"></div>
-                                <pre id="syncOutputContent" style="background-color: #f8f9fa; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto;"></pre>
+                                <div id="syncResultsContent"></div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -747,9 +823,29 @@
                 document.body.appendChild(modal);
             }
 
-            // Update modal content
-            const outputContent = document.getElementById('syncOutputContent');
-            outputContent.textContent = output;
+            // Build results display from structured data
+            const resultsContent = document.getElementById('syncResultsContent');
+            if (results && Object.keys(results).length > 0) {
+                let html = '<table class="table table-sm mb-0">';
+                html += '<thead><tr><th>Source</th><th>Status</th><th>Created</th><th>Updated</th><th>Skipped</th></tr></thead><tbody>';
+                for (const [source, r] of Object.entries(results)) {
+                    const icon = r.success ? '✓' : '✗';
+                    const rowClass = r.success ? '' : 'table-danger';
+                    html += `<tr class="${rowClass}">`;
+                    html += `<td><strong>${icon} ${source.charAt(0).toUpperCase() + source.slice(1)}</strong></td>`;
+                    if (r.success) {
+                        html += `<td class="text-success">OK</td>`;
+                        html += `<td>${r.created}</td><td>${r.updated}</td><td>${r.skipped}</td>`;
+                    } else {
+                        html += `<td class="text-danger" colspan="4">${r.error || r.summary || 'Failed'}</td>`;
+                    }
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                resultsContent.innerHTML = html;
+            } else {
+                resultsContent.innerHTML = '<p class="text-muted">No sync results available.</p>';
+            }
 
             // Show authentication error section if there are auth errors
             const authErrorsSection = document.getElementById('authErrorsSection');
@@ -762,6 +858,9 @@
                 }
                 if (authErrors.withings) {
                     authHtml += '<a href="/oauth/withings/authorize/" class="btn btn-sm btn-primary me-2">Re-authenticate Withings</a>';
+                }
+                if (authErrors.cronometer) {
+                    authHtml += '<span class="btn btn-sm btn-outline-secondary me-2 disabled">Cronometer: check credentials</span>';
                 }
 
                 authHtml += '</div>';
@@ -891,12 +990,12 @@
 
             // Hide time display if no project selected OR if viewing a future date
             if (!projectId || isFutureDate()) {
-                timeDisplay.style.display = 'none';
+                timeDisplay.classList.add('d-none');
                 return;
             }
 
             // Show loading state
-            timeDisplay.style.display = 'block';
+            timeDisplay.classList.remove('d-none');
             timeValue.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
             // Get user's timezone offset in minutes
@@ -958,7 +1057,7 @@
 
                 if (this.checked) {
                     // Show goal section
-                    goalSection.style.display = 'block';
+                    goalSection.classList.remove('d-none');
                     // Check if project is selected to enable goal dropdown
                     const projectSelect = document.getElementById(`project_${targetNum}`);
                     if (projectSelect.value) {
@@ -968,7 +1067,7 @@
                     }
                 } else {
                     // Hide goal section and clear goal selection
-                    goalSection.style.display = 'none';
+                    goalSection.classList.add('d-none');
                     goalSelect.value = '';
                     goalSelect.disabled = true;
                     goalSelect.innerHTML = '<option value="">-- Select Goal --</option>';
@@ -1000,7 +1099,7 @@
 
                 // Hide score section when target is cleared
                 if (scoreSection) {
-                    scoreSection.style.display = 'none';
+                    scoreSection.classList.add('d-none');
                     // Clear active state from all score buttons
                     scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
                 }
@@ -1047,9 +1146,9 @@
                     // 1. There's text in the target input
                     // 2. We're NOT viewing a future date
                     if (this.value.trim() && !isFutureDate()) {
-                        scoreSection.style.display = 'block';
+                        scoreSection.classList.remove('d-none');
                     } else {
-                        scoreSection.style.display = 'none';
+                        scoreSection.classList.add('d-none');
                         // Clear active state from all score buttons
                         scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
                     }
@@ -1071,7 +1170,7 @@
                                 document.getElementById('target_1').value = '{{ agenda.target_1.target_name }}';
                                 // Show score section if target has text
                                 const scoreSection1 = document.getElementById('score_section_1');
-                                if (scoreSection1) scoreSection1.style.display = 'block';
+                                if (scoreSection1) scoreSection1.classList.remove('d-none');
                             {% endif %}
                         }, 300);
                     {% else %}
@@ -1080,7 +1179,7 @@
                             document.getElementById('target_1').value = '{{ agenda.target_1.target_name }}';
                             // Show score section if target has text
                             const scoreSection1 = document.getElementById('score_section_1');
-                            if (scoreSection1) scoreSection1.style.display = 'block';
+                            if (scoreSection1) scoreSection1.classList.remove('d-none');
                         {% endif %}
                         updateTogglTime(1);
                     {% endif %}
@@ -1099,7 +1198,7 @@
                                 document.getElementById('target_2').value = '{{ agenda.target_2.target_name }}';
                                 // Show score section if target has text
                                 const scoreSection2 = document.getElementById('score_section_2');
-                                if (scoreSection2) scoreSection2.style.display = 'block';
+                                if (scoreSection2) scoreSection2.classList.remove('d-none');
                             {% endif %}
                         }, 300);
                     {% else %}
@@ -1108,7 +1207,7 @@
                             document.getElementById('target_2').value = '{{ agenda.target_2.target_name }}';
                             // Show score section if target has text
                             const scoreSection2 = document.getElementById('score_section_2');
-                            if (scoreSection2) scoreSection2.style.display = 'block';
+                            if (scoreSection2) scoreSection2.classList.remove('d-none');
                         {% endif %}
                         updateTogglTime(2);
                     {% endif %}
@@ -1127,7 +1226,7 @@
                                 document.getElementById('target_3').value = '{{ agenda.target_3.target_name }}';
                                 // Show score section if target has text
                                 const scoreSection3 = document.getElementById('score_section_3');
-                                if (scoreSection3) scoreSection3.style.display = 'block';
+                                if (scoreSection3) scoreSection3.classList.remove('d-none');
                             {% endif %}
                         }, 300);
                     {% else %}
@@ -1136,7 +1235,7 @@
                             document.getElementById('target_3').value = '{{ agenda.target_3.target_name }}';
                             // Show score section if target has text
                             const scoreSection3 = document.getElementById('score_section_3');
-                            if (scoreSection3) scoreSection3.style.display = 'block';
+                            if (scoreSection3) scoreSection3.classList.remove('d-none');
                         {% endif %}
                         updateTogglTime(3);
                     {% endif %}
@@ -1377,7 +1476,7 @@
             currentSelectedDate = dateStr;
 
             // Show the "Return to Today" button
-            document.getElementById('return-to-today-btn').style.display = 'block';
+            document.getElementById('return-to-today-btn').classList.remove('d-none');
 
             if (isFuture) {
                 // For future dates, load an empty agenda form
@@ -1431,19 +1530,19 @@
                 document.getElementById(`target_${i}`).value = '';
                 document.getElementById(`target_${i}`).disabled = true;
                 document.getElementById(`tie_to_goal_${i}`).checked = false;
-                document.getElementById(`goal_section_${i}`).style.display = 'none';
+                document.getElementById(`goal_section_${i}`).classList.add('d-none');
 
                 // Hide score sections (no scoring for future dates)
                 const scoreSection = document.getElementById(`score_section_${i}`);
                 if (scoreSection) {
-                    scoreSection.style.display = 'none';
+                    scoreSection.classList.add('d-none');
                     scoreSection.querySelectorAll('.score-btn').forEach(btn => btn.classList.remove('active'));
                 }
 
                 // Hide time display (no time tracking for future dates)
                 const timeDisplay = document.getElementById(`time_display_${i}`);
                 if (timeDisplay) {
-                    timeDisplay.style.display = 'none';
+                    timeDisplay.classList.add('d-none');
                 }
             }
 
@@ -1457,7 +1556,7 @@
             currentSelectedDate = null;
 
             // Hide the "Return to Today" button
-            document.getElementById('return-to-today-btn').style.display = 'none';
+            document.getElementById('return-to-today-btn').classList.add('d-none');
 
             // Reload the page to get today's agenda
             window.location.reload();
@@ -1576,7 +1675,7 @@
 
             // Only show for past days, not today or future
             if (isFutureDate() || isToday()) {
-                dayScoreBox.style.display = 'none';
+                dayScoreBox.classList.add('d-none');
                 return;
             }
 
@@ -1607,12 +1706,12 @@
 
             // If no targets are set, don't show the box
             if (!hasAnyTarget) {
-                dayScoreBox.style.display = 'none';
+                dayScoreBox.classList.add('d-none');
                 return;
             }
 
             // Show the box
-            dayScoreBox.style.display = 'block';
+            dayScoreBox.classList.remove('d-none');
 
             // Display "Unscored" or the calculated score
             if (hasUnscoredTarget) {
@@ -1709,20 +1808,20 @@
             const textarea = document.getElementById('notes-textarea');
 
             if (mode === 'edit') {
-                editMode.style.display = 'block';
-                viewMode.style.display = 'none';
-                editBtn.style.display = 'none';
-                viewBtn.style.display = 'inline-block';
+                editMode.classList.remove('d-none');
+                viewMode.classList.add('d-none');
+                editBtn.classList.add('d-none');
+                viewBtn.classList.remove('d-none');
                 notesInEditMode = true;
             } else {
                 // Switching to view mode - render the current markdown
                 const currentText = textarea.value;
                 renderMarkdown(currentText);
 
-                editMode.style.display = 'none';
-                viewMode.style.display = 'block';
-                editBtn.style.display = 'inline-block';
-                viewBtn.style.display = 'none';
+                editMode.classList.add('d-none');
+                viewMode.classList.remove('d-none');
+                editBtn.classList.remove('d-none');
+                viewBtn.classList.add('d-none');
                 notesInEditMode = false;
             }
         }
@@ -1895,7 +1994,7 @@
                     // Show score section if target has text AND not viewing future date
                     const scoreSection = document.getElementById(`score_section_${targetNum}`);
                     if (scoreSection && target.target_name && !isFutureDate()) {
-                        scoreSection.style.display = 'block';
+                        scoreSection.classList.remove('d-none');
                     }
 
                     // If there's a goal, load goals (which will call updateTogglTime after goals load)
@@ -1920,13 +2019,13 @@
                     // Hide score section if no target
                     const scoreSection = document.getElementById(`score_section_${targetNum}`);
                     if (scoreSection) {
-                        scoreSection.style.display = 'none';
+                        scoreSection.classList.add('d-none');
                     }
 
                     // Hide time display if no project
                     const timeDisplay = document.getElementById(`time_display_${targetNum}`);
                     if (timeDisplay) {
-                        timeDisplay.style.display = 'none';
+                        timeDisplay.classList.add('d-none');
                     }
                 }
 
@@ -1935,10 +2034,10 @@
                 const goalSection = document.getElementById(`goal_section_${targetNum}`);
                 if (target.goal_id) {
                     tieToGoalCheckbox.checked = true;
-                    goalSection.style.display = 'block';
+                    goalSection.classList.remove('d-none');
                 } else {
                     tieToGoalCheckbox.checked = false;
-                    goalSection.style.display = 'none';
+                    goalSection.classList.add('d-none');
                 }
             });
 
@@ -1979,7 +2078,7 @@
 
                     // Show goal section if we have a selected goal
                     if (selectedGoalId && goalSection) {
-                        goalSection.style.display = 'block';
+                        goalSection.classList.remove('d-none');
                     }
 
                     data.goals.forEach(goal => {

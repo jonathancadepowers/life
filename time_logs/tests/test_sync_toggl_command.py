@@ -348,19 +348,21 @@ class TestSyncTogglCommand(TestCase):
         self.assertEqual(time_log.goals.count(), 0)
 
     @mock.patch('time_logs.management.commands.sync_toggl.TogglAPIClient')
-    def test_sync_raises_on_missing_credentials(self, mock_client_class):
-        """Should raise exception when API credentials are missing"""
+    def test_sync_returns_error_result_on_missing_credentials(self, mock_client_class):
+        """Should return a failed SyncResult when API credentials are missing"""
+        from time_logs.management.commands.sync_toggl import Command as SyncTogglCommand
+
         # Mock: Client initialization fails
         mock_client_class.side_effect = ValueError(
             "TOGGL_API_TOKEN must be set in environment variables"
         )
 
-        # Assert: Command raises exception
-        out = StringIO()
-        err = StringIO()
-        with self.assertRaises(ValueError) as context:
-            call_command('sync_toggl', days=7, stdout=out, stderr=err)
+        # Run sync() directly to get the SyncResult
+        cmd = SyncTogglCommand()
+        cmd.stdout = StringIO()
+        result = cmd.sync(days=7)
 
-        # Assert: Error message is clear
-        error_message = str(context.exception)
-        self.assertIn('TOGGL_API_TOKEN', error_message)
+        # Assert: SyncResult indicates failure with auth error
+        self.assertFalse(result.success)
+        self.assertTrue(result.auth_error)
+        self.assertIn('TOGGL_API_TOKEN', result.error_message)

@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Personal life metrics dashboard">
+    <meta name="keywords" content="metrics, dashboard, tracking">
     <title>Life Metrics - Jonathan Powers</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,6 +89,13 @@
         .habit-cell {
             position: relative;
             cursor: help;
+            border: 1px solid #404040;
+            padding: 0.4rem;
+            text-align: left;
+            font-size: 0.65rem;
+            width: 100px;
+            max-width: 100px;
+            min-width: 100px;
         }
 
         .details-tooltip,
@@ -131,9 +140,163 @@
             opacity: 0.8 !important;
         }
 
-        /* Year option hover */
+        /* Year picker */
+        .year-picker-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 2000;
+        }
+
+        .year-picker-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            opacity: 0.4;
+            transition: opacity 0.2s;
+        }
+
+        .year-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border: 1px solid #E6E6E6;
+            border-radius: 4px;
+            padding: 0.5rem;
+            margin-top: 0.25rem;
+            min-width: 100px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .year-dropdown-label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+
+        /* Year option styles */
+        .year-option {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-radius: 3px;
+        }
+
         .year-option:hover {
             background: #f8f9fa !important;
+        }
+
+        /* Section heading and description */
+        .section-heading {
+            margin: 0 0 calc(0.25rem + 4px) 0;
+        }
+
+        .section-heading-label {
+            background-color: #FDC3BF;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .section-description {
+            font-size: 0.75rem;
+            line-height: 1.5;
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        /* Habit tracking table */
+        .habit-table {
+            border-collapse: collapse;
+            font-size: 0.65rem;
+            margin-top: 0;
+            table-layout: fixed;
+            width: 945px;
+        }
+
+        /* Shared styles for all habit table header cells */
+        .habit-table th {
+            border: 1px solid #404040;
+            padding: 0.2rem;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .habit-th-month {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            width: 75px;
+            max-width: 75px;
+            min-width: 75px;
+        }
+
+        .habit-th-name {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            width: 100px;
+            max-width: 100px;
+            min-width: 100px;
+        }
+
+        .habit-th-day {
+            width: 20px;
+            max-width: 20px;
+            min-width: 20px;
+            font-size: 0.6rem;
+        }
+
+        .habit-th-total {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            width: 150px;
+            max-width: 150px;
+            min-width: 150px;
+        }
+
+        /* Habit table body cells */
+        .habit-td-month {
+            border: 1px solid #404040;
+            padding: 0.4rem;
+            text-align: left;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            vertical-align: middle;
+            width: 75px;
+            max-width: 75px;
+            min-width: 75px;
+        }
+
+        /* Shared styles for day cells (pixel-cell and empty) */
+        .day-cell {
+            padding: 0;
+            border: 1px solid #404040;
+            text-align: center;
+            width: 20px;
+            max-width: 20px;
+            min-width: 20px;
+            height: 19px;
+            background-color: #ffffff;
+        }
+
+        .total-cell {
+            border: 1px solid #404040;
+            padding: 0.4rem;
+            text-align: left;
+            font-size: 0.65rem;
+            width: 150px;
+            max-width: 150px;
+            min-width: 150px;
         }
 
         /* Month separator - thicker border on first row of each month */
@@ -316,36 +479,36 @@
     </nav>
 
     <!-- Year Picker Icon - Top Right Corner of Page -->
-    <div style="position: fixed; top: 2rem; right: 2rem; z-index: 2000;">
-        <button id="yearPickerButton" style="background: none; border: none; cursor: pointer; padding: 0.5rem; opacity: 0.4; transition: opacity 0.2s;">
+    <div class="year-picker-container">
+        <button id="yearPickerButton" class="year-picker-btn">
             <svg width="20" height="20" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M4.5 1C4.77614 1 5 1.22386 5 1.5V2H10V1.5C10 1.22386 10.2239 1 10.5 1C10.7761 1 11 1.22386 11 1.5V2H12.5C13.3284 2 14 2.67157 14 3.5V12.5C14 13.3284 13.3284 14 12.5 14H2.5C1.67157 14 1 13.3284 1 12.5V3.5C1 2.67157 1.67157 2 2.5 2H4V1.5C4 1.22386 4.22386 1 4.5 1ZM10 3V3.5C10 3.77614 10.2239 4 10.5 4C10.7761 4 11 3.77614 11 3.5V3H12.5C12.7761 3 13 3.22386 13 3.5V5H2V3.5C2 3.22386 2.22386 3 2.5 3H4V3.5C4 3.77614 4.22386 4 4.5 4C4.77614 4 5 3.77614 5 3.5V3H10ZM2 6V12.5C2 12.7761 2.22386 13 2.5 13H12.5C12.7761 13 13 12.7761 13 12.5V6H2Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"/>
             </svg>
         </button>
-        <div id="yearDropdown" style="display: none; position: absolute; right: 0; top: 100%; background: white; border: 1px solid #E6E6E6; border-radius: 4px; padding: 0.5rem; margin-top: 0.25rem; min-width: 100px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 1000;">
-            <div style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; color: #666;">Select Year</div>
-            <button class="year-option" data-year="2025" style="display: block; width: 100%; text-align: left; background: none; border: none; padding: 0.5rem; cursor: pointer; font-size: 0.85rem; border-radius: 3px;">2025</button>
-            <button class="year-option" data-year="2026" style="display: block; width: 100%; text-align: left; background: none; border: none; padding: 0.5rem; cursor: pointer; font-size: 0.85rem; border-radius: 3px;">2026</button>
+        <div id="yearDropdown" class="year-dropdown">
+            <div class="year-dropdown-label">Select Year</div>
+            <button class="year-option" data-year="2025">2025</button>
+            <button class="year-option" data-year="2026">2026</button>
         </div>
     </div>
 
     <div class="content">
-        <p style="margin: 0 0 calc(0.25rem + 4px) 0;"><strong style="background-color: #FDC3BF; padding: 0.25rem 0.5rem;">HABIT TRACKING</strong></p>
+        <p class="section-heading"><strong class="section-heading-label">HABIT TRACKING</strong></p>
 
-        <p style="font-size: 0.75rem; line-height: 1.5; margin: 0 0 0.5rem 0; color: #333;">
+        <p class="section-description">
             I track my performance against a limited set of habits, each with defined satisfaction criteria. Mouse over the cells for more context, and note that habits can change from month to month.
         </p>
 
         <!-- Habit Tracking Table -->
-        <table style="border-collapse: collapse; font-size: 0.65rem; margin-top: 0; table-layout: fixed; width: 945px;">
+        <table class="habit-table">
             <thead>
                 <tr>
-                    <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 75px; max-width: 75px; min-width: 75px;"></th>
-                    <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 100px; max-width: 100px; min-width: 100px;">Habit</th>
+                    <th class="habit-th-month"></th>
+                    <th class="habit-th-name">Habit</th>
                     {% for day in "1234567890123456789012345678901" %}
-                        <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; width: 20px; max-width: 20px; min-width: 20px; font-size: 0.6rem;">{{ forloop.counter }}</th>
+                        <th class="habit-th-day">{{ forloop.counter }}</th>
                     {% endfor %}
-                    <th style="border: 1px solid #404040; padding: 0.2rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; width: 150px; max-width: 150px; min-width: 150px;">Total</th>
+                    <th class="habit-th-total">Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -354,11 +517,11 @@
                         {% for habit in month_data.habits %}
                             <tr{% if forloop.first and not forloop.parentloop.first %} class="month-separator"{% endif %}>
                                 {% if forloop.first %}
-                                    <td rowspan="{{ month_data.habits|length }}" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: middle; width: 75px; max-width: 75px; min-width: 75px;">
+                                    <td rowspan="{{ month_data.habits|length }}" class="habit-td-month">
                                         {{ month_data.month_name }}
                                     </td>
                                 {% endif %}
-                                <td class="habit-cell" data-habit-name="{{ habit.total_column_text }}" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 100px; max-width: 100px; min-width: 100px;">
+                                <td class="habit-cell" data-habit-name="{{ habit.total_column_text }}">
                                     {{ habit.display_name }}
                                     {% if habit.tooltip_text %}
                                         <div class="habit-tooltip">{{ habit.tooltip_text }}</div>
@@ -366,14 +529,14 @@
                                 </td>
                                 {% for day_num in all_days %}
                                     {% if day_num <= month_data.days_in_month %}
-                                        <td class="pixel-cell" style="padding: 0; border: 1px solid #404040; text-align: center; width: 20px; max-width: 20px; min-width: 20px; height: 19px; background-color: #ffffff;" data-month="{{ month_data.month_num }}" data-day="{{ day_num }}" data-habit="{{ habit.column_name }}">
+                                        <td class="pixel-cell day-cell" data-month="{{ month_data.month_num }}" data-day="{{ day_num }}" data-habit="{{ habit.column_name }}">
                                             <!-- Pixel cell - will be filled with data -->
                                         </td>
                                     {% else %}
-                                        <td style="padding: 0; border: 1px solid #404040; text-align: center; width: 20px; max-width: 20px; min-width: 20px; height: 19px; background-color: #ffffff;"></td>
+                                        <td class="day-cell"></td>
                                     {% endif %}
                                 {% endfor %}
-                                <td class="total-cell" style="border: 1px solid #404040; padding: 0.4rem; text-align: left; font-size: 0.65rem; width: 150px; max-width: 150px; min-width: 150px;">
+                                <td class="total-cell">
                                     <!-- Total will be calculated and inserted here -->
                                 </td>
                             </tr>
@@ -393,7 +556,8 @@
         // Toggle dropdown
         yearPickerButton.addEventListener('click', function(e) {
             e.stopPropagation();
-            yearDropdown.style.display = yearDropdown.style.display === 'none' ? 'block' : 'none';
+            const isHidden = getComputedStyle(yearDropdown).display === 'none';
+            yearDropdown.style.display = isHidden ? 'block' : 'none';
         });
 
         // Close dropdown when clicking outside

@@ -9,7 +9,7 @@ from external_data.models import WhoopSportId
 class Command(BaseCommand):
     help = 'Populate WhoopSportId table with official Whoop sport mappings'
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         self.stdout.write('Populating Whoop Sport IDs...\n')
 
         # Official Whoop sport mappings from developer docs
@@ -152,7 +152,7 @@ class Command(BaseCommand):
                 updated_count += 1
 
         self.stdout.write('='*60)
-        self.stdout.write(self.style.SUCCESS(f'✓ Populated Whoop Sport IDs'))
+        self.stdout.write(self.style.SUCCESS('✓ Populated Whoop Sport IDs'))
         self.stdout.write('='*60)
         self.stdout.write(f"Created: {created_count}")
         self.stdout.write(f"Updated: {updated_count}")

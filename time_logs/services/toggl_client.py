@@ -7,13 +7,18 @@ Mapping:
 - Toggl Projects → Database Projects
 - Toggl Tags → Database Goals
 """
+import logging
 import os
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, List
 from dotenv import load_dotenv
 
+logger = logging.getLogger(__name__)
+
 load_dotenv()
+
+_WORKSPACE_ID_ERROR = "TOGGL_WORKSPACE_ID must be set in environment variables"
 
 
 class TogglAPIClient:
@@ -65,8 +70,9 @@ class TogglAPIClient:
                 # Fall back to environment variables (for initial setup)
                 self.api_token = os.getenv('TOGGL_API_TOKEN')
                 self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
-        except Exception as e:
+        except Exception:
             # Fall back to environment variables
+            logger.debug("Could not load Toggl credentials from database, falling back to environment variables")
             self.api_token = os.getenv('TOGGL_API_TOKEN')
             self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
 
@@ -92,7 +98,7 @@ class TogglAPIClient:
         # Toggl uses API token as username with 'api_token' as password
         auth = (self.api_token, 'api_token')
 
-        response = requests.request(method, url, auth=auth, params=params)
+        response = requests.request(method, url, auth=auth, params=params, timeout=30)
         response.raise_for_status()
 
         return response.json()
@@ -112,6 +118,7 @@ class TogglAPIClient:
             return None
         except Exception:
             # If there's an error or no running timer, return None
+            logger.debug("Could not fetch current time entry from Toggl, returning None")
             return None
 
     def get_time_entries(
@@ -135,12 +142,12 @@ class TogglAPIClient:
             List of time entry dictionaries including any running timer
         """
         if not self.workspace_id:
-            raise ValueError("TOGGL_WORKSPACE_ID must be set in environment variables")
+            raise ValueError(_WORKSPACE_ID_ERROR)
 
         if start_date is None:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = datetime.now(timezone.utc) - timedelta(days=30)
         if end_date is None:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
 
         # Reports API uses different URL and POST method
         url = f"{self.REPORTS_BASE_URL}/workspace/{self.workspace_id}/search/time_entries"
@@ -154,7 +161,7 @@ class TogglAPIClient:
         # Toggl uses API token as username with 'api_token' as password
         auth = (self.api_token, 'api_token')
 
-        response = requests.post(url, json=payload, auth=auth)
+        response = requests.post(url, json=payload, auth=auth, timeout=30)
         response.raise_for_status()
 
         # Fetch tags to map tag IDs to tag names
@@ -212,7 +219,7 @@ class TogglAPIClient:
             List of tag dictionaries with id and name
         """
         if not self.workspace_id:
-            raise ValueError("TOGGL_WORKSPACE_ID must be set in environment variables")
+            raise ValueError(_WORKSPACE_ID_ERROR)
 
         return self._make_request(f'/workspaces/{self.workspace_id}/tags')
 
@@ -224,6 +231,6 @@ class TogglAPIClient:
             List of project dictionaries with id and name
         """
         if not self.workspace_id:
-            raise ValueError("TOGGL_WORKSPACE_ID must be set in environment variables")
+            raise ValueError(_WORKSPACE_ID_ERROR)
 
         return self._make_request(f'/workspaces/{self.workspace_id}/projects')
