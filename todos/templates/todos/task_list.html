@@ -5910,12 +5910,12 @@
                                     <div class="signal-noise-strip signal-strip"><span>SIGNAL</span></div>
                                     <div class="signal-noise-tasks" data-zone="signal" data-state-id="{{ state.id }}">
                                         {% for task in tasks %}{% if task.state == state and task.is_signal %}
-                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.starred %} starred{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}" data-is-signal="true" data-signal-slot="{{ task.signal_slot|default_if_none:'' }}">
+                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}" data-is-signal="true" data-signal-slot="{{ task.signal_slot|default_if_none:'' }}">
                                             <div class="task-card-content">
                                                 <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                                 <div class="task-card-title">{{ task.title }}</div>
                                                 {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                                {% if task.critical or task.starred %}<div class="task-card-icons">{% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical"></i>{% endif %}{% if task.starred %}<i class="bi bi-star-fill task-star-icon" title="Starred"></i>{% endif %}</div>{% endif %}
+                                                {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical"></i></div>{% endif %}
                                             </div>
                                         </div>
                                         {% endif %}{% endfor %}
@@ -5925,12 +5925,12 @@
                                     <div class="signal-noise-strip noise-strip"><span>NOISE?</span></div>
                                     <div class="signal-noise-tasks" data-zone="noise" data-state-id="{{ state.id }}">
                                         {% for task in tasks %}{% if task.state == state and not task.is_signal %}
-                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.starred %} starred{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}" data-is-signal="false">
+                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}" data-is-signal="false">
                                             <div class="task-card-content">
                                                 <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                                 <div class="task-card-title">{{ task.title }}</div>
                                                 {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
-                                                {% if task.critical or task.starred %}<div class="task-card-icons">{% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical"></i>{% endif %}{% if task.starred %}<i class="bi bi-star-fill task-star-icon" title="Starred"></i>{% endif %}</div>{% endif %}
+                                                {% if task.critical %}<div class="task-card-icons"><i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical"></i></div>{% endif %}
                                             </div>
                                         </div>
                                         {% endif %}{% endfor %}
@@ -5941,7 +5941,7 @@
                             <div class="state-group-body" data-state-id="{{ state.id }}">
                                 {% for task in tasks %}
                                 {% if task.state == state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
@@ -7726,7 +7726,10 @@
             function createTaskCard(withHighlight) {
                 const card = document.createElement('div');
                 const isScheduled = (taskSchedulesMap[task.id] || []).length > 0;
-                card.className = 'task-card' + (task.critical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (withHighlight ? ' highlight-new' : '');
+                const terminalStateId = getTerminalStateId();
+                const isCompleted = task.state_id === terminalStateId;
+                const isAbandoned = abandonedStateId && task.state_id === abandonedStateId;
+                card.className = 'task-card' + (task.critical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (isCompleted || isAbandoned ? ' completed' : '') + (withHighlight ? ' highlight-new' : '');
                 card.dataset.taskId = task.id;
                 card.tabIndex = 0; // Make focusable
 
@@ -9454,6 +9457,11 @@
             }
             updateKanbanCounts();
 
+            // Check if task is in terminal or abandoned state
+            const terminalStateId = getTerminalStateId();
+            const isCompleted = task.state_id === terminalStateId;
+            const isAbandoned = abandonedStateId && task.state_id === abandonedStateId;
+
             // Update task cards in states view
             const statesTaskCard = document.querySelector(`#states-content .task-card[data-task-id="${task.id}"]`);
             if (statesTaskCard) {
@@ -9464,6 +9472,8 @@
                 statesTaskCard.classList.toggle('critical', task.critical);
                 // Update icons
                 updateTaskCardIcons(statesTaskCard, task);
+                // Add completed class for terminal/abandoned state
+                statesTaskCard.classList.toggle('completed', isCompleted || isAbandoned);
                 // Move to correct state group if state changed
                 const targetStateId = task.state_id || 'none';
                 const targetBody = document.querySelector(`#states-content .state-group-body[data-state-id="${targetStateId}"]`);
@@ -9509,10 +9519,6 @@
             }
 
             // Update task cards in tags view - add completed class for strikethrough
-            const terminalStateId = getTerminalStateId();
-            const isCompleted = task.state_id === terminalStateId;
-            const isAbandoned = abandonedStateId && task.state_id === abandonedStateId;
-
             document.querySelectorAll(`#tags-content .task-card[data-task-id="${task.id}"]`).forEach(card => {
                 const titleEl = card.querySelector('.task-card-title');
                 if (titleEl) titleEl.textContent = task.title;
