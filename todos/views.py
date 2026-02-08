@@ -43,6 +43,8 @@ def serialize_task(task):
         "state_changed_at": _isoformat_or_none(task.state_changed_at),
         "updated_at": _isoformat_or_none(task.updated_at),
         "done_for_day": _isoformat_or_none(task.done_for_day),
+        "is_signal": task.is_signal,
+        "signal_slot": task.signal_slot,
         "calendar_start_time": first_schedule.start_time.isoformat() if first_schedule else None,
         "calendar_end_time": first_schedule.end_time.isoformat() if first_schedule else None,
         "schedules": [
@@ -175,6 +177,12 @@ def _apply_task_simple_fields(task, data):
         task.starred = data["starred"]
     if "deadline_dismissed" in data:
         task.deadline_dismissed = data["deadline_dismissed"]
+    if "is_signal" in data:
+        task.is_signal = data["is_signal"]
+        if not data["is_signal"]:
+            task.signal_slot = None
+    if "signal_slot" in data:
+        task.signal_slot = data["signal_slot"]
 
 
 def _apply_task_state(task, data):
@@ -184,6 +192,8 @@ def _apply_task_state(task, data):
     new_state_id = data["state_id"]
     if new_state_id != task.state_id:
         task.state_changed_at = timezone.now()
+        task.is_signal = False
+        task.signal_slot = None
     task.state = TaskState.objects.get(id=new_state_id) if new_state_id else None
 
 
@@ -254,6 +264,7 @@ def list_states(_request):
                     "bootstrap_icon": s.bootstrap_icon,
                     "is_system": s.is_system,
                     "is_terminal": s.is_terminal,
+                    "show_signal_noise": s.show_signal_noise,
                     "task_count": s.tasks.count(),
                 }
                 for s in states
@@ -331,6 +342,8 @@ def update_state(request, state_id):
             if state.is_system and data["is_terminal"]:
                 return JsonResponse({"success": False, "error": "System states cannot be set as terminal"}, status=400)
             state.is_terminal = data["is_terminal"]
+        if "show_signal_noise" in data:
+            state.show_signal_noise = data["show_signal_noise"]
 
         state.save()
         return JsonResponse(
@@ -342,6 +355,7 @@ def update_state(request, state_id):
                     "order": state.order,
                     "bootstrap_icon": state.bootstrap_icon,
                     "is_terminal": state.is_terminal,
+                    "show_signal_noise": state.show_signal_noise,
                 },
             }
         )

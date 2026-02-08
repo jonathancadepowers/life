@@ -19,21 +19,23 @@ python manage.py sync_toggl --days=30     # Sync Toggl time entries
 **IMPORTANT: Before pushing, ALWAYS run linting and tests:**
 ```bash
 # Quick check (recommended before every push)
-python3 manage.py test && python3 -m flake8 .
+python3 manage.py test && python3 -m ruff check .
 
 # Full linting suite (run periodically)
-python3 -m flake8 .              # Code style
-python3 -m black --check .       # Formatting
-python3 -m mypy .                # Type checking
+python3 -m ruff check .                              # Python linting
+python3 -m djlint todos/templates/ --lint             # Template linting (no H021 inline styles)
+python3 -m radon cc . -s -n C --exclude "venv/*"      # Complexity (all functions must be B or better)
+qlty check --no-progress                              # Multi-linter (duplication, security, etc.)
 
-# Only push if tests pass (flake8 warnings are acceptable)
+# Push to both remotes
 git push origin main && git push heroku main
 ```
 
 **Linting Configuration:**
-- `.flake8` - flake8 configuration (max line 120, excludes migrations/venv)
-- `pyproject.toml` - black and mypy configuration
-- Tests are allowed to have formatting issues (focused on functionality)
+- `pyproject.toml` - Ruff and djLint configuration
+- Radon: All functions must be complexity grade B or better (≤ 10)
+- djLint: No inline styles (H021) — use `<style>` blocks instead
+- Qlty: Configured via `.qlty/` directory
 
 ## Critical Invariants (Read These First)
 
@@ -227,6 +229,18 @@ When implementing task updates:
 - Use the `handleTaskStateChange(task)` function which orchestrates updates across all views
 - Never leave stale data visible after a successful update
 
+### Signal vs Noise Priority System (`/tasks/`)
+The tasks page has a "Signal vs Noise" feature that splits any eligible state section into two zones: **Signal** (top 3 priority tasks with fixed slot positions) and **Noise** (everything else).
+
+Key implementation details:
+- **Models:** `TaskState.show_signal_noise` (BooleanField) controls which states use the split layout. `Task.is_signal` (BooleanField) and `Task.signal_slot` (IntegerField, 0-2) control task placement within the signal zone.
+- **Multiple states** can have `show_signal_noise=True` simultaneously.
+- **Excluded states:** The inbox (first state by order), system states, and terminal states cannot use Signal/Noise.
+- **State changes reset signal status:** When a task moves to a new state, `is_signal` is set to `False` and `signal_slot` is cleared (in `_apply_task_state()`).
+- **Settings are applied dynamically** — the settings panel stays open while toggling Signal/Noise on states. JS functions `convertToSignalNoise(stateId)` and `convertToRegular(stateId)` rebuild the DOM in place.
+- **CSS:** Signal strip is solid `#7aaa68` (green), noise strip is solid `#d0cdc8` (gray). The left border gradient is managed by a real DOM element (`.signal-noise-border-gradient`) positioned absolutely, updated via `updateSignalNoiseBorderGradient()`.
+- **Drag-and-drop:** Signal zones use slot-based drop handling (`setupSignalDropZone()`), noise zones use regular list drop handling (`setupRegularDropZone()`).
+
 ## Common Mistakes to Avoid
 
 1. **All OAuth credentials live in `oauth_integration.models.OAuthCredential`** — there is no other OAuthCredential
@@ -238,7 +252,7 @@ When implementing task updates:
 7. **Don't create `Goal` or `Project` without specifying the ID** — they use custom primary keys
 8. **Don't add `null=True` to CharField/TextField** — use `blank=True, default=''` instead (Django convention)
 9. **Don't leave task UI elements stale after updates** — always update all visible instances immediately (see "Tasks Page Real-Time Updates" above)
-10. **Don't push without running tests and linting** — always run `python3 manage.py test && python3 -m flake8 .` before pushing (see Key Commands section)
+10. **Don't push without running tests and linting** — always run `python3 manage.py test && python3 -m ruff check .` before pushing (see Key Commands section)
 
 ## Testing
 

@@ -9,6 +9,7 @@ class TaskState(models.Model):
     bootstrap_icon = models.CharField(max_length=50, blank=True, default="")  # e.g., 'bi-inbox'
     is_system = models.BooleanField(default=False)  # System states like 'Abandoned' can't be deleted/reordered
     is_terminal = models.BooleanField(default=False)  # Terminal state marks tasks as "completed"
+    show_signal_noise = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -51,6 +52,8 @@ class Task(models.Model):
     deadline_dismissed = models.BooleanField(default=False)
     state_changed_at = models.DateTimeField(null=True, blank=True)  # When task entered current state
     done_for_day = models.DateField(null=True, blank=True)  # Date when task was marked "Done for Today"
+    is_signal = models.BooleanField(default=False)  # Signal zone in Signal/Noise priority system
+    signal_slot = models.IntegerField(null=True, blank=True)  # 0, 1, or 2 for position within signal zone
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

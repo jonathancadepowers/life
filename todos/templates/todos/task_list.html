@@ -4066,6 +4066,13 @@
         .state-group-header:hover {
             background: #f5f7f8;
             border-color: #dee2e6;
+            border-left-color: #6B9080;
+        }
+        .state-group[data-signal-noise="true"]:not(.collapsed) .state-group-header:hover {
+            border-left-color: #7aaa68;
+        }
+        .state-group.collapsed .state-group-header:hover {
+            border-left-color: #cbd5e0;
         }
 
         .state-group.collapsed .state-group-header {
@@ -4083,6 +4090,9 @@
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
         }
+        .state-group[data-signal-noise="true"]:not(.collapsed) .state-group-header {
+            border-left-color: #7aaa68;
+        }
 
         .state-group-left {
             display: flex;
@@ -4093,6 +4103,13 @@
         .state-group-icon {
             color: #495057;
             font-size: 1rem;
+        }
+        @keyframes icon-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .state-group-icon.spin {
+            animation: icon-spin 0.55s ease-in-out;
         }
 
         .state-group-name {
@@ -4138,6 +4155,153 @@
             max-height: 220px;
             overflow-y: auto;
             transition: background 0.15s;
+        }
+
+        /* Signal/Noise zone layout */
+        .state-group-body.signal-noise-body {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            max-height: none;
+            overflow: visible;
+            border-left: 3px solid transparent;
+            border-bottom-left-radius: 0;
+            position: relative;
+        }
+        .signal-noise-border-gradient {
+            position: absolute;
+            top: -1px;
+            left: -3px;
+            bottom: 0;
+            width: 3px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .state-group-body.signal-noise-body::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: -3px;
+            width: 22px;
+            height: 1px;
+            background: #d0cdc8;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .signal-noise-zone {
+            display: flex;
+            flex-direction: row;
+        }
+        .signal-noise-strip {
+            width: 19px;
+            min-width: 19px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .signal-noise-strip span {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            color: rgba(255, 255, 255, 0.85);
+            font-family: monospace;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.13em;
+            line-height: 19px;
+            text-align: center;
+        }
+        .signal-strip {
+            background: #7aaa68;
+        }
+        .noise-strip {
+            background: #d0cdc8;
+        }
+        .signal-noise-tasks {
+            flex: 1;
+            padding: 0;
+            min-height: 0;
+            background: #ffffff;
+        }
+        .signal-zone .signal-noise-tasks {
+            min-height: 6.3rem;
+        }
+        .noise-zone .signal-noise-tasks {
+            min-height: 5rem;
+            border-bottom-right-radius: 6px;
+        }
+        .signal-noise-tasks .task-card {
+            margin-bottom: 0;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            border-top: none;
+            border-bottom: 1px solid #f3f1ee;
+            background: #ffffff;
+        }
+        .signal-zone {
+            position: relative;
+        }
+        .signal-zone::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 19px;
+            right: 0;
+            height: 2px;
+            background: #e0ddd8;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .signal-placeholder {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid #f3f1ee;
+            min-height: 2.1rem;
+            background: #ffffff;
+        }
+        .signal-placeholder-circle {
+            width: 18px;
+            height: 18px;
+            border: 1.5px dashed #d4d0cc;
+            border-radius: 50%;
+            margin-right: 0.6rem;
+            flex-shrink: 0;
+        }
+        .signal-placeholder-text {
+            font-style: italic;
+            color: #c0bbb5;
+            font-size: 0.85rem;
+        }
+        .signal-noise-tasks.drag-over {
+            background: #ffffff;
+        }
+        /* Signal zone: full-row highlight on drag target */
+        .signal-noise-tasks[data-zone="signal"] > .signal-slot-highlight {
+            background: rgba(90, 156, 69, 0.35) !important;
+            transition: background 0.1s;
+        }
+        .signal-noise-tasks[data-zone="signal"] > .signal-slot-highlight.signal-placeholder {
+            background: rgba(90, 156, 69, 0.30) !important;
+        }
+        .signal-noise-state-checks {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .signal-noise-state-check {
+            font-size: 0.85rem;
+        }
+        .signal-noise-states-row {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.35rem !important;
+        }
+        .signal-noise-states-row.hidden {
+            display: none;
         }
 
         .state-group-body.drag-over {
@@ -5737,7 +5901,7 @@
                     <!-- States grouping (default) -->
                     <div id="states-content">
                         {% for state in states %}
-                        <div class="state-group collapsed" data-state-id="{{ state.id }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}"{% if state.is_system %} style="display: none;"{% endif %}>
+                        <div class="state-group collapsed" data-state-id="{{ state.id }}" data-is-system="{{ state.is_system|yesno:'true,false' }}" data-is-terminal="{{ state.is_terminal|yesno:'true,false' }}" data-signal-noise="{{ state.show_signal_noise|yesno:'true,false' }}"{% if state.is_system %} style="display: none;"{% endif %}>
                             <div class="state-group-header" onclick="toggleStateGroup(this)">
                                 <div class="state-group-left">
                                     {% if state.bootstrap_icon %}<i class="bi {{ state.bootstrap_icon }} state-group-icon"></i>{% endif %}
@@ -5748,6 +5912,40 @@
                                     <i class="bi bi-chevron-down state-group-toggle"></i>
                                 </div>
                             </div>
+                            {% if state.show_signal_noise %}
+                            <div class="state-group-body signal-noise-body" data-state-id="{{ state.id }}">
+                                <div class="signal-noise-zone signal-zone">
+                                    <div class="signal-noise-strip signal-strip"><span>SIGNAL</span></div>
+                                    <div class="signal-noise-tasks" data-zone="signal" data-state-id="{{ state.id }}">
+                                        {% for task in tasks %}{% if task.state == state and task.is_signal %}
+                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.starred %} starred{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}" data-is-signal="true" data-signal-slot="{{ task.signal_slot|default_if_none:'' }}">
+                                            <div class="task-card-content">
+                                                <i class="bi bi-grip-vertical task-card-drag-handle"></i>
+                                                <div class="task-card-title">{{ task.title }}</div>
+                                                {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
+                                                {% if task.critical or task.starred %}<div class="task-card-icons">{% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical"></i>{% endif %}{% if task.starred %}<i class="bi bi-star-fill task-star-icon" title="Starred"></i>{% endif %}</div>{% endif %}
+                                            </div>
+                                        </div>
+                                        {% endif %}{% endfor %}
+                                    </div>
+                                </div>
+                                <div class="signal-noise-zone noise-zone">
+                                    <div class="signal-noise-strip noise-strip"><span>NOISE?</span></div>
+                                    <div class="signal-noise-tasks" data-zone="noise" data-state-id="{{ state.id }}">
+                                        {% for task in tasks %}{% if task.state == state and not task.is_signal %}
+                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.starred %} starred{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}" data-is-signal="false">
+                                            <div class="task-card-content">
+                                                <i class="bi bi-grip-vertical task-card-drag-handle"></i>
+                                                <div class="task-card-title">{{ task.title }}</div>
+                                                {% if task.tags.all %}<div class="task-card-tags">{% for tag in task.tags.all %}<span class="task-tag-pill">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
+                                                {% if task.critical or task.starred %}<div class="task-card-icons">{% if task.critical %}<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical"></i>{% endif %}{% if task.starred %}<i class="bi bi-star-fill task-star-icon" title="Starred"></i>{% endif %}</div>{% endif %}
+                                            </div>
+                                        </div>
+                                        {% endif %}{% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
                             <div class="state-group-body" data-state-id="{{ state.id }}">
                                 {% for task in tasks %}
                                 {% if task.state == state %}
@@ -5762,6 +5960,7 @@
                                 {% endif %}
                                 {% endfor %}
                             </div>
+                            {% endif %}
                         </div>
                         {% endfor %}
                         <!-- No State group for orphaned tasks -->
@@ -5915,6 +6114,41 @@
                     </li>
                     {% endfor %}
                 </ul>
+                </div>
+            </div>
+
+            <!-- Signal vs Noise Section -->
+            <div class="settings-section collapsed">
+                <div class="settings-section-header">
+                    <span class="section-title-inner">
+                        <i class="bi bi-funnel"></i> Signal vs Noise
+                        <span class="has-tooltip settings-info-icon settings-info-icon-size">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Split a state into Signal (top 3) and Noise</span>
+                        </span>
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </div>
+                <div class="settings-section-content">
+                    <div class="settings-row">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="signal-noise-enabled">
+                            <span>Enable Signal vs Noise</span>
+                        </label>
+                    </div>
+                    <div class="settings-row signal-noise-states-row" id="signal-noise-states-row">
+                        <label>Apply to states:</label>
+                        <div class="signal-noise-state-checks">
+                            {% for state in states %}
+                            {% if not forloop.first and not state.is_system and not state.is_terminal %}
+                            <label class="settings-toggle signal-noise-state-check">
+                                <input type="checkbox" data-state-id="{{ state.id }}" class="signal-noise-state-cb"{% if state.show_signal_noise %} checked{% endif %}>
+                                <span>{{ state.name }}</span>
+                            </label>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -9273,9 +9507,44 @@
                 // Move to correct state group if state changed
                 const targetStateId = task.state_id || 'none';
                 const targetBody = document.querySelector(`#states-content .state-group-body[data-state-id="${targetStateId}"]`);
-                if (targetBody && statesTaskCard.parentElement !== targetBody) {
-                    targetBody.appendChild(statesTaskCard);
-                    updatePanelCounts();
+                if (targetBody) {
+                    const alreadyInTarget = targetBody.contains(statesTaskCard);
+                    const isSignalNoiseState = targetBody.classList.contains('signal-noise-body');
+
+                    // Update data attributes
+                    statesTaskCard.dataset.isSignal = String(!!task.is_signal);
+                    if (task.signal_slot != null) {
+                        statesTaskCard.dataset.signalSlot = String(task.signal_slot);
+                    } else {
+                        delete statesTaskCard.dataset.signalSlot;
+                    }
+
+                    if (!alreadyInTarget) {
+                        // Card needs to move to this state group
+                        if (isSignalNoiseState) {
+                            const zoneName = task.is_signal ? 'signal' : 'noise';
+                            const zoneEl = targetBody.querySelector(`.signal-noise-tasks[data-zone="${zoneName}"]`);
+                            if (zoneEl) {
+                                zoneEl.appendChild(statesTaskCard);
+                            }
+                        } else {
+                            targetBody.appendChild(statesTaskCard);
+                        }
+                        updatePanelCounts();
+                    } else if (isSignalNoiseState) {
+                        // Already in correct state — ensure correct zone (signal vs noise)
+                        const currentZone = statesTaskCard.closest('.signal-noise-tasks');
+                        const targetZoneName = task.is_signal ? 'signal' : 'noise';
+                        if (currentZone && currentZone.dataset.zone !== targetZoneName) {
+                            const targetZone = targetBody.querySelector(`.signal-noise-tasks[data-zone="${targetZoneName}"]`);
+                            if (targetZone) {
+                                targetZone.appendChild(statesTaskCard);
+                            }
+                        }
+                    }
+                    // Rebuild signal slots to correct positions
+                    updateSignalSlots();
+                    updateSignalNoiseBorderGradient();
                 }
             }
 
@@ -12630,7 +12899,21 @@
         // State group collapse/expand
         function toggleStateGroup(header) {
             const group = header.closest('.state-group');
+            const wasCollapsed = group.classList.contains('collapsed');
             group.classList.toggle('collapsed');
+            if (wasCollapsed) {
+                const icon = header.querySelector('.state-group-icon');
+                if (icon) {
+                    icon.classList.remove('spin');
+                    void icon.offsetWidth; // force reflow to restart animation
+                    icon.classList.add('spin');
+                    icon.addEventListener('animationend', () => icon.classList.remove('spin'), { once: true });
+                }
+                // Recalculate border gradient now that the body is visible
+                if (group.dataset.signalNoise === 'true') {
+                    requestAnimationFrame(() => updateSignalNoiseBorderGradient());
+                }
+            }
         }
 
         // Generate hourly calendar (7am to 6pm)
@@ -16240,161 +16523,402 @@
             });
         }
 
-        // Setup drop zones (state-group-body elements)
-        function setupDropZones() {
-            document.querySelectorAll('.state-group-body').forEach(dropZone => {
-                dropZone.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                    if (!draggedTaskCard) return;
+        // Signal zone slot management — arranges signal zone into 3 fixed slots
+        function updateSignalSlots() {
+            document.querySelectorAll('.signal-noise-tasks[data-zone="signal"]').forEach(zone => {
+                const taskCards = [...zone.querySelectorAll('.task-card')];
+                const slots = [null, null, null];
 
-                    e.dataTransfer.dropEffect = 'move';
-                    this.classList.add('drag-over');
-
-                    // Show drop indicator at correct position
-                    const { element, position } = getTaskDropPosition(this, e.clientY);
-
-                    if (!taskDropIndicator) {
-                        taskDropIndicator = createTaskDropIndicator();
-                    }
-
-                    if (position === 'end') {
-                        this.appendChild(taskDropIndicator);
-                    } else if (element) {
-                        element.parentElement.insertBefore(taskDropIndicator, element);
+                // Place cards into their assigned slots
+                taskCards.forEach(card => {
+                    const slot = parseInt(card.dataset.signalSlot);
+                    if (!isNaN(slot) && slot >= 0 && slot < 3 && slots[slot] === null) {
+                        slots[slot] = card;
                     }
                 });
 
-                dropZone.addEventListener('dragleave', function(e) {
-                    // Only remove if we're actually leaving the drop zone
-                    if (!this.contains(e.relatedTarget)) {
-                        this.classList.remove('drag-over');
-                        if (taskDropIndicator && taskDropIndicator.parentElement === this) {
-                            taskDropIndicator.remove();
+                // Cards without a valid slot go into first available slot
+                taskCards.forEach(card => {
+                    const slot = parseInt(card.dataset.signalSlot);
+                    if (isNaN(slot) || slot < 0 || slot >= 3 || slots[slot] !== card) {
+                        const emptyIdx = slots.indexOf(null);
+                        if (emptyIdx !== -1) {
+                            slots[emptyIdx] = card;
+                            card.dataset.signalSlot = String(emptyIdx);
                         }
                     }
                 });
 
-                dropZone.addEventListener('drop', async function(e) {
-                    e.preventDefault();
+                // Rebuild zone: 3 children, each a task card or placeholder
+                zone.innerHTML = '';
+                for (let i = 0; i < 3; i++) {
+                    if (slots[i]) {
+                        zone.appendChild(slots[i]);
+                    } else {
+                        const ph = document.createElement('div');
+                        ph.className = 'signal-placeholder';
+                        ph.dataset.slot = String(i);
+                        const label = i === 0 ? 'Top priority' : '';
+                        ph.innerHTML = `<div class="signal-placeholder-circle"></div>${label ? `<span class="signal-placeholder-text">${label}</span>` : ''}`;
+                        zone.appendChild(ph);
+                    }
+                }
+            });
+        }
+
+        // Alias for backward compatibility in handleTaskStateChange
+        const updateSignalPlaceholders = updateSignalSlots;
+
+        // Dynamically set the left border gradient to match strip colors at each vertical point
+        function updateSignalNoiseBorderGradient() {
+            document.querySelectorAll('.signal-noise-body').forEach(body => {
+                const signalZone = body.querySelector('.signal-zone');
+                const noiseZone = body.querySelector('.noise-zone');
+                if (!signalZone || !noiseZone) return;
+
+                // Ensure the border gradient element exists
+                let borderEl = body.querySelector('.signal-noise-border-gradient');
+                if (!borderEl) {
+                    borderEl = document.createElement('div');
+                    borderEl.className = 'signal-noise-border-gradient';
+                    body.appendChild(borderEl);
+                }
+
+                const totalHeight = body.offsetHeight;
+                if (totalHeight === 0) return;
+
+                // Use pixel positions for exact alignment
+                // The border element starts 1px above body top, so offset by 1px
+                const signalHeight = signalZone.offsetHeight;
+                const totalGradientHeight = totalHeight + 1; // ::before was top:-1px to bottom:0
+
+                // Solid colors matching the strips with a hard stop at the boundary
+                const boundaryPx = 1 + signalHeight;
+
+                borderEl.style.background = `linear-gradient(to bottom, ` +
+                    `#7aaa68 ${boundaryPx}px, #d0cdc8 ${boundaryPx}px)`;
+            });
+        }
+
+        // Drop handler for regular (non-signal) drop zones
+        function setupRegularDropZone(dropZone) {
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (!draggedTaskCard) return;
+
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('drag-over');
+
+                const { element, position } = getTaskDropPosition(this, e.clientY);
+
+                if (!taskDropIndicator) {
+                    taskDropIndicator = createTaskDropIndicator();
+                }
+
+                if (position === 'end') {
+                    this.appendChild(taskDropIndicator);
+                } else if (element) {
+                    element.parentElement.insertBefore(taskDropIndicator, element);
+                }
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                if (!this.contains(e.relatedTarget)) {
                     this.classList.remove('drag-over');
-
-                    if (!draggedTaskCard) return;
-
-                    const rawNewStateId = this.dataset.stateId;
-                    const newStateId = rawNewStateId === 'none' ? null : parseInt(rawNewStateId);
-
-                    // Get drop position
-                    const { element, position } = getTaskDropPosition(this, e.clientY);
-
-                    // Remove drop indicator
-                    if (taskDropIndicator && taskDropIndicator.parentElement) {
+                    if (taskDropIndicator && taskDropIndicator.parentElement === this) {
                         taskDropIndicator.remove();
                     }
+                }
+            });
 
-                    // Handle multi-select drop
-                    const isMultiDrop = draggedTaskCards.length > 1;
-                    const cardsToMove = isMultiDrop ? draggedTaskCards : [draggedTaskCard];
+            dropZone.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                if (!draggedTaskCard) return;
 
-                    // Collect old states for each card
-                    const cardOldStates = cardsToMove.map(card => {
-                        const oldBody = card.parentElement;
-                        const rawOldStateId = card.closest('.state-group').dataset.stateId;
-                        const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
-                        return { card, oldBody, oldStateId, changedState: newStateId !== oldStateId };
-                    });
+                const zone = this.dataset.zone; // 'noise' or undefined
+                const isNoiseZone = zone === 'noise';
 
-                    // Move cards to new position (maintain their relative order)
-                    // Sort cards by their current order in the DOM to maintain relative order
-                    const sortedCards = [...cardsToMove].sort((a, b) => {
-                        const aRect = a.getBoundingClientRect();
-                        const bRect = b.getBoundingClientRect();
-                        return aRect.top - bRect.top;
-                    });
+                const rawNewStateId = this.dataset.stateId;
+                const newStateId = rawNewStateId === 'none' ? null : parseInt(rawNewStateId);
 
-                    // Insert cards at the drop position
-                    if (position === 'end') {
-                        sortedCards.forEach(card => this.appendChild(card));
-                    } else if (element) {
-                        // Insert before the target element
-                        sortedCards.forEach(card => {
-                            element.parentElement.insertBefore(card, element);
-                        });
-                    }
+                const { element, position } = getTaskDropPosition(this, e.clientY);
 
-                    // Update counts
-                    updatePanelCounts();
+                if (taskDropIndicator && taskDropIndicator.parentElement) {
+                    taskDropIndicator.remove();
+                }
 
-                    // Get new order of all cards in this state
-                    const cardIds = [...this.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                const isMultiDrop = draggedTaskCards.length > 1;
+                const cardsToMove = isMultiDrop ? draggedTaskCards : [draggedTaskCard];
 
-                    // Update state on server for each card that changed state
-                    for (const { card, changedState } of cardOldStates) {
-                        if (changedState) {
-                            const taskId = parseInt(card.dataset.taskId);
-                            try {
-                                const response = await fetch(`/tasks/api/${taskId}/update/`, {
-                                    method: 'PATCH',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-CSRFToken': csrfToken
-                                    },
-                                    body: JSON.stringify({ state_id: newStateId })
-                                });
-                                const data = await response.json();
-                                if (data.success && data.task) {
-                                    // Update task everywhere (including calendar)
-                                    handleTaskStateChange(data.task);
-                                }
-                            } catch (error) {
-                                console.error('Error updating task state:', error);
+                const cardOldStates = cardsToMove.map(card => {
+                    const oldBody = card.parentElement;
+                    const stateGroup = card.closest('.state-group');
+                    const rawOldStateId = stateGroup ? stateGroup.dataset.stateId : 'none';
+                    const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
+                    const oldZone = oldBody ? oldBody.dataset.zone : undefined;
+                    return { card, oldBody, oldStateId, oldZone, changedState: newStateId !== oldStateId };
+                });
+
+                const sortedCards = [...cardsToMove].sort((a, b) => {
+                    return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                });
+
+                if (position === 'end') {
+                    sortedCards.forEach(card => this.appendChild(card));
+                } else if (element) {
+                    sortedCards.forEach(card => element.parentElement.insertBefore(card, element));
+                }
+
+                updatePanelCounts();
+
+                const cardIds = [...this.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+
+                for (const { card, changedState, oldZone } of cardOldStates) {
+                    const taskId = parseInt(card.dataset.taskId);
+                    const changedZone = isNoiseZone && (oldZone !== zone);
+                    if (changedState || changedZone) {
+                        const patchBody = {};
+                        if (changedState) patchBody.state_id = newStateId;
+                        if (isNoiseZone) {
+                            patchBody.is_signal = false;
+                            patchBody.signal_slot = null;
+                        }
+                        try {
+                            const response = await fetch(`/tasks/api/${taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify(patchBody)
+                            });
+                            const data = await response.json();
+                            if (data.success && data.task) {
+                                handleTaskStateChange(data.task);
+                                card.dataset.isSignal = 'false';
+                                delete card.dataset.signalSlot;
                             }
+                        } catch (error) {
+                            console.error('Error updating task:', error);
                         }
                     }
+                }
 
-                    // Update abandoned state visibility and warnings
-                    updateAbandonedStateVisibility();
-                    updateDeadlineWarningIcon();
+                updateAbandonedStateVisibility();
+                updateDeadlineWarningIcon();
 
-                    // Always update order (for both same-state reorder and cross-state moves)
+                try {
+                    await fetch('/tasks/api/tasks/reorder/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify({ task_ids: cardIds })
+                    });
+                } catch (error) {
+                    console.error('Error updating task order:', error);
+                }
+
+                const oldBodiesSet = new Set();
+                for (const { oldBody, changedState, oldZone } of cardOldStates) {
+                    const changedZone = isNoiseZone && (oldZone !== zone);
+                    if ((changedState || changedZone) && oldBody && oldBody !== this) {
+                        oldBodiesSet.add(oldBody);
+                    }
+                }
+                for (const oldBody of oldBodiesSet) {
+                    const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
                     try {
                         await fetch('/tasks/api/tasks/reorder/', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken
-                            },
-                            body: JSON.stringify({ task_ids: cardIds })
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ task_ids: oldCardIds })
                         });
                     } catch (error) {
-                        console.error('Error updating task order:', error);
+                        console.error('Error updating old state order:', error);
                     }
+                }
 
-                    // Collect unique old state bodies that need reordering
-                    const oldBodiesSet = new Set();
-                    for (const { oldBody, changedState } of cardOldStates) {
-                        if (changedState && oldBody && oldBody !== this) {
-                            oldBodiesSet.add(oldBody);
+                // Rebuild signal slots if a card left the signal zone
+                updateSignalSlots();
+                updateSignalNoiseBorderGradient();
+            });
+        }
+
+        // Drop handler for signal zone — slot-based with full-row highlight
+        function setupSignalDropZone(dropZone) {
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (!draggedTaskCard) return;
+
+                // Cap check: max 3 tasks (excluding the one being dragged)
+                const currentCount = this.querySelectorAll('.task-card:not(.dragging)').length;
+                if (currentCount >= 3) {
+                    e.dataTransfer.dropEffect = 'none';
+                    return;
+                }
+
+                e.dataTransfer.dropEffect = 'move';
+
+                // Remove line indicator if present (from other zones)
+                if (taskDropIndicator && taskDropIndicator.parentElement) {
+                    taskDropIndicator.remove();
+                }
+
+                // Find which slot child the cursor is over and highlight it
+                this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
+                const children = [...this.children];
+                for (const child of children) {
+                    if (child.classList.contains('dragging')) continue;
+                    const rect = child.getBoundingClientRect();
+                    if (e.clientY >= rect.top && e.clientY < rect.bottom) {
+                        child.classList.add('signal-slot-highlight');
+                        break;
+                    }
+                }
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                if (!this.contains(e.relatedTarget)) {
+                    this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
+                }
+            });
+
+            dropZone.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
+                if (!draggedTaskCard) return;
+
+                // Cap enforcement
+                const currentCount = this.querySelectorAll('.task-card:not(.dragging)').length;
+                if (currentCount >= 3) {
+                    showToast('Signal is full (max 3). Move a task to Noise first.', { duration: 3000, icon: 'bi-exclamation-circle' });
+                    return;
+                }
+
+                // Find which slot was targeted
+                const children = [...this.children];
+                let targetSlot = -1;
+                for (let i = 0; i < children.length; i++) {
+                    if (children[i].classList.contains('dragging')) continue;
+                    const rect = children[i].getBoundingClientRect();
+                    if (e.clientY >= rect.top && e.clientY < rect.bottom) {
+                        targetSlot = parseInt(children[i].dataset.slot ?? children[i].dataset.signalSlot ?? i);
+                        break;
+                    }
+                }
+                if (targetSlot < 0 || targetSlot > 2) targetSlot = 2; // Default last slot
+
+                const rawNewStateId = this.dataset.stateId;
+                const newStateId = rawNewStateId === 'none' ? null : parseInt(rawNewStateId);
+
+                const cardsToMove = draggedTaskCards.length > 1 ? draggedTaskCards : [draggedTaskCard];
+                const card = cardsToMove[0]; // Signal zone uses single-card drops for slot precision
+
+                const stateGroup = card.closest('.state-group');
+                const rawOldStateId = stateGroup ? stateGroup.dataset.stateId : 'none';
+                const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
+                const oldBody = card.parentElement;
+                const oldZone = oldBody ? oldBody.dataset.zone : undefined;
+                const changedState = newStateId !== oldStateId;
+                const changedZone = oldZone !== 'signal';
+
+                // If the target slot is occupied by another card, shift it to an open slot
+                const existingCard = this.querySelector(`.task-card[data-signal-slot="${targetSlot}"]:not(.dragging)`);
+                if (existingCard && existingCard !== card) {
+                    // Find an open slot for the displaced card
+                    const occupiedSlots = new Set(
+                        [...this.querySelectorAll('.task-card:not(.dragging)')].map(c => parseInt(c.dataset.signalSlot)).filter(s => !isNaN(s))
+                    );
+                    occupiedSlots.add(targetSlot); // Will be taken by new card
+                    for (let s = 0; s < 3; s++) {
+                        if (!occupiedSlots.has(s)) {
+                            existingCard.dataset.signalSlot = String(s);
+                            // Update displaced card on server
+                            try {
+                                await fetch(`/tasks/api/${existingCard.dataset.taskId}/update/`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                    body: JSON.stringify({ signal_slot: s })
+                                });
+                            } catch (error) {
+                                console.error('Error updating displaced task:', error);
+                            }
+                            break;
                         }
                     }
+                }
 
-                    // Reorder each affected old state
-                    for (const oldBody of oldBodiesSet) {
-                        const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
-                        try {
-                            await fetch('/tasks/api/tasks/reorder/', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({ task_ids: oldCardIds })
-                            });
-                        } catch (error) {
-                            console.error('Error updating old state order:', error);
+                // Set slot on the dropped card
+                card.dataset.signalSlot = String(targetSlot);
+                card.dataset.isSignal = 'true';
+
+                // Rebuild the signal zone DOM
+                updateSignalSlots();
+                updateSignalNoiseBorderGradient();
+                updatePanelCounts();
+
+                // PATCH server: state change + signal + slot
+                if (changedState || changedZone) {
+                    const patchBody = { is_signal: true, signal_slot: targetSlot };
+                    if (changedState) patchBody.state_id = newStateId;
+                    try {
+                        const response = await fetch(`/tasks/api/${card.dataset.taskId}/update/`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify(patchBody)
+                        });
+                        const data = await response.json();
+                        if (data.success && data.task) {
+                            handleTaskStateChange(data.task);
                         }
+                    } catch (error) {
+                        console.error('Error updating task:', error);
                     }
+                } else {
+                    // Just updating slot within signal
+                    try {
+                        await fetch(`/tasks/api/${card.dataset.taskId}/update/`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ signal_slot: targetSlot })
+                        });
+                    } catch (error) {
+                        console.error('Error updating signal slot:', error);
+                    }
+                }
 
-                });
+                // Reorder old body if card moved between zones/states
+                if (oldBody && oldBody !== this && (changedState || changedZone)) {
+                    const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
+                    try {
+                        await fetch('/tasks/api/tasks/reorder/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ task_ids: oldCardIds })
+                        });
+                    } catch (error) {
+                        console.error('Error updating old state order:', error);
+                    }
+                    // Rebuild signal slots in case card left another signal zone
+                    updateSignalSlots();
+                    updateSignalNoiseBorderGradient();
+                }
+
+                updateAbandonedStateVisibility();
+                updateDeadlineWarningIcon();
+            });
+        }
+
+        // Setup drop zones
+        function setupDropZones() {
+            // Regular state-group-body zones (skip signal-noise bodies)
+            document.querySelectorAll('.state-group-body:not(.signal-noise-body)').forEach(dz => {
+                setupRegularDropZone(dz);
+            });
+            // Signal zone: slot-based drop handling
+            document.querySelectorAll('.signal-noise-tasks[data-zone="signal"]').forEach(dz => {
+                setupSignalDropZone(dz);
+            });
+            // Noise zone: regular drop handling
+            document.querySelectorAll('.signal-noise-tasks[data-zone="noise"]').forEach(dz => {
+                setupRegularDropZone(dz);
             });
         }
 
@@ -16403,6 +16927,150 @@
             setupTaskCardDragEvents(card);
         });
         setupDropZones();
+
+        // Initialize signal slots and border gradient
+        updateSignalSlots();
+        updateSignalNoiseBorderGradient();
+
+        // Signal vs Noise settings
+        const signalNoiseEnabled = document.getElementById('signal-noise-enabled');
+        const signalNoiseStatesRow = document.getElementById('signal-noise-states-row');
+        const signalNoiseCheckboxes = document.querySelectorAll('.signal-noise-state-cb');
+
+        // Set toggle based on whether any state has signal/noise enabled
+        if (signalNoiseEnabled) {
+            const anyEnabled = [...signalNoiseCheckboxes].some(cb => cb.checked);
+            signalNoiseEnabled.checked = anyEnabled;
+        }
+
+        // Show/hide state checkboxes based on toggle
+        function updateSignalNoiseStatesVisibility() {
+            if (signalNoiseEnabled && signalNoiseStatesRow) {
+                signalNoiseStatesRow.classList.toggle('hidden', !signalNoiseEnabled.checked);
+            }
+        }
+        updateSignalNoiseStatesVisibility();
+
+        // Convert a regular state group body to signal/noise layout
+        function convertToSignalNoise(stateId) {
+            const group = document.querySelector(`.state-group[data-state-id="${stateId}"]`);
+            if (!group) return;
+            const oldBody = group.querySelector('.state-group-body');
+            if (!oldBody || oldBody.classList.contains('signal-noise-body')) return;
+
+            // Collect existing task cards
+            const cards = [...oldBody.querySelectorAll('.task-card')];
+
+            // Build signal/noise body
+            const newBody = document.createElement('div');
+            newBody.className = 'state-group-body signal-noise-body';
+            newBody.dataset.stateId = stateId;
+
+            newBody.innerHTML = `
+                <div class="signal-noise-zone signal-zone">
+                    <div class="signal-noise-strip signal-strip"><span>SIGNAL</span></div>
+                    <div class="signal-noise-tasks" data-zone="signal" data-state-id="${stateId}"></div>
+                </div>
+                <div class="signal-noise-zone noise-zone">
+                    <div class="signal-noise-strip noise-strip"><span>NOISE?</span></div>
+                    <div class="signal-noise-tasks" data-zone="noise" data-state-id="${stateId}"></div>
+                </div>`;
+
+            // Move all cards into noise zone (they'll need to be explicitly promoted to signal)
+            const noiseZone = newBody.querySelector('.signal-noise-tasks[data-zone="noise"]');
+            cards.forEach(card => {
+                card.dataset.isSignal = 'false';
+                noiseZone.appendChild(card);
+            });
+
+            // Replace old body
+            oldBody.replaceWith(newBody);
+            group.dataset.signalNoise = 'true';
+
+            // Setup drop zones for new layout
+            setupSignalDropZone(newBody.querySelector('.signal-noise-tasks[data-zone="signal"]'));
+            setupRegularDropZone(noiseZone);
+
+            // Rebuild signal slots and border gradient
+            updateSignalSlots();
+            updateSignalNoiseBorderGradient();
+        }
+
+        // Convert a signal/noise state group body back to regular layout
+        function convertToRegular(stateId) {
+            const group = document.querySelector(`.state-group[data-state-id="${stateId}"]`);
+            if (!group) return;
+            const oldBody = group.querySelector('.state-group-body.signal-noise-body');
+            if (!oldBody) return;
+
+            // Collect all task cards from both zones
+            const cards = [...oldBody.querySelectorAll('.task-card')];
+
+            // Build regular body
+            const newBody = document.createElement('div');
+            newBody.className = 'state-group-body';
+            newBody.dataset.stateId = stateId;
+
+            // Move cards into regular body
+            cards.forEach(card => {
+                delete card.dataset.isSignal;
+                delete card.dataset.signalSlot;
+                newBody.appendChild(card);
+            });
+
+            // Replace old body
+            oldBody.replaceWith(newBody);
+            group.dataset.signalNoise = 'false';
+
+            // Setup regular drop zone
+            setupRegularDropZone(newBody);
+        }
+
+        if (signalNoiseEnabled) {
+            signalNoiseEnabled.addEventListener('change', async function() {
+                updateSignalNoiseStatesVisibility();
+                if (!this.checked) {
+                    // Turn off all states
+                    const promises = [];
+                    signalNoiseCheckboxes.forEach(cb => {
+                        if (cb.checked) {
+                            cb.checked = false;
+                            const stateId = cb.dataset.stateId;
+                            promises.push(fetch(`/tasks/api/states/${stateId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify({ show_signal_noise: false })
+                            }));
+                            convertToRegular(stateId);
+                        }
+                    });
+                    await Promise.all(promises);
+                }
+            });
+        }
+
+        // Individual state checkbox handlers
+        signalNoiseCheckboxes.forEach(cb => {
+            cb.addEventListener('change', async function() {
+                const stateId = this.dataset.stateId;
+                await fetch(`/tasks/api/states/${stateId}/update/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ show_signal_noise: this.checked })
+                });
+                if (this.checked) {
+                    convertToSignalNoise(stateId);
+                } else {
+                    convertToRegular(stateId);
+                    // If no checkboxes remain checked, uncheck the main toggle
+                    const anyStillEnabled = [...signalNoiseCheckboxes].some(c => c.checked);
+                    if (!anyStillEnabled && signalNoiseEnabled) {
+                        signalNoiseEnabled.checked = false;
+                        updateSignalNoiseStatesVisibility();
+                    }
+                }
+            });
+        });
 
         // Setup drag handlers for a single state group (used when adding new states)
         function setupStateGroupDragHandlers(stateGroup) {
