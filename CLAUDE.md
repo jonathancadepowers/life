@@ -59,8 +59,19 @@ return JsonResponse({'success': True, 'data': {...}})           # 200
 return JsonResponse({'success': False, 'error': 'msg'}, status=400)  # Error
 ```
 
-### 5. Sync Command Output Format
-The frontend parses sync command output by searching for `SYNC SUMMARY` string. If you change the output format of any sync command, `fasting/views.py:master_sync()` will break.
+### 5. Sync Commands Return Structured Results
+All sync commands extend `BaseSyncCommand` and implement a `sync(days, sync_all)` method that returns a `SyncResult` dataclass (from `lifetracker.sync_utils`). The `sync_all` orchestrator calls each command's `sync()` directly and exposes results via `self.sync_results` dict. The `master_sync()` AJAX view reads these structured results — no string parsing.
+```python
+from lifetracker.sync_utils import BaseSyncCommand
+
+class Command(BaseSyncCommand):
+    source_name = 'MySource'
+
+    def sync(self, days, sync_all=False):
+        # ... fetch and process data ...
+        return self.make_result(created=3, updated=1, skipped=0)
+        # or on error: return self.make_error_result('Token expired', auth_error=True)
+```
 
 ## How To: Add a New Data Source
 
@@ -89,9 +100,11 @@ The frontend parses sync command output by searching for `SYNC SUMMARY` string. 
    - For subprocess/CLI: follow `nutrition/services/cronometer_client.py`
 
 4. **Create the sync command** in `mydata/management/commands/sync_mydata.py`:
-   - Accept `--days` and `--all` arguments
+   - Extend `BaseSyncCommand` from `lifetracker.sync_utils`
+   - Set `source_name = 'MySource'`
+   - Implement `sync(days, sync_all)` returning a `SyncResult`
    - Use `update_or_create(source='MySource', source_id=..., defaults={...})`
-   - Print summary with `✓ Created: N` / `↻ Updated: N` / `⊘ Skipped: N`
+   - See `sync_whoop.py` or `sync_withings.py` for examples
 
 5. **Register in admin** in `mydata/admin.py`:
    ```python
@@ -180,15 +193,15 @@ Each page is standalone (no shared base template). Templates use Bootstrap 5.3.0
 - **Media storage:** Cloudinary in production, local filesystem in dev
 
 ### Sync Architecture
-`sync_all` command orchestrates Whoop, Withings, and Cronometer syncs. Toggl and fasting are synced separately. The activity logger page (`/activity-logger/`) has a "Sync" button that calls `sync_all` via `fasting/views.py:master_sync()` and parses the command output.
+`sync_all` command orchestrates Whoop, Withings, and Cronometer syncs. Toggl and fasting are synced separately. All sync commands extend `BaseSyncCommand` (in `lifetracker/sync_utils.py`) and return `SyncResult` objects. The `sync_all` orchestrator imports each command module directly and calls `sync()` — no `call_command`. The activity logger page (`/activity-logger/`) has a "Sync" button that calls `fasting/views.py:master_sync()`, which reads structured `SyncResult` objects (no string parsing).
 
 ## Common Mistakes to Avoid
 
-1. **Don't import from `weight.models.OAuthCredential`** — use `oauth_integration.models.OAuthCredential`
+1. **All OAuth credentials live in `oauth_integration.models.OAuthCredential`** — there is no other OAuthCredential
 2. **Don't use `update_or_create` with only `source_id`** — must include both `source` AND `source_id`
 3. **Don't assume the server timezone matches the user's timezone** — always read from the cookie
 4. **Don't use lowercase source names** — `'Whoop'` not `'whoop'`
-5. **Don't change sync command output format** — the frontend parses it with string matching
+5. **New sync commands must extend `BaseSyncCommand`** — and return `SyncResult` from `sync()`
 6. **Don't forget `credential.update_tokens()` after OAuth token refresh** — tokens won't persist
 7. **Don't create `Goal` or `Project` without specifying the ID** — they use custom primary keys
 8. **Don't add `null=True` to CharField/TextField** — use `blank=True, default=''` instead (Django convention)

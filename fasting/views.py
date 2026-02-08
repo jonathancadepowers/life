@@ -3,9 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from datetime import datetime, time
 from .models import FastingSession
-from django.core.management import call_command
 from lifetracker.timezone_utils import get_user_timezone
-from io import StringIO
 import uuid
 
 
@@ -119,96 +117,61 @@ def log_fast(request):
         }, status=500)
 
 
-def _strip_ansi(text):
-    """Remove ANSI escape codes from text."""
-    import re
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    return ansi_escape.sub('', text)
-
-
-def _extract_sync_summary(output_text, error_text):
-    """Extract the SYNC SUMMARY section from command output, or return full output."""
-    summary_start = output_text.find('SYNC SUMMARY')
-    if summary_start == -1:
-        full_output = output_text
-        if error_text:
-            full_output += f"\n\nErrors/Warnings:\n{error_text}"
-        return full_output
-
-    lines = output_text[:summary_start].split('\n')
-    # Go back to find the === line
-    summary_start_line = len(lines) - 1
-    for i in range(len(lines) - 1, -1, -1):
-        if '=' * 20 in lines[i]:
-            summary_start_line = i
-            break
-
-    all_lines = output_text.split('\n')
-    return '\n'.join(all_lines[summary_start_line:])
-
-
-def _detect_auth_errors(full_output):
-    """Detect authentication errors for each service from sync output."""
-    auth_errors = {}
-    if 'Whoop refresh token expired' in full_output or 'python manage.py whoop_auth' in full_output:
-        auth_errors['whoop'] = True
-
-    output_lower = full_output.lower()
-    withings_mentioned = 'withings' in output_lower
-    withings_auth_issue = (
-        'refresh token' in output_lower
-        or 'python manage.py withings_auth' in full_output
-        or 'invalid_token' in output_lower
-        or 'access token provided is invalid' in output_lower
-    )
-    if withings_mentioned and withings_auth_issue:
-        auth_errors['withings'] = True
-
-    return auth_errors
-
-
 @require_http_methods(["POST"])
 def master_sync(_request):
     """
     AJAX endpoint to trigger the master sync command.
 
-    Runs the sync_all management command to sync data from all sources
-    (Whoop, Withings, Toggl)
+    Runs sync_all and uses structured SyncResult objects (not string parsing)
+    to build the response.
 
     Returns JSON:
         - success: boolean
         - message: string (with count of new entries)
-        - output: string (command output if successful)
+        - results: dict per source {success, created, updated, skipped, error}
+        - auth_errors: dict of sources with auth failures
+        - has_errors: boolean
     """
     try:
-        from workouts.models import Workout
-        from weight.models import WeighIn
-        from time_logs.models import TimeLog
+        from io import StringIO
+        from workouts.management.commands.sync_all import Command as SyncAllCommand
 
-        before_count = Workout.objects.count() + WeighIn.objects.count() + TimeLog.objects.count()
-
+        # Run sync_all and capture its structured results
         output = StringIO()
-        error_output = StringIO()
-        call_command('sync_all', '--days=30', stdout=output, stderr=error_output)
+        cmd = SyncAllCommand()
+        cmd.stdout = output
+        cmd.stderr = StringIO()
+        cmd.handle(days=30, whoop_only=False, verbosity=1)
 
-        after_count = Workout.objects.count() + WeighIn.objects.count() + TimeLog.objects.count()
-        new_entries = after_count - before_count
+        # Build response from structured SyncResult objects
+        results = {}
+        auth_errors = {}
+        has_errors = False
+        total_created = 0
 
-        output_text = _strip_ansi(output.getvalue())
-        error_text = _strip_ansi(error_output.getvalue())
+        for source, result in cmd.sync_results.items():
+            results[source] = {
+                'success': result.success,
+                'created': result.created,
+                'updated': result.updated,
+                'skipped': result.skipped,
+                'summary': result.summary,
+            }
+            total_created += result.created
+            if not result.success:
+                has_errors = True
+                results[source]['error'] = result.error_message
+            if result.auth_error:
+                auth_errors[source] = True
 
-        full_output = _extract_sync_summary(output_text, error_text)
-        has_errors = '\u2717' in full_output or bool(error_text)
-        auth_errors = _detect_auth_errors(full_output)
-
-        message = f'Synced {new_entries} new {"entry" if new_entries == 1 else "entries"}!'
+        message = f'Synced {total_created} new {"entry" if total_created == 1 else "entries"}!'
 
         return JsonResponse({
             'success': True,
             'message': message,
-            'output': full_output,
+            'results': results,
             'auth_errors': auth_errors,
-            'has_errors': has_errors
+            'has_errors': has_errors,
         })
 
     except Exception as e:

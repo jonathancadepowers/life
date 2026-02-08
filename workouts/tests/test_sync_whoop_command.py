@@ -163,8 +163,10 @@ class TestSyncWhoopCommand(TestCase):
         self.assertIn('not yet scored', output)
 
     @mock.patch('workouts.management.commands.sync_whoop.WhoopAPIClient')
-    def test_sync_raises_on_auth_error(self, mock_client_class):
-        """Should raise exception when authentication fails (for sync_all to catch)"""
+    def test_sync_returns_error_result_on_auth_failure(self, mock_client_class):
+        """Should return a failed SyncResult when authentication fails"""
+        from workouts.management.commands.sync_whoop import Command as SyncWhoopCommand
+
         # Mock: Client initialization and method call
         mock_client_instance = mock.Mock()
         mock_client_class.return_value = mock_client_instance
@@ -175,16 +177,16 @@ class TestSyncWhoopCommand(TestCase):
             "python manage.py whoop_auth"
         )
 
-        # Assert: Command raises exception (not caught internally)
-        out = StringIO()
-        err = StringIO()
-        with self.assertRaises(ValueError) as context:
-            call_command('sync_whoop', days=7, stdout=out, stderr=err)
+        # Run sync() directly to get the SyncResult
+        cmd = SyncWhoopCommand()
+        cmd.stdout = StringIO()
+        result = cmd.sync(days=7)
 
-        # Assert: Error message is preserved for sync_all to display
-        error_message = str(context.exception)
-        self.assertIn('Whoop refresh token expired or invalid', error_message)
-        self.assertIn('python manage.py whoop_auth', error_message)
+        # Assert: SyncResult indicates failure with auth error
+        self.assertFalse(result.success)
+        self.assertTrue(result.auth_error)
+        self.assertIn('Whoop refresh token expired or invalid', result.error_message)
+        self.assertIn('python manage.py whoop_auth', result.error_message)
 
     @mock.patch('workouts.services.whoop_client.WhoopAPIClient.get_all_workouts')
     def test_sync_handles_malformed_workout_data(self, mock_get_workouts):

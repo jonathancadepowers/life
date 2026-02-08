@@ -150,8 +150,10 @@ class TestSyncWithingsCommand(TestCase):
         self.assertIn('Skipped: 1', output)
 
     @mock.patch('weight.management.commands.sync_withings.WithingsAPIClient')
-    def test_sync_raises_on_auth_error(self, mock_client_class):
-        """Should raise exception when authentication fails (for sync_all to catch)"""
+    def test_sync_returns_error_result_on_auth_failure(self, mock_client_class):
+        """Should return a failed SyncResult when authentication fails"""
+        from weight.management.commands.sync_withings import Command as SyncWithingsCommand
+
         # Mock: Client initialization and method call
         mock_client_instance = mock.Mock()
         mock_client_class.return_value = mock_client_instance
@@ -162,16 +164,16 @@ class TestSyncWithingsCommand(TestCase):
             "python manage.py withings_auth"
         )
 
-        # Assert: Command raises exception (not caught internally)
-        out = StringIO()
-        err = StringIO()
-        with self.assertRaises(ValueError) as context:
-            call_command('sync_withings', days=7, stdout=out, stderr=err)
+        # Run sync() directly to get the SyncResult
+        cmd = SyncWithingsCommand()
+        cmd.stdout = StringIO()
+        result = cmd.sync(days=7)
 
-        # Assert: Error message is preserved for sync_all to display
-        error_message = str(context.exception)
-        self.assertIn('Withings refresh token expired or invalid', error_message)
-        self.assertIn('python manage.py withings_auth', error_message)
+        # Assert: SyncResult indicates failure with auth error
+        self.assertFalse(result.success)
+        self.assertTrue(result.auth_error)
+        self.assertIn('Withings refresh token expired or invalid', result.error_message)
+        self.assertIn('python manage.py withings_auth', result.error_message)
 
     @mock.patch('weight.services.withings_client.WithingsAPIClient.get_all_weight_measurements')
     def test_sync_handles_malformed_measurement_data(self, mock_get_measurements):

@@ -4,58 +4,38 @@ Django management command to sync weight data from Withings API.
 Usage:
     python manage.py sync_withings [--days=30]
 """
-from django.core.management.base import BaseCommand
 from datetime import datetime, timedelta, timezone
 from weight.services.withings_client import WithingsAPIClient
 from weight.models import WeighIn
+from lifetracker.sync_utils import BaseSyncCommand
 
 
-class Command(BaseCommand):
+class Command(BaseSyncCommand):
     help = 'Sync weight measurements from Withings API'
+    source_name = 'Withings'
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--days',
-            type=int,
-            default=30,
-            help='Number of days in the past to sync measurements from (default: 30)'
-        )
-        parser.add_argument(
-            '--all',
-            action='store_true',
-            help='Sync all measurements (ignores --days parameter)'
-        )
-
-    def handle(self, *_args, **options):
-        days = options['days']
-        sync_all = options['all']
-
+    def sync(self, days, sync_all=False):
         self.stdout.write(self.style.SUCCESS('Starting Withings weight sync...'))
 
         try:
-            # Initialize Withings client
             client = WithingsAPIClient()
 
-            # Determine date range
             if sync_all:
                 self.stdout.write('Syncing all available measurements...')
-                start_date = datetime(2010, 1, 1)  # Withings founded in 2008
+                start_date = datetime(2010, 1, 1)
             else:
                 start_date = datetime.now(timezone.utc) - timedelta(days=days)
                 self.stdout.write(f'Syncing measurements from last {days} days...')
 
             end_date = datetime.now(timezone.utc)
 
-            # Fetch measurements from Withings
             self.stdout.write('Fetching measurements from Withings API...')
             measurements_data = client.get_all_weight_measurements(
                 start_date=start_date,
                 end_date=end_date
             )
-
             self.stdout.write(f'Retrieved {len(measurements_data)} measurement groups from Withings')
 
-            # Process and save measurements
             created_count = 0
             updated_count = 0
             skipped_count = 0
@@ -69,14 +49,17 @@ class Command(BaseCommand):
                 else:
                     skipped_count += 1
 
-            # Summary
-            self.stdout.write(self.style.SUCCESS(
-                '\nSync completed successfully!'
-            ))
+            self.stdout.write(self.style.SUCCESS('\nSync completed successfully!'))
             self.stdout.write(f'  Created: {created_count}')
             self.stdout.write(f'  Updated: {updated_count}')
             self.stdout.write(f'  Skipped: {skipped_count}')
             self.stdout.write(f'  Total processed: {len(measurements_data)}')
+
+            return self.make_result(
+                created=created_count,
+                updated=updated_count,
+                skipped=skipped_count,
+            )
 
         except ValueError as e:
             self.stdout.write(self.style.ERROR(f'Configuration error: {e}'))
@@ -87,28 +70,23 @@ class Command(BaseCommand):
             self.stdout.write('  WITHINGS_CLIENT_SECRET')
             self.stdout.write('  WITHINGS_ACCESS_TOKEN')
             self.stdout.write('  WITHINGS_REFRESH_TOKEN')
-            raise  # Re-raise so sync_all can report the failure
+            return self.make_error_result(str(e), auth_error=True)
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error syncing measurements: {e}'))
-            raise
+            return self.make_error_result(str(e))
 
     def _process_measurement(self, measurement_group: dict) -> str:
         """
         Process a single measurement group from Withings API and save to database.
 
-        Args:
-            measurement_group: Measurement group data from Withings API
-
         Returns:
             'created', 'updated', or 'skipped'
         """
-        # Extract group ID
         group_id = measurement_group.get('grpid')
         if not group_id:
             self.stdout.write(self.style.WARNING('Skipping measurement with no group ID'))
             return 'skipped'
 
-        # Extract measurement time
         measurement_timestamp = measurement_group.get('date')
         if not measurement_timestamp:
             self.stdout.write(self.style.WARNING(
@@ -118,7 +96,6 @@ class Command(BaseCommand):
 
         measurement_time = datetime.fromtimestamp(measurement_timestamp, tz=timezone.utc)
 
-        # Extract weight from measures
         measures = measurement_group.get('measures', [])
         weight_measure = None
 
@@ -133,8 +110,6 @@ class Command(BaseCommand):
             ))
             return 'skipped'
 
-        # Calculate actual weight
-        # Withings returns: value * 10^unit
         value = weight_measure.get('value')
         unit = weight_measure.get('unit')
 
@@ -144,19 +119,15 @@ class Command(BaseCommand):
             ))
             return 'skipped'
 
-        # Calculate weight in kg
+        # Calculate weight: Withings returns value * 10^unit (in kg)
         weight_kg = value * (10 ** unit)
+        weight_lbs = weight_kg * 2.20462  # Convert to pounds
 
-        # Convert to pounds (1 kg = 2.20462 lbs)
-        weight_lbs = weight_kg * 2.20462
-
-        # Prepare measurement data for our model
         weighin_defaults = {
             'measurement_time': measurement_time,
             'weight': round(weight_lbs, 2),
         }
 
-        # Create or update measurement
         weighin, created = WeighIn.objects.update_or_create(
             source='Withings',
             source_id=str(group_id),

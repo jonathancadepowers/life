@@ -235,6 +235,59 @@ class OAuthTokenPersistenceTests(TestCase):
         self.assertTrue(cred.is_token_expired())
 
 
+class SyncResultTests(TestCase):
+    """
+    PATTERN: Structured Sync Results
+
+    All sync commands return SyncResult objects from their sync() method.
+    sync_all exposes results via self.sync_results dict.
+    master_sync() reads structured data instead of parsing command output.
+    """
+
+    def test_sync_result_summary_on_success(self):
+        """SyncResult.summary formats counts correctly."""
+        from lifetracker.sync_utils import SyncResult
+        result = SyncResult(source='Whoop', created=3, updated=1, skipped=2)
+        self.assertTrue(result.success)
+        self.assertEqual(result.total, 6)
+        self.assertIn('3 created', result.summary)
+        self.assertIn('1 updated', result.summary)
+
+    def test_sync_result_summary_on_failure(self):
+        """SyncResult.summary shows error message on failure."""
+        from lifetracker.sync_utils import SyncResult
+        result = SyncResult(source='Withings', success=False, error_message='Token expired')
+        self.assertFalse(result.success)
+        self.assertIn('Token expired', result.summary)
+
+    def test_sync_result_auth_error_flag(self):
+        """SyncResult tracks auth_error separately from general failure."""
+        from lifetracker.sync_utils import SyncResult
+        result = SyncResult(source='Toggl', success=False, auth_error=True, error_message='No token')
+        self.assertTrue(result.auth_error)
+        self.assertFalse(result.success)
+
+    def test_base_sync_command_provides_make_result(self):
+        """BaseSyncCommand.make_result pre-fills the source name."""
+        from lifetracker.sync_utils import BaseSyncCommand
+        cmd = BaseSyncCommand()
+        cmd.source_name = 'TestSource'
+        result = cmd.make_result(created=5)
+        self.assertEqual(result.source, 'TestSource')
+        self.assertEqual(result.created, 5)
+        self.assertTrue(result.success)
+
+    def test_base_sync_command_provides_make_error_result(self):
+        """BaseSyncCommand.make_error_result creates a failed result."""
+        from lifetracker.sync_utils import BaseSyncCommand
+        cmd = BaseSyncCommand()
+        cmd.source_name = 'TestSource'
+        result = cmd.make_error_result('Something broke', auth_error=True)
+        self.assertFalse(result.success)
+        self.assertTrue(result.auth_error)
+        self.assertEqual(result.error_message, 'Something broke')
+
+
 class AjaxResponseFormatTests(TestCase):
     """
     PATTERN: AJAX Response Format

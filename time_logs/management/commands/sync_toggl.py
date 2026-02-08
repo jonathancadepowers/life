@@ -11,13 +11,13 @@ Usage:
     python manage.py sync_toggl [--days=30]
     python manage.py sync_toggl --all
 """
-from django.core.management.base import BaseCommand
 from time_logs.models import TimeLog
 from goals.models import Goal
 from projects.models import Project
 from time_logs.services.toggl_client import TogglAPIClient
 from datetime import datetime, timedelta, timezone
 from django.utils import timezone as django_timezone
+from lifetracker.sync_utils import BaseSyncCommand
 
 
 def _ensure_aware(dt):
@@ -33,21 +33,74 @@ def _parse_iso_datetime(value):
     return _ensure_aware(dt)
 
 
-class Command(BaseCommand):
+class Command(BaseSyncCommand):
     help = 'Sync time entries from Toggl Track'
+    source_name = 'Toggl'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--days',
-            type=int,
-            default=30,
-            help='Number of days in the past to sync (default: 30)'
-        )
-        parser.add_argument(
-            '--all',
-            action='store_true',
-            help='Sync all time entries (last 365 days)'
-        )
+        super().add_arguments(parser)
+        # Override --all description for Toggl-specific behavior
+        # (already added by BaseSyncCommand, no need to re-add)
+
+    def sync(self, days, sync_all=False):
+        if sync_all:
+            days = 365
+
+        self.stdout.write(self.style.SUCCESS('=' * 60))
+        self.stdout.write(self.style.SUCCESS('  TOGGL TIME ENTRY SYNC'))
+        self.stdout.write(self.style.SUCCESS('=' * 60))
+        self.stdout.write(f'Syncing last {days} days of time entries...\n')
+
+        try:
+            client = TogglAPIClient()
+            end_date = datetime.now(timezone.utc)
+            start_date = end_date - timedelta(days=days)
+
+            self.stdout.write(f'Date range: {start_date.date()} to {end_date.date()}')
+
+            self.stdout.write('Fetching projects from Toggl...')
+            toggl_projects = client.get_projects()
+            project_names = {p['id']: p['name'] for p in toggl_projects}
+
+            self.stdout.write('Fetching tags from Toggl...')
+            toggl_tags = client.get_tags()
+            tag_name_to_id = {tag['name']: str(tag['id']) for tag in toggl_tags}
+
+            self.stdout.write('Fetching time entries from Toggl...')
+            time_entries = client.get_time_entries(
+                start_date=start_date,
+                end_date=end_date
+            )
+            self.stdout.write(f'Found {len(time_entries)} time entries\n')
+
+            counts = {'created': 0, 'updated': 0, 'skipped': 0}
+            for entry in time_entries:
+                result = self._process_entry(entry, project_names, tag_name_to_id)
+                counts[result] += 1
+
+            self.stdout.write('\n' + '=' * 60)
+            self.stdout.write(self.style.SUCCESS('  SYNC SUMMARY'))
+            self.stdout.write('=' * 60)
+            self.stdout.write(self.style.SUCCESS(f'\u2713 Created: {counts["created"]}'))
+            self.stdout.write(self.style.WARNING(f'\u21bb Updated: {counts["updated"]}'))
+            self.stdout.write(f'\u2298 Skipped: {counts["skipped"]}')
+            self.stdout.write('=' * 60)
+
+            return self.make_result(
+                created=counts['created'],
+                updated=counts['updated'],
+                skipped=counts['skipped'],
+            )
+
+        except ValueError as e:
+            self.stdout.write(self.style.ERROR(f'\n\u2717 Configuration Error: {str(e)}'))
+            self.stdout.write(self.style.WARNING('\nMake sure to set:'))
+            self.stdout.write('  TOGGL_API_TOKEN=your-api-token')
+            self.stdout.write('  TOGGL_WORKSPACE_ID=your-workspace-id')
+            return self.make_error_result(str(e), auth_error=True)
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'\n\u2717 Error: {str(e)}'))
+            return self.make_error_result(str(e))
 
     def _process_entry(self, entry, project_names, tag_name_to_id):
         """Process a single Toggl time entry. Returns 'created', 'updated', or 'skipped'."""
@@ -101,56 +154,3 @@ class Command(BaseCommand):
             )
             goal_objects.append(goal)
         return goal_objects
-
-    def handle(self, *_args, **options):
-        days = 365 if options['all'] else options['days']
-
-        self.stdout.write(self.style.SUCCESS('=' * 60))
-        self.stdout.write(self.style.SUCCESS('  TOGGL TIME ENTRY SYNC'))
-        self.stdout.write(self.style.SUCCESS('=' * 60))
-        self.stdout.write(f'Syncing last {days} days of time entries...\n')
-
-        try:
-            client = TogglAPIClient()
-            end_date = datetime.now(timezone.utc)
-            start_date = end_date - timedelta(days=days)
-
-            self.stdout.write(f'Date range: {start_date.date()} to {end_date.date()}')
-
-            self.stdout.write('Fetching projects from Toggl...')
-            toggl_projects = client.get_projects()
-            project_names = {p['id']: p['name'] for p in toggl_projects}
-
-            self.stdout.write('Fetching tags from Toggl...')
-            toggl_tags = client.get_tags()
-            tag_name_to_id = {tag['name']: str(tag['id']) for tag in toggl_tags}
-
-            self.stdout.write('Fetching time entries from Toggl...')
-            time_entries = client.get_time_entries(
-                start_date=start_date,
-                end_date=end_date
-            )
-            self.stdout.write(f'Found {len(time_entries)} time entries\n')
-
-            counts = {'created': 0, 'updated': 0, 'skipped': 0}
-            for entry in time_entries:
-                result = self._process_entry(entry, project_names, tag_name_to_id)
-                counts[result] += 1
-
-            self.stdout.write('\n' + '=' * 60)
-            self.stdout.write(self.style.SUCCESS('  SYNC SUMMARY'))
-            self.stdout.write('=' * 60)
-            self.stdout.write(self.style.SUCCESS(f'\u2713 Created: {counts["created"]}'))
-            self.stdout.write(self.style.WARNING(f'\u21bb Updated: {counts["updated"]}'))
-            self.stdout.write(f'\u2298 Skipped: {counts["skipped"]}')
-            self.stdout.write('=' * 60)
-
-        except ValueError as e:
-            self.stdout.write(self.style.ERROR(f'\n\u2717 Configuration Error: {str(e)}'))
-            self.stdout.write(self.style.WARNING('\nMake sure to set:'))
-            self.stdout.write('  TOGGL_API_TOKEN=your-api-token')
-            self.stdout.write('  TOGGL_WORKSPACE_ID=your-workspace-id')
-            raise
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f'\n\u2717 Error: {str(e)}'))
-            raise
