@@ -5159,6 +5159,8 @@
             cursor: grab;
             border: 1px solid #b8d4c8;
             position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
         }
 
         .hour-event:hover {
@@ -8034,13 +8036,11 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    // Update button state
-                    markDoneBtn.classList.add('is-done');
-                    markDoneBtn.querySelector('span').textContent = 'Task Complete!';
-                    markDoneBtn.querySelector('i').className = 'bi bi-check-circle-fill';
-
                     // Update the UI
                     handleTaskStateChange(data.task);
+
+                    // Close the slide-out panel
+                    closePanel();
                 }
             } catch (error) {
                 console.error('Error marking task as done:', error);
@@ -12892,71 +12892,119 @@
             const todayStart = new Date(currentCalendarDate);
             const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
+            // First pass: collect visible events with computed positions
+            const visibleEvents = [];
             calendarEvents.forEach(event => {
-                // Skip all-day events for now (could add a separate section)
                 if (event.is_all_day) return;
 
-                // Use override times if present, otherwise use original times
                 const startDate = event.override_start ? new Date(event.override_start) : new Date(event.start);
                 const endDate = event.override_end ? new Date(event.override_end) : new Date(event.end);
 
-                // Skip events that don't overlap with current calendar date (in local timezone)
                 if (endDate <= todayStart || startDate >= todayEnd) return;
 
-                // Get local hours and minutes
                 const startHourLocal = startDate.getHours();
                 const startMinuteLocal = startDate.getMinutes();
                 const endHourLocal = endDate.getHours();
                 const endMinuteLocal = endDate.getMinutes();
 
-                // Find the starting hour row (clamp to visible range 7-18)
                 const startHour = Math.max(7, Math.min(18, startHourLocal));
-                const endHour = Math.max(7, Math.min(19, endHourLocal + (endMinuteLocal > 0 ? 1 : 0)));
-
-                // Skip events that end before 7am or start after 6pm
                 if (endHourLocal < 7 || startHourLocal > 18) return;
 
                 const hourContent = document.querySelector(`.hour-content[data-hour="${startHour}"]`);
                 if (!hourContent) return;
 
-                // Calculate position and height
-                const minuteOffset = startHourLocal >= 7 ? startMinuteLocal : 0;
-                const topPercent = (minuteOffset / 60) * 100;
-
-                // Calculate duration in hours (for height)
                 const startMinutes = startHourLocal * 60 + startMinuteLocal;
                 const endMinutes = endHourLocal * 60 + endMinuteLocal;
-                let durationMinutes = endMinutes - startMinutes;
-
-                // Clamp to visible range
                 const visibleStartMinutes = Math.max(7 * 60, startMinutes);
                 const visibleEndMinutes = Math.min(19 * 60, endMinutes);
-                durationMinutes = visibleEndMinutes - visibleStartMinutes;
 
-                // Minimum 30 minutes to ensure text isn't cut off
+                visibleEvents.push({
+                    event,
+                    startDate,
+                    endDate,
+                    startHour,
+                    startMinutes: visibleStartMinutes,
+                    endMinutes: visibleEndMinutes,
+                    hourContent,
+                    minuteOffset: startHourLocal >= 7 ? startMinuteLocal : 0,
+                });
+            });
+
+            // Detect overlapping groups and assign columns
+            visibleEvents.sort((a, b) => a.startMinutes - b.startMinutes);
+            const columns = new Array(visibleEvents.length).fill(0);
+            const totalCols = new Array(visibleEvents.length).fill(1);
+
+            // Group overlapping events into clusters
+            const clusters = [];
+            for (let i = 0; i < visibleEvents.length; i++) {
+                let placed = false;
+                for (const cluster of clusters) {
+                    // Check if this event overlaps with any event in the cluster
+                    const overlaps = cluster.some(idx =>
+                        visibleEvents[i].startMinutes < visibleEvents[idx].endMinutes &&
+                        visibleEvents[i].endMinutes > visibleEvents[idx].startMinutes
+                    );
+                    if (overlaps) {
+                        cluster.push(i);
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed) {
+                    clusters.push([i]);
+                }
+            }
+
+            // Within each cluster, assign columns greedily
+            for (const cluster of clusters) {
+                const colEndTimes = []; // track when each column becomes free
+                for (const idx of cluster) {
+                    let col = 0;
+                    while (col < colEndTimes.length && colEndTimes[col] > visibleEvents[idx].startMinutes) {
+                        col++;
+                    }
+                    columns[idx] = col;
+                    colEndTimes[col] = visibleEvents[idx].endMinutes;
+                }
+                const numCols = colEndTimes.length;
+                for (const idx of cluster) {
+                    totalCols[idx] = numCols;
+                }
+            }
+
+            // Second pass: render events with column-based positioning
+            const padding = 4; // px padding on each side
+            visibleEvents.forEach((item, i) => {
+                const { event, startDate, endDate, startHour, hourContent, minuteOffset } = item;
+
+                const topPercent = (minuteOffset / 60) * 100;
+                let durationMinutes = item.endMinutes - item.startMinutes;
                 durationMinutes = Math.max(30, durationMinutes);
+                const heightPx = (durationMinutes / 60) * 60;
 
-                const durationHours = durationMinutes / 60;
-                const heightPx = durationHours * 60; // 60px per hour
+                // Column-based width and left offset
+                const col = columns[i];
+                const numCols = totalCols[i];
+                const colWidthPercent = 100 / numCols;
+                const leftPercent = col * colWidthPercent;
 
-                // Create event element
                 const eventEl = document.createElement('div');
                 eventEl.className = 'hour-event';
                 eventEl.dataset.eventId = event.id;
                 eventEl.draggable = true;
                 eventEl.style.position = 'absolute';
                 eventEl.style.top = `${topPercent}%`;
-                eventEl.style.left = '4px';
-                eventEl.style.right = '4px';
+                eventEl.style.left = `calc(${leftPercent}% + ${padding}px)`;
+                eventEl.style.width = `calc(${colWidthPercent}% - ${padding * 2 / numCols}px)`;
                 eventEl.style.height = `${heightPx}px`;
                 eventEl.style.zIndex = '1';
                 eventEl.style.borderRadius = '4px';
                 eventEl.style.cursor = 'grab';
+                eventEl.style.boxSizing = 'border-box';
 
-                // Show visual indicator if this event has been moved locally
                 const hasOverride = event.override_start || event.override_end;
 
-                // Format time for tooltip
                 const formatTime = (date) => {
                     let hours = date.getHours();
                     const minutes = date.getMinutes();
@@ -12982,7 +13030,6 @@
                     ${hasOverride ? '<div class="hour-event-override-indicator" title="Moved locally - will reset on next import"></div>' : ''}
                 `;
 
-                // Add drag event handlers
                 eventEl.addEventListener('dragstart', function(e) {
                     currentDragCalendarEventId = event.id;
                     e.dataTransfer.setData('text/plain', event.id);
@@ -12996,7 +13043,6 @@
                     this.style.opacity = '1';
                 });
 
-                // Add hide button handler
                 const hideBtn = eventEl.querySelector('.hour-event-hide-btn');
                 hideBtn.addEventListener('click', async function(e) {
                     e.stopPropagation();
