@@ -1,0 +1,25 @@
+[tool.black]
+line-length = 120
+target-version = ['py39']
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | env
+  | migrations
+  | staticfiles
+  | static
+)/
+'''
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+exclude = [
+    "venv/",
+    "env/",
+    ".venv/",
+    "migrations/",
+    "staticfiles/",
+]

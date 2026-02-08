@@ -9,7 +9,7 @@ def get_user_timezone(request):
     Get the user's timezone from the cookie set by JavaScript.
     Falls back to UTC if no timezone is set.
     """
-    user_tz_name = request.COOKIES.get('user_timezone', 'UTC')
+    user_tz_name = request.COOKIES.get("user_timezone", "UTC")
     try:
         return pytz.timezone(user_tz_name)
     except pytz.exceptions.UnknownTimeZoneError:

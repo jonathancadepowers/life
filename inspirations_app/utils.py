@@ -36,10 +36,10 @@ def get_youtube_trailer_url(film_title):
         videos_search = VideosSearch(search_query, limit=5)  # Get top 5 results
         result = videos_search.result()
 
-        if result and 'result' in result and len(result['result']) > 0:
+        if result and "result" in result and len(result["result"]) > 0:
             # Try each result until we find a valid one
-            for video in result['result']:
-                url = video['link']
+            for video in result["result"]:
+                url = video["link"]
                 if validate_youtube_url(url):
                     return url
 

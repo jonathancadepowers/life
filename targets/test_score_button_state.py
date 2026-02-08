@@ -28,10 +28,10 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         from selenium.webdriver.chrome.options import Options
 
         chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
 
         try:
             cls.selenium = webdriver.Chrome(options=chrome_options)
@@ -43,7 +43,7 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
     @classmethod
     def tearDownClass(cls):
         """Clean up Selenium WebDriver."""
-        if hasattr(cls, 'selenium') and cls.selenium:
+        if hasattr(cls, "selenium") and cls.selenium:
             cls.selenium.quit()
         super().tearDownClass()
 
@@ -53,10 +53,7 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
             self.skipTest("Selenium WebDriver not available")
 
         # Create test project
-        self.project = Project.objects.create(
-            project_id=999,
-            display_string='Test Project'
-        )
+        self.project = Project.objects.create(project_id=999, display_string="Test Project")
 
         # Create two test dates
         self.date_with_score = date.today() - timedelta(days=2)
@@ -66,18 +63,18 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         self.agenda_with_score = DailyAgenda.objects.create(
             date=self.date_with_score,
             project_1=self.project,
-            target_1='Complete first target',
+            target_1="Complete first target",
             target_1_score=1.0,
-            other_plans='# 🏆 Habits\n- [x] Exercise\n- [x] Eat clean'
+            other_plans="# 🏆 Habits\n- [x] Exercise\n- [x] Eat clean",
         )
 
         # Create agenda WITHOUT score
         self.agenda_without_score = DailyAgenda.objects.create(
             date=self.date_without_score,
             project_1=self.project,
-            target_1='Complete second target',
+            target_1="Complete second target",
             target_1_score=0.5,
-            other_plans='# 🏆 Habits\n- [ ] Exercise\n- [ ] Eat clean'
+            other_plans="# 🏆 Habits\n- [ ] Exercise\n- [ ] Eat clean",
         )
 
     @skip("Other Plans scoring was removed - test no longer applicable")
@@ -93,19 +90,15 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         from selenium.webdriver.support import expected_conditions as EC
 
         # Navigate to activity logger
-        url = f'{self.live_server_url}/activity-logger/'
+        url = f"{self.live_server_url}/activity-logger/"
         self.selenium.get(url)
 
         # Wait for page to load (wait for body, then wait a bit for JS to initialize)
-        WebDriverWait(self.selenium, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, 'body'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
         time.sleep(0.5)  # Give JavaScript time to initialize
 
         # Wait for the date display to appear
-        WebDriverWait(self.selenium, 10).until(
-            EC.presence_of_element_located((By.ID, 'today-date'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.presence_of_element_located((By.ID, "today-date")))
 
         # Click calendar button using XPath and JavaScript click
         calendar_button = WebDriverWait(self.selenium, 10).until(
@@ -114,13 +107,11 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         self.selenium.execute_script("arguments[0].click();", calendar_button)
 
         # Wait for modal to appear
-        WebDriverWait(self.selenium, 10).until(
-            EC.visibility_of_element_located((By.ID, 'calendarModal'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.visibility_of_element_located((By.ID, "calendarModal")))
 
         # Find and click the date WITH score
         # Format date as "YYYY-MM-DD" which matches the dateStr in the onclick handler
-        date_with_score_str = self.date_with_score.strftime('%Y-%m-%d')
+        date_with_score_str = self.date_with_score.strftime("%Y-%m-%d")
         date_cell_with_score = WebDriverWait(self.selenium, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, f"//div[@class='calendar-day clickable' and contains(@onclick, '{date_with_score_str}')]")
@@ -132,28 +123,26 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         time.sleep(1)
 
         # Verify the date is displayed
-        date_display = self.selenium.find_element(By.ID, 'today-date')
-        self.assertIn(self.date_with_score.strftime('%B'), date_display.text)
+        date_display = self.selenium.find_element(By.ID, "today-date")
+        self.assertIn(self.date_with_score.strftime("%B"), date_display.text)
 
         # Check that the "Great!" button (score=1) for Other Plans (target 4) is active
         score_button_1_happy = self.selenium.find_element(
-            By.CSS_SELECTOR,
-            '.score-buttons[data-target="4"] .score-btn[data-score="1"]'
+            By.CSS_SELECTOR, '.score-buttons[data-target="4"] .score-btn[data-score="1"]'
         )
-        self.assertIn('active', score_button_1_happy.get_attribute('class'),
-                     "Score button should be active for date WITH score")
+        self.assertIn(
+            "active", score_button_1_happy.get_attribute("class"), "Score button should be active for date WITH score"
+        )
 
         # Now navigate to the calendar again
         calendar_button = self.selenium.find_element(By.XPATH, "//button[@onclick='showCalendarModal()']")
         self.selenium.execute_script("arguments[0].click();", calendar_button)
 
         # Wait for modal to appear again
-        WebDriverWait(self.selenium, 10).until(
-            EC.visibility_of_element_located((By.ID, 'calendarModal'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.visibility_of_element_located((By.ID, "calendarModal")))
 
         # Find and click the date WITHOUT score
-        date_without_score_str = self.date_without_score.strftime('%Y-%m-%d')
+        date_without_score_str = self.date_without_score.strftime("%Y-%m-%d")
         date_cell_without_score = WebDriverWait(self.selenium, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, f"//div[@class='calendar-day clickable' and contains(@onclick, '{date_without_score_str}')]")
@@ -165,27 +154,29 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         time.sleep(1)
 
         # Verify the date is displayed
-        date_display = self.selenium.find_element(By.ID, 'today-date')
-        self.assertIn(self.date_without_score.strftime('%B'), date_display.text)
+        date_display = self.selenium.find_element(By.ID, "today-date")
+        self.assertIn(self.date_without_score.strftime("%B"), date_display.text)
 
         # THE CRITICAL TEST: Check that the "Great!" button for Other Plans is NOT active
         # This is the bug we're testing - before the fix, the button would still show as active
         score_button_2_happy = self.selenium.find_element(
-            By.CSS_SELECTOR,
-            '.score-buttons[data-target="4"] .score-btn[data-score="1"]'
+            By.CSS_SELECTOR, '.score-buttons[data-target="4"] .score-btn[data-score="1"]'
         )
-        self.assertNotIn('active', score_button_2_happy.get_attribute('class'),
-                        "Score button should NOT be active for date WITHOUT score - "
-                        "this tests the fix for the state persistence bug")
+        self.assertNotIn(
+            "active",
+            score_button_2_happy.get_attribute("class"),
+            "Score button should NOT be active for date WITHOUT score - "
+            "this tests the fix for the state persistence bug",
+        )
 
         # Also verify that none of the other score buttons are active either
         all_score_buttons_target_4 = self.selenium.find_elements(
-            By.CSS_SELECTOR,
-            '.score-buttons[data-target="4"] .score-btn[data-score]'
+            By.CSS_SELECTOR, '.score-buttons[data-target="4"] .score-btn[data-score]'
         )
         for button in all_score_buttons_target_4:
-            self.assertNotIn('active', button.get_attribute('class'),
-                           "No score buttons should be active when database has no score")
+            self.assertNotIn(
+                "active", button.get_attribute("class"), "No score buttons should be active when database has no score"
+            )
 
     @skip("Other Plans scoring was removed - test no longer applicable")
     def test_score_button_state_loads_correctly_for_date_with_score(self):
@@ -199,19 +190,15 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         from selenium.webdriver.support import expected_conditions as EC
 
         # Navigate to activity logger
-        url = f'{self.live_server_url}/activity-logger/'
+        url = f"{self.live_server_url}/activity-logger/"
         self.selenium.get(url)
 
         # Wait for page to load (wait for body, then wait a bit for JS to initialize)
-        WebDriverWait(self.selenium, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, 'body'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
         time.sleep(0.5)  # Give JavaScript time to initialize
 
         # Wait for the date display to appear
-        WebDriverWait(self.selenium, 10).until(
-            EC.presence_of_element_located((By.ID, 'today-date'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.presence_of_element_located((By.ID, "today-date")))
 
         # Click calendar button using XPath and JavaScript click
         calendar_button = WebDriverWait(self.selenium, 10).until(
@@ -220,12 +207,10 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
         self.selenium.execute_script("arguments[0].click();", calendar_button)
 
         # Wait for modal to appear
-        WebDriverWait(self.selenium, 10).until(
-            EC.visibility_of_element_located((By.ID, 'calendarModal'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.visibility_of_element_located((By.ID, "calendarModal")))
 
         # Find and click the date WITH score
-        date_with_score_str = self.date_with_score.strftime('%Y-%m-%d')
+        date_with_score_str = self.date_with_score.strftime("%Y-%m-%d")
         date_cell = WebDriverWait(self.selenium, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, f"//div[@class='calendar-day clickable' and contains(@onclick, '{date_with_score_str}')]")
@@ -238,16 +223,14 @@ class ScoreButtonStateSeleniumTestCase(StaticLiveServerTestCase):
 
         # Check that Target 1's score button (score=1) is active
         score_button_target1 = self.selenium.find_element(
-            By.CSS_SELECTOR,
-            '.score-buttons[data-target="1"] .score-btn[data-score="1"]'
+            By.CSS_SELECTOR, '.score-buttons[data-target="1"] .score-btn[data-score="1"]'
         )
-        self.assertIn('active', score_button_target1.get_attribute('class'),
-                     "Target 1 score button should be active")
+        self.assertIn("active", score_button_target1.get_attribute("class"), "Target 1 score button should be active")
 
         # Check that Other Plans's score button (score=1) is active
         score_button_target4 = self.selenium.find_element(
-            By.CSS_SELECTOR,
-            '.score-buttons[data-target="4"] .score-btn[data-score="1"]'
+            By.CSS_SELECTOR, '.score-buttons[data-target="4"] .score-btn[data-score="1"]'
         )
-        self.assertIn('active', score_button_target4.get_attribute('class'),
-                     "Other Plans score button should be active")
+        self.assertIn(
+            "active", score_button_target4.get_attribute("class"), "Other Plans score button should be active"
+        )

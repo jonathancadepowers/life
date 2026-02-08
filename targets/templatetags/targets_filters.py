@@ -13,7 +13,7 @@ def format_goal_name(value):
         return value
 
     # Replace underscores with spaces and title case each word
-    return value.replace('_', ' ').title()
+    return value.replace("_", " ").title()
 
 
 @register.filter

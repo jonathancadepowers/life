@@ -15,8 +15,8 @@ def attr(obj, attr_name):
 
     try:
         # Handle dotted attribute access like "target.target_id"
-        if '.' in attr_name:
-            parts = attr_name.split('.')
+        if "." in attr_name:
+            parts = attr_name.split(".")
             value = obj
             for part in parts:
                 value = getattr(value, part, None)

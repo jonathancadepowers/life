@@ -6,13 +6,13 @@ class TaskState(models.Model):
 
     name = models.CharField(max_length=100, unique=True)
     order = models.IntegerField(default=0)
-    bootstrap_icon = models.CharField(max_length=50, blank=True, default='')  # e.g., 'bi-inbox'
+    bootstrap_icon = models.CharField(max_length=50, blank=True, default="")  # e.g., 'bi-inbox'
     is_system = models.BooleanField(default=False)  # System states like 'Abandoned' can't be deleted/reordered
     is_terminal = models.BooleanField(default=False)  # Terminal state marks tasks as "completed"
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['order', 'name']
+        ordering = ["order", "name"]
 
     def __str__(self):
         return self.name
@@ -31,7 +31,7 @@ class TaskTag(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
@@ -41,21 +41,11 @@ class Task(models.Model):
     """A task item."""
 
     title = models.CharField(max_length=255)
-    details = models.TextField(blank=True, default='')
+    details = models.TextField(blank=True, default="")
     critical = models.BooleanField(default=False)
     starred = models.BooleanField(default=False)
-    state = models.ForeignKey(
-        TaskState,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='tasks'
-    )
-    tags = models.ManyToManyField(
-        TaskTag,
-        blank=True,
-        related_name='tasks'
-    )
+    state = models.ForeignKey(TaskState, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
+    tags = models.ManyToManyField(TaskTag, blank=True, related_name="tasks")
     order = models.IntegerField(default=0)
     deadline = models.DateField(null=True, blank=True)
     deadline_dismissed = models.BooleanField(default=False)
@@ -66,7 +56,7 @@ class Task(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['order', '-created_at']
+        ordering = ["order", "-created_at"]
 
     def __str__(self):
         return self.title
@@ -75,21 +65,17 @@ class Task(models.Model):
 class TaskSchedule(models.Model):
     """A scheduled time slot for a task on the calendar."""
 
-    task = models.ForeignKey(
-        Task,
-        on_delete=models.CASCADE,
-        related_name='schedules'
-    )
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="schedules")
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['start_time']
+        ordering = ["start_time"]
         indexes = [
-            models.Index(fields=['start_time']),
-            models.Index(fields=['task', 'start_time']),
+            models.Index(fields=["start_time"]),
+            models.Index(fields=["task", "start_time"]),
         ]
 
     def __str__(self):
@@ -106,7 +92,7 @@ class TimeBlock(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['start_time']
+        ordering = ["start_time"]
 
     def __str__(self):
         return self.name
@@ -123,7 +109,7 @@ class TaskDetailTemplate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['order', 'name']
+        ordering = ["order", "name"]
 
     def __str__(self):
         return self.name
@@ -146,7 +132,7 @@ class TaskView(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['order', 'name']
+        ordering = ["order", "name"]
 
     def __str__(self):
         return self.name

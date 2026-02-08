@@ -14,36 +14,34 @@ def create_writing_log(request):
     """
     try:
         import json
+
         data = json.loads(request.body)
-        log_date_str = data.get('log_date')
+        log_date_str = data.get("log_date")
 
         if not log_date_str:
-            return JsonResponse({'success': False, 'error': 'log_date is required'}, status=400)
+            return JsonResponse({"success": False, "error": "log_date is required"}, status=400)
 
         # Parse the date
-        log_date = datetime.strptime(log_date_str, '%Y-%m-%d').date()
+        log_date = datetime.strptime(log_date_str, "%Y-%m-%d").date()
 
         # Generate a unique UUID for source_id
         source_id = str(uuid.uuid4())
 
         # Create the writing log
-        writing_log = WritingLog.objects.create(
-            source='Manual',
-            source_id=source_id,
-            log_date=log_date,
-            duration=1.5
+        writing_log = WritingLog.objects.create(source="Manual", source_id=source_id, log_date=log_date, duration=1.5)
+
+        return JsonResponse(
+            {
+                "success": True,
+                "id": writing_log.id,
+                "log_date": str(writing_log.log_date),
+                "source_id": writing_log.source_id,
+            }
         )
 
-        return JsonResponse({
-            'success': True,
-            'id': writing_log.id,
-            'log_date': str(writing_log.log_date),
-            'source_id': writing_log.source_id
-        })
-
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
     except ValueError as e:
-        return JsonResponse({'success': False, 'error': f'Invalid date format: {str(e)}'}, status=400)
+        return JsonResponse({"success": False, "error": f"Invalid date format: {str(e)}"}, status=400)
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

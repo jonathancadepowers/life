@@ -4,32 +4,40 @@ from .models import MonthlyObjective
 
 @admin.register(MonthlyObjective)
 class MonthlyObjectiveAdmin(admin.ModelAdmin):
-    list_display = ['objective_id', 'label', 'category', 'start', 'end', 'objective_value', 'result', 'created_at']
-    list_filter = ['category', 'start', 'end']
-    readonly_fields = ['created_at', 'updated_at']
-    date_hierarchy = 'start'
+    list_display = ["objective_id", "label", "category", "start", "end", "objective_value", "result", "created_at"]
+    list_filter = ["category", "start", "end"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "start"
 
     fieldsets = (
-        ('Objective Details', {
-            'fields': ('objective_id', 'label', 'category', 'description', 'unit_of_measurement', 'objective_value')
-        }),
-        ('Date Range', {
-            'fields': ('start', 'end', 'timezone'),
-            'description': 'Must span a full calendar month (first day to last day). Timezone determines how dates are interpreted.'
-        }),
-        ('SQL Definition', {
-            'fields': ('objective_definition',)
-        }),
-        ('Historical Display', {
-            'fields': ('historical_display',),
-            'description': 'SQL query or definition for displaying historical entries in the detail modal.'
-        }),
-        ('Result', {
-            'fields': ('result',),
-            'description': 'Actual result from executing the SQL query. Will be populated automatically.'
-        }),
-        ('Audit Information', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
+        (
+            "Objective Details",
+            {"fields": ("objective_id", "label", "category", "description", "unit_of_measurement", "objective_value")},
+        ),
+        (
+            "Date Range",
+            {
+                "fields": ("start", "end", "timezone"),
+                "description": (
+                    "Must span a full calendar month (first day to last day). "
+                    "Timezone determines how dates are interpreted."
+                ),
+            },
+        ),
+        ("SQL Definition", {"fields": ("objective_definition",)}),
+        (
+            "Historical Display",
+            {
+                "fields": ("historical_display",),
+                "description": "SQL query or definition for displaying historical entries in the detail modal.",
+            },
+        ),
+        (
+            "Result",
+            {
+                "fields": ("result",),
+                "description": "Actual result from executing the SQL query. Will be populated automatically.",
+            },
+        ),
+        ("Audit Information", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )

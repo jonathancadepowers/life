@@ -14,13 +14,13 @@ class MonthlyObjectiveTimezoneTests(TestCase):
     def setUp(self):
         """Set up test data before each test"""
         # Clean up any existing settings from previous tests
-        Setting.objects.filter(key='default_timezone_for_monthly_objectives').delete()
+        Setting.objects.filter(key="default_timezone_for_monthly_objectives").delete()
 
     def tearDown(self):
         """Clean up after each test"""
         # Clean up test data
         MonthlyObjective.objects.all().delete()
-        Setting.objects.filter(key='default_timezone_for_monthly_objectives').delete()
+        Setting.objects.filter(key="default_timezone_for_monthly_objectives").delete()
 
     def test_new_objective_uses_timezone_from_settings(self):
         """
@@ -28,23 +28,21 @@ class MonthlyObjectiveTimezoneTests(TestCase):
         """
         # Create the setting with a specific timezone
         Setting.set(
-            key='default_timezone_for_monthly_objectives',
-            value='America/Chicago',
-            description='Test timezone setting'
+            key="default_timezone_for_monthly_objectives", value="America/Chicago", description="Test timezone setting"
         )
 
         # Create a new objective
         objective = MonthlyObjective.objects.create(
-            objective_id='test_chicago',
+            objective_id="test_chicago",
             start=date(2025, 11, 1),
             end=date(2025, 11, 30),
-            label='Test Objective',
+            label="Test Objective",
             objective_value=30,
-            objective_definition='SELECT COUNT(*) FROM test'
+            objective_definition="SELECT COUNT(*) FROM test",
         )
 
         # Verify it uses the timezone from settings
-        self.assertEqual(objective.timezone, 'America/Chicago')
+        self.assertEqual(objective.timezone, "America/Chicago")
 
     def test_changing_setting_affects_new_objectives_only(self):
         """
@@ -52,67 +50,65 @@ class MonthlyObjectiveTimezoneTests(TestCase):
         """
         # Create setting with Chicago timezone
         Setting.set(
-            key='default_timezone_for_monthly_objectives',
-            value='America/Chicago',
-            description='Test timezone setting'
+            key="default_timezone_for_monthly_objectives", value="America/Chicago", description="Test timezone setting"
         )
 
         # Create first objective
         objective1 = MonthlyObjective.objects.create(
-            objective_id='test_chicago_obj',
+            objective_id="test_chicago_obj",
             start=date(2025, 11, 1),
             end=date(2025, 11, 30),
-            label='Chicago Objective',
+            label="Chicago Objective",
             objective_value=30,
-            objective_definition='SELECT COUNT(*) FROM test'
+            objective_definition="SELECT COUNT(*) FROM test",
         )
-        self.assertEqual(objective1.timezone, 'America/Chicago')
+        self.assertEqual(objective1.timezone, "America/Chicago")
 
         # Change the setting to New York timezone
         Setting.set(
-            key='default_timezone_for_monthly_objectives',
-            value='America/New_York',
-            description='Updated timezone setting'
+            key="default_timezone_for_monthly_objectives",
+            value="America/New_York",
+            description="Updated timezone setting",
         )
 
         # Create second objective
         objective2 = MonthlyObjective.objects.create(
-            objective_id='test_newyork_obj',
+            objective_id="test_newyork_obj",
             start=date(2025, 12, 1),
             end=date(2025, 12, 31),
-            label='New York Objective',
+            label="New York Objective",
             objective_value=25,
-            objective_definition='SELECT COUNT(*) FROM test'
+            objective_definition="SELECT COUNT(*) FROM test",
         )
 
         # Refresh first objective from database
         objective1.refresh_from_db()
 
         # Verify first objective still has Chicago timezone (unchanged)
-        self.assertEqual(objective1.timezone, 'America/Chicago')
+        self.assertEqual(objective1.timezone, "America/Chicago")
 
         # Verify second objective has New York timezone (from updated setting)
-        self.assertEqual(objective2.timezone, 'America/New_York')
+        self.assertEqual(objective2.timezone, "America/New_York")
 
     def test_fallback_timezone_when_setting_does_not_exist(self):
         """
         Test that the fallback timezone is used when the setting doesn't exist.
         """
         # Ensure no setting exists
-        Setting.objects.filter(key='default_timezone_for_monthly_objectives').delete()
+        Setting.objects.filter(key="default_timezone_for_monthly_objectives").delete()
 
         # Create objective without setting present
         objective = MonthlyObjective.objects.create(
-            objective_id='test_fallback',
+            objective_id="test_fallback",
             start=date(2025, 11, 1),
             end=date(2025, 11, 30),
-            label='Fallback Test',
+            label="Fallback Test",
             objective_value=30,
-            objective_definition='SELECT COUNT(*) FROM test'
+            objective_definition="SELECT COUNT(*) FROM test",
         )
 
         # Should fall back to America/Chicago
-        self.assertEqual(objective.timezone, 'America/Chicago')
+        self.assertEqual(objective.timezone, "America/Chicago")
 
     def test_get_default_timezone_function(self):
         """
@@ -120,43 +116,37 @@ class MonthlyObjectiveTimezoneTests(TestCase):
         """
         # Test with setting present
         Setting.set(
-            key='default_timezone_for_monthly_objectives',
-            value='America/Los_Angeles',
-            description='Test timezone'
+            key="default_timezone_for_monthly_objectives", value="America/Los_Angeles", description="Test timezone"
         )
-        self.assertEqual(get_default_timezone(), 'America/Los_Angeles')
+        self.assertEqual(get_default_timezone(), "America/Los_Angeles")
 
         # Test with setting absent
-        Setting.objects.filter(key='default_timezone_for_monthly_objectives').delete()
-        self.assertEqual(get_default_timezone(), 'America/Chicago')
+        Setting.objects.filter(key="default_timezone_for_monthly_objectives").delete()
+        self.assertEqual(get_default_timezone(), "America/Chicago")
 
     def test_multiple_objectives_same_setting(self):
         """
         Test that multiple objectives created with the same setting all get the same timezone.
         """
         # Set timezone to Denver
-        Setting.set(
-            key='default_timezone_for_monthly_objectives',
-            value='America/Denver',
-            description='Test timezone'
-        )
+        Setting.set(key="default_timezone_for_monthly_objectives", value="America/Denver", description="Test timezone")
 
         # Create multiple objectives
         objectives = []
         for month in range(1, 4):  # Jan, Feb, Mar
             obj = MonthlyObjective.objects.create(
-                objective_id=f'test_2025_{month:02d}',
+                objective_id=f"test_2025_{month:02d}",
                 start=date(2025, month, 1),
                 end=date(2025, month, 28),
-                label=f'Month {month} Objective',
+                label=f"Month {month} Objective",
                 objective_value=20,
-                objective_definition='SELECT COUNT(*) FROM test'
+                objective_definition="SELECT COUNT(*) FROM test",
             )
             objectives.append(obj)
 
         # Verify all have Denver timezone
         for obj in objectives:
-            self.assertEqual(obj.timezone, 'America/Denver')
+            self.assertEqual(obj.timezone, "America/Denver")
 
 
 class MonthlyObjectiveUnitOfMeasurementTests(TestCase):
@@ -173,58 +163,58 @@ class MonthlyObjectiveUnitOfMeasurementTests(TestCase):
         Test that unit_of_measurement can be set and retrieved.
         """
         objective = MonthlyObjective.objects.create(
-            objective_id='test_with_unit',
+            objective_id="test_with_unit",
             start=date(2025, 11, 1),
             end=date(2025, 11, 30),
-            label='Test Objective',
+            label="Test Objective",
             objective_value=30,
-            objective_definition='SELECT COUNT(*) FROM test',
-            unit_of_measurement='minutes'
+            objective_definition="SELECT COUNT(*) FROM test",
+            unit_of_measurement="minutes",
         )
 
         # Verify the unit was saved
-        self.assertEqual(objective.unit_of_measurement, 'minutes')
+        self.assertEqual(objective.unit_of_measurement, "minutes")
 
         # Verify it persists after refresh from database
         objective.refresh_from_db()
-        self.assertEqual(objective.unit_of_measurement, 'minutes')
+        self.assertEqual(objective.unit_of_measurement, "minutes")
 
     def test_unit_of_measurement_can_be_null(self):
         """
         Test that unit_of_measurement can be null (backwards compatibility).
         """
         objective = MonthlyObjective.objects.create(
-            objective_id='test_without_unit',
+            objective_id="test_without_unit",
             start=date(2025, 11, 1),
             end=date(2025, 11, 30),
-            label='Test Objective Without Unit',
+            label="Test Objective Without Unit",
             objective_value=25,
-            objective_definition='SELECT COUNT(*) FROM test'
+            objective_definition="SELECT COUNT(*) FROM test",
             # Note: unit_of_measurement not provided
         )
 
         # Verify it defaults to empty string (not null)
-        self.assertEqual(objective.unit_of_measurement, '')
+        self.assertEqual(objective.unit_of_measurement, "")
 
         # Verify it persists as empty string after refresh
         objective.refresh_from_db()
-        self.assertEqual(objective.unit_of_measurement, '')
+        self.assertEqual(objective.unit_of_measurement, "")
 
     def test_unit_of_measurement_various_values(self):
         """
         Test that various common unit values can be stored.
         """
-        test_units = ['minutes', 'sessions', 'days', 'pounds', 'workouts', 'hours']
+        test_units = ["minutes", "sessions", "days", "pounds", "workouts", "hours"]
 
         for i, unit in enumerate(test_units):
             objective = MonthlyObjective.objects.create(
-                objective_id=f'test_unit_{i}',
+                objective_id=f"test_unit_{i}",
                 start=date(2025, 11, 1),
                 end=date(2025, 11, 30),
-                label=f'Test {unit}',
+                label=f"Test {unit}",
                 objective_value=10,
-                objective_definition='SELECT COUNT(*) FROM test',
-                unit_of_measurement=unit
+                objective_definition="SELECT COUNT(*) FROM test",
+                unit_of_measurement=unit,
             )
 
             # Verify each unit is saved correctly
@@ -235,22 +225,22 @@ class MonthlyObjectiveUnitOfMeasurementTests(TestCase):
         Test that unit_of_measurement can be updated after creation.
         """
         objective = MonthlyObjective.objects.create(
-            objective_id='test_update_unit',
+            objective_id="test_update_unit",
             start=date(2025, 11, 1),
             end=date(2025, 11, 30),
-            label='Test Update',
+            label="Test Update",
             objective_value=20,
-            objective_definition='SELECT COUNT(*) FROM test',
-            unit_of_measurement='minutes'
+            objective_definition="SELECT COUNT(*) FROM test",
+            unit_of_measurement="minutes",
         )
 
         # Update the unit
-        objective.unit_of_measurement = 'hours'
+        objective.unit_of_measurement = "hours"
         objective.save()
 
         # Verify the update persisted
         objective.refresh_from_db()
-        self.assertEqual(objective.unit_of_measurement, 'hours')
+        self.assertEqual(objective.unit_of_measurement, "hours")
 
 
 class MonthlyObjectiveResultCachingTests(TestCase):
@@ -269,13 +259,13 @@ class MonthlyObjectiveResultCachingTests(TestCase):
 
         # Create test objective with a simple SQL query that returns a constant
         self.test_objective = MonthlyObjective.objects.create(
-            objective_id='test_result_caching',
+            objective_id="test_result_caching",
             start=today.replace(day=1),
             end=today.replace(day=last_day),
-            label='Test Result Caching',
+            label="Test Result Caching",
             objective_value=100,
-            objective_definition='SELECT 42.0',  # Simple query that returns 42
-            result=None  # Start with no cached result
+            objective_definition="SELECT 42.0",  # Simple query that returns 42
+            result=None,  # Start with no cached result
         )
 
     def tearDown(self):
@@ -295,7 +285,7 @@ class MonthlyObjectiveResultCachingTests(TestCase):
 
         # Run the management command
         out = StringIO()
-        call_command('update_objective_results', stdout=out)
+        call_command("update_objective_results", stdout=out)
 
         # Refresh from database
         self.test_objective.refresh_from_db()
@@ -317,20 +307,18 @@ class MonthlyObjectiveResultCachingTests(TestCase):
 
         # Create second objective
         obj2 = MonthlyObjective.objects.create(
-            objective_id='test_second_obj',
+            objective_id="test_second_obj",
             start=today.replace(day=1),
             end=today.replace(day=last_day),
-            label='Second Test',
+            label="Second Test",
             objective_value=50,
-            objective_definition='SELECT 99.0',
-            result=None
+            objective_definition="SELECT 99.0",
+            result=None,
         )
 
         # Run command for specific objective only
         out = StringIO()
-        call_command('update_objective_results',
-                    objective_id='test_result_caching',
-                    stdout=out)
+        call_command("update_objective_results", objective_id="test_result_caching", stdout=out)
 
         # Refresh both from database
         self.test_objective.refresh_from_db()
@@ -353,7 +341,7 @@ class MonthlyObjectiveResultCachingTests(TestCase):
 
         # Load the activity report page
         client = Client()
-        response = client.get('/targets/')
+        response = client.get("/targets/")
 
         # Verify page loaded successfully
         self.assertEqual(response.status_code, 200)
@@ -378,29 +366,28 @@ class MonthlyObjectiveResultCachingTests(TestCase):
 
         # Load the activity report page
         client = Client()
-        response = client.get('/targets/')
+        response = client.get("/targets/")
 
         # Verify page loaded successfully
         self.assertEqual(response.status_code, 200)
 
         # Check that the context contains the objective data
-        objectives_data = response.context.get('objectives_data', [])
+        objectives_data = response.context.get("objectives_data", [])
 
         # Find our test objective in the response
         test_obj_data = None
         for obj in objectives_data:
-            if obj['objective_id'] == 'test_result_caching':
+            if obj["objective_id"] == "test_result_caching":
                 test_obj_data = obj
                 break
 
         # Verify the objective was found in the response
-        self.assertIsNotNone(test_obj_data,
-            "Test objective should be present in activity_report context")
+        self.assertIsNotNone(test_obj_data, "Test objective should be present in activity_report context")
 
         # Verify the view is using the cached result (which was manually updated)
         # After page load, it should be 42.0 (from the SELECT 42.0 query)
         # because the view updates results before display
-        self.assertEqual(test_obj_data['result'], 42.0)
+        self.assertEqual(test_obj_data["result"], 42.0)
 
     def test_result_field_accuracy_with_complex_query(self):
         """
@@ -417,13 +404,13 @@ class MonthlyObjectiveResultCachingTests(TestCase):
 
         # Create objective with a query that uses actual database data
         obj = MonthlyObjective.objects.create(
-            objective_id='test_complex_query',
+            objective_id="test_complex_query",
             start=today.replace(day=1),
             end=today.replace(day=last_day),
-            label='Complex Query Test',
+            label="Complex Query Test",
             objective_value=10,
-            objective_definition='SELECT COUNT(*) FROM monthly_objectives_monthlyobjective',
-            result=None
+            objective_definition="SELECT COUNT(*) FROM monthly_objectives_monthlyobjective",
+            result=None,
         )
 
         # Count objectives manually
@@ -431,7 +418,7 @@ class MonthlyObjectiveResultCachingTests(TestCase):
 
         # Run management command
         out = StringIO()
-        call_command('update_objective_results', stdout=out)
+        call_command("update_objective_results", stdout=out)
 
         # Refresh from database
         obj.refresh_from_db()
@@ -449,7 +436,7 @@ class MonthlyObjectiveResultCachingTests(TestCase):
 
         # Initial page load
         client = Client()
-        client.get('/targets/')
+        client.get("/targets/")
 
         self.test_objective.refresh_from_db()
         first_result = self.test_objective.result
@@ -460,7 +447,7 @@ class MonthlyObjectiveResultCachingTests(TestCase):
         self.test_objective.save()
 
         # Load page again
-        client.get('/targets/')
+        client.get("/targets/")
 
         # Refresh from database
         self.test_objective.refresh_from_db()
@@ -479,12 +466,12 @@ class MonthlyObjectiveResultCachingTests(TestCase):
         self.test_objective.save()
 
         # Change query to invalid SQL
-        self.test_objective.objective_definition = 'SELECT * FROM nonexistent_table'
+        self.test_objective.objective_definition = "SELECT * FROM nonexistent_table"
         self.test_objective.save()
 
         # Load page (should not crash)
         client = Client()
-        response = client.get('/targets/')
+        response = client.get("/targets/")
 
         # Verify page still loads
         self.assertEqual(response.status_code, 200)

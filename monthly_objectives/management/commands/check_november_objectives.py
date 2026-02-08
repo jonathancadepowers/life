@@ -4,13 +4,12 @@ from datetime import date
 
 
 class Command(BaseCommand):
-    help = 'Display all November 2025 objectives with descriptions and SQL queries'
+    help = "Display all November 2025 objectives with descriptions and SQL queries"
 
     def handle(self, *_args, **_options):
         objectives = MonthlyObjective.objects.filter(
-            start__gte=date(2025, 11, 1),
-            end__lte=date(2025, 11, 30)
-        ).order_by('label')
+            start__gte=date(2025, 11, 1), end__lte=date(2025, 11, 30)
+        ).order_by("label")
 
         self.stdout.write(f"\nFound {objectives.count()} objectives for November 2025:\n")
         self.stdout.write("=" * 100)

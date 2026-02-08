@@ -8,8 +8,8 @@ def _parse_event_times(event):
 
     Returns (start_dt, end_dt) as timezone-aware datetimes, or None if parsing fails.
     """
-    start_str = event.get('start', '')
-    end_str = event.get('end', '')
+    start_str = event.get("start", "")
+    end_str = event.get("end", "")
 
     if not start_str or not end_str:
         return None
@@ -22,20 +22,20 @@ def _parse_event_times(event):
 def _build_event_defaults(event, start_dt, end_dt, source):
     """Build the defaults dict for creating/updating a CalendarEvent."""
     defaults = {
-        'subject': event.get('subject', '')[:500],
-        'start': start_dt,
-        'end': end_dt,
-        'is_all_day': event.get('isAllDay', False),
-        'location': event.get('location', '')[:500],
-        'organizer': event.get('organizer', '')[:255],
-        'body_preview': event.get('bodyPreview', ''),
-        'is_active': True,
-        'override_start': None,
-        'override_end': None,
-        'is_hidden': False,
+        "subject": event.get("subject", "")[:500],
+        "start": start_dt,
+        "end": end_dt,
+        "is_all_day": event.get("isAllDay", False),
+        "location": event.get("location", "")[:500],
+        "organizer": event.get("organizer", "")[:255],
+        "body_preview": event.get("bodyPreview", ""),
+        "is_active": True,
+        "override_start": None,
+        "override_end": None,
+        "is_hidden": False,
     }
     if source:
-        defaults['source'] = source
+        defaults["source"] = source
     return defaults
 
 
@@ -49,7 +49,7 @@ def _upsert_event(outlook_id, subject, start_dt, defaults):
         for key, value in defaults.items():
             setattr(existing, key, value)
         existing.save()
-        return existing.id, 'updated'
+        return existing.id, "updated"
 
     existing = CalendarEvent.objects.filter(subject=subject, start=start_dt).first()
     if existing:
@@ -57,10 +57,10 @@ def _upsert_event(outlook_id, subject, start_dt, defaults):
             setattr(existing, key, value)
         existing.outlook_id = outlook_id
         existing.save()
-        return existing.id, 'updated'
+        return existing.id, "updated"
 
     obj = CalendarEvent.objects.create(outlook_id=outlook_id, **defaults)
-    return obj.id, 'created'
+    return obj.id, "created"
 
 
 def _cancel_missing_events(min_date, max_date, processed_ids):
@@ -71,14 +71,14 @@ def _cancel_missing_events(min_date, max_date, processed_ids):
     range_start = datetime.combine(min_date, datetime.min.time()).replace(tzinfo=timezone.utc)
     range_end = datetime.combine(max_date + timedelta(days=1), datetime.min.time()).replace(tzinfo=timezone.utc)
 
-    return CalendarEvent.objects.filter(
-        start__gte=range_start,
-        start__lt=range_end,
-        is_active=True
-    ).exclude(id__in=processed_ids).update(is_active=False)
+    return (
+        CalendarEvent.objects.filter(start__gte=range_start, start__lt=range_end, is_active=True)
+        .exclude(id__in=processed_ids)
+        .update(is_active=False)
+    )
 
 
-def import_calendar_events(events_data, source=''):
+def import_calendar_events(events_data, source=""):
     """
     Import calendar events from a list of event dictionaries.
     Returns tuple of (created_count, updated_count, canceled_count).
@@ -95,7 +95,7 @@ def import_calendar_events(events_data, source=''):
     created_count = 0
     updated_count = 0
 
-    events = events_data.get('body', [])
+    events = events_data.get("body", [])
     if not events:
         return created_count, updated_count, 0
 
@@ -104,7 +104,7 @@ def import_calendar_events(events_data, source=''):
     max_date = None
 
     for event in events:
-        outlook_id = event.get('id')
+        outlook_id = event.get("id")
         if not outlook_id:
             continue
 
@@ -120,12 +120,12 @@ def import_calendar_events(events_data, source=''):
         if max_date is None or event_date > max_date:
             max_date = event_date
 
-        subject = event.get('subject', '')[:500]
+        subject = event.get("subject", "")[:500]
         defaults = _build_event_defaults(event, start_dt, end_dt, source)
 
         db_id, action = _upsert_event(outlook_id, subject, start_dt, defaults)
         processed_ids.add(db_id)
-        if action == 'created':
+        if action == "created":
             created_count += 1
         else:
             updated_count += 1

@@ -4,52 +4,52 @@ from .models import Task, TaskState, TaskTag, TimeBlock, TaskSchedule, TaskDetai
 
 @admin.register(TaskState)
 class TaskStateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'order', 'created_at']
-    search_fields = ['name']
-    ordering = ['order']
+    list_display = ["name", "order", "created_at"]
+    search_fields = ["name"]
+    ordering = ["order"]
 
 
 @admin.register(TaskTag)
 class TaskTagAdmin(admin.ModelAdmin):
-    list_display = ['name', 'created_at']
-    search_fields = ['name']
+    list_display = ["name", "created_at"]
+    search_fields = ["name"]
 
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ['title', 'state', 'critical', 'created_at']
-    list_filter = ['critical', 'state', 'tags']
-    search_fields = ['title', 'details']
-    filter_horizontal = ['tags']
+    list_display = ["title", "state", "critical", "created_at"]
+    list_filter = ["critical", "state", "tags"]
+    search_fields = ["title", "details"]
+    filter_horizontal = ["tags"]
 
 
 @admin.register(TimeBlock)
 class TimeBlockAdmin(admin.ModelAdmin):
-    list_display = ['name', 'start_time', 'end_time', 'created_at']
-    search_fields = ['name']
-    ordering = ['-start_time']
+    list_display = ["name", "start_time", "end_time", "created_at"]
+    search_fields = ["name"]
+    ordering = ["-start_time"]
 
 
 @admin.register(TaskSchedule)
 class TaskScheduleAdmin(admin.ModelAdmin):
-    list_display = ['task', 'start_time', 'end_time', 'created_at']
-    list_filter = ['start_time']
-    search_fields = ['task__title']
-    ordering = ['-start_time']
-    raw_id_fields = ['task']
+    list_display = ["task", "start_time", "end_time", "created_at"]
+    list_filter = ["start_time"]
+    search_fields = ["task__title"]
+    ordering = ["-start_time"]
+    raw_id_fields = ["task"]
 
 
 @admin.register(TaskDetailTemplate)
 class TaskDetailTemplateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'is_default', 'order', 'created_at']
-    list_filter = ['is_default']
-    search_fields = ['name', 'content']
-    ordering = ['order', 'name']
+    list_display = ["name", "is_default", "order", "created_at"]
+    list_filter = ["is_default"]
+    search_fields = ["name", "content"]
+    ordering = ["order", "name"]
 
 
 @admin.register(TaskView)
 class TaskViewAdmin(admin.ModelAdmin):
-    list_display = ['name', 'is_default', 'order', 'created_at']
-    list_filter = ['is_default']
-    search_fields = ['name']
-    ordering = ['order', 'name']
+    list_display = ["name", "is_default", "order", "created_at"]
+    list_filter = ["is_default"]
+    search_fields = ["name"]
+    ordering = ["order", "name"]

@@ -5,14 +5,14 @@ def home(request):
     """
     Renders the homepage.
     """
-    return render(request, 'home/index.html')
+    return render(request, "home/index.html")
 
 
 def about(request):
     """
     Renders the about page.
     """
-    return render(request, 'home/about.html')
+    return render(request, "home/about.html")
 
 
 def _ensure_flip_card_in_second_row(cards):
@@ -66,10 +66,9 @@ def inspirations(request):
         _ensure_flip_card_in_second_row(all_inspirations)
         auto_flip_index = _find_auto_flip_index(all_inspirations)
 
-    return render(request, 'home/inspirations.html', {
-        'inspirations': all_inspirations,
-        'auto_flip_index': auto_flip_index
-    })
+    return render(
+        request, "home/inspirations.html", {"inspirations": all_inspirations, "auto_flip_index": auto_flip_index}
+    )
 
 
 def _build_query_params(query, day_start, day_end, current_date):
@@ -78,17 +77,17 @@ def _build_query_params(query, day_start, day_end, current_date):
     Returns (processed_query, params).
     """
     params = []
-    if ':day_start' in query:
-        query = query.replace(':day_start', '%s')
+    if ":day_start" in query:
+        query = query.replace(":day_start", "%s")
         params.append(day_start)
-    if ':day_end' in query:
-        query = query.replace(':day_end', '%s')
+    if ":day_end" in query:
+        query = query.replace(":day_end", "%s")
         params.append(day_end)
-    if ':current_date' in query:
-        query = query.replace(':current_date', '%s')
+    if ":current_date" in query:
+        query = query.replace(":current_date", "%s")
         params.append(current_date)
-    if ':day' in query:
-        query = query.replace(':day', '%s')
+    if ":day" in query:
+        query = query.replace(":day", "%s")
         params.append(current_date)
     return query, params
 
@@ -125,12 +124,16 @@ def _collect_column_daily_data(column, year, month_num, last_day, user_tz):
                     continue
 
                 records = get_column_data(
-                    column.column_name, day_start, day_end,
-                    current_date, user_tz, column.sql_query,
+                    column.column_name,
+                    day_start,
+                    day_end,
+                    current_date,
+                    user_tz,
+                    column.sql_query,
                 )
                 if records:
                     parsed = [parse_details_template(column.details_display, r) for r in records]
-                    details_by_day[day] = ', '.join(parsed)
+                    details_by_day[day] = ", ".join(parsed)
         except Exception as e:
             print(f"Error executing query for {column.column_name} on {current_date}: {e}")
 
@@ -147,11 +150,11 @@ def life_metrics(request):
     import pytz
     import json
 
-    year = int(request.GET.get('year', 2026))
-    user_tz = pytz.timezone('America/Chicago')
+    year = int(request.GET.get("year", 2026))
+    user_tz = pytz.timezone("America/Chicago")
 
     months_data = []
-    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     habit_data = {}
     habit_details = {}
     all_columns = list(LifeTrackerColumn.objects.all())
@@ -168,36 +171,44 @@ def life_metrics(request):
             if not column.is_active_on(last_date):
                 continue
 
-            active_habits.append({
-                'column_name': column.column_name,
-                'display_name': column.display_name,
-                'tooltip_text': column.tooltip_text,
-                'total_column_text': column.total_column_text or column.display_name.lower(),
-            })
+            active_habits.append(
+                {
+                    "column_name": column.column_name,
+                    "display_name": column.display_name,
+                    "tooltip_text": column.tooltip_text,
+                    "total_column_text": column.total_column_text or column.display_name.lower(),
+                }
+            )
 
             days_with_data, details_by_day = _collect_column_daily_data(
-                column, year, month_num, last_day, user_tz,
+                column,
+                year,
+                month_num,
+                last_day,
+                user_tz,
             )
             habit_data[month_num][column.column_name] = days_with_data
             habit_details[month_num][column.column_name] = details_by_day
 
-        months_data.append({
-            'month_num': month_num,
-            'month_name': month_names[month_num - 1],
-            'habits': active_habits,
-            'days_in_month': last_day,
-            'day_range': range(1, last_day + 1),
-        })
+        months_data.append(
+            {
+                "month_num": month_num,
+                "month_name": month_names[month_num - 1],
+                "habits": active_habits,
+                "days_in_month": last_day,
+                "day_range": range(1, last_day + 1),
+            }
+        )
 
     context = {
-        'year': year,
-        'months_data': months_data,
-        'all_days': range(1, 32),
-        'habit_data_json': json.dumps(habit_data),
-        'habit_details_json': json.dumps(habit_details),
+        "year": year,
+        "months_data": months_data,
+        "all_days": range(1, 32),
+        "habit_data_json": json.dumps(habit_data),
+        "habit_details_json": json.dumps(habit_details),
     }
 
-    return render(request, 'home/life_metrics.html', context)
+    return render(request, "home/life_metrics.html", context)
 
 
 def writing(request):
@@ -206,17 +217,14 @@ def writing(request):
     """
     from writing.models import WritingPageImage, BookCover
 
-    images = WritingPageImage.objects.filter(enabled=True).order_by('created_at')
+    images = WritingPageImage.objects.filter(enabled=True).order_by("created_at")
     book_cover = BookCover.get_instance()
 
-    return render(request, 'home/writing.html', {
-        'images': images,
-        'book_cover': book_cover
-    })
+    return render(request, "home/writing.html", {"images": images, "book_cover": book_cover})
 
 
 def contact(request):
     """
     Renders the contact page.
     """
-    return render(request, 'home/contact.html')
+    return render(request, "home/contact.html")

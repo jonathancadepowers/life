@@ -22,42 +22,35 @@ def log_youtube(request):
     try:
         # Parse JSON request body
         data = json.loads(request.body)
-        date_str = data.get('log_date')
+        date_str = data.get("log_date")
 
         if not date_str:
-            return JsonResponse({
-                'success': False,
-                'message': 'Date is required'
-            }, status=400)
+            return JsonResponse({"success": False, "message": "Date is required"}, status=400)
 
         # Parse the date string
         try:
-            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
-            return JsonResponse({
-                'success': False,
-                'message': 'Invalid date format. Use YYYY-MM-DD'
-            }, status=400)
+            return JsonResponse({"success": False, "message": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
         # Generate a unique source_id for manual entries
         source_id = str(uuid.uuid4())
 
         # Create the log entry
         log = YouTubeAvoidanceLog.objects.create(
-            source='Manual',
+            source="Manual",
             source_id=source_id,
             log_date=selected_date,
         )
 
-        return JsonResponse({
-            'success': True,
-            'message': f'YouTube avoidance logged successfully for {selected_date.strftime("%B %d, %Y")}!',
-            'log_id': log.id,
-            'log_date': selected_date.strftime('%Y-%m-%d')
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "message": f'YouTube avoidance logged successfully for {selected_date.strftime("%B %d, %Y")}!',
+                "log_id": log.id,
+                "log_date": selected_date.strftime("%Y-%m-%d"),
+            }
+        )
 
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'message': f'Error logging YouTube avoidance: {str(e)}'
-        }, status=500)
+        return JsonResponse({"success": False, "message": f"Error logging YouTube avoidance: {str(e)}"}, status=500)

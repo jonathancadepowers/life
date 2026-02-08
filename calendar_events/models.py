@@ -8,16 +8,16 @@ class CalendarEvent(models.Model):
     outlook_id = models.CharField(max_length=255, unique=True, db_index=True)
 
     # Source of the import (e.g., "Oxy Calendar Import")
-    source = models.CharField(max_length=100, blank=True, default='')
+    source = models.CharField(max_length=100, blank=True, default="")
 
     # Event details
     subject = models.CharField(max_length=500)
     start = models.DateTimeField(db_index=True)
     end = models.DateTimeField()
     is_all_day = models.BooleanField(default=False)
-    location = models.CharField(max_length=500, blank=True, default='')
-    organizer = models.EmailField(max_length=255, blank=True, default='')
-    body_preview = models.TextField(blank=True, default='')
+    location = models.CharField(max_length=500, blank=True, default="")
+    organizer = models.EmailField(max_length=255, blank=True, default="")
+    body_preview = models.TextField(blank=True, default="")
 
     # Status - events can be "canceled" (removed from calendar but kept for notes)
     is_active = models.BooleanField(default=True)
@@ -33,9 +33,9 @@ class CalendarEvent(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-start']
+        ordering = ["-start"]
         indexes = [
-            models.Index(fields=['start', 'end']),
+            models.Index(fields=["start", "end"]),
         ]
 
     def __str__(self):

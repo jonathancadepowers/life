@@ -5,106 +5,80 @@ class LifeTrackerColumn(models.Model):
     """
     Configuration for each column in the Life Tracker page.
     """
+
     column_name = models.CharField(
-        max_length=50,
-        unique=True,
-        help_text="Internal name of the column (e.g., 'run', 'fast', 'strength')"
+        max_length=50, unique=True, help_text="Internal name of the column (e.g., 'run', 'fast', 'strength')"
     )
-    display_name = models.CharField(
-        max_length=100,
-        help_text="Display name shown in the column header"
-    )
-    tooltip_text = models.TextField(
-        help_text="Help text that appears when hovering over the column header"
-    )
+    display_name = models.CharField(max_length=100, help_text="Display name shown in the column header")
+    tooltip_text = models.TextField(help_text="Help text that appears when hovering over the column header")
     sql_query = models.TextField(
-        help_text="SQL query to determine if checkbox should appear. Available parameters: :day_start, :day_end. Query should return a count."
+        help_text=(
+            "SQL query to determine if checkbox should appear. "
+            "Available parameters: :day_start, :day_end. Query should return a count."
+        )
     )
     details_display = models.TextField(
         blank=True,
-        default='',
-        help_text="Text configuration for details shown when hovering over checkmarks"
+        default="",
+        help_text="Text configuration for details shown when hovering over checkmarks",
     )
     total_column_text = models.CharField(
         max_length=100,
         blank=True,
-        default='',
-        help_text="Text shown in Total column on Life Metrics page (e.g., 'days eating clean'). If blank, uses display_name."
+        default="",
+        help_text=(
+            "Text shown in Total column on Life Metrics page "
+            "(e.g., 'days eating clean'). If blank, uses display_name."
+        ),
     )
-    start_date = models.DateField(
-        null=True,
-        blank=True,
-        help_text="Date when this habit becomes active"
-    )
+    start_date = models.DateField(null=True, blank=True, help_text="Date when this habit becomes active")
     end_date = models.CharField(
-        max_length=20,
-        default='ongoing',
-        help_text="Date when this habit ends (YYYY-MM-DD) or 'ongoing'"
+        max_length=20, default="ongoing", help_text="Date when this habit ends (YYYY-MM-DD) or 'ongoing'"
     )
     icon = models.CharField(
-        max_length=50,
-        default='bi-circle',
-        help_text="Bootstrap icon class (e.g., 'bi-activity', 'bi-clock-history')"
+        max_length=50, default="bi-circle", help_text="Bootstrap icon class (e.g., 'bi-activity', 'bi-clock-history')"
     )
     parent = models.ForeignKey(
-        'self',
+        "self",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='children',
-        help_text="Parent habit (optional)"
+        related_name="children",
+        help_text="Parent habit (optional)",
     )
 
     # UI Configuration - Add button and modal settings
-    has_add_button = models.BooleanField(
-        default=False,
-        help_text="Show + button on hover for empty cells"
-    )
+    has_add_button = models.BooleanField(default=False, help_text="Show + button on hover for empty cells")
     modal_type = models.CharField(
         max_length=50,
         blank=True,
-        default='',
+        default="",
         choices=[
-            ('', 'No modal'),
-            ('simple_confirm', 'Simple Yes/No confirmation'),
-            ('duration_select', 'Duration selection (like fasting)'),
-            ('value_input', 'Value input (for measurements, etc.)'),
+            ("", "No modal"),
+            ("simple_confirm", "Simple Yes/No confirmation"),
+            ("duration_select", "Duration selection (like fasting)"),
+            ("value_input", "Value input (for measurements, etc.)"),
         ],
-        help_text="Type of modal to show when + button is clicked"
+        help_text="Type of modal to show when + button is clicked",
     )
-    modal_title = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Title shown in the modal header"
-    )
-    modal_body_text = models.TextField(
-        blank=True,
-        default='',
-        help_text="Main text/question shown in modal body"
-    )
+    modal_title = models.CharField(max_length=100, blank=True, default="", help_text="Title shown in the modal header")
+    modal_body_text = models.TextField(blank=True, default="", help_text="Main text/question shown in modal body")
     modal_input_label = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text="Label for input field (used with value_input modal type)"
+        max_length=100, blank=True, default="", help_text="Label for input field (used with value_input modal type)"
     )
     create_endpoint = models.CharField(
         max_length=100,
         blank=True,
-        default='',
-        help_text="Django URL name for creating records (e.g., 'fasting:log_fast')"
+        default="",
+        help_text="Django URL name for creating records (e.g., 'fasting:log_fast')",
     )
 
     # Abandon functionality
     allow_abandon = models.BooleanField(
-        default=False,
-        help_text="Allow users to mark days as abandoned (shows abandon icon on hover)"
+        default=False, help_text="Allow users to mark days as abandoned (shows abandon icon on hover)"
     )
     abandoned_status = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text="JSON storing abandoned dates: {'2026-01-09': true, '2026-01-10': true}"
+        default=dict, blank=True, help_text="JSON storing abandoned dates: {'2026-01-09': true, '2026-01-10': true}"
     )
 
     # Audit fields
@@ -112,9 +86,9 @@ class LifeTrackerColumn(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['id']
-        verbose_name = 'Life Tracker Column'
-        verbose_name_plural = 'Life Tracker Columns'
+        ordering = ["id"]
+        verbose_name = "Life Tracker Column"
+        verbose_name_plural = "Life Tracker Columns"
 
     def __str__(self):
         return f"{self.display_name} ({self.column_name})"
@@ -135,12 +109,12 @@ class LifeTrackerColumn(models.Model):
             return False
 
         # If end_date is 'ongoing', it's active
-        if self.end_date == 'ongoing':
+        if self.end_date == "ongoing":
             return True
 
         # Otherwise, parse end_date and check if date is before it
         try:
-            end_date_obj = datetime.strptime(self.end_date, '%Y-%m-%d').date()
+            end_date_obj = datetime.strptime(self.end_date, "%Y-%m-%d").date()
             return date <= end_date_obj
         except (ValueError, AttributeError):
             # If end_date is invalid, treat as ongoing
@@ -152,28 +126,21 @@ class Setting(models.Model):
     Stores application-wide settings as key-value pairs.
     Provides a flexible way to store configuration that can be modified without code changes.
     """
+
     key = models.CharField(
-        max_length=255,
-        unique=True,
-        primary_key=True,
-        help_text="Unique identifier for this setting"
+        max_length=255, unique=True, primary_key=True, help_text="Unique identifier for this setting"
     )
-    value = models.TextField(
-        help_text="Value for this setting"
-    )
-    description = models.TextField(
-        blank=True,
-        help_text="Human-readable description of what this setting controls"
-    )
+    value = models.TextField(help_text="Value for this setting")
+    description = models.TextField(blank=True, help_text="Human-readable description of what this setting controls")
 
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['key']
-        verbose_name = 'Setting'
-        verbose_name_plural = 'Settings'
+        ordering = ["key"]
+        verbose_name = "Setting"
+        verbose_name_plural = "Settings"
 
     def __str__(self):
         return f"{self.key}: {self.value[:50]}"
@@ -192,7 +159,7 @@ class Setting(models.Model):
             return default
 
     @classmethod
-    def set(cls, key, value, description=''):
+    def set(cls, key, value, description=""):
         """
         Set a setting value. Creates if doesn't exist, updates if it does.
 
@@ -200,8 +167,5 @@ class Setting(models.Model):
             Setting.set('default_timezone_for_monthly_objectives', 'America/Chicago',
                        'Default timezone for new monthly objectives')
         """
-        obj, _ = cls.objects.update_or_create(
-            key=key,
-            defaults={'value': value, 'description': description}
-        )
+        obj, _ = cls.objects.update_or_create(key=key, defaults={"value": value, "description": description})
         return obj

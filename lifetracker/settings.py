@@ -25,15 +25,15 @@ load_dotenv()
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-q)wae^7!#w6*)ku0nl^vyil=5*djp%cky!jyf5_%0-f6cmsi$x")
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-q)wae^7!#w6*)ku0nl^vyil=5*djp%cky!jyf5_%0-f6cmsi$x")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DEBUG = os.getenv("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',')
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",")
 
 # CSRF trusted origins for production
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if os.getenv('CSRF_TRUSTED_ORIGINS') else []
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if os.getenv("CSRF_TRUSTED_ORIGINS") else []
 
 # Application definition
 
@@ -104,16 +104,14 @@ WSGI_APPLICATION = "lifetracker.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Use DATABASE_URL from Heroku if available, otherwise use SQLite for local development
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
-    }
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)}
 else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": str(BASE_DIR / "db.sqlite3"),
         }
     }
 
@@ -161,14 +159,14 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Cloudinary configuration for media files
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY"),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
 }
 
 # Use Cloudinary in production, local filesystem in development
-if os.getenv('CLOUDINARY_CLOUD_NAME'):
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+if os.getenv("CLOUDINARY_CLOUD_NAME"):
+    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 else:
     # Local development settings
     MEDIA_URL = "/media/"
@@ -180,7 +178,6 @@ else:
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Gmail Import Settings (for checking inbox via IMAP)
-GMAIL_IMPORT_ADDRESS = os.getenv('GMAIL_IMPORT_ADDRESS')
-GMAIL_IMPORT_APP_PASSWORD = os.getenv('GMAIL_IMPORT_APP_PASSWORD')
-GMAIL_CALENDAR_SUBJECT = os.getenv('GMAIL_CALENDAR_SUBJECT', '[Oxy Calendar Import]')
-
+GMAIL_IMPORT_ADDRESS = os.getenv("GMAIL_IMPORT_ADDRESS")
+GMAIL_IMPORT_APP_PASSWORD = os.getenv("GMAIL_IMPORT_APP_PASSWORD")
+GMAIL_CALENDAR_SUBJECT = os.getenv("GMAIL_CALENDAR_SUBJECT", "[Oxy Calendar Import]")

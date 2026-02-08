@@ -18,14 +18,14 @@ def activity_logger(request):
     from projects.models import Project
 
     # Get all projects for the dropdowns
-    projects = Project.objects.all().order_by('display_string')
+    projects = Project.objects.all().order_by("display_string")
 
     context = {
-        'projects': projects,
-        'agenda': None,  # JavaScript will fetch today's agenda based on user's timezone
+        "projects": projects,
+        "agenda": None,  # JavaScript will fetch today's agenda based on user's timezone
     }
 
-    return render(request, 'fasting/activity_logger.html', context)
+    return render(request, "fasting/activity_logger.html", context)
 
 
 @require_http_methods(["POST"])
@@ -44,43 +44,28 @@ def log_fast(request):
     """
     try:
         # Get the fast duration and date from POST data
-        hours = request.POST.get('hours')
-        date_str = request.POST.get('date')
+        hours = request.POST.get("hours")
+        date_str = request.POST.get("date")
 
         if not hours:
-            return JsonResponse({
-                'success': False,
-                'message': 'Fast duration is required'
-            }, status=400)
+            return JsonResponse({"success": False, "message": "Fast duration is required"}, status=400)
 
         if not date_str:
-            return JsonResponse({
-                'success': False,
-                'message': 'Date is required'
-            }, status=400)
+            return JsonResponse({"success": False, "message": "Date is required"}, status=400)
 
         try:
             hours = int(hours)
         except ValueError:
-            return JsonResponse({
-                'success': False,
-                'message': 'Invalid fast duration'
-            }, status=400)
+            return JsonResponse({"success": False, "message": "Invalid fast duration"}, status=400)
 
         if hours not in [12, 16, 18]:
-            return JsonResponse({
-                'success': False,
-                'message': 'Fast duration must be 12, 16, or 18 hours'
-            }, status=400)
+            return JsonResponse({"success": False, "message": "Fast duration must be 12, 16, or 18 hours"}, status=400)
 
         # Parse the date string
         try:
-            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
-            return JsonResponse({
-                'success': False,
-                'message': 'Invalid date format. Use YYYY-MM-DD'
-            }, status=400)
+            return JsonResponse({"success": False, "message": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
         # Get user's timezone from cookie (set by browser)
         user_tz = get_user_timezone(request)
@@ -96,25 +81,24 @@ def log_fast(request):
         source_id = str(uuid.uuid4())
 
         fast = FastingSession.objects.create(
-            source='Manual',
+            source="Manual",
             source_id=source_id,
             duration=hours,
             fast_end_date=fast_end_date,  # This is now timezone-aware and will be stored as UTC in DB
         )
 
-        return JsonResponse({
-            'success': True,
-            'message': f'{hours}-hour fast logged successfully for {selected_date.strftime("%B %d, %Y")}!',
-            'fast_id': fast.id,
-            'duration': float(fast.duration),
-            'fast_end_date': fast_end_date.strftime('%Y-%m-%d %H:%M')
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "message": f'{hours}-hour fast logged successfully for {selected_date.strftime("%B %d, %Y")}!',
+                "fast_id": fast.id,
+                "duration": float(fast.duration),
+                "fast_end_date": fast_end_date.strftime("%Y-%m-%d %H:%M"),
+            }
+        )
 
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'message': f'Error logging fast: {str(e)}'
-        }, status=500)
+        return JsonResponse({"success": False, "message": f"Error logging fast: {str(e)}"}, status=500)
 
 
 @require_http_methods(["POST"])
@@ -151,33 +135,35 @@ def master_sync(_request):
 
         for source, result in cmd.sync_results.items():
             results[source] = {
-                'success': result.success,
-                'created': result.created,
-                'updated': result.updated,
-                'skipped': result.skipped,
-                'summary': result.summary,
+                "success": result.success,
+                "created": result.created,
+                "updated": result.updated,
+                "skipped": result.skipped,
+                "summary": result.summary,
             }
             total_created += result.created
             if not result.success:
                 has_errors = True
-                results[source]['error'] = result.error_message
+                results[source]["error"] = result.error_message
             if result.auth_error:
                 auth_errors[source] = True
 
         message = f'Synced {total_created} new {"entry" if total_created == 1 else "entries"}!'
 
-        return JsonResponse({
-            'success': True,
-            'message': message,
-            'results': results,
-            'auth_errors': auth_errors,
-            'has_errors': has_errors,
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "message": message,
+                "results": results,
+                "auth_errors": auth_errors,
+                "has_errors": has_errors,
+            }
+        )
 
     except Exception as e:
         import traceback
-        return JsonResponse({
-            'success': False,
-            'message': f'Error running master sync: {str(e)}',
-            'traceback': traceback.format_exc()
-        }, status=500)
+
+        return JsonResponse(
+            {"success": False, "message": f"Error running master sync: {str(e)}", "traceback": traceback.format_exc()},
+            status=500,
+        )

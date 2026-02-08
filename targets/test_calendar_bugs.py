@@ -22,10 +22,10 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
         from selenium.webdriver.chrome.options import Options
 
         chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
 
         try:
             cls.selenium = webdriver.Chrome(options=chrome_options)
@@ -37,7 +37,7 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
     @classmethod
     def tearDownClass(cls):
         """Clean up Selenium WebDriver."""
-        if hasattr(cls, 'selenium') and cls.selenium:
+        if hasattr(cls, "selenium") and cls.selenium:
             cls.selenium.quit()
         super().tearDownClass()
 
@@ -47,13 +47,14 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
             self.skipTest("Selenium WebDriver not available")
 
         # Create test user
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = User.objects.create_user(username="testuser", password="testpass")
 
         # Login
-        self.selenium.get(f'{self.live_server_url}/admin/')
+        self.selenium.get(f"{self.live_server_url}/admin/")
         from selenium.webdriver.common.by import By
-        self.selenium.find_element(By.NAME, 'username').send_keys('testuser')
-        self.selenium.find_element(By.NAME, 'password').send_keys('testpass')
+
+        self.selenium.find_element(By.NAME, "username").send_keys("testuser")
+        self.selenium.find_element(By.NAME, "password").send_keys("testpass")
         self.selenium.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
 
         # Create agendas for testing
@@ -64,16 +65,12 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
 
         # Create agenda for yesterday (past date)
         self.agenda_yesterday = DailyAgenda.objects.create(
-            date=self.yesterday,
-            target_1='Past target',
-            other_plans='# Past plans'
+            date=self.yesterday, target_1="Past target", other_plans="# Past plans"
         )
 
         # Create agenda for tomorrow (future date with agenda)
         self.agenda_tomorrow = DailyAgenda.objects.create(
-            date=self.tomorrow,
-            target_1='Future target',
-            other_plans='# Future plans\n- Task 1\n- Task 2'
+            date=self.tomorrow, target_1="Future target", other_plans="# Future plans\n- Task 1\n- Task 2"
         )
 
     @skip("Selenium test timing out in headless Chrome - calendar functionality verified manually")
@@ -94,60 +91,51 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
         import time
 
         # Navigate to activity logger
-        self.selenium.get(f'{self.live_server_url}/activity-logger/')
+        self.selenium.get(f"{self.live_server_url}/activity-logger/")
 
         # Wait for page to load and JavaScript to initialize
         # Wait for the date element to be populated by JavaScript
-        WebDriverWait(self.selenium, 15).until(
-            lambda driver: driver.find_element(By.ID, 'today-date').text != ''
-        )
+        WebDriverWait(self.selenium, 15).until(lambda driver: driver.find_element(By.ID, "today-date").text != "")
         time.sleep(1)  # Extra wait for all JS initialization
 
         # Click calendar button
-        calendar_button = WebDriverWait(self.selenium, 15).until(
-            EC.element_to_be_clickable((By.ID, "calendar-button"))
-        )
+        calendar_button = WebDriverWait(self.selenium, 15).until(EC.element_to_be_clickable((By.ID, "calendar-button")))
         self.selenium.execute_script("arguments[0].click();", calendar_button)
 
         # Wait for modal to appear
-        WebDriverWait(self.selenium, 10).until(
-            EC.visibility_of_element_located((By.ID, 'calendarModal'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.visibility_of_element_located((By.ID, "calendarModal")))
 
         time.sleep(1)  # Give calendar time to render
 
         # Find tomorrow's date cell
-        tomorrow_str = self.tomorrow.strftime('%Y-%m-%d')
+        tomorrow_str = self.tomorrow.strftime("%Y-%m-%d")
         tomorrow_cell = self.selenium.find_element(
-            By.XPATH,
-            f"//div[contains(@class, 'calendar-day') and contains(@onclick, '{tomorrow_str}')]"
+            By.XPATH, f"//div[contains(@class, 'calendar-day') and contains(@onclick, '{tomorrow_str}')]"
         )
 
         # Verify it has the 'future' class (green styling)
-        classes = tomorrow_cell.get_attribute('class')
-        self.assertIn('future', classes,
-                     f"Tomorrow's date ({self.tomorrow}) with agenda should have 'future' class for green styling")
-        self.assertIn('clickable', classes,
-                     "Tomorrow's date should be clickable")
+        classes = tomorrow_cell.get_attribute("class")
+        self.assertIn(
+            "future",
+            classes,
+            f"Tomorrow's date ({self.tomorrow}) with agenda should have 'future' class for green styling",
+        )
+        self.assertIn("clickable", classes, "Tomorrow's date should be clickable")
 
         # Verify it has green background color
-        background_color = tomorrow_cell.value_of_css_property('background-color')
+        background_color = tomorrow_cell.value_of_css_property("background-color")
         # Green is rgb(40, 167, 69) = #28a745
-        self.assertIn('40', background_color,
-                     "Future date with agenda should have green background color")
+        self.assertIn("40", background_color, "Future date with agenda should have green background color")
 
         # Also verify yesterday's date shows as blue (past), not green
-        yesterday_str = self.yesterday.strftime('%Y-%m-%d')
+        yesterday_str = self.yesterday.strftime("%Y-%m-%d")
         yesterday_cell = self.selenium.find_element(
-            By.XPATH,
-            f"//div[contains(@class, 'calendar-day') and contains(@onclick, '{yesterday_str}')]"
+            By.XPATH, f"//div[contains(@class, 'calendar-day') and contains(@onclick, '{yesterday_str}')]"
         )
 
-        classes = yesterday_cell.get_attribute('class')
-        self.assertNotIn('future', classes,
-                        "Yesterday's date should NOT have 'future' class")
-        self.assertIn('clickable', classes,
-                     "Yesterday's date should be clickable")
+        classes = yesterday_cell.get_attribute("class")
+        self.assertNotIn("future", classes, "Yesterday's date should NOT have 'future' class")
+        self.assertIn("clickable", classes, "Yesterday's date should be clickable")
 
     @skip("Selenium test timing out in headless Chrome - calendar functionality verified manually")
     def test_future_date_with_agenda_loads_data_not_empty_form(self):
@@ -168,30 +156,24 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
         import time
 
         # Navigate to activity logger
-        self.selenium.get(f'{self.live_server_url}/activity-logger/')
+        self.selenium.get(f"{self.live_server_url}/activity-logger/")
 
         # Wait for page to load and JavaScript to initialize
         # Wait for the date element to be populated by JavaScript
-        WebDriverWait(self.selenium, 15).until(
-            lambda driver: driver.find_element(By.ID, 'today-date').text != ''
-        )
+        WebDriverWait(self.selenium, 15).until(lambda driver: driver.find_element(By.ID, "today-date").text != "")
         time.sleep(1)  # Extra wait for all JS initialization
 
         # Click calendar button
-        calendar_button = WebDriverWait(self.selenium, 15).until(
-            EC.element_to_be_clickable((By.ID, "calendar-button"))
-        )
+        calendar_button = WebDriverWait(self.selenium, 15).until(EC.element_to_be_clickable((By.ID, "calendar-button")))
         self.selenium.execute_script("arguments[0].click();", calendar_button)
 
         # Wait for modal to appear
-        WebDriverWait(self.selenium, 10).until(
-            EC.visibility_of_element_located((By.ID, 'calendarModal'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.visibility_of_element_located((By.ID, "calendarModal")))
 
         time.sleep(1)  # Give calendar time to render
 
         # Click on tomorrow's date (future date with agenda)
-        tomorrow_str = self.tomorrow.strftime('%Y-%m-%d')
+        tomorrow_str = self.tomorrow.strftime("%Y-%m-%d")
         tomorrow_cell = WebDriverWait(self.selenium, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, f"//div[contains(@class, 'calendar-day') and contains(@onclick, '{tomorrow_str}')]")
@@ -204,26 +186,24 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
 
         # Verify the agenda data loaded correctly
         # Check that target_1 field contains the future target text
-        target_1_field = self.selenium.find_element(By.ID, 'target_1')
-        target_1_value = target_1_field.get_attribute('value')
+        target_1_field = self.selenium.find_element(By.ID, "target_1")
+        target_1_value = target_1_field.get_attribute("value")
 
-        self.assertEqual(target_1_value, 'Future target',
-                        "Future date with agenda should load actual target data, not empty form")
+        self.assertEqual(
+            target_1_value, "Future target", "Future date with agenda should load actual target data, not empty form"
+        )
 
         # Check that other plans textarea contains the future plans
-        other_plans_textarea = self.selenium.find_element(By.ID, 'other-plans-textarea')
-        other_plans_value = other_plans_textarea.get_attribute('value')
+        other_plans_textarea = self.selenium.find_element(By.ID, "other-plans-textarea")
+        other_plans_value = other_plans_textarea.get_attribute("value")
 
-        self.assertIn('Future plans', other_plans_value,
-                     "Future date with agenda should load actual other plans data")
-        self.assertIn('Task 1', other_plans_value,
-                     "Other plans should contain full content from database")
+        self.assertIn("Future plans", other_plans_value, "Future date with agenda should load actual other plans data")
+        self.assertIn("Task 1", other_plans_value, "Other plans should contain full content from database")
 
         # Verify the date display is correct
-        date_display = self.selenium.find_element(By.ID, 'today-date')
+        date_display = self.selenium.find_element(By.ID, "today-date")
         # Should show the tomorrow's date in formatted form
-        self.assertIn(self.tomorrow.strftime('%B'), date_display.text,
-                     "Date display should show the correct month")
+        self.assertIn(self.tomorrow.strftime("%B"), date_display.text, "Date display should show the correct month")
 
     @skip("Selenium test timing out in headless Chrome - calendar functionality verified manually")
     def test_date_without_agenda_shows_empty_form(self):
@@ -239,30 +219,24 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
         import time
 
         # Navigate to activity logger
-        self.selenium.get(f'{self.live_server_url}/activity-logger/')
+        self.selenium.get(f"{self.live_server_url}/activity-logger/")
 
         # Wait for page to load and JavaScript to initialize
         # Wait for the date element to be populated by JavaScript
-        WebDriverWait(self.selenium, 15).until(
-            lambda driver: driver.find_element(By.ID, 'today-date').text != ''
-        )
+        WebDriverWait(self.selenium, 15).until(lambda driver: driver.find_element(By.ID, "today-date").text != "")
         time.sleep(1)  # Extra wait for all JS initialization
 
         # Click calendar button
-        calendar_button = WebDriverWait(self.selenium, 15).until(
-            EC.element_to_be_clickable((By.ID, "calendar-button"))
-        )
+        calendar_button = WebDriverWait(self.selenium, 15).until(EC.element_to_be_clickable((By.ID, "calendar-button")))
         self.selenium.execute_script("arguments[0].click();", calendar_button)
 
         # Wait for modal to appear
-        WebDriverWait(self.selenium, 10).until(
-            EC.visibility_of_element_located((By.ID, 'calendarModal'))
-        )
+        WebDriverWait(self.selenium, 10).until(EC.visibility_of_element_located((By.ID, "calendarModal")))
 
         time.sleep(1)  # Give calendar time to render
 
         # Click on future_date (3 days from now, no agenda)
-        future_str = self.future_date.strftime('%Y-%m-%d')
+        future_str = self.future_date.strftime("%Y-%m-%d")
         future_cell = WebDriverWait(self.selenium, 10).until(
             EC.element_to_be_clickable(
                 (By.XPATH, f"//div[contains(@class, 'calendar-day') and contains(@onclick, '{future_str}')]")
@@ -270,9 +244,8 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
         )
 
         # Verify it has green styling (future)
-        classes = future_cell.get_attribute('class')
-        self.assertIn('future', classes,
-                     "Future date without agenda should still have 'future' class")
+        classes = future_cell.get_attribute("class")
+        self.assertIn("future", classes, "Future date without agenda should still have 'future' class")
 
         self.selenium.execute_script("arguments[0].click();", future_cell)
 
@@ -280,15 +253,13 @@ class CalendarBugsSeleniumTestCase(StaticLiveServerTestCase):
         time.sleep(2)
 
         # Verify the form is empty
-        target_1_field = self.selenium.find_element(By.ID, 'target_1')
-        target_1_value = target_1_field.get_attribute('value')
+        target_1_field = self.selenium.find_element(By.ID, "target_1")
+        target_1_value = target_1_field.get_attribute("value")
 
-        self.assertEqual(target_1_value, '',
-                        "Future date without agenda should show empty target field")
+        self.assertEqual(target_1_value, "", "Future date without agenda should show empty target field")
 
         # Check that other plans textarea is empty
-        other_plans_textarea = self.selenium.find_element(By.ID, 'other-plans-textarea')
-        other_plans_value = other_plans_textarea.get_attribute('value')
+        other_plans_textarea = self.selenium.find_element(By.ID, "other-plans-textarea")
+        other_plans_value = other_plans_textarea.get_attribute("value")
 
-        self.assertEqual(other_plans_value, '',
-                        "Future date without agenda should show empty other plans")
+        self.assertEqual(other_plans_value, "", "Future date without agenda should show empty other plans")

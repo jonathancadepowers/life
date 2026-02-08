@@ -6,16 +6,16 @@ import io
 import os
 
 
-_TV_SHOW = 'TV Show'
-_PODCAST_SERIES = 'Podcast Series'
+_TV_SHOW = "TV Show"
+_PODCAST_SERIES = "Podcast Series"
 
 _TYPE_ALIASES = {
-    'tvshow': _TV_SHOW,
-    'tv_show': _TV_SHOW,
-    'tv show': _TV_SHOW,
-    'podcastseries': _PODCAST_SERIES,
-    'podcast_series': _PODCAST_SERIES,
-    'podcast series': _PODCAST_SERIES,
+    "tvshow": _TV_SHOW,
+    "tv_show": _TV_SHOW,
+    "tv show": _TV_SHOW,
+    "podcastseries": _PODCAST_SERIES,
+    "podcast_series": _PODCAST_SERIES,
+    "podcast series": _PODCAST_SERIES,
 }
 
 
@@ -28,15 +28,15 @@ def _resolve_type(type_raw):
 
 def _convert_to_rgb(img):
     """Convert an image to RGB mode, handling RGBA/P/LA with white background."""
-    if img.mode in ('RGBA', 'P', 'LA'):
-        background = Image.new('RGB', img.size, (255, 255, 255))
-        if img.mode == 'P':
-            img = img.convert('RGBA')
-        mask = img.split()[-1] if img.mode in ('RGBA', 'LA') else None
+    if img.mode in ("RGBA", "P", "LA"):
+        background = Image.new("RGB", img.size, (255, 255, 255))
+        if img.mode == "P":
+            img = img.convert("RGBA")
+        mask = img.split()[-1] if img.mode in ("RGBA", "LA") else None
         background.paste(img, mask=mask)
         return background
-    if img.mode != 'RGB':
-        return img.convert('RGB')
+    if img.mode != "RGB":
+        return img.convert("RGB")
     return img
 
 
@@ -47,75 +47,67 @@ def _resize_and_encode(image_path, filename):
     img = _convert_to_rgb(img)
 
     output = io.BytesIO()
-    img.save(output, format='JPEG', quality=85)
+    img.save(output, format="JPEG", quality=85)
     output.seek(0)
     return ContentFile(output.read(), name=filename)
 
 
 class Command(BaseCommand):
-    help = 'Import inspiration images from a directory'
+    help = "Import inspiration images from a directory"
 
     def add_arguments(self, parser):
-        parser.add_argument('directory', type=str, help='Directory containing images to import')
+        parser.add_argument("directory", type=str, help="Directory containing images to import")
 
     def _process_file(self, directory, filename):
         """Process a single image file. Returns 'imported', 'skipped', or 'error'."""
         name_without_ext = os.path.splitext(filename)[0]
-        parts = name_without_ext.split('_', 1)
+        parts = name_without_ext.split("_", 1)
 
         if len(parts) != 2:
-            self.stdout.write(self.style.WARNING(
-                f'Skipping {filename}: Expected format type_title.jpg'
-            ))
-            return 'skipped'
+            self.stdout.write(self.style.WARNING(f"Skipping {filename}: Expected format type_title.jpg"))
+            return "skipped"
 
         type_raw, title_raw = parts
         type_value = _resolve_type(type_raw)
 
         if type_value is None:
             valid_types = [choice[0] for choice in Inspiration.TYPE_CHOICES]
-            self.stdout.write(self.style.WARNING(
-                f'Skipping {filename}: Invalid type "{type_raw.capitalize()}". '
-                f'Valid types: {", ".join(valid_types)}'
-            ))
-            return 'skipped'
+            self.stdout.write(
+                self.style.WARNING(
+                    f'Skipping {filename}: Invalid type "{type_raw.capitalize()}". '
+                    f'Valid types: {", ".join(valid_types)}'
+                )
+            )
+            return "skipped"
 
-        title = ' '.join(word.capitalize() for word in title_raw.replace('_', ' ').split())
+        title = " ".join(word.capitalize() for word in title_raw.replace("_", " ").split())
 
         if Inspiration.objects.filter(title=title, type=type_value).exists():
-            self.stdout.write(self.style.WARNING(
-                f'Skipping {filename}: "{title}" ({type_value}) already exists'
-            ))
-            return 'skipped'
+            self.stdout.write(self.style.WARNING(f'Skipping {filename}: "{title}" ({type_value}) already exists'))
+            return "skipped"
 
         image_path = os.path.join(directory, filename)
         resized_image = _resize_and_encode(image_path, filename)
 
-        Inspiration.objects.create(
-            image=resized_image,
-            title=title,
-            type=type_value,
-            flip_text=''
-        )
+        Inspiration.objects.create(image=resized_image, title=title, type=type_value, flip_text="")
 
-        self.stdout.write(self.style.SUCCESS(f'Imported: {title} ({type_value})'))
-        return 'imported'
+        self.stdout.write(self.style.SUCCESS(f"Imported: {title} ({type_value})"))
+        return "imported"
 
     def handle(self, *_args, **options):
-        directory = options['directory']
+        directory = options["directory"]
 
         if not os.path.exists(directory):
-            self.stdout.write(self.style.ERROR(f'Directory does not exist: {directory}'))
+            self.stdout.write(self.style.ERROR(f"Directory does not exist: {directory}"))
             return
 
-        image_files = [f for f in os.listdir(directory)
-                      if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))]
+        image_files = [f for f in os.listdir(directory) if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))]
 
         if not image_files:
-            self.stdout.write(self.style.WARNING(f'No image files found in {directory}'))
+            self.stdout.write(self.style.WARNING(f"No image files found in {directory}"))
             return
 
-        self.stdout.write(f'Found {len(image_files)} images to import')
+        self.stdout.write(f"Found {len(image_files)} images to import")
 
         imported_count = 0
         skipped_count = 0
@@ -124,19 +116,17 @@ class Command(BaseCommand):
         for filename in image_files:
             try:
                 result = self._process_file(directory, filename)
-                if result == 'imported':
+                if result == "imported":
                     imported_count += 1
                 else:
                     skipped_count += 1
             except Exception as e:
-                self.stdout.write(self.style.ERROR(
-                    f'Error processing {filename}: {str(e)}'
-                ))
+                self.stdout.write(self.style.ERROR(f"Error processing {filename}: {str(e)}"))
                 error_count += 1
 
         # Summary
-        self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS('Import complete!'))
-        self.stdout.write(f'  Imported: {imported_count}')
-        self.stdout.write(f'  Skipped: {skipped_count}')
-        self.stdout.write(f'  Errors: {error_count}')
+        self.stdout.write("")
+        self.stdout.write(self.style.SUCCESS("Import complete!"))
+        self.stdout.write(f"  Imported: {imported_count}")
+        self.stdout.write(f"  Skipped: {skipped_count}")
+        self.stdout.write(f"  Errors: {error_count}")

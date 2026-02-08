@@ -2,6 +2,6 @@ from django.apps import AppConfig
 
 
 class TargetsConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'targets'
-    verbose_name = 'Daily Planning'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "targets"
+    verbose_name = "Daily Planning"

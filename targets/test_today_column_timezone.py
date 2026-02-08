@@ -18,7 +18,7 @@ class TodayColumnTimezoneTestCase(TestCase):
 
     def setUp(self):
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = User.objects.create_user(username="testuser", password="testpass")
 
     def test_today_column_shows_data_created_late_evening_cst(self):
         """
@@ -29,30 +29,28 @@ class TodayColumnTimezoneTestCase(TestCase):
 
         # Simulate November 2, 2025 at 8pm CST (UTC-6)
         # This will be stored as 2025-11-03 02:00:00 UTC
-        cst = pytz.timezone('America/Chicago')
+        cst = pytz.timezone("America/Chicago")
         local_time = cst.localize(datetime(2025, 11, 2, 20, 0, 0))  # 8pm CST
         utc_time = local_time.astimezone(pytz.UTC)
 
         # Create a fasting session that ended at 8pm CST on Nov 2
         fast = FastingSession.objects.create(
-            source='Manual',
-            source_id='test-fast-1',
-            fast_end_date=utc_time,
-            duration=16.0
+            source="Manual", source_id="test-fast-1", fast_end_date=utc_time, duration=16.0
         )
 
         # Create request with CST timezone
-        request = self.factory.get('/activity-report/')
+        request = self.factory.get("/activity-report/")
         request.user = self.user
         # Simulate browser sending timezone
-        request.COOKIES['user_timezone'] = 'America/Chicago'  # CST timezone
+        request.COOKIES["user_timezone"] = "America/Chicago"  # CST timezone
 
         # Mock the current time to be Nov 2, 2025 at 10pm CST
         # (still Nov 2 in CST, but Nov 3 in UTC)
         from unittest.mock import patch
+
         mock_now = cst.localize(datetime(2025, 11, 2, 22, 0, 0))
 
-        with patch('django.utils.timezone.now', return_value=mock_now.astimezone(pytz.UTC)):
+        with patch("django.utils.timezone.now", return_value=mock_now.astimezone(pytz.UTC)):
             response = activity_report(request)
 
         # Check that the response contains objectives data
@@ -69,12 +67,10 @@ class TodayColumnTimezoneTestCase(TestCase):
         today_end_cst = cst.localize(datetime(2025, 11, 2, 23, 59, 59))
 
         fasts_today = FastingSession.objects.filter(
-            fast_end_date__gte=today_start_cst,
-            fast_end_date__lte=today_end_cst
+            fast_end_date__gte=today_start_cst, fast_end_date__lte=today_end_cst
         )
 
-        self.assertEqual(fasts_today.count(), 1,
-                        "Fast created at 8pm CST on Nov 2 should be included in Nov 2's data")
+        self.assertEqual(fasts_today.count(), 1, "Fast created at 8pm CST on Nov 2 should be included in Nov 2's data")
 
     def test_today_column_calculation_with_timezone_aware_filtering(self):
         """
@@ -84,16 +80,17 @@ class TodayColumnTimezoneTestCase(TestCase):
         from targets.views import get_user_today
 
         # Create request with PST timezone
-        request = self.factory.get('/activity-report/')
+        request = self.factory.get("/activity-report/")
         request.user = self.user
-        request.COOKIES['user_timezone'] = 'America/Los_Angeles'  # PST timezone
+        request.COOKIES["user_timezone"] = "America/Los_Angeles"  # PST timezone
 
         # Mock current time to Nov 2, 2025 10pm PST
-        pst = pytz.timezone('America/Los_Angeles')
+        pst = pytz.timezone("America/Los_Angeles")
         mock_now = pst.localize(datetime(2025, 11, 2, 22, 0, 0))
 
         from unittest.mock import patch
-        with patch('django.utils.timezone.now', return_value=mock_now.astimezone(pytz.UTC)):
+
+        with patch("django.utils.timezone.now", return_value=mock_now.astimezone(pytz.UTC)):
             today, today_start, today_end = get_user_today(request)
 
         # Verify the date range is correct for PST timezone
@@ -121,13 +118,13 @@ class MonthlyObjectivesTodayColumnTestCase(TestCase):
         from monthly_objectives.models import MonthlyObjective
 
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = User.objects.create_user(username="testuser", password="testpass")
 
         # Create a test objective for fasting
         self.objective = MonthlyObjective.objects.create(
             objective_id=1,
-            label='Test Fast Regularly',
-            description='Test objective',
+            label="Test Fast Regularly",
+            description="Test objective",
             start=datetime(2025, 11, 1).date(),
             end=datetime(2025, 11, 30).date(),
             objective_value=21,
@@ -138,8 +135,8 @@ class MonthlyObjectivesTodayColumnTestCase(TestCase):
                 AND fast_end_date >= '2025-11-01 06:00:00'
                 AND fast_end_date <= '2025-12-01 05:59:59'
             """,
-            category='Nutrition',
-            unit_of_measurement='days'
+            category="Nutrition",
+            unit_of_measurement="days",
         )
 
     def test_today_column_with_late_evening_data(self):
@@ -149,20 +146,17 @@ class MonthlyObjectivesTodayColumnTestCase(TestCase):
         """
         # Create a fast that ended at 11pm CST on Nov 2
         # This is stored as Nov 3 05:00 UTC
-        cst = pytz.timezone('America/Chicago')
+        cst = pytz.timezone("America/Chicago")
         fast_end_cst = cst.localize(datetime(2025, 11, 2, 23, 0, 0))
 
         FastingSession.objects.create(
-            source='Manual',
-            source_id='test-fast-1',
-            fast_end_date=fast_end_cst,
-            duration=16.0
+            source="Manual", source_id="test-fast-1", fast_end_date=fast_end_cst, duration=16.0
         )
 
         # Make request from CST timezone
-        request = self.factory.get('/activity-report/')
+        request = self.factory.get("/activity-report/")
         request.user = self.user
-        request.COOKIES['user_timezone'] = 'America/Chicago'  # CST
+        request.COOKIES["user_timezone"] = "America/Chicago"  # CST
 
         from targets.views import activity_report
         from unittest.mock import patch
@@ -170,7 +164,7 @@ class MonthlyObjectivesTodayColumnTestCase(TestCase):
         # Mock current time to be Nov 2 11:30pm CST
         mock_now = cst.localize(datetime(2025, 11, 2, 23, 30, 0))
 
-        with patch('django.utils.timezone.now', return_value=mock_now.astimezone(pytz.UTC)):
+        with patch("django.utils.timezone.now", return_value=mock_now.astimezone(pytz.UTC)):
             response = activity_report(request)
 
         self.assertEqual(response.status_code, 200)

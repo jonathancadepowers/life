@@ -16,10 +16,24 @@ python manage.py sync_all --days=30       # Sync Whoop, Withings, Cronometer
 python manage.py sync_toggl --days=30     # Sync Toggl time entries
 ```
 
-**IMPORTANT: After every change, ALWAYS push immediately to both GitHub and Heroku:**
+**IMPORTANT: Before pushing, ALWAYS run linting and tests:**
 ```bash
+# Quick check (recommended before every push)
+python3 manage.py test && python3 -m flake8 .
+
+# Full linting suite (run periodically)
+python3 -m flake8 .              # Code style
+python3 -m black --check .       # Formatting
+python3 -m mypy .                # Type checking
+
+# Only push if tests pass (flake8 warnings are acceptable)
 git push origin main && git push heroku main
 ```
+
+**Linting Configuration:**
+- `.flake8` - flake8 configuration (max line 120, excludes migrations/venv)
+- `pyproject.toml` - black and mypy configuration
+- Tests are allowed to have formatting issues (focused on functionality)
 
 ## Critical Invariants (Read These First)
 
@@ -224,6 +238,7 @@ When implementing task updates:
 7. **Don't create `Goal` or `Project` without specifying the ID** — they use custom primary keys
 8. **Don't add `null=True` to CharField/TextField** — use `blank=True, default=''` instead (Django convention)
 9. **Don't leave task UI elements stale after updates** — always update all visible instances immediately (see "Tasks Page Real-Time Updates" above)
+10. **Don't push without running tests and linting** — always run `python3 manage.py test && python3 -m flake8 .` before pushing (see Key Commands section)
 
 ## Testing
 

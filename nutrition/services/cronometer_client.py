@@ -4,6 +4,7 @@ Cronometer API Client
 This module provides a Python interface to export nutrition data from Cronometer
 using the Go CLI wrapper that uses the gocronometer library.
 """
+
 import json
 import logging
 import os
@@ -26,8 +27,8 @@ class CronometerClient:
             username: Cronometer username (email). If not provided, uses CRONOMETER_USERNAME env var.
             password: Cronometer password. If not provided, uses CRONOMETER_PASSWORD env var.
         """
-        self.username = username or os.getenv('CRONOMETER_USERNAME')
-        self.password = password or os.getenv('CRONOMETER_PASSWORD')
+        self.username = username or os.getenv("CRONOMETER_USERNAME")
+        self.password = password or os.getenv("CRONOMETER_PASSWORD")
 
         if not self.username or not self.password:
             raise ValueError(
@@ -49,15 +50,15 @@ class CronometerClient:
             FileNotFoundError: If the binary is not found.
         """
         # Check in the cronometer_cli directory
-        base_dir = Path(__file__).parent.parent / 'cronometer_cli'
-        binary_path = base_dir / 'cronometer_export'
+        base_dir = Path(__file__).parent.parent / "cronometer_cli"
+        binary_path = base_dir / "cronometer_export"
 
         if binary_path.exists():
             return binary_path
 
         # Check if it's in PATH
         try:
-            result = subprocess.run(['which', 'cronometer_export'], capture_output=True, text=True)
+            result = subprocess.run(["which", "cronometer_export"], capture_output=True, text=True)
             if result.returncode == 0 and result.stdout.strip():
                 return Path(result.stdout.strip())
         except Exception:
@@ -70,11 +71,7 @@ class CronometerClient:
             f"  go build -o cronometer_export"
         )
 
-    def export_daily_nutrition(
-        self,
-        start_date: datetime,
-        end_date: Optional[datetime] = None
-    ) -> List[Dict]:
+    def export_daily_nutrition(self, start_date: datetime, end_date: Optional[datetime] = None) -> List[Dict]:
         """
         Export daily nutrition data for a date range.
 
@@ -104,26 +101,28 @@ class CronometerClient:
             end_date = datetime.now()
 
         # Format dates as YYYY-MM-DD
-        start_str = start_date.strftime('%Y-%m-%d')
-        end_str = end_date.strftime('%Y-%m-%d')
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
 
         # Call the Go CLI
+        # Type assertion: username and password are guaranteed to be non-None by __init__
+        assert self.username is not None
+        assert self.password is not None
+
         cmd = [
             str(self.cli_path),
-            '-username', self.username,
-            '-password', self.password,
-            '-start', start_str,
-            '-end', end_str
+            "-username",
+            self.username,
+            "-password",
+            self.password,
+            "-start",
+            start_str,
+            "-end",
+            end_str,
         ]
 
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=60  # 60 second timeout
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=60)  # 60 second timeout
 
             # Parse JSON output
             data = json.loads(result.stdout)

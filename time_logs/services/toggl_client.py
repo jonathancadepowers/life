@@ -7,6 +7,7 @@ Mapping:
 - Toggl Projects → Database Projects
 - Toggl Tags → Database Goals
 """
+
 import logging
 import os
 import requests
@@ -45,8 +46,8 @@ class TogglAPIClient:
             self._load_credentials_from_db()
         else:
             # Use environment variables only (for testing or non-database setups)
-            self.api_token = os.getenv('TOGGL_API_TOKEN')
-            self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
+            self.api_token = os.getenv("TOGGL_API_TOKEN")
+            self.workspace_id = os.getenv("TOGGL_WORKSPACE_ID")
 
         # Validate that we have required credentials
         if not self.api_token:
@@ -60,7 +61,8 @@ class TogglAPIClient:
         """Load API credentials from the database, with fallback to environment variables."""
         try:
             from oauth_integration.models import APICredential
-            self.credential = APICredential.objects.filter(provider='toggl').first()
+
+            self.credential = APICredential.objects.filter(provider="toggl").first()
 
             if self.credential:
                 # Load credentials from database
@@ -68,20 +70,15 @@ class TogglAPIClient:
                 self.workspace_id = self.credential.workspace_id
             else:
                 # Fall back to environment variables (for initial setup)
-                self.api_token = os.getenv('TOGGL_API_TOKEN')
-                self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
+                self.api_token = os.getenv("TOGGL_API_TOKEN")
+                self.workspace_id = os.getenv("TOGGL_WORKSPACE_ID")
         except Exception:
             # Fall back to environment variables
             logger.debug("Could not load Toggl credentials from database, falling back to environment variables")
-            self.api_token = os.getenv('TOGGL_API_TOKEN')
-            self.workspace_id = os.getenv('TOGGL_WORKSPACE_ID')
+            self.api_token = os.getenv("TOGGL_API_TOKEN")
+            self.workspace_id = os.getenv("TOGGL_WORKSPACE_ID")
 
-    def _make_request(
-        self,
-        endpoint: str,
-        method: str = 'GET',
-        params: Optional[Dict] = None
-    ) -> Dict:
+    def _make_request(self, endpoint: str, method: str = "GET", params: Optional[Dict] = None) -> Dict:
         """
         Make an authenticated request to the Toggl API.
 
@@ -96,7 +93,9 @@ class TogglAPIClient:
         url = f"{self.BASE_URL}{endpoint}"
 
         # Toggl uses API token as username with 'api_token' as password
-        auth = (self.api_token, 'api_token')
+        # Type assertion: api_token is guaranteed to be non-None by __init__
+        assert self.api_token is not None
+        auth = (self.api_token, "api_token")
 
         response = requests.request(method, url, auth=auth, params=params, timeout=30)
         response.raise_for_status()
@@ -111,9 +110,9 @@ class TogglAPIClient:
             Dictionary with running time entry, or None if no timer is running
         """
         try:
-            result = self._make_request('/me/time_entries/current')
+            result = self._make_request("/me/time_entries/current")
             # If no timer is running, the API returns None or empty dict
-            if result and result.get('id'):
+            if result and result.get("id"):
                 return result
             return None
         except Exception:
@@ -122,9 +121,7 @@ class TogglAPIClient:
             return None
 
     def get_time_entries(
-        self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
     ) -> List[Dict]:
         """
         Fetch time entries from Toggl Reports API v3 plus any running timer.
@@ -154,12 +151,14 @@ class TogglAPIClient:
 
         # Reports API expects JSON payload with start_date and end_date
         payload = {
-            'start_date': start_date.strftime('%Y-%m-%d'),
-            'end_date': end_date.strftime('%Y-%m-%d'),
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d"),
         }
 
         # Toggl uses API token as username with 'api_token' as password
-        auth = (self.api_token, 'api_token')
+        # Type assertion: api_token is guaranteed to be non-None by __init__
+        assert self.api_token is not None
+        auth = (self.api_token, "api_token")
 
         response = requests.post(url, json=payload, auth=auth, timeout=30)
         response.raise_for_status()
@@ -167,7 +166,7 @@ class TogglAPIClient:
         # Fetch tags to map tag IDs to tag names
         # The old API returned tag names, but Reports API returns tag IDs
         tags_list = self.get_tags()
-        tag_id_to_name = {tag['id']: tag['name'] for tag in tags_list}
+        tag_id_to_name = {tag["id"]: tag["name"] for tag in tags_list}
 
         # Reports API returns data in a grouped format with nested time_entries
         # We need to flatten this to match the old API format
@@ -175,22 +174,22 @@ class TogglAPIClient:
         flattened_entries = []
 
         for group in grouped_entries:
-            project_id = group.get('project_id')
-            tag_ids = group.get('tag_ids', [])
+            project_id = group.get("project_id")
+            tag_ids = group.get("tag_ids", [])
 
             # Convert tag IDs to tag names to match old API format
             tag_names = [tag_id_to_name.get(tag_id, str(tag_id)) for tag_id in tag_ids]
 
             # Each group contains an array of time_entries
-            for entry in group.get('time_entries', []):
+            for entry in group.get("time_entries", []):
                 # Flatten the structure to match the old API format
                 flattened_entry = {
-                    'id': entry.get('id'),
-                    'project_id': project_id,
-                    'tags': tag_names,  # Use tag names instead of tag IDs
-                    'duration': entry.get('seconds'),  # Map seconds to duration
-                    'start': entry.get('start'),
-                    'stop': entry.get('stop'),
+                    "id": entry.get("id"),
+                    "project_id": project_id,
+                    "tags": tag_names,  # Use tag names instead of tag IDs
+                    "duration": entry.get("seconds"),  # Map seconds to duration
+                    "start": entry.get("start"),
+                    "stop": entry.get("stop"),
                 }
                 flattened_entries.append(flattened_entry)
 
@@ -200,12 +199,12 @@ class TogglAPIClient:
             # Convert running entry to match our format
             # Running timers have negative duration in the Track API
             running_flattened = {
-                'id': running_entry.get('id'),
-                'project_id': running_entry.get('project_id') or running_entry.get('pid'),
-                'tags': running_entry.get('tags', []),
-                'duration': running_entry.get('duration', 0),  # Negative for running timers
-                'start': running_entry.get('start'),
-                'stop': running_entry.get('stop'),
+                "id": running_entry.get("id"),
+                "project_id": running_entry.get("project_id") or running_entry.get("pid"),
+                "tags": running_entry.get("tags", []),
+                "duration": running_entry.get("duration", 0),  # Negative for running timers
+                "start": running_entry.get("start"),
+                "stop": running_entry.get("stop"),
             }
             flattened_entries.append(running_flattened)
 
@@ -221,7 +220,10 @@ class TogglAPIClient:
         if not self.workspace_id:
             raise ValueError(_WORKSPACE_ID_ERROR)
 
-        return self._make_request(f'/workspaces/{self.workspace_id}/tags')
+        result = self._make_request(f"/workspaces/{self.workspace_id}/tags")
+        # API returns a list
+        assert isinstance(result, list)
+        return result
 
     def get_projects(self) -> List[Dict]:
         """
@@ -233,4 +235,7 @@ class TogglAPIClient:
         if not self.workspace_id:
             raise ValueError(_WORKSPACE_ID_ERROR)
 
-        return self._make_request(f'/workspaces/{self.workspace_id}/projects')
+        result = self._make_request(f"/workspaces/{self.workspace_id}/projects")
+        # API returns a list
+        assert isinstance(result, list)
+        return result

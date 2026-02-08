@@ -4,6 +4,7 @@ Shared sync infrastructure for management commands.
 SyncResult — structured return type for all sync commands.
 BaseSyncCommand — optional base class with --days/--all args and result tracking.
 """
+
 from dataclasses import dataclass
 from django.core.management.base import BaseCommand
 
@@ -11,12 +12,13 @@ from django.core.management.base import BaseCommand
 @dataclass
 class SyncResult:
     """Structured result from a sync operation."""
+
     source: str
     success: bool = True
     created: int = 0
     updated: int = 0
     skipped: int = 0
-    error_message: str = ''
+    error_message: str = ""
     auth_error: bool = False
 
     @property
@@ -26,15 +28,15 @@ class SyncResult:
     @property
     def summary(self):
         if not self.success:
-            return f'Failed: {self.error_message}'
+            return f"Failed: {self.error_message}"
         parts = []
         if self.created:
-            parts.append(f'{self.created} created')
+            parts.append(f"{self.created} created")
         if self.updated:
-            parts.append(f'{self.updated} updated')
+            parts.append(f"{self.updated} updated")
         if self.skipped:
-            parts.append(f'{self.skipped} skipped')
-        return ', '.join(parts) if parts else 'No records processed'
+            parts.append(f"{self.skipped} skipped")
+        return ", ".join(parts) if parts else "No records processed"
 
 
 class BaseSyncCommand(BaseCommand):
@@ -50,24 +52,17 @@ class BaseSyncCommand(BaseCommand):
     """
 
     # Subclasses set this to their source name (e.g., 'Whoop', 'Withings')
-    source_name = ''
+    source_name = ""
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--days',
-            type=int,
-            default=30,
-            help='Number of days in the past to sync data from (default: 30)'
+            "--days", type=int, default=30, help="Number of days in the past to sync data from (default: 30)"
         )
-        parser.add_argument(
-            '--all',
-            action='store_true',
-            help='Sync all available data (ignores --days parameter)'
-        )
+        parser.add_argument("--all", action="store_true", help="Sync all available data (ignores --days parameter)")
 
     def handle(self, *_args, **options):
-        days = options['days']
-        sync_all = options.get('all', False)
+        days = options["days"]
+        sync_all = options.get("all", False)
         self.sync_result = self.sync(days, sync_all)
 
     def sync(self, days, sync_all=False):

@@ -3,6 +3,7 @@ Withings API Client for fetching weight and health data.
 
 This client handles OAuth 2.0 authentication and data fetching from the Withings API.
 """
+
 import os
 import requests
 import logging
@@ -44,11 +45,11 @@ class WithingsAPIClient:
             self._load_credentials_from_db()
         else:
             # Use environment variables only (for testing or non-database setups)
-            self.client_id = os.getenv('WITHINGS_CLIENT_ID')
-            self.client_secret = os.getenv('WITHINGS_CLIENT_SECRET')
-            self.redirect_uri = os.getenv('WITHINGS_REDIRECT_URI')
-            self.access_token = os.getenv('WITHINGS_ACCESS_TOKEN')
-            self.refresh_token = os.getenv('WITHINGS_REFRESH_TOKEN')
+            self.client_id = os.getenv("WITHINGS_CLIENT_ID")
+            self.client_secret = os.getenv("WITHINGS_CLIENT_SECRET")
+            self.redirect_uri = os.getenv("WITHINGS_REDIRECT_URI")
+            self.access_token = os.getenv("WITHINGS_ACCESS_TOKEN")
+            self.refresh_token = os.getenv("WITHINGS_REFRESH_TOKEN")
 
         # Validate that we have at least client credentials
         if not self.client_id or not self.client_secret:
@@ -62,7 +63,8 @@ class WithingsAPIClient:
         """Load OAuth credentials from the database, with fallback to environment variables."""
         try:
             from oauth_integration.models import OAuthCredential
-            self.credential = OAuthCredential.objects.filter(provider='withings').first()
+
+            self.credential = OAuthCredential.objects.filter(provider="withings").first()
 
             if self.credential:
                 # Load all credentials from database
@@ -74,20 +76,20 @@ class WithingsAPIClient:
                 logger.info("Loaded Withings credentials from database")
             else:
                 # Fall back to environment variables (for initial setup)
-                self.client_id = os.getenv('WITHINGS_CLIENT_ID')
-                self.client_secret = os.getenv('WITHINGS_CLIENT_SECRET')
-                self.redirect_uri = os.getenv('WITHINGS_REDIRECT_URI')
-                self.access_token = os.getenv('WITHINGS_ACCESS_TOKEN')
-                self.refresh_token = os.getenv('WITHINGS_REFRESH_TOKEN')
+                self.client_id = os.getenv("WITHINGS_CLIENT_ID")
+                self.client_secret = os.getenv("WITHINGS_CLIENT_SECRET")
+                self.redirect_uri = os.getenv("WITHINGS_REDIRECT_URI")
+                self.access_token = os.getenv("WITHINGS_ACCESS_TOKEN")
+                self.refresh_token = os.getenv("WITHINGS_REFRESH_TOKEN")
                 logger.warning("No Withings credentials in database, using environment variables")
         except Exception as e:
             logger.error(f"Error loading credentials from database: {e}")
             # Fall back to environment variables
-            self.client_id = os.getenv('WITHINGS_CLIENT_ID')
-            self.client_secret = os.getenv('WITHINGS_CLIENT_SECRET')
-            self.redirect_uri = os.getenv('WITHINGS_REDIRECT_URI')
-            self.access_token = os.getenv('WITHINGS_ACCESS_TOKEN')
-            self.refresh_token = os.getenv('WITHINGS_REFRESH_TOKEN')
+            self.client_id = os.getenv("WITHINGS_CLIENT_ID")
+            self.client_secret = os.getenv("WITHINGS_CLIENT_SECRET")
+            self.redirect_uri = os.getenv("WITHINGS_REDIRECT_URI")
+            self.access_token = os.getenv("WITHINGS_ACCESS_TOKEN")
+            self.refresh_token = os.getenv("WITHINGS_REFRESH_TOKEN")
 
     def _save_credentials_to_db(self, access_token: str, refresh_token: str, expires_in: int):
         """Save OAuth credentials to the database."""
@@ -101,15 +103,15 @@ class WithingsAPIClient:
             token_expires_at = timezone.now() + timedelta(seconds=expires_in)
 
             OAuthCredential.objects.update_or_create(
-                provider='withings',
+                provider="withings",
                 defaults={
-                    'client_id': self.client_id,
-                    'client_secret': self.client_secret,
-                    'redirect_uri': self.redirect_uri,
-                    'access_token': access_token,
-                    'refresh_token': refresh_token,
-                    'token_expires_at': token_expires_at,
-                }
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "redirect_uri": self.redirect_uri,
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    "token_expires_at": token_expires_at,
+                },
             )
             logger.info("Saved Withings credentials to database")
         except Exception as e:
@@ -126,11 +128,11 @@ class WithingsAPIClient:
             Authorization URL to redirect user to
         """
         params = {
-            'response_type': 'code',
-            'client_id': self.client_id,
-            'redirect_uri': self.redirect_uri,
-            'scope': 'user.metrics',
-            'state': state,
+            "response_type": "code",
+            "client_id": self.client_id,
+            "redirect_uri": self.redirect_uri,
+            "scope": "user.metrics",
+            "state": state,
         }
 
         query_string = urlencode(params)
@@ -147,12 +149,12 @@ class WithingsAPIClient:
             Dictionary containing tokens and expiry information
         """
         data = {
-            'action': 'requesttoken',
-            'grant_type': 'authorization_code',
-            'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'code': code,
-            'redirect_uri': self.redirect_uri,
+            "action": "requesttoken",
+            "grant_type": "authorization_code",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "code": code,
+            "redirect_uri": self.redirect_uri,
         }
 
         response = requests.post(self.TOKEN_URL, data=data, timeout=30)
@@ -160,20 +162,16 @@ class WithingsAPIClient:
 
         result = response.json()
 
-        if result.get('status') != 0:
+        if result.get("status") != 0:
             raise ValueError(f"Withings API error: {result}")
 
-        token_data = result['body']
-        self.access_token = token_data['access_token']
-        self.refresh_token = token_data['refresh_token']
+        token_data = result["body"]
+        self.access_token = token_data["access_token"]
+        self.refresh_token = token_data["refresh_token"]
 
         # Save to database
-        expires_in = token_data.get('expires_in', 10800)  # Default 3 hours
-        self._save_credentials_to_db(
-            self.access_token,
-            self.refresh_token,
-            expires_in
-        )
+        expires_in = token_data.get("expires_in", 10800)  # Default 3 hours
+        self._save_credentials_to_db(self.access_token, self.refresh_token, expires_in)
 
         return token_data
 
@@ -188,16 +186,14 @@ class WithingsAPIClient:
             ValueError: If refresh token is invalid or refresh fails
         """
         if not self.refresh_token:
-            raise ValueError(
-                "No refresh token available. Please run: python manage.py withings_auth"
-            )
+            raise ValueError("No refresh token available. Please run: python manage.py withings_auth")
 
         data = {
-            'action': 'requesttoken',
-            'grant_type': 'refresh_token',
-            'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'refresh_token': self.refresh_token,
+            "action": "requesttoken",
+            "grant_type": "refresh_token",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "refresh_token": self.refresh_token,
         }
 
         response = requests.post(self.TOKEN_URL, data=data, timeout=30)
@@ -205,37 +201,29 @@ class WithingsAPIClient:
 
         result = response.json()
 
-        if result.get('status') != 0:
-            error_msg = result.get('error', 'Unknown error')
-            if 'invalid refresh_token' in str(error_msg).lower() or result.get('status') == 401:
+        if result.get("status") != 0:
+            error_msg = result.get("error", "Unknown error")
+            if "invalid refresh_token" in str(error_msg).lower() or result.get("status") == 401:
                 raise ValueError(
                     "Withings refresh token expired or invalid. Please re-authenticate by running: "
                     "python manage.py withings_auth"
                 )
             raise ValueError(f"Withings API error: {result}")
 
-        token_data = result['body']
-        self.access_token = token_data['access_token']
+        token_data = result["body"]
+        self.access_token = token_data["access_token"]
         # Only update refresh token if a new one is provided (token rotation)
-        if 'refresh_token' in token_data:
-            self.refresh_token = token_data['refresh_token']
+        if "refresh_token" in token_data:
+            self.refresh_token = token_data["refresh_token"]
 
         # Save to database
-        expires_in = token_data.get('expires_in', 10800)  # Default 3 hours
-        self._save_credentials_to_db(
-            self.access_token,
-            self.refresh_token,
-            expires_in
-        )
+        expires_in = token_data.get("expires_in", 10800)  # Default 3 hours
+        self._save_credentials_to_db(self.access_token, self.refresh_token, expires_in)
         logger.info("Successfully refreshed Withings access token")
 
         return token_data
 
-    def _make_authenticated_request(
-        self,
-        endpoint: str,
-        params: Dict
-    ) -> Dict:
+    def _make_authenticated_request(self, endpoint: str, params: Dict) -> Dict:
         """
         Make an authenticated request to the Withings API.
 
@@ -261,7 +249,7 @@ class WithingsAPIClient:
             self.refresh_access_token()
 
         headers = {
-            'Authorization': f'Bearer {self.access_token}',
+            "Authorization": f"Bearer {self.access_token}",
         }
 
         url = f"{self.BASE_URL}{endpoint}"
@@ -271,22 +259,19 @@ class WithingsAPIClient:
         if response.status_code == 401:
             logger.info("Access token expired (401 error), refreshing...")
             self.refresh_access_token()
-            headers['Authorization'] = f'Bearer {self.access_token}'
+            headers["Authorization"] = f"Bearer {self.access_token}"
             response = requests.get(url, headers=headers, params=params, timeout=30)
 
         response.raise_for_status()
         result = response.json()
 
-        if result.get('status') != 0:
+        if result.get("status") != 0:
             raise ValueError(f"Withings API error: {result}")
 
         return result
 
     def get_weight_measurements(
-        self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        offset: int = 0
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None, offset: int = 0
     ) -> Dict:
         """
         Fetch weight measurements from Withings API.
@@ -305,20 +290,18 @@ class WithingsAPIClient:
             end_date = datetime.now(timezone.utc)
 
         params = {
-            'action': 'getmeas',
-            'meastype': 1,  # Weight
-            'category': 1,  # Real measurements (not objectives)
-            'startdate': int(start_date.timestamp()),
-            'enddate': int(end_date.timestamp()),
-            'offset': offset,
+            "action": "getmeas",
+            "meastype": 1,  # Weight
+            "category": 1,  # Real measurements (not objectives)
+            "startdate": int(start_date.timestamp()),
+            "enddate": int(end_date.timestamp()),
+            "offset": offset,
         }
 
-        return self._make_authenticated_request('/measure', params)
+        return self._make_authenticated_request("/measure", params)
 
     def get_all_weight_measurements(
-        self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
     ) -> List[Dict]:
         """
         Fetch all weight measurements, handling pagination automatically.
@@ -334,18 +317,14 @@ class WithingsAPIClient:
         offset = 0
 
         while True:
-            response = self.get_weight_measurements(
-                start_date=start_date,
-                end_date=end_date,
-                offset=offset
-            )
+            response = self.get_weight_measurements(start_date=start_date, end_date=end_date, offset=offset)
 
-            body = response.get('body', {})
-            measuregrps = body.get('measuregrps', [])
+            body = response.get("body", {})
+            measuregrps = body.get("measuregrps", [])
             all_measurements.extend(measuregrps)
 
             # Check if there are more results
-            more = body.get('more', 0)
+            more = body.get("more", 0)
             if more == 0:
                 break
 
