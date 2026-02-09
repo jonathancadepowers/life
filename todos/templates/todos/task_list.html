@@ -5625,6 +5625,7 @@
             flex: 1;
             padding: 0;
             position: relative;
+            min-height: 100%;
         }
 
         /* Dot grid background */
@@ -5641,6 +5642,8 @@
             display: flex;
             align-items: flex-start;
             position: relative;
+            cursor: text;
+            width: 100%;
         }
 
         .notes-content-line.header-line {
@@ -19213,9 +19216,15 @@
 
         // Load notes content for an event (placeholder - will integrate with backend later)
         function loadNotesContent(eventId) {
-            // For now, just create an empty first line
+            // Create multiple empty lines to fill the visible area
             notesContentCanvas.innerHTML = '';
-            createNotesLine('text', '');
+
+            // Create 30 empty lines so there's plenty of clickable area
+            for (let i = 0; i < 30; i++) {
+                createNotesLine('text', '');
+            }
+
+            // Focus the first line
             focusLine(0);
 
             // Expand notes panel if it's collapsed
@@ -19301,6 +19310,37 @@
                 setupLineEventHandlers(pre, blockType);
                 line.appendChild(pre);
             }
+
+            // Add click handler to make entire line clickable
+            line.addEventListener('click', function(e) {
+                // Don't interfere if clicking on the editable element directly
+                if (e.target.contentEditable === 'true' || e.target.closest('[contenteditable="true"]')) {
+                    return;
+                }
+
+                // Find the editable element in this line
+                const editableEl = this.querySelector('[contenteditable="true"]');
+                if (editableEl) {
+                    editableEl.focus();
+
+                    // Place cursor at the beginning
+                    const range = document.createRange();
+                    const sel = window.getSelection();
+
+                    // If there's text content, place at start
+                    if (editableEl.childNodes.length > 0) {
+                        range.setStart(editableEl.childNodes[0], 0);
+                        range.collapse(true);
+                    } else {
+                        // Empty element, just select it
+                        range.selectNodeContents(editableEl);
+                        range.collapse(true);
+                    }
+
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            });
 
             if (index !== null && index < notesContentCanvas.children.length) {
                 notesContentCanvas.insertBefore(line, notesContentCanvas.children[index]);
