@@ -5965,6 +5965,46 @@
             color: var(--notes-text-tertiary);
         }
 
+        /* Context Menu (for calendar events) */
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+            padding: 4px;
+            min-width: 190px;
+            z-index: 10000;
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.1s;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .context-menu-item:hover {
+            background: #f8f9fa;
+        }
+
+        .context-menu-item i {
+            width: 14px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 3px 8px;
+        }
+
         /* Filter info icon in summary */
         .filter-info-icon-style {
             margin-left: 0.3rem;
@@ -13545,7 +13585,81 @@
                     await hideCalendarEvent(event.id);
                 });
 
+                // Add right-click context menu for notes
+                eventEl.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showCalendarEventContextMenu(e, event, startDate, endDate);
+                });
+
                 hourContent.appendChild(eventEl);
+            });
+        }
+
+        // Show context menu for calendar events
+        function showCalendarEventContextMenu(e, event, startDate, endDate) {
+            // Remove any existing context menu
+            const existingMenu = document.getElementById('calendar-event-context-menu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+
+            // Create context menu
+            const menu = document.createElement('div');
+            menu.id = 'calendar-event-context-menu';
+            menu.className = 'context-menu';
+            menu.style.position = 'fixed';
+            menu.style.top = e.clientY + 'px';
+            menu.style.left = e.clientX + 'px';
+            menu.style.zIndex = '10000';
+
+            // Format time string for meeting context
+            const formatTime = (date) => {
+                let hours = date.getHours();
+                const minutes = date.getMinutes();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12 || 12;
+                const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+                return `${hours}:${minutesStr} ${ampm}`;
+            };
+            const timeString = `${formatTime(startDate)} – ${formatTime(endDate)}`;
+
+            menu.innerHTML = `
+                <div class="context-menu-item" onclick="openNotesForCalendarEvent('${event.id}', '${event.subject.replace(/'/g, "\\'")}', '${timeString}')">
+                    <i class="bi bi-journal-text"></i>
+                    Add Meeting Notes
+                </div>
+                <div class="context-menu-divider"></div>
+                <div class="context-menu-item" onclick="hideCalendarEvent('${event.id}'); closeCalendarEventContextMenu();">
+                    <i class="bi bi-eye-slash"></i>
+                    Hide Event
+                </div>
+            `;
+
+            document.body.appendChild(menu);
+
+            // Close menu on click outside
+            setTimeout(() => {
+                document.addEventListener('click', closeCalendarEventContextMenu);
+            }, 0);
+        }
+
+        // Close calendar event context menu
+        function closeCalendarEventContextMenu() {
+            const menu = document.getElementById('calendar-event-context-menu');
+            if (menu) {
+                menu.remove();
+            }
+            document.removeEventListener('click', closeCalendarEventContextMenu);
+        }
+
+        // Open notes for a calendar event
+        function openNotesForCalendarEvent(eventId, subject, timeString) {
+            closeCalendarEventContextMenu();
+            openNotesForEvent({
+                id: eventId,
+                title: subject,
+                timeString: timeString
             });
         }
 
@@ -19129,6 +19243,14 @@
             notesContentCanvas.innerHTML = '';
             createNotesLine('text', '');
             focusLine(0);
+
+            // Expand notes panel if it's collapsed
+            if (notesPanel && notesPanel.classList.contains('collapsed')) {
+                notesPanel.classList.remove('collapsed');
+            }
+            if (notesPanel && notesPanel.classList.contains('minimized')) {
+                notesPanel.classList.remove('minimized');
+            }
         }
 
         // Create a new notes line
