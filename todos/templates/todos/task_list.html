@@ -19250,14 +19250,18 @@
             notesHeaderMeetingTime.textContent = event.timeString || '';
             notesHeaderMeetingTime.style.display = event.timeString ? 'inline' : 'none';
 
+            // Clear any URL hash to prevent old line highlights
+            if (window.location.hash) {
+                history.replaceState(null, null, window.location.pathname + window.location.search);
+            }
+
             // Initialize gutter
             initializeNotesGutter(50);
 
             // Load or initialize notes content
             loadNotesContent(event.id);
 
-            // Check for line hash
-            checkLineHash();
+            // Don't check for line hash on initial open - let it be clean
         }
 
         // Close notes (return to empty state)
@@ -19266,6 +19270,19 @@
             notesEmptyState.style.display = 'flex';
             notesEditorArea.style.display = 'none';
             notesContentCanvas.innerHTML = '';
+
+            // Clear any line highlights
+            document.querySelectorAll('.notes-gutter-line.linked').forEach(el => {
+                el.classList.remove('linked');
+            });
+            document.querySelectorAll('.notes-content-line.linked-line').forEach(el => {
+                el.classList.remove('linked-line');
+            });
+
+            // Clear URL hash
+            if (window.location.hash) {
+                history.replaceState(null, null, window.location.pathname + window.location.search);
+            }
 
             // Reset header
             notesHeaderTitle.textContent = 'Notes';
