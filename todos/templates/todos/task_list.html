@@ -5509,34 +5509,11 @@
             min-height: 420px;
         }
 
-        /* Meeting context bar */
-        .notes-meeting-context {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 16px 8px calc(var(--notes-gutter-width) + 16px);
-            background: var(--notes-gutter-a);
-            border-bottom: 1px solid var(--notes-border-light);
-            font-size: 12px;
+        /* Notes panel header meeting time */
+        .notes-header-meeting-time {
+            font-size: 0.75rem;
             color: var(--notes-text-secondary);
-        }
-
-        .notes-meeting-context-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--notes-accent-green);
-            flex-shrink: 0;
-        }
-
-        .notes-meeting-context-title {
-            font-weight: 500;
-            color: var(--notes-text-primary);
-        }
-
-        .notes-meeting-context-time {
-            color: var(--notes-text-tertiary);
-            font-size: 11px;
+            font-weight: normal;
         }
 
         /* Empty state */
@@ -6590,9 +6567,10 @@
                 <div class="panel-header panel-header-clickable" id="notes-panel-header">
                     <div class="panel-header-left">
                         <i class="bi bi-journal-text panel-header-icon"></i>
-                        <span class="panel-header-title">Notes</span>
+                        <span class="panel-header-title" id="notes-header-title">Notes</span>
                     </div>
                     <div class="panel-header-right">
+                        <span class="notes-header-meeting-time" id="notes-header-meeting-time" style="display: none; font-size: 0.75rem; color: #8e8e93; margin-right: 0.5rem;"></span>
                         <div class="panel-collapsed-metrics" id="notes-collapsed-metrics">
                             <!-- Metrics placeholder for future use -->
                         </div>
@@ -6613,13 +6591,6 @@
 
                     <!-- Editor area (hidden initially, shown when notes are active) -->
                     <div class="notes-editor-area" id="notes-editor-area" style="display: none;">
-                        <!-- Meeting context bar -->
-                        <div class="notes-meeting-context" id="notes-meeting-context" style="display: none;">
-                            <span class="notes-meeting-context-dot"></span>
-                            <span class="notes-meeting-context-title" id="notes-meeting-title"></span>
-                            <span class="notes-meeting-context-time" id="notes-meeting-time"></span>
-                        </div>
-
                         <!-- Editor with gutter and content -->
                         <div style="display: flex; flex: 1; overflow-y: auto;">
                             <!-- Gutter (line numbers) -->
@@ -19141,9 +19112,8 @@
 
         const notesEmptyState = document.getElementById('notes-empty-state');
         const notesEditorArea = document.getElementById('notes-editor-area');
-        const notesMeetingContext = document.getElementById('notes-meeting-context');
-        const notesMeetingTitle = document.getElementById('notes-meeting-title');
-        const notesMeetingTime = document.getElementById('notes-meeting-time');
+        const notesHeaderTitle = document.getElementById('notes-header-title');
+        const notesHeaderMeetingTime = document.getElementById('notes-header-meeting-time');
         const notesGutter = document.getElementById('notes-gutter');
         const notesContentCanvas = document.getElementById('notes-content-canvas');
 
@@ -19212,11 +19182,11 @@
             // Hide empty state, show editor
             notesEmptyState.style.display = 'none';
             notesEditorArea.style.display = 'flex';
-            notesMeetingContext.style.display = 'flex';
 
-            // Set meeting context
-            notesMeetingTitle.textContent = event.title || 'Meeting';
-            notesMeetingTime.textContent = event.timeString || '';
+            // Set meeting info in header
+            notesHeaderTitle.textContent = event.title || 'Meeting';
+            notesHeaderMeetingTime.textContent = event.timeString || '';
+            notesHeaderMeetingTime.style.display = event.timeString ? 'inline' : 'none';
 
             // Initialize gutter
             initializeNotesGutter(50);
@@ -19233,8 +19203,12 @@
             notesCurrentEvent = null;
             notesEmptyState.style.display = 'flex';
             notesEditorArea.style.display = 'none';
-            notesMeetingContext.style.display = 'none';
             notesContentCanvas.innerHTML = '';
+
+            // Reset header
+            notesHeaderTitle.textContent = 'Notes';
+            notesHeaderMeetingTime.textContent = '';
+            notesHeaderMeetingTime.style.display = 'none';
         }
 
         // Load notes content for an event (placeholder - will integrate with backend later)
