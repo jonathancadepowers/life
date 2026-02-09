@@ -5676,7 +5676,12 @@
             letter-spacing: -0.01em;
             line-height: calc(var(--notes-dot-spacing) * 2);
             outline: none;
-            caret-color: var(--notes-accent-blue);
+            caret-color: #5b8fb9 !important;
+            min-width: 1px;
+        }
+
+        .notes-block-header:focus {
+            caret-color: #5b8fb9 !important;
         }
 
         .notes-block-header:empty:before {
@@ -5691,7 +5696,12 @@
             line-height: var(--notes-dot-spacing);
             padding-top: 0;
             outline: none;
-            caret-color: var(--notes-accent-blue);
+            caret-color: #5b8fb9 !important;
+            min-width: 1px;
+        }
+
+        .notes-block-text:focus {
+            caret-color: #5b8fb9 !important;
         }
 
         .notes-block-text:empty:before {
@@ -5705,7 +5715,12 @@
             line-height: var(--notes-dot-spacing);
             padding-left: 4px;
             outline: none;
-            caret-color: var(--notes-accent-blue);
+            caret-color: #5b8fb9 !important;
+            min-width: 1px;
+        }
+
+        .notes-block-list:focus {
+            caret-color: #5b8fb9 !important;
         }
 
         .notes-block-list::before {
@@ -5721,7 +5736,12 @@
             line-height: var(--notes-dot-spacing);
             padding-left: 4px;
             outline: none;
-            caret-color: var(--notes-accent-blue);
+            caret-color: #5b8fb9 !important;
+            min-width: 1px;
+        }
+
+        .notes-block-numbered:focus {
+            caret-color: #5b8fb9 !important;
         }
 
         .notes-block-numbered .num {
@@ -5766,7 +5786,12 @@
 
         .notes-checkbox-text {
             outline: none;
-            caret-color: var(--notes-accent-blue);
+            caret-color: #5b8fb9 !important;
+            min-width: 1px;
+        }
+
+        .notes-checkbox-text:focus {
+            caret-color: #5b8fb9 !important;
         }
 
         .notes-checkbox-text.done {
@@ -5801,7 +5826,12 @@
             border: 1px solid var(--notes-border-light);
             width: calc(100% - 32px);
             outline: none;
-            caret-color: var(--notes-accent-blue);
+            caret-color: #5b8fb9 !important;
+            min-width: 1px;
+        }
+
+        .notes-block-code:focus {
+            caret-color: #5b8fb9 !important;
         }
 
         /* Inline formatting */
@@ -19275,28 +19305,30 @@
                 const span = document.createElement('span');
                 span.className = 'notes-block-header';
                 span.contentEditable = 'true';
-                span.textContent = content;
+                // Add zero-width space if empty to ensure cursor appears
+                span.textContent = content || '\u200B';
                 setupLineEventHandlers(span, blockType);
                 line.appendChild(span);
             } else if (blockType === 'text') {
                 const span = document.createElement('span');
                 span.className = 'notes-block-text';
                 span.contentEditable = 'true';
-                span.textContent = content;
+                // Add zero-width space if empty to ensure cursor appears
+                span.textContent = content || '\u200B';
                 setupLineEventHandlers(span, blockType);
                 line.appendChild(span);
             } else if (blockType === 'list') {
                 const span = document.createElement('span');
                 span.className = 'notes-block-list';
                 span.contentEditable = 'true';
-                span.textContent = content;
+                span.textContent = content || '\u200B';
                 setupLineEventHandlers(span, blockType);
                 line.appendChild(span);
             } else if (blockType === 'numbered') {
                 const span = document.createElement('span');
                 span.className = 'notes-block-numbered';
                 span.contentEditable = 'true';
-                span.innerHTML = `<span class="num">1.</span>${content}`;
+                span.innerHTML = `<span class="num">1.</span>${content || '\u200B'}`;
                 setupLineEventHandlers(span, blockType);
                 line.appendChild(span);
             } else if (blockType === 'checkbox') {
@@ -19320,7 +19352,7 @@
                 const textSpan = document.createElement('span');
                 textSpan.className = 'notes-checkbox-text';
                 textSpan.contentEditable = 'true';
-                textSpan.textContent = content;
+                textSpan.textContent = content || '\u200B';
                 setupLineEventHandlers(textSpan, blockType);
 
                 container.appendChild(checkbox);
@@ -19335,42 +19367,35 @@
                 const pre = document.createElement('pre');
                 pre.className = 'notes-block-code';
                 pre.contentEditable = 'true';
-                pre.textContent = content;
+                pre.textContent = content || '\u200B';
                 setupLineEventHandlers(pre, blockType);
                 line.appendChild(pre);
             }
 
             // Add click handler to make entire line clickable
             line.addEventListener('click', function(e) {
-                // Don't interfere if clicking on the editable element directly
-                if (e.target.contentEditable === 'true' || e.target.closest('[contenteditable="true"]')) {
-                    return;
-                }
-
                 // Find the editable element in this line
                 const editableEl = this.querySelector('[contenteditable="true"]');
                 if (editableEl) {
-                    // Use setTimeout to ensure focus happens after click event completes
-                    setTimeout(() => {
-                        editableEl.focus();
+                    // Focus the element
+                    editableEl.focus();
 
-                        // Place cursor at the beginning
+                    // Place cursor at the beginning
+                    setTimeout(() => {
                         const range = document.createRange();
                         const sel = window.getSelection();
 
-                        // For empty contenteditable, we need to set the range inside the element
+                        // For contenteditable with text (including zero-width space)
                         const textNode = editableEl.firstChild;
                         if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-                            // Has text, place cursor at start
+                            // Has text node, place cursor at start
                             range.setStart(textNode, 0);
-                        } else if (editableEl.childNodes.length > 0) {
-                            // Has other nodes, place before first node
-                            range.setStart(editableEl, 0);
+                            range.collapse(true);
                         } else {
                             // Empty element, place inside
-                            range.setStart(editableEl, 0);
+                            range.selectNodeContents(editableEl);
+                            range.collapse(true);
                         }
-                        range.collapse(true);
 
                         sel.removeAllRanges();
                         sel.addRange(range);
