@@ -19432,7 +19432,9 @@
         function setupLineEventHandlers(element, blockType) {
             // Handle backslash for slash menu
             element.addEventListener('keydown', function(e) {
-                if (e.key === '\\' && this.textContent === '') {
+                // Check if empty or only has zero-width space
+                const isEmpty = this.textContent === '' || this.textContent === '\u200B';
+                if (e.key === '\\' && isEmpty) {
                     e.preventDefault();
                     showSlashMenu(this);
                 } else if (e.key === 'Enter') {
@@ -19444,7 +19446,7 @@
                     if (editableEl) {
                         editableEl.focus();
                     }
-                } else if (e.key === 'Backspace' && this.textContent === '') {
+                } else if (e.key === 'Backspace' && isEmpty) {
                     e.preventDefault();
                     const currentLine = this.closest('.notes-content-line');
                     const index = Array.from(notesContentCanvas.children).indexOf(currentLine);
