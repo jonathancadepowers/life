@@ -6301,6 +6301,13 @@
             background: var(--notes-accent-blue-bg);
         }
 
+        /* Hide EditorJS default toolbars - we use custom ones */
+        #notes-content-canvas .ce-inline-toolbar,
+        #notes-content-canvas .ce-conversion-toolbar,
+        #notes-content-canvas .ce-inline-tool {
+            display: none !important;
+        }
+
         /* Context Menu (for calendar events) */
         .context-menu {
             position: absolute;
@@ -19624,24 +19631,32 @@
                 tools: {
                     list: {
                         class: List,
-                        inlineToolbar: true,
+                        inlineToolbar: false,  // Disable EditorJS inline toolbar
                         config: {
                             defaultStyle: 'unordered'
                         }
                     },
                     checklist: {
                         class: Checklist,
-                        inlineToolbar: true
+                        inlineToolbar: false  // Disable EditorJS inline toolbar
                     },
                     delimiter: Delimiter
                 },
-                placeholder: 'Start typing or press Tab for block options...',
+                placeholder: 'Start typing or press / for block options...',
                 autofocus: true,
                 minHeight: 30
             });
 
             // Add selection toolbar for text formatting
             notesContentCanvas.addEventListener('mouseup', handleNotesSelection);
+
+            // Add slash menu support for EditorJS
+            notesContentCanvas.addEventListener('keydown', function(e) {
+                if (e.key === '/' && e.target.textContent.trim() === '') {
+                    e.preventDefault();
+                    showSlashMenu(e.target);
+                }
+            });
 
             // Expand notes panel if it's collapsed
             if (notesPanel && notesPanel.classList.contains('collapsed')) {
@@ -20143,36 +20158,37 @@
 
         // Insert a block type
         function insertBlock(element, blockType) {
-            const currentLine = element.closest('.notes-content-line');
-            const index = Array.from(notesContentCanvas.children).indexOf(currentLine);
+            if (!notesEditor) return;
 
-            // Remove current line and create new one with selected type
-            currentLine.remove();
-            const newLine = createNotesLine(blockType, '', index);
+            // Map our block types to EditorJS block types
+            const blockTypeMap = {
+                'text': 'paragraph',
+                'list': 'list',
+                'numbered': 'list',
+                'checkbox': 'checklist',
+                'divider': 'delimiter',
+                'header': 'paragraph',  // No header plugin yet
+                'code': 'paragraph'  // No code plugin yet
+            };
 
-            // Focus the new line
-            const editableEl = newLine.querySelector('[contenteditable="true"]');
-            if (editableEl) {
-                editableEl.focus();
+            const editorBlockType = blockTypeMap[blockType] || 'paragraph';
+            const currentBlockIndex = notesEditor.blocks.getCurrentBlockIndex();
 
-                // For numbered lists, place cursor after the number
-                if (blockType === 'numbered') {
-                    setTimeout(() => {
-                        const range = document.createRange();
-                        const sel = window.getSelection();
+            // Delete current block
+            notesEditor.blocks.delete(currentBlockIndex);
 
-                        // Find the text node after the number span
-                        const numSpan = editableEl.querySelector('.num');
-                        if (numSpan && numSpan.nextSibling) {
-                            const textNode = numSpan.nextSibling;
-                            range.setStart(textNode, 0);
-                            range.collapse(true);
-                            sel.removeAllRanges();
-                            sel.addRange(range);
-                        }
-                    }, 0);
-                }
+            // Insert new block of the requested type
+            if (editorBlockType === 'list') {
+                const style = blockType === 'numbered' ? 'ordered' : 'unordered';
+                notesEditor.blocks.insert(editorBlockType, { style: style, items: [''] }, {}, currentBlockIndex);
+            } else {
+                notesEditor.blocks.insert(editorBlockType, {}, {}, currentBlockIndex);
             }
+
+            // Focus the new block
+            setTimeout(() => {
+                notesEditor.caret.setToBlock(currentBlockIndex);
+            }, 50);
         }
 
         // Handle text selection for formatting toolbar
