@@ -33,12 +33,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- EditorJS and plugins -->
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@latest"></script>
+    <!-- EditorJS and plugins - using specific bundle versions that export to window -->
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.28.0/dist/editorjs.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@2.7.0/dist/header.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@1.9.0/dist/list.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@1.6.0/dist/checklist.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@1.4.0/dist/delimiter.umd.min.js"></script>
     <style>
         :root {
             /* Notes Panel CSS Variables */
@@ -6103,6 +6103,7 @@
         /* EditorJS wrapper */
         #notes-content-canvas .codex-editor {
             padding: 0;
+            font-family: var(--notes-font-family) !important;
         }
 
         #notes-content-canvas .codex-editor__redactor {
@@ -6120,33 +6121,47 @@
             margin: 0 !important;
         }
 
+        #notes-content-canvas .ce-block [contenteditable] {
+            font-family: var(--notes-font-family) !important;
+        }
+
         /* EditorJS paragraph */
         #notes-content-canvas .ce-paragraph {
-            font-size: 14px;
-            font-weight: 400;
-            color: var(--notes-text-primary);
-            line-height: 1.4;
+            font-family: var(--notes-font-family) !important;
+            font-size: 14px !important;
+            font-weight: 400 !important;
+            color: var(--notes-text-primary) !important;
+            line-height: 1.4 !important;
             padding: 0 !important;
             margin: 0 !important;
-            min-height: var(--notes-dot-spacing);
+            min-height: var(--notes-dot-spacing) !important;
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
         }
 
         #notes-content-canvas .ce-paragraph[data-placeholder]:empty::before {
-            color: var(--notes-text-tertiary);
+            color: var(--notes-text-tertiary) !important;
+            font-family: var(--notes-font-family) !important;
         }
 
         /* EditorJS headers */
         #notes-content-canvas .ce-header {
-            font-weight: 600;
-            color: var(--notes-text-primary);
-            text-transform: uppercase;
-            padding: 0 !important;
+            font-family: var(--notes-font-family) !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: var(--notes-text-primary) !important;
+            text-transform: uppercase !important;
+            padding: 0 0 0 4px !important;
             margin: 0 !important;
-            line-height: 1.4;
+            line-height: 1.4 !important;
+            letter-spacing: 0 !important;
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
         }
 
         #notes-content-canvas .ce-header[contenteditable="true"][data-placeholder]:empty::before {
-            color: var(--notes-text-tertiary);
+            color: var(--notes-text-tertiary) !important;
+            font-family: var(--notes-font-family) !important;
         }
 
         /* EditorJS lists */
@@ -6156,15 +6171,25 @@
         }
 
         #notes-content-canvas .cdx-list__item {
-            font-size: 14px;
-            color: var(--notes-text-primary);
-            line-height: 1.4;
-            padding: 0 !important;
-            min-height: var(--notes-dot-spacing);
+            font-family: var(--notes-font-family) !important;
+            font-size: 14px !important;
+            color: var(--notes-text-primary) !important;
+            line-height: 1 !important;
+            padding: 0 0 0 4px !important;
+            min-height: var(--notes-dot-spacing) !important;
         }
 
         #notes-content-canvas .cdx-list__item::before {
-            color: var(--notes-text-tertiary);
+            color: var(--notes-text-tertiary) !important;
+            margin-right: 8px !important;
+            font-weight: 700 !important;
+        }
+
+        #notes-content-canvas .cdx-list--ordered .cdx-list__item::before {
+            color: var(--notes-text-tertiary) !important;
+            margin-right: 8px !important;
+            font-size: 12px !important;
+            font-weight: 500 !important;
         }
 
         /* EditorJS checklist */
@@ -6174,44 +6199,78 @@
         }
 
         #notes-content-canvas .cdx-checklist__item {
-            font-size: 14px;
-            color: var(--notes-text-primary);
-            line-height: 1.4;
+            font-family: var(--notes-font-family) !important;
+            font-size: 14px !important;
+            color: var(--notes-text-primary) !important;
+            line-height: 1 !important;
             padding: 0 !important;
-            min-height: var(--notes-dot-spacing);
-            gap: 8px;
+            min-height: var(--notes-dot-spacing) !important;
+            gap: 8px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        #notes-content-canvas .cdx-checklist__item-text {
+            font-family: var(--notes-font-family) !important;
         }
 
         #notes-content-canvas .cdx-checklist__item-checkbox {
-            width: 14px;
-            height: 14px;
-            border: 1.5px solid #d1d1d6;
-            border-radius: 3px;
+            width: 14px !important;
+            height: 14px !important;
+            border: 1.5px solid #d1d1d6 !important;
+            border-radius: 3px !important;
+            flex-shrink: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            transition: all 0.15s !important;
         }
 
         #notes-content-canvas .cdx-checklist__item--checked .cdx-checklist__item-checkbox {
-            background: var(--notes-accent-green);
-            border-color: var(--notes-accent-green);
+            background: var(--notes-accent-green) !important;
+            border-color: var(--notes-accent-green) !important;
         }
 
-        #notes-content-canvas .cdx-checklist__item--checked .cdx-checklist__item-checkbox::after {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+        #notes-content-canvas .cdx-checklist__item--checked .cdx-checklist__item-text {
+            text-decoration: line-through !important;
+            color: var(--notes-text-tertiary) !important;
+        }
+
+        #notes-content-canvas .cdx-checklist__item-checkbox svg {
+            display: none;
+        }
+
+        #notes-content-canvas .cdx-checklist__item--checked .cdx-checklist__item-checkbox svg {
+            display: block;
+            width: 10px;
+            height: 10px;
+        }
+
+        #notes-content-canvas .cdx-checklist__item--checked .cdx-checklist__item-checkbox svg path {
+            stroke: white;
+            stroke-width: 2;
         }
 
         /* EditorJS delimiter */
         #notes-content-canvas .ce-delimiter {
-            line-height: var(--notes-dot-spacing);
+            min-height: var(--notes-dot-spacing) !important;
             padding: 0 !important;
             margin: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            position: relative !important;
         }
 
         #notes-content-canvas .ce-delimiter::before {
-            content: '';
-            display: block;
-            height: 3px;
-            width: 100%;
-            background: linear-gradient(90deg, var(--notes-accent-green), var(--notes-accent-blue));
-            border-radius: 2px;
+            content: '' !important;
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            height: 2px !important;
+            border-radius: 1px !important;
+            background: var(--notes-accent-blue) !important;
+            opacity: 0.3 !important;
         }
 
         /* EditorJS toolbar (plus button) */
@@ -19544,17 +19603,25 @@
             notesContentCanvas.innerHTML = '';
 
             // Initialize EditorJS
+            // Debug: Check what's available in window
+            console.log('Available EditorJS tools:', {
+                EditorJS: typeof EditorJS,
+                Header: typeof Header,
+                List: typeof List,
+                Checklist: typeof Checklist,
+                Delimiter: typeof Delimiter
+            });
+
+            // Wait for plugins to be loaded (skip Header for now since it's not loading properly)
+            if (typeof EditorJS === 'undefined' || typeof List === 'undefined') {
+                console.error('EditorJS plugins not loaded yet');
+                setTimeout(() => loadNotesContent(eventId), 100);
+                return;
+            }
+
             notesEditor = new EditorJS({
                 holder: 'notes-content-canvas',
                 tools: {
-                    header: {
-                        class: Header,
-                        config: {
-                            placeholder: 'Enter a header',
-                            levels: [1, 2, 3, 4],
-                            defaultLevel: 2
-                        }
-                    },
                     list: {
                         class: List,
                         inlineToolbar: true,
@@ -19572,6 +19639,9 @@
                 autofocus: true,
                 minHeight: 30
             });
+
+            // Add selection toolbar for text formatting
+            notesContentCanvas.addEventListener('mouseup', handleNotesSelection);
 
             // Expand notes panel if it's collapsed
             if (notesPanel && notesPanel.classList.contains('collapsed')) {
