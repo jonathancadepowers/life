@@ -50,7 +50,7 @@
             --notes-gutter-b: #f4f5f7;
             --notes-gutter-text: #c7c7cc;
             --notes-gutter-text-hover: #8e8e93;
-            --notes-gutter-width: 38px;
+            --notes-gutter-width: 41px;
 
             /* Dot grid */
             --notes-dot-color: #e0e0e4;
@@ -5509,10 +5509,22 @@
             min-height: 420px;
         }
 
+        /* Notes panel header customization */
+        #notes-panel-header {
+            padding: 12px 1rem;
+        }
+
+        #notes-panel-header .panel-header-title {
+            font-weight: 500;
+            font-size: 0.875rem;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
         /* Notes panel header meeting time */
         .notes-header-meeting-time {
-            font-size: 0.75rem;
-            color: var(--notes-text-secondary);
+            font-size: 0.7rem;
+            color: #8e8e93;
             font-weight: normal;
         }
 
@@ -5575,21 +5587,21 @@
         }
 
         .notes-gutter-line {
-            height: calc(var(--notes-dot-spacing) * 2);
+            height: var(--notes-dot-spacing);
             display: flex;
             align-items: center;
             justify-content: flex-end;
             padding-right: 10px;
             font-size: 10px;
             font-variant-numeric: tabular-nums;
-            color: var(--notes-gutter-text);
+            color: #c7c7cc;
             cursor: pointer;
             transition: color 0.12s;
             position: relative;
         }
 
         .notes-gutter-line:hover {
-            color: var(--notes-gutter-text-hover);
+            color: #8e8e93;
         }
 
         .notes-gutter-line:hover::after {
@@ -5602,11 +5614,11 @@
         }
 
         .notes-gutter-line:nth-child(odd) {
-            background: var(--notes-gutter-a);
+            background: #fafbfc;
         }
 
         .notes-gutter-line:nth-child(even) {
-            background: var(--notes-gutter-b);
+            background: #f4f5f7;
         }
 
         .notes-gutter-line.active {
@@ -5626,28 +5638,41 @@
             padding: 0;
             position: relative;
             min-height: 100%;
+            user-select: text;
+            -webkit-user-select: text;
         }
 
-        /* Dot grid background */
+        /* Dot grid background - dots at cell centers */
         .notes-content-area.dotted {
             background-image: radial-gradient(circle, var(--notes-dot-color) var(--notes-dot-size), transparent var(--notes-dot-size));
             background-size: var(--notes-dot-spacing) var(--notes-dot-spacing);
             background-position: 11px 11px;
+            background-repeat: repeat;
         }
 
         /* Content lines */
         .notes-content-line {
-            min-height: calc(var(--notes-dot-spacing) * 2);
-            padding: 0 16px;
+            min-height: var(--notes-dot-spacing);
+            padding: 0 16px 0 16px;
             display: flex;
             align-items: flex-start;
             position: relative;
             cursor: text;
             width: 100%;
+            user-select: text;
+            -webkit-user-select: text;
         }
 
         .notes-content-line.header-line {
             align-items: center;
+        }
+
+        .notes-content-line.header-collapsed-content {
+            display: none;
+        }
+
+        .notes-gutter-line.header-collapsed-content {
+            display: none;
         }
 
         .notes-content-line.linked-line {
@@ -5669,14 +5694,34 @@
         }
 
         .notes-block-header {
-            font-size: 17px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--notes-text-primary);
-            letter-spacing: -0.01em;
-            line-height: calc(var(--notes-dot-spacing) * 2);
+            letter-spacing: 0;
+            line-height: 1.4;
             outline: none;
             caret-color: #5b8fb9 !important;
             min-width: 1px;
+            padding-left: 4px;
+            text-transform: uppercase;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .notes-block-header::before {
+            content: '▼';
+            color: var(--notes-accent-green);
+            margin-right: 8px;
+            font-size: 10px;
+            vertical-align: middle;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+
+        .notes-block-header.collapsed::before {
+            transform: rotate(-90deg);
         }
 
         .notes-block-header:focus {
@@ -5692,11 +5737,12 @@
             font-size: 14px;
             font-weight: 400;
             color: var(--notes-text-primary);
-            line-height: var(--notes-dot-spacing);
-            padding-top: 0;
+            line-height: 1.4;
             outline: none;
             caret-color: #5b8fb9 !important;
             min-width: 1px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         .notes-block-text:focus {
@@ -5711,7 +5757,7 @@
         .notes-block-list {
             font-size: 14px;
             color: var(--notes-text-primary);
-            line-height: var(--notes-dot-spacing);
+            line-height: 1;
             padding-left: 4px;
             outline: none;
             caret-color: #5b8fb9 !important;
@@ -5732,7 +5778,7 @@
         .notes-block-numbered {
             font-size: 14px;
             color: var(--notes-text-primary);
-            line-height: var(--notes-dot-spacing);
+            line-height: 1;
             padding-left: 4px;
             outline: none;
             caret-color: #5b8fb9 !important;
@@ -5754,7 +5800,7 @@
         .notes-block-checkbox {
             font-size: 14px;
             color: var(--notes-text-primary);
-            line-height: var(--notes-dot-spacing);
+            line-height: 1;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -5763,7 +5809,7 @@
         .notes-checkbox-box {
             width: 14px;
             height: 14px;
-            border: 1.5px solid var(--notes-border);
+            border: 1.5px solid #d1d1d6;
             border-radius: 3px;
             flex-shrink: 0;
             display: flex;
@@ -5799,18 +5845,53 @@
         }
 
         .notes-block-divider {
-            width: 100%;
-            height: calc(var(--notes-dot-spacing) * 2);
+            width: calc(100% + 16px);
+            margin-left: -16px;
+            height: var(--notes-dot-spacing);
             display: flex;
             align-items: center;
-            padding: 0 16px;
+            padding: 0;
+            cursor: pointer;
+            position: relative;
         }
 
-        .notes-block-divider hr {
-            width: 100%;
-            border: none;
-            height: 1px;
-            background: var(--notes-border);
+        .notes-block-divider::after {
+            content: '';
+            position: absolute;
+            left: 20px;
+            right: 2px;
+            height: 2px;
+            border-radius: 1px;
+            transition: opacity 0.15s;
+        }
+
+        .notes-block-divider:hover::after {
+            opacity: 0.7;
+        }
+
+        .notes-block-divider.color-green::after {
+            background: var(--notes-accent-green);
+            opacity: 0.3;
+        }
+
+        .notes-block-divider.color-coral::after {
+            background: var(--notes-accent-coral);
+            opacity: 0.3;
+        }
+
+        .notes-block-divider.color-blue::after {
+            background: var(--notes-accent-blue);
+            opacity: 0.3;
+        }
+
+        .notes-block-divider.color-amber::after {
+            background: var(--notes-accent-amber);
+            opacity: 0.3;
+        }
+
+        .notes-block-divider.color-purple::after {
+            background: var(--notes-accent-purple);
+            opacity: 0.3;
         }
 
         .notes-block-code {
@@ -5910,6 +5991,14 @@
 
         .notes-slash-menu-item-label {
             font-weight: 400;
+            flex: 1;
+        }
+
+        .notes-slash-menu-item-hotkey {
+            font-size: 11px;
+            color: var(--notes-text-tertiary);
+            font-weight: 500;
+            margin-left: auto;
         }
 
         /* Selection toolbar */
@@ -19310,6 +19399,58 @@
             }
         }
 
+        // Toggle header section collapse/expand
+        function toggleHeaderSection(headerLine) {
+            const headerSpan = headerLine.querySelector('.notes-block-header');
+            if (!headerSpan) return;
+
+            // Get the index of this header line
+            const allContentLines = Array.from(notesContentCanvas.children);
+            const headerIndex = allContentLines.indexOf(headerLine);
+            if (headerIndex === -1) return;
+
+            // Find all lines in this header section (until blank line)
+            const sectionLines = [];
+            for (let i = headerIndex + 1; i < allContentLines.length; i++) {
+                const line = allContentLines[i];
+                const editableEl = line.querySelector('[contenteditable="true"]');
+                if (!editableEl) break;
+
+                const textContent = editableEl.textContent || '';
+                const isEmpty = textContent.trim() === '' || textContent === '\u200B';
+
+                // Stop at blank line (don't include it in section)
+                if (isEmpty) {
+                    break;
+                }
+
+                sectionLines.push(i);
+            }
+
+            // Toggle collapsed state
+            const isCollapsed = headerSpan.classList.contains('collapsed');
+
+            if (isCollapsed) {
+                // Expand: remove collapsed class and show content
+                headerSpan.classList.remove('collapsed');
+                sectionLines.forEach(lineIndex => {
+                    const contentLine = allContentLines[lineIndex];
+                    const gutterLine = notesGutter.children[lineIndex];
+                    if (contentLine) contentLine.classList.remove('header-collapsed-content');
+                    if (gutterLine) gutterLine.classList.remove('header-collapsed-content');
+                });
+            } else {
+                // Collapse: add collapsed class and hide content
+                headerSpan.classList.add('collapsed');
+                sectionLines.forEach(lineIndex => {
+                    const contentLine = allContentLines[lineIndex];
+                    const gutterLine = notesGutter.children[lineIndex];
+                    if (contentLine) contentLine.classList.add('header-collapsed-content');
+                    if (gutterLine) gutterLine.classList.add('header-collapsed-content');
+                });
+            }
+        }
+
         // Create a new notes line
         function createNotesLine(blockType = 'text', content = '', index = null) {
             const line = document.createElement('div');
@@ -19323,6 +19464,19 @@
                 // Add zero-width space if empty to ensure cursor appears
                 span.textContent = content || '\u200B';
                 setupLineEventHandlers(span, blockType);
+
+                // Add click handler for chevron to toggle collapse/expand
+                span.addEventListener('click', function(e) {
+                    // Only toggle if clicking on the chevron area (first ~20px)
+                    const rect = this.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    if (clickX < 20) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleHeaderSection(line);
+                    }
+                });
+
                 line.appendChild(span);
             } else if (blockType === 'text') {
                 const span = document.createElement('span');
@@ -19376,7 +19530,54 @@
             } else if (blockType === 'divider') {
                 const divider = document.createElement('div');
                 divider.className = 'notes-block-divider';
-                divider.innerHTML = '<hr/>';
+                divider.tabIndex = 0; // Make it focusable
+
+                // Pick a random color from the palette
+                const colors = ['green', 'coral', 'blue', 'amber', 'purple'];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                divider.classList.add(`color-${randomColor}`);
+                divider.dataset.color = randomColor;
+
+                // Add click handler to show color picker
+                divider.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    this.focus();
+                    showDividerColorPicker(this, e);
+                });
+
+                // Add keydown handler for deletion and navigation
+                divider.addEventListener('keydown', function(e) {
+                    const currentLine = this.closest('.notes-content-line');
+                    const index = Array.from(notesContentCanvas.children).indexOf(currentLine);
+
+                    if (e.key === 'Backspace' || e.key === 'Delete') {
+                        e.preventDefault();
+                        currentLine.remove();
+                        // Focus previous line if exists
+                        if (index > 0) {
+                            const prevLine = notesContentCanvas.children[index - 1];
+                            const editableEl = prevLine.querySelector('[contenteditable="true"]');
+                            if (editableEl) {
+                                editableEl.focus();
+                            }
+                        }
+                    } else if (e.key === 'ArrowUp' && index > 0) {
+                        e.preventDefault();
+                        const prevLine = notesContentCanvas.children[index - 1];
+                        const editableEl = prevLine.querySelector('[contenteditable="true"]');
+                        if (editableEl) {
+                            editableEl.focus();
+                        }
+                    } else if (e.key === 'ArrowDown' && index < notesContentCanvas.children.length - 1) {
+                        e.preventDefault();
+                        const nextLine = notesContentCanvas.children[index + 1];
+                        const editableEl = nextLine.querySelector('[contenteditable="true"]');
+                        if (editableEl) {
+                            editableEl.focus();
+                        }
+                    }
+                });
+
                 line.appendChild(divider);
             } else if (blockType === 'code') {
                 const pre = document.createElement('pre');
@@ -19387,34 +19588,12 @@
                 line.appendChild(pre);
             }
 
-            // Add click handler to make entire line clickable
+            // Make the entire line area clickable to focus the editable element
             line.addEventListener('click', function(e) {
-                // Find the editable element in this line
                 const editableEl = this.querySelector('[contenteditable="true"]');
-                if (editableEl) {
-                    // Focus the element
+                // Only focus if clicking outside the editable element (e.g., on padding/margin)
+                if (editableEl && e.target === this) {
                     editableEl.focus();
-
-                    // Place cursor at the beginning
-                    setTimeout(() => {
-                        const range = document.createRange();
-                        const sel = window.getSelection();
-
-                        // For contenteditable with text (including zero-width space)
-                        const textNode = editableEl.firstChild;
-                        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-                            // Has text node, place cursor at start
-                            range.setStart(textNode, 0);
-                            range.collapse(true);
-                        } else {
-                            // Empty element, place inside
-                            range.selectNodeContents(editableEl);
-                            range.collapse(true);
-                        }
-
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                    }, 0);
                 }
             });
 
@@ -19429,21 +19608,99 @@
 
         // Set up event handlers for editable content
         function setupLineEventHandlers(element, blockType) {
-            // Handle backslash for slash menu
+            // Handle forward slash for slash menu
             element.addEventListener('keydown', function(e) {
                 // Check if empty or only has zero-width space
-                const isEmpty = this.textContent === '' || this.textContent === '\u200B';
-                if (e.key === '\\' && isEmpty) {
+                // For numbered lists, ignore the number part
+                let isEmpty;
+                if (blockType === 'numbered') {
+                    const numSpan = this.querySelector('.num');
+                    if (numSpan && numSpan.nextSibling) {
+                        const textContent = numSpan.nextSibling.textContent;
+                        isEmpty = textContent === '' || textContent === '\u200B';
+                    } else {
+                        isEmpty = this.textContent === '' || this.textContent === '\u200B';
+                    }
+                } else {
+                    isEmpty = this.textContent === '' || this.textContent === '\u200B';
+                }
+
+                if (e.key === '/' && isEmpty) {
                     e.preventDefault();
                     showSlashMenu(this);
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
                     const currentLine = this.closest('.notes-content-line');
                     const index = Array.from(notesContentCanvas.children).indexOf(currentLine);
-                    const newLine = createNotesLine('text', '', index + 1);
-                    const editableEl = newLine.querySelector('[contenteditable="true"]');
-                    if (editableEl) {
-                        editableEl.focus();
+
+                    // List and checkbox continuation behavior
+                    if (blockType === 'list' || blockType === 'numbered' || blockType === 'checkbox') {
+                        if (isEmpty) {
+                            // Empty list/checkbox item - convert to blank line and exit
+                            // Remove the current empty item
+                            currentLine.remove();
+                            // Create blank line at same position
+                            createNotesLine('text', '', index);  // Blank line
+                            // Create new text line after blank line
+                            const newLine = createNotesLine('text', '', index + 1);
+                            const editableEl = newLine.querySelector('[contenteditable="true"]');
+                            if (editableEl) {
+                                editableEl.focus();
+                            }
+                        } else {
+                            // Non-empty list/checkbox item - continue with same type
+                            const newLine = createNotesLine(blockType, '', index + 1);
+
+                            // For numbered lists, update the number
+                            if (blockType === 'numbered') {
+                                // Count previous numbered items
+                                let numberCount = 1;
+                                for (let i = index; i >= 0; i--) {
+                                    const prevLine = notesContentCanvas.children[i];
+                                    if (prevLine && prevLine.querySelector('.notes-block-numbered')) {
+                                        numberCount++;
+                                    } else {
+                                        break;
+                                    }
+                                }
+
+                                // Update the number in the new line
+                                const numSpan = newLine.querySelector('.num');
+                                if (numSpan) {
+                                    numSpan.textContent = numberCount + '.';
+                                }
+                            }
+
+                            const editableEl = newLine.querySelector('[contenteditable="true"]');
+                            if (editableEl) {
+                                editableEl.focus();
+
+                                // For numbered lists, place cursor after the number
+                                if (blockType === 'numbered') {
+                                    setTimeout(() => {
+                                        const range = document.createRange();
+                                        const sel = window.getSelection();
+
+                                        // Find the text node after the number span
+                                        const numSpan = editableEl.querySelector('.num');
+                                        if (numSpan && numSpan.nextSibling) {
+                                            const textNode = numSpan.nextSibling;
+                                            range.setStart(textNode, 0);
+                                            range.collapse(true);
+                                            sel.removeAllRanges();
+                                            sel.addRange(range);
+                                        }
+                                    }, 0);
+                                }
+                            }
+                        }
+                    } else {
+                        // Default behavior for non-list items
+                        const newLine = createNotesLine('text', '', index + 1);
+                        const editableEl = newLine.querySelector('[contenteditable="true"]');
+                        if (editableEl) {
+                            editableEl.focus();
+                        }
                     }
                 } else if (e.key === 'Backspace' && isEmpty) {
                     e.preventDefault();
@@ -19460,6 +19717,59 @@
                             const sel = window.getSelection();
                             range.selectNodeContents(editableEl);
                             range.collapse(false);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    // Move to previous line
+                    const currentLine = this.closest('.notes-content-line');
+                    const index = Array.from(notesContentCanvas.children).indexOf(currentLine);
+                    if (index > 0) {
+                        e.preventDefault();
+                        const prevLine = notesContentCanvas.children[index - 1];
+                        const editableEl = prevLine.querySelector('[contenteditable="true"]');
+                        if (editableEl) {
+                            editableEl.focus();
+                            // Move cursor to end
+                            const range = document.createRange();
+                            const sel = window.getSelection();
+                            range.selectNodeContents(editableEl);
+                            range.collapse(false);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }
+                } else if (e.key === 'ArrowDown') {
+                    // Move to next line
+                    const currentLine = this.closest('.notes-content-line');
+                    const index = Array.from(notesContentCanvas.children).indexOf(currentLine);
+                    if (index < notesContentCanvas.children.length - 1) {
+                        e.preventDefault();
+                        const nextLine = notesContentCanvas.children[index + 1];
+                        const editableEl = nextLine.querySelector('[contenteditable="true"]');
+                        if (editableEl) {
+                            editableEl.focus();
+                            // Move cursor to beginning
+                            const range = document.createRange();
+                            const sel = window.getSelection();
+
+                            // For numbered lists, place cursor after the number
+                            if (editableEl.classList.contains('notes-block-numbered')) {
+                                const numSpan = editableEl.querySelector('.num');
+                                if (numSpan && numSpan.nextSibling) {
+                                    const textNode = numSpan.nextSibling;
+                                    range.setStart(textNode, 0);
+                                    range.collapse(true);
+                                } else {
+                                    range.selectNodeContents(editableEl);
+                                    range.collapse(true);
+                                }
+                            } else {
+                                range.selectNodeContents(editableEl);
+                                range.collapse(true);
+                            }
+
                             sel.removeAllRanges();
                             sel.addRange(range);
                         }
@@ -19500,9 +19810,11 @@
                 item.className = 'notes-slash-menu-item';
                 if (index === 0) item.classList.add('active');
                 item.dataset.blockType = block.type;
+                item.dataset.hotkey = (index + 1).toString();
                 item.innerHTML = `
                     <span class="notes-slash-menu-item-icon"><i class="${block.icon}"></i></span>
                     <span class="notes-slash-menu-item-label">${block.label}</span>
+                    <span class="notes-slash-menu-item-hotkey">${index + 1}</span>
                 `;
 
                 item.addEventListener('click', function() {
@@ -19539,6 +19851,18 @@
 
                 const items = menu.querySelectorAll('.notes-slash-menu-item');
                 let activeIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
+
+                // Number key shortcuts (1-7)
+                if (e.key >= '1' && e.key <= '7') {
+                    e.preventDefault();
+                    const index = parseInt(e.key) - 1;
+                    if (index < items.length) {
+                        const blockType = items[index].dataset.blockType;
+                        insertBlock(element, blockType);
+                        hideSlashMenu();
+                    }
+                    return;
+                }
 
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -19577,6 +19901,24 @@
             const editableEl = newLine.querySelector('[contenteditable="true"]');
             if (editableEl) {
                 editableEl.focus();
+
+                // For numbered lists, place cursor after the number
+                if (blockType === 'numbered') {
+                    setTimeout(() => {
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+
+                        // Find the text node after the number span
+                        const numSpan = editableEl.querySelector('.num');
+                        if (numSpan && numSpan.nextSibling) {
+                            const textNode = numSpan.nextSibling;
+                            range.setStart(textNode, 0);
+                            range.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }, 0);
+                }
             }
         }
 
@@ -19611,6 +19953,8 @@
 
             const range = selection.getRangeAt(0);
             const rect = range.getBoundingClientRect();
+            const container = range.commonAncestorContainer;
+            const parentElement = container.nodeType === 3 ? container.parentElement : container;
 
             const toolbar = document.createElement('div');
             toolbar.className = 'notes-selection-toolbar';
@@ -19618,14 +19962,19 @@
             toolbar.style.top = (rect.top + window.scrollY - 40) + 'px';
             toolbar.style.left = (rect.left + window.scrollX + (rect.width / 2) - 100) + 'px';
 
+            // Check which formats are active
+            const isBold = parentElement && parentElement.classList && parentElement.classList.contains('notes-fmt-bold');
+            const isItalic = parentElement && parentElement.classList && parentElement.classList.contains('notes-fmt-italic');
+            const isCode = parentElement && parentElement.classList && parentElement.classList.contains('notes-fmt-code');
+
             toolbar.innerHTML = `
-                <button class="notes-toolbar-btn" data-format="bold" title="Bold">
+                <button class="notes-toolbar-btn ${isBold ? 'active' : ''}" data-format="bold" title="Bold">
                     <i class="bi bi-type-bold"></i>
                 </button>
-                <button class="notes-toolbar-btn" data-format="italic" title="Italic">
+                <button class="notes-toolbar-btn ${isItalic ? 'active' : ''}" data-format="italic" title="Italic">
                     <i class="bi bi-type-italic"></i>
                 </button>
-                <button class="notes-toolbar-btn" data-format="code" title="Inline code">
+                <button class="notes-toolbar-btn ${isCode ? 'active' : ''}" data-format="code" title="Inline code">
                     <i class="bi bi-code"></i>
                 </button>
                 <div class="notes-toolbar-divider"></div>
@@ -19636,14 +19985,13 @@
                     <div class="notes-toolbar-color-btn" style="background: var(--notes-accent-blue);" data-color="blue" title="Blue"></div>
                     <div class="notes-toolbar-color-btn" style="background: var(--notes-accent-amber);" data-color="amber" title="Amber"></div>
                 </div>
-                <div class="notes-toolbar-divider"></div>
-                <button class="notes-toolbar-btn" data-format="highlight" title="Highlight">
-                    <i class="bi bi-paint-bucket"></i>
-                </button>
             `;
 
             // Add click handlers
             toolbar.querySelectorAll('[data-format]').forEach(btn => {
+                btn.addEventListener('mousedown', function(e) {
+                    e.preventDefault(); // Prevent losing focus/selection
+                });
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
                     applyFormat(this.dataset.format);
@@ -19651,6 +19999,9 @@
             });
 
             toolbar.querySelectorAll('[data-color]').forEach(btn => {
+                btn.addEventListener('mousedown', function(e) {
+                    e.preventDefault(); // Prevent losing focus/selection
+                });
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
                     applyColor(this.dataset.color);
@@ -19659,6 +20010,19 @@
 
             document.body.appendChild(toolbar);
             selectionToolbar = toolbar;
+
+            // Add mousedown listener to close toolbar when clicking outside
+            setTimeout(() => {
+                document.addEventListener('mousedown', function closeToolbarOnClickOutside(e) {
+                    if (selectionToolbar && !selectionToolbar.contains(e.target)) {
+                        // Small delay to allow new selection to happen first
+                        setTimeout(() => {
+                            hideSelectionToolbar();
+                        }, 100);
+                        document.removeEventListener('mousedown', closeToolbarOnClickOutside);
+                    }
+                }, true); // Use capture phase
+            }, 10);
         }
 
         // Hide selection toolbar
@@ -19674,8 +20038,27 @@
             const selection = window.getSelection();
             if (!selection.rangeCount) return;
 
-            const range = selection.getRangeAt(0);
+            const range = selection.getRangeAt(0).cloneRange();
+            const container = range.commonAncestorContainer;
+            const parentElement = container.nodeType === 3 ? container.parentElement : container;
+
+            // Check if already formatted - if so, remove formatting
+            if (parentElement && parentElement.classList && parentElement.classList.contains(`notes-fmt-${format}`)) {
+                // Remove formatting by replacing span with text
+                const text = parentElement.textContent;
+                const textNode = document.createTextNode(text);
+                parentElement.parentNode.replaceChild(textNode, parentElement);
+
+                // Keep the text selected
+                const newRange = document.createRange();
+                newRange.selectNodeContents(textNode);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+                return;
+            }
+
             const selectedText = range.toString();
+            if (!selectedText) return;
 
             const span = document.createElement('span');
             span.className = `notes-fmt-${format}`;
@@ -19684,26 +20067,108 @@
             range.deleteContents();
             range.insertNode(span);
 
-            // Clear selection
+            // Keep the formatted text selected
+            const newRange = document.createRange();
+            newRange.selectNodeContents(span);
             selection.removeAllRanges();
-            hideSelectionToolbar();
+            selection.addRange(newRange);
+        }
+
+        // Show color picker for divider
+        function showDividerColorPicker(dividerElement, clickEvent) {
+            // Remove any existing color picker
+            const existingPicker = document.getElementById('divider-color-picker');
+            if (existingPicker) {
+                existingPicker.remove();
+            }
+
+            const rect = dividerElement.getBoundingClientRect();
+            const picker = document.createElement('div');
+            picker.id = 'divider-color-picker';
+            picker.className = 'notes-selection-toolbar';
+            picker.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            picker.style.left = (rect.left + window.scrollX + (rect.width / 2) - 75) + 'px';
+
+            picker.innerHTML = `
+                <div class="notes-toolbar-colors-row">
+                    <div class="notes-toolbar-color-btn" style="background: var(--notes-accent-green);" data-color="green" title="Green"></div>
+                    <div class="notes-toolbar-color-btn" style="background: var(--notes-accent-coral);" data-color="coral" title="Coral"></div>
+                    <div class="notes-toolbar-color-btn" style="background: var(--notes-accent-blue);" data-color="blue" title="Blue"></div>
+                    <div class="notes-toolbar-color-btn" style="background: var(--notes-accent-amber);" data-color="amber" title="Amber"></div>
+                    <div class="notes-toolbar-color-btn" style="background: var(--notes-accent-purple);" data-color="purple" title="Purple"></div>
+                </div>
+            `;
+
+            picker.querySelectorAll('[data-color]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const newColor = this.dataset.color;
+                    const oldColor = dividerElement.dataset.color;
+
+                    // Remove old color class and add new one
+                    dividerElement.classList.remove(`color-${oldColor}`);
+                    dividerElement.classList.add(`color-${newColor}`);
+                    dividerElement.dataset.color = newColor;
+
+                    // Close picker
+                    picker.remove();
+                });
+            });
+
+            document.body.appendChild(picker);
+
+            // Close picker when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closePickerOnClickOutside(e) {
+                    if (picker && !picker.contains(e.target) && e.target !== dividerElement) {
+                        picker.remove();
+                        document.removeEventListener('click', closePickerOnClickOutside);
+                    }
+                });
+            }, 10);
         }
 
         // Apply color to selected text
         function applyColor(color) {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0).cloneRange();
+            const container = range.commonAncestorContainer;
+            const element = container.nodeType === 3 ? container.parentElement : container;
+
             if (color === 'default') {
-                // Remove color classes
-                const selection = window.getSelection();
-                if (!selection.rangeCount) return;
+                // Remove color formatting entirely
+                if (element && element.classList && Array.from(element.classList).some(c => c.startsWith('notes-fmt-color-'))) {
+                    // Replace colored span with plain text
+                    const text = element.textContent;
+                    const textNode = document.createTextNode(text);
+                    element.parentNode.replaceChild(textNode, element);
 
-                const range = selection.getRangeAt(0);
-                const container = range.commonAncestorContainer;
-                const element = container.nodeType === 3 ? container.parentElement : container;
-
-                // Remove color classes
-                element.className = element.className.replace(/notes-fmt-color-\w+/g, '').trim();
+                    // Keep the text selected
+                    const newRange = document.createRange();
+                    newRange.selectNodeContents(textNode);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                }
             } else {
-                applyFormat(`color-${color}`);
+                // Remove any existing color first
+                if (element && element.classList && Array.from(element.classList).some(c => c.startsWith('notes-fmt-color-'))) {
+                    // Remove existing color classes
+                    element.className = element.className.replace(/notes-fmt-color-\w+/g, '').trim();
+                    // Add new color
+                    element.classList.add(`notes-fmt-color-${color}`);
+
+                    // Keep the text selected
+                    const newRange = document.createRange();
+                    newRange.selectNodeContents(element);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                } else {
+                    // No existing color, apply new color
+                    applyFormat(`color-${color}`);
+                }
             }
         }
 
