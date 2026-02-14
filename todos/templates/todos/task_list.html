@@ -81,6 +81,15 @@
             --notes-code-bg: #f2f2f7;
             --notes-code-text: #d4725c;
             --notes-code-font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+            /* Calendar Mineral Palette */
+            --cal-event-bg: #e0e4e2;
+            --cal-event-border: #8eaaa0;
+            --cal-task-bg: #ede0de;
+            --cal-task-border: #c8968e;
+            --cal-timeblock-bg: #e8e4de;
+            --cal-timeblock-border: #c8c0b4;
+            --cal-item-text: #4a605a;
         }
 
         * {
@@ -95,11 +104,15 @@
             background-color: #f8f9fa;
             min-height: 100vh;
             padding-bottom: 2rem;
+            position: relative;
+            z-index: 0;
         }
 
         .container {
             max-width: 700px;
             padding: 1.5rem;
+            position: relative;
+            z-index: 1;
         }
 
         .page-header {
@@ -4290,6 +4303,11 @@
             border-bottom: 1px solid #f3f1ee;
             background: #ffffff;
         }
+        /* Noise zone: subtle dividers every 3 tasks */
+        .noise-zone .signal-noise-tasks[data-zone="noise"] .task-card:nth-child(3n):not(:last-child) {
+            border-bottom-color: #e0ddd8;
+            border-bottom-width: 2px;
+        }
         .signal-zone {
             position: relative;
         }
@@ -4377,10 +4395,23 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.5rem;
+            position: relative;
         }
 
         .task-card:last-child {
             margin-bottom: 0;
+        }
+
+        .task-card:hover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -0.6rem;
+            right: -0.6rem;
+            background: #e8f5e9;
+            border-radius: 4px;
+            z-index: -1;
         }
 
         .task-card:hover {
@@ -4738,14 +4769,15 @@
             left: 4px;
             right: 4px;
             min-height: 28px;
-            background: #f8f9fa;
-            color: #333;
+            background: var(--cal-task-bg);
+            color: var(--cal-item-text);
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
             padding-right: 1.5rem;
             border-radius: 4px;
             cursor: grab;
-            border: 1px solid #dee2e6;
+            border: none;
+            border-left: 3px solid var(--cal-task-border);
             overflow: hidden;
             z-index: 2;
             box-sizing: border-box;
@@ -4825,20 +4857,21 @@
             background: rgba(0, 0, 0, 0.1);
         }
 
-        /* Time block on calendar - elegant warm orange */
+        /* Time block on calendar - Mineral palette */
         .calendar-time-block {
             position: absolute;
             left: 4px;
             right: 4px;
             min-height: 28px;
-            background: #fff4ed;
-            color: #8b5a3c;
+            background: var(--cal-timeblock-bg);
+            color: var(--cal-item-text);
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
             padding-right: 1.5rem;
             border-radius: 4px;
             cursor: grab;
-            border: 2px dotted #e8a87c;
+            border: none;
+            border-left: 3px solid var(--cal-timeblock-border);
             overflow: hidden;
             z-index: 2;
             box-sizing: border-box;
@@ -4849,7 +4882,8 @@
         }
 
         .calendar-time-block:hover {
-            background: #ffece0;
+            background: var(--cal-timeblock-bg);
+            opacity: 0.9;
         }
 
         .calendar-time-block.dragging {
@@ -4882,11 +4916,11 @@
 
         .time-block-inline-input {
             background: white;
-            border: 1px solid #e8a87c;
+            border: 1px solid var(--cal-timeblock-border);
             border-radius: 2px;
             font-size: 0.75rem;
             font-weight: 500;
-            color: #8b5a3c;
+            color: var(--cal-item-text);
             padding: 0 2px;
             margin: -1px 0;
             width: 100%;
@@ -4905,7 +4939,7 @@
         }
 
         .time-block-resize-handle:hover {
-            background: rgba(232, 168, 124, 0.3);
+            background: rgba(200, 192, 180, 0.3);
         }
 
         .time-block-resize-handle-top {
@@ -4920,13 +4954,13 @@
         }
 
         .time-block-resize-handle-top:hover {
-            background: rgba(232, 168, 124, 0.3);
+            background: rgba(200, 192, 180, 0.3);
         }
 
         .calendar-time-block .remove-btn {
             background: transparent;
             border: none;
-            color: #c9956c;
+            color: var(--cal-timeblock-border);
             cursor: pointer;
             position: absolute;
             right: 0;
@@ -5199,19 +5233,21 @@
         /* Removed hover effect on hour rows */
 
         .hour-event {
-            background: #e8f4f0;
-            color: #3d5a4c;
+            background: var(--cal-event-bg);
+            color: var(--cal-item-text);
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
             margin-bottom: 0.25rem;
             cursor: grab;
-            border: 1px solid #b8d4c8;
+            border: none;
+            border-left: 3px solid var(--cal-event-border);
             position: relative;
         }
 
         .hour-event:hover {
-            background: #dceee8;
+            background: var(--cal-event-bg);
+            opacity: 0.9;
         }
 
         .hour-event:active {
@@ -5952,7 +5988,7 @@
             box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
             padding: 4px;
             width: 200px;
-            z-index: 100;
+            z-index: 10000 !important;
         }
 
         .notes-slash-menu-title {
@@ -6683,7 +6719,8 @@
             <input type="text"
                    id="new-task-input"
                    placeholder=""
-                   autocomplete="off">
+                   autocomplete="off"
+                   autofocus>
             <div class="animated-placeholder" id="animated-placeholder">Add a new task...</div>
         </div>
     </div>
@@ -7059,6 +7096,28 @@
                             {% endif %}
                             {% endfor %}
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto-Tag Section -->
+            <div class="settings-section collapsed">
+                <div class="settings-section-header">
+                    <span class="section-title-inner">
+                        <i class="bi bi-tag"></i> Auto-Tag
+                        <span class="has-tooltip settings-info-icon settings-info-icon-size">
+                            <i class="bi bi-info-circle"></i>
+                            <span class="custom-tooltip">Automatically apply filtered tags to new tasks</span>
+                        </span>
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </div>
+                <div class="settings-section-content">
+                    <div class="settings-row">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="auto-tag-enabled">
+                            <span>Apply filtered tags to new tasks</span>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -7529,6 +7588,9 @@
         let autoAbandonEnabled = true;  // Default, will be loaded from cookie
         let abandonExcludedTagIds = [];   // Tag IDs to exclude from auto-abandon
         let abandonExcludedStateIds = []; // State IDs to exclude from auto-abandon
+
+        // Auto-tag setting
+        let autoTagEnabled = false;  // Default, will be loaded from cookie
 
         // Saved views from database
         let savedViews = {{ saved_views|safe }};
@@ -8608,6 +8670,18 @@
                 const title = this.value.trim();
                 this.value = '';
 
+                // Prepare request body
+                const requestBody = { title };
+
+                // If auto-tag is enabled and tags are filtered, apply them to the new task
+                if (autoTagEnabled && activeFilters.tags.length > 0) {
+                    // Filter out 'untagged' pseudo-tag and only include real tag IDs
+                    const tagIds = activeFilters.tags.filter(id => id !== 'untagged' && typeof id === 'number');
+                    if (tagIds.length > 0) {
+                        requestBody.tag_ids = tagIds;
+                    }
+                }
+
                 try {
                     const response = await fetch('/tasks/api/create/', {
                         method: 'POST',
@@ -8615,7 +8689,7 @@
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken
                         },
-                        body: JSON.stringify({ title })
+                        body: JSON.stringify(requestBody)
                     });
 
                     const data = await response.json();
@@ -8652,6 +8726,12 @@
                 card.dataset.taskId = task.id;
                 card.tabIndex = 0; // Make focusable
 
+                // Build tags HTML (from server response or local cache)
+                const tags = task.tags || taskTagsMap[task.id] || [];
+                const tagsHtml = tags.length > 0
+                    ? `<div class="task-card-tags">${tags.map(t => `<span class="task-tag-pill">${escapeHtml(t.name)}</span>`).join('')}</div>`
+                    : '';
+
                 // Build icons HTML
                 let iconsHtml = '';
                 if (task.critical) {
@@ -8664,6 +8744,7 @@
                     <div class="task-card-content">
                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                         <div class="task-card-title">${escapeHtml(task.title)}</div>
+                        ${tagsHtml}
                         ${iconsHtml}
                     </div>
                 `;
@@ -11765,7 +11846,8 @@
                 abandonedDays: abandonedDays,
                 autoAbandonEnabled: autoAbandonEnabled,
                 abandonExcludedTagIds: abandonExcludedTagIds,
-                abandonExcludedStateIds: abandonExcludedStateIds
+                abandonExcludedStateIds: abandonExcludedStateIds,
+                autoTagEnabled: autoTagEnabled
             });
         }
 
@@ -12656,6 +12738,13 @@
                         const chip = document.querySelector(`#abandon-exclude-states-chips .abandon-exclusion-chip[data-state-id="${stateId}"]`);
                         if (chip) chip.classList.add('active');
                     });
+                }
+
+                // Load auto-tag setting
+                if (saved.autoTagEnabled !== undefined) {
+                    autoTagEnabled = saved.autoTagEnabled;
+                    const toggle = document.getElementById('auto-tag-enabled');
+                    if (toggle) toggle.checked = autoTagEnabled;
                 }
 
                 // Switch to tags or schedules view if needed (after showCompleted is set)
@@ -17932,7 +18021,8 @@
             const dropZone = stateGroup.querySelector('.state-group-body');
             const header = stateGroup.querySelector('.state-group-header');
 
-            if (dropZone) {
+            // Skip signal-noise bodies - they have their own specialized drop handling
+            if (dropZone && !dropZone.classList.contains('signal-noise-body')) {
                 dropZone.addEventListener('dragover', function(e) {
                     e.preventDefault();
                     if (!draggedTaskCard) return;
@@ -18312,12 +18402,20 @@
                     return aRect.top - bRect.top;
                 });
 
-                // Move the task cards to the top of the body
+                // Determine the actual drop target
+                // For signal-noise bodies, insert into signal zone; for regular bodies, insert into the body itself
+                let dropTarget = body;
+                if (body.classList.contains('signal-noise-body')) {
+                    // For signal/noise states, drop into signal zone
+                    dropTarget = body.querySelector('.signal-noise-tasks[data-zone="signal"]') || body;
+                }
+
+                // Move the task cards to the top of the drop target
                 sortedCards.reverse().forEach(card => {
-                    if (body.firstChild) {
-                        body.insertBefore(card, body.firstChild);
+                    if (dropTarget.firstChild) {
+                        dropTarget.insertBefore(card, dropTarget.firstChild);
                     } else {
-                        body.appendChild(card);
+                        dropTarget.appendChild(card);
                     }
                 });
 
@@ -18326,10 +18424,31 @@
                 // Update task order in the new state
                 const cardIds = [...body.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
 
+                // Check if we dropped into a signal zone
+                const droppedInSignal = dropTarget.dataset && dropTarget.dataset.zone === 'signal';
+
                 // Update state on server for each card that changed state
                 for (const { card, changedState } of cardOldStates) {
                     if (changedState) {
                         const taskId = parseInt(card.dataset.taskId);
+                        const updateData = { state_id: newStateId };
+
+                        // If dropped into signal zone, mark as signal and find available slot
+                        if (droppedInSignal) {
+                            updateData.is_signal = true;
+                            // Find the first available signal slot (0, 1, or 2)
+                            const existingSlots = [...dropTarget.querySelectorAll('.task-card')]
+                                .map(c => parseInt(c.dataset.signalSlot))
+                                .filter(s => !isNaN(s));
+                            for (let slot = 0; slot <= 2; slot++) {
+                                if (!existingSlots.includes(slot)) {
+                                    updateData.signal_slot = slot;
+                                    card.dataset.signalSlot = slot;
+                                    break;
+                                }
+                            }
+                        }
+
                         try {
                             const response = await fetch(`/tasks/api/${taskId}/update/`, {
                                 method: 'PATCH',
@@ -18337,7 +18456,7 @@
                                     'Content-Type': 'application/json',
                                     'X-CSRFToken': csrfToken
                                 },
-                                body: JSON.stringify({ state_id: newStateId })
+                                body: JSON.stringify(updateData)
                             });
                             const data = await response.json();
                             if (data.success && data.task) {
@@ -18391,6 +18510,11 @@
                     });
                 } catch (error) {
                     console.error('Error reordering tasks:', error);
+                }
+
+                // Update signal slots if we dropped into a signal/noise state
+                if (droppedInSignal) {
+                    updateSignalSlots();
                 }
             });
 
@@ -19015,6 +19139,15 @@
             });
         }
 
+        // Auto-tag toggle
+        const autoTagToggle = document.getElementById('auto-tag-enabled');
+        if (autoTagToggle) {
+            autoTagToggle.addEventListener('change', function() {
+                autoTagEnabled = this.checked;
+                saveFilterSettings();
+            });
+        }
+
         // Process calendar sections on page load
         processCalendarSections();
 
@@ -19139,11 +19272,15 @@
         });
 
         newTaskInput.addEventListener('focus', function() {
-            // Cancel delayed restart if user focuses the input
+            // Hide placeholder when input is focused
+            animatedPlaceholder.classList.add('hidden');
+            stopPlaceholderCycle();
             cancelDelayedRestart();
+        });
 
-            // If input is empty and placeholder is hidden, show it immediately
-            if (!this.value && animatedPlaceholder.classList.contains('hidden')) {
+        newTaskInput.addEventListener('blur', function() {
+            // When input loses focus, only show placeholder if input is empty
+            if (!this.value) {
                 animatedPlaceholder.classList.remove('hidden');
                 startPlaceholderCycle();
             }
@@ -19644,17 +19781,26 @@
                 },
                 placeholder: 'Start typing or press / for block options...',
                 autofocus: true,
-                minHeight: 30
-            });
+                minHeight: 30,
+                onReady: () => {
+                    console.log('EditorJS is ready!');
 
-            // Add selection toolbar for text formatting
-            notesContentCanvas.addEventListener('mouseup', handleNotesSelection);
+                    // Add selection toolbar for text formatting (with event delegation)
+                    document.addEventListener('mouseup', handleTextSelection);
 
-            // Add slash menu support for EditorJS
-            notesContentCanvas.addEventListener('keydown', function(e) {
-                if (e.key === '/' && e.target.textContent.trim() === '') {
-                    e.preventDefault();
-                    showSlashMenu(e.target);
+                    // Add slash menu support for EditorJS (with event delegation)
+                    document.addEventListener('keydown', function(e) {
+                        // Check if we're in the notes editor
+                        if (!e.target.closest('#notes-content-canvas')) return;
+
+                        console.log('Key pressed in notes:', e.key, 'Text content:', e.target.textContent.trim());
+
+                        if (e.key === '/' && e.target.textContent.trim() === '') {
+                            console.log('Showing slash menu!');
+                            e.preventDefault();
+                            showSlashMenu(e.target);
+                        }
+                    });
                 }
             });
 
@@ -20157,38 +20303,51 @@
         }
 
         // Insert a block type
-        function insertBlock(element, blockType) {
-            if (!notesEditor) return;
-
-            // Map our block types to EditorJS block types
-            const blockTypeMap = {
-                'text': 'paragraph',
-                'list': 'list',
-                'numbered': 'list',
-                'checkbox': 'checklist',
-                'divider': 'delimiter',
-                'header': 'paragraph',  // No header plugin yet
-                'code': 'paragraph'  // No code plugin yet
-            };
-
-            const editorBlockType = blockTypeMap[blockType] || 'paragraph';
-            const currentBlockIndex = notesEditor.blocks.getCurrentBlockIndex();
-
-            // Delete current block
-            notesEditor.blocks.delete(currentBlockIndex);
-
-            // Insert new block of the requested type
-            if (editorBlockType === 'list') {
-                const style = blockType === 'numbered' ? 'ordered' : 'unordered';
-                notesEditor.blocks.insert(editorBlockType, { style: style, items: [''] }, {}, currentBlockIndex);
-            } else {
-                notesEditor.blocks.insert(editorBlockType, {}, {}, currentBlockIndex);
+        async function insertBlock(element, blockType) {
+            if (!notesEditor) {
+                console.error('No editor instance');
+                return;
             }
 
-            // Focus the new block
-            setTimeout(() => {
-                notesEditor.caret.setToBlock(currentBlockIndex);
-            }, 50);
+            try {
+                // Map our block types to EditorJS block types
+                const blockTypeMap = {
+                    'text': 'paragraph',
+                    'list': 'list',
+                    'numbered': 'list',
+                    'checkbox': 'checklist',
+                    'divider': 'delimiter',
+                    'header': 'paragraph',  // No header plugin yet
+                    'code': 'paragraph'  // No code plugin yet
+                };
+
+                const editorBlockType = blockTypeMap[blockType] || 'paragraph';
+                const currentBlockIndex = notesEditor.blocks.getCurrentBlockIndex();
+
+                console.log('Converting block at index', currentBlockIndex, 'to', editorBlockType);
+
+                // Delete current block
+                await notesEditor.blocks.delete(currentBlockIndex);
+
+                // Insert new block of the requested type
+                let blockData = {};
+                if (editorBlockType === 'list') {
+                    const style = blockType === 'numbered' ? 'ordered' : 'unordered';
+                    blockData = { style: style, items: [''] };
+                }
+
+                const newBlock = notesEditor.blocks.insert(
+                    editorBlockType,
+                    blockData,
+                    {},
+                    currentBlockIndex,
+                    true  // needToFocus
+                );
+
+                console.log('New block inserted:', newBlock);
+            } catch (err) {
+                console.error('Error inserting block:', err);
+            }
         }
 
         // Handle text selection for formatting toolbar
@@ -20208,7 +20367,9 @@
             const container = range.commonAncestorContainer;
             const notesElement = container.nodeType === 3 ? container.parentElement : container;
 
-            if (!notesElement.closest('.notes-content-area')) {
+            // Check if in notes content area OR in EditorJS content
+            const inNotesArea = notesElement.closest('.notes-content-area') || notesElement.closest('#notes-content-canvas');
+            if (!inNotesArea) {
                 hideSelectionToolbar();
                 return;
             }
@@ -20225,11 +20386,15 @@
             const container = range.commonAncestorContainer;
             const parentElement = container.nodeType === 3 ? container.parentElement : container;
 
+            console.log('Showing selection toolbar at', rect);
+
             const toolbar = document.createElement('div');
             toolbar.className = 'notes-selection-toolbar';
             toolbar.id = 'notes-selection-toolbar-active';
             toolbar.style.top = (rect.top + window.scrollY - 40) + 'px';
             toolbar.style.left = (rect.left + window.scrollX + (rect.width / 2) - 100) + 'px';
+            toolbar.style.position = 'absolute';
+            toolbar.style.zIndex = '10000';
 
             // Check which formats are active
             const isBold = parentElement && parentElement.classList && parentElement.classList.contains('notes-fmt-bold');

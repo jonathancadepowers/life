@@ -159,7 +159,15 @@ def create_task(request):
         # Get first state by order for new tasks
         first_state = TaskState.objects.first()
         task = Task.objects.create(title=title, state=first_state)
-        return JsonResponse({"success": True, "task": serialize_task(task)})
+
+        # Apply tags if provided
+        tag_ids = data.get("tag_ids", [])
+        if tag_ids:
+            tags = TaskTag.objects.filter(id__in=tag_ids)
+            task.tags.set(tags)
+
+        serialized = serialize_task(task)
+        return JsonResponse({"success": True, "task": serialized})
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": _INVALID_JSON}, status=400)
 
