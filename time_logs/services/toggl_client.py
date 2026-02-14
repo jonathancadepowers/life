@@ -171,6 +171,18 @@ class TogglAPIClient:
         # Reports API returns data in a grouped format with nested time_entries
         # We need to flatten this to match the old API format
         grouped_entries = response.json()
+        flattened_entries = self._flatten_grouped_entries(grouped_entries, tag_id_to_name)
+
+        # Fetch the currently running timer (if any) from Track API
+        running_entry = self.get_current_time_entry()
+        if running_entry:
+            running_flattened = self._format_running_entry(running_entry)
+            flattened_entries.append(running_flattened)
+
+        return flattened_entries
+
+    def _flatten_grouped_entries(self, grouped_entries: List[Dict], tag_id_to_name: Dict[int, str]) -> List[Dict]:
+        """Flatten grouped time entries from Reports API."""
         flattened_entries = []
 
         for group in grouped_entries:
@@ -193,22 +205,19 @@ class TogglAPIClient:
                 }
                 flattened_entries.append(flattened_entry)
 
-        # Fetch the currently running timer (if any) from Track API
-        running_entry = self.get_current_time_entry()
-        if running_entry:
-            # Convert running entry to match our format
-            # Running timers have negative duration in the Track API
-            running_flattened = {
-                "id": running_entry.get("id"),
-                "project_id": running_entry.get("project_id") or running_entry.get("pid"),
-                "tags": running_entry.get("tags", []),
-                "duration": running_entry.get("duration", 0),  # Negative for running timers
-                "start": running_entry.get("start"),
-                "stop": running_entry.get("stop"),
-            }
-            flattened_entries.append(running_flattened)
-
         return flattened_entries
+
+    def _format_running_entry(self, running_entry: Dict) -> Dict:
+        """Format a running timer entry to match our standard format."""
+        # Running timers have negative duration in the Track API
+        return {
+            "id": running_entry.get("id"),
+            "project_id": running_entry.get("project_id") or running_entry.get("pid"),
+            "tags": running_entry.get("tags", []),
+            "duration": running_entry.get("duration", 0),  # Negative for running timers
+            "start": running_entry.get("start"),
+            "stop": running_entry.get("stop"),
+        }
 
     def get_tags(self) -> List[Dict]:
         """

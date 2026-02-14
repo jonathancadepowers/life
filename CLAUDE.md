@@ -250,6 +250,24 @@ When creating new tasks, the auto-tag feature can automatically apply currently 
 - **Frontend rendering:** The `addTaskToKanban()` function's `createTaskCard()` helper builds tag pill HTML from `task.tags` or `taskTagsMap[task.id]` to ensure tags are immediately visible on newly created cards without requiring a page refresh.
 - **Tag pill pattern:** Tag pills use the class `task-tag-pill` and are wrapped in a `task-card-tags` div. When rendering task cards dynamically in JavaScript, always include tag pills to maintain consistency with server-rendered cards.
 
+### Sidebar Layout System (`/tasks/`)
+The tasks page uses a fixed 60px sidebar on the left side for navigation icons:
+- **Fixed positioning:** Sidebar uses `position: fixed` with `width: 60px` and `height: 100vh`
+- **Content offset:** All page content has `margin-left: 60px` to accommodate the sidebar
+- **Header centering:** The page header is centered in the viewport with `margin-left: -30px` to account for the sidebar
+- **Input field:** The task input field is 652px wide and centered using flexbox with the same margin offset
+
+### "Things to Worry About" Dropdown (`/tasks/`)
+The deadline warning dropdown has collapsible sections with tooltips:
+- **Sections:** Critical, Overdue, Due Soon, Near Abandoned - each can be collapsed/expanded independently
+- **Default states:** All sections expand by default except "Near Abandoned" which is collapsed. States are persisted in localStorage.
+- **Tooltips:** Custom tooltip implementation using a single fixed-position element created in JavaScript
+  - Positioned to the right of info icons using `getBoundingClientRect()`
+  - Dark background (#212529) with white text
+  - Hidden on scroll and when dropdown closes
+  - Arrow pointer on the left side pointing to the icon
+- **Chevron icons:** Rotate smoothly when sections collapse/expand using CSS transitions
+
 ## Common Mistakes to Avoid
 
 1. **All OAuth credentials live in `oauth_integration.models.OAuthCredential`** — there is no other OAuthCredential

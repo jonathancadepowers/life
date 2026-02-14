@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.utils import timezone
 from django.db import IntegrityError
 from datetime import datetime, timezone as dt_timezone
 

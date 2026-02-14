@@ -27,6 +27,7 @@ def _isoformat_or_none(value):
 def serialize_task(task):
     """Serialize a task to a dictionary for JSON responses."""
     schedules = list(task.schedules.all())
+    time_blocks = list(task.time_blocks.all())
     # For backward compatibility, derive calendar times from first schedule
     first_schedule = schedules[0] if schedules else None
     return {
@@ -44,6 +45,7 @@ def serialize_task(task):
         "done_for_day": _isoformat_or_none(task.done_for_day),
         "is_signal": task.is_signal,
         "signal_slot": task.signal_slot,
+        "noise_slot": task.noise_slot,
         "calendar_start_time": first_schedule.start_time.isoformat() if first_schedule else None,
         "calendar_end_time": first_schedule.end_time.isoformat() if first_schedule else None,
         "schedules": [
@@ -54,12 +56,21 @@ def serialize_task(task):
             }
             for s in schedules
         ],
+        "time_blocks": [
+            {
+                "id": tb.id,
+                "name": tb.name,
+                "start_time": tb.start_time.isoformat(),
+                "end_time": tb.end_time.isoformat(),
+            }
+            for tb in time_blocks
+        ],
     }
 
 
 def task_list(request):
     """Display all tasks."""
-    tasks = Task.objects.select_related("state").prefetch_related("tags", "schedules").all()
+    tasks = Task.objects.select_related("state").prefetch_related("tags", "schedules", "time_blocks").all()
     states = TaskState.objects.all()
     tags = TaskTag.objects.all()
     detail_templates = TaskDetailTemplate.objects.all()
@@ -93,7 +104,7 @@ def task_list(request):
         )
 
     # Query time blocks that overlap with this window (same 7-day range)
-    time_blocks = TimeBlock.objects.filter(start_time__lt=query_end, end_time__gt=query_start).order_by("start_time")
+    time_blocks = TimeBlock.objects.filter(start_time__lt=query_end, end_time__gt=query_start).prefetch_related("tasks").order_by("start_time")
 
     time_blocks_data = []
     for block in time_blocks:
@@ -103,6 +114,7 @@ def task_list(request):
                 "name": block.name,
                 "start": block.start_time.isoformat(),
                 "end": block.end_time.isoformat(),
+                "tasks": [{"id": t.id, "title": t.title} for t in block.get_ordered_tasks()],
             }
         )
 
@@ -186,8 +198,12 @@ def _apply_task_simple_fields(task, data):
         task.is_signal = data["is_signal"]
         if not data["is_signal"]:
             task.signal_slot = None
+        else:
+            task.noise_slot = None
     if "signal_slot" in data:
         task.signal_slot = data["signal_slot"]
+    if "noise_slot" in data:
+        task.noise_slot = data["noise_slot"]
 
 
 def _apply_task_state(task, data):
@@ -199,6 +215,7 @@ def _apply_task_state(task, data):
         task.state_changed_at = timezone.now()
         task.is_signal = False
         task.signal_slot = None
+        task.noise_slot = None
     task.state = TaskState.objects.get(id=new_state_id) if new_state_id else None
 
 
@@ -249,7 +266,7 @@ def delete_task(_request, task_id):
 def get_task(_request, task_id):
     """Get a task's details via AJAX."""
     try:
-        task = Task.objects.select_related("state").prefetch_related("tags", "schedules").get(id=task_id)
+        task = Task.objects.select_related("state").prefetch_related("tags", "schedules", "time_blocks").get(id=task_id)
         return JsonResponse({"success": True, "task": serialize_task(task)})
     except Task.DoesNotExist:
         return JsonResponse({"success": False, "error": _TASK_NOT_FOUND}, status=404)
@@ -640,6 +657,131 @@ def delete_time_block(_request, block_id):
         return JsonResponse({"success": True})
     except TimeBlock.DoesNotExist:
         return JsonResponse({"success": False, "error": "Time block not found"}, status=404)
+
+
+@require_POST
+def add_task_to_time_block(request, block_id):
+    """Add a task to a time block via AJAX."""
+    try:
+        data = json.loads(request.body)
+        task_id = data.get("task_id")
+
+        if not task_id:
+            return JsonResponse({"success": False, "error": "Task ID is required"}, status=400)
+
+        block = TimeBlock.objects.get(id=block_id)
+        task = Task.objects.get(id=task_id)
+
+        # Add the task to the time block
+        block.tasks.add(task)
+
+        # Add to task order if not already present
+        if task_id not in block.task_order:
+            block.task_order.append(task_id)
+            block.save()
+
+        # Return the updated time block with all tasks
+        task_list = [{"id": t.id, "title": t.title} for t in block.get_ordered_tasks()]
+
+        return JsonResponse(
+            {
+                "success": True,
+                "time_block": {
+                    "id": block.id,
+                    "name": block.name,
+                    "start": block.start_time.isoformat(),
+                    "end": block.end_time.isoformat(),
+                    "tasks": task_list,
+                },
+            }
+        )
+    except TimeBlock.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Time block not found"}, status=404)
+    except Task.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Task not found"}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": _INVALID_JSON}, status=400)
+
+
+@require_POST
+def remove_task_from_time_block(request, block_id):
+    """Remove a task from a time block via AJAX."""
+    try:
+        data = json.loads(request.body)
+        task_id = data.get("task_id")
+
+        if not task_id:
+            return JsonResponse({"success": False, "error": "Task ID is required"}, status=400)
+
+        block = TimeBlock.objects.get(id=block_id)
+        task = Task.objects.get(id=task_id)
+
+        # Remove the task from the time block
+        block.tasks.remove(task)
+
+        # Remove from task order
+        if task_id in block.task_order:
+            block.task_order.remove(task_id)
+            block.save()
+
+        # Return the updated time block with all tasks
+        task_list = [{"id": t.id, "title": t.title} for t in block.get_ordered_tasks()]
+
+        return JsonResponse(
+            {
+                "success": True,
+                "time_block": {
+                    "id": block.id,
+                    "name": block.name,
+                    "start": block.start_time.isoformat(),
+                    "end": block.end_time.isoformat(),
+                    "tasks": task_list,
+                },
+            }
+        )
+    except TimeBlock.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Time block not found"}, status=404)
+    except Task.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Task not found"}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": _INVALID_JSON}, status=400)
+
+
+@require_POST
+def reorder_time_block_tasks(request, block_id):
+    """Reorder tasks within a time block via AJAX."""
+    try:
+        data = json.loads(request.body)
+        task_ids = data.get("task_ids", [])
+
+        if not isinstance(task_ids, list):
+            return JsonResponse({"success": False, "error": "task_ids must be a list"}, status=400)
+
+        block = TimeBlock.objects.get(id=block_id)
+
+        # Update the task order
+        block.task_order = task_ids
+        block.save()
+
+        # Return the updated time block with all tasks
+        task_list = [{"id": t.id, "title": t.title} for t in block.get_ordered_tasks()]
+
+        return JsonResponse(
+            {
+                "success": True,
+                "time_block": {
+                    "id": block.id,
+                    "name": block.name,
+                    "start": block.start_time.isoformat(),
+                    "end": block.end_time.isoformat(),
+                    "tasks": task_list,
+                },
+            }
+        )
+    except TimeBlock.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Time block not found"}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": _INVALID_JSON}, status=400)
 
 
 # ========== Task Schedule Views ==========

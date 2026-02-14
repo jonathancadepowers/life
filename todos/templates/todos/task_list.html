@@ -106,11 +106,14 @@
             padding-bottom: 2rem;
             position: relative;
             z-index: 0;
+            /* Add left margin to accommodate fixed sidebar */
+            margin-left: 60px;
         }
 
         .container {
-            max-width: 700px;
+            max-width: 100%;
             padding: 1.5rem;
+            padding-top: 3rem;  /* Add more top padding */
             position: relative;
             z-index: 1;
         }
@@ -118,8 +121,12 @@
         .page-header {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;  /* Match screenshot spacing */
+            padding-top: 0;
+            /* Center in viewport accounting for 60px sidebar */
+            margin-left: -30px;  /* Half of sidebar width to center properly */
         }
 
         .page-icon {
@@ -131,8 +138,7 @@
             font-size: 1.75rem;
             font-weight: 300;
             color: #333;
-            margin: 0;
-            flex: 1;
+            margin: 0 !important;  /* Ensure no margin on the h1 itself */
         }
 
         .layout-btn {
@@ -366,10 +372,14 @@
         /* Task Input */
         .task-input-container {
             margin-bottom: 2rem;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-left: -30px;  /* Account for 60px sidebar to center in viewport */
         }
 
         #new-task-input {
-            width: 100%;
+            width: 652px;
             font-size: 1.5rem;
             padding: 1rem;
             border: none;
@@ -387,15 +397,12 @@
             color: #adb5bd;
         }
 
-        .task-input-container {
-            position: relative;
-        }
-
         .animated-placeholder {
             position: absolute;
             top: 0;
-            left: 0;
-            right: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 652px;
             padding: 1rem;
             font-size: 1.5rem;
             color: #adb5bd;
@@ -985,8 +992,9 @@
             justify-content: space-between;
         }
 
-        /* Hide filter summary when panel is collapsed */
-        .panel.collapsed .filter-summary {
+        /* Hide filter summary when panel is collapsed or minimized */
+        .panel.collapsed .filter-summary,
+        .panel.minimized .filter-summary {
             display: none !important;
         }
 
@@ -1761,14 +1769,22 @@
         }
 
         /* Sidebar icons */
+        /* Proper fixed sidebar layout */
         div.sidebar-icons {
             position: fixed !important;
-            top: 1.5rem !important;
-            left: 1.5rem !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 60px !important;
+            height: 100vh !important;
+            background: #ffffff !important;
+            border-right: 1px solid #dee2e6 !important;
             display: flex;
             flex-direction: column;
+            align-items: center;
             gap: 0.75rem;
-            z-index: 10000 !important;
+            padding-top: 1.5rem !important;
+            z-index: 1000 !important;
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
         }
 
         .sidebar-icon {
@@ -1841,7 +1857,7 @@
         .deadline-dropdown {
             position: fixed;
             top: 1.5rem;
-            left: 3.5rem;
+            left: 70px; /* Position next to sidebar (60px + 10px gap) */
             background: white;
             border-radius: 10px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
@@ -1895,6 +1911,7 @@
 
         .deadline-section {
             margin-bottom: 1rem;
+            position: relative;
         }
 
         .deadline-section:last-child {
@@ -1910,6 +1927,29 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .deadline-section-title:hover {
+            opacity: 0.8;
+        }
+
+        .deadline-section-title .section-chevron {
+            font-size: 0.8rem;
+            transition: transform 0.2s ease;
+        }
+
+        .deadline-section.collapsed .section-chevron {
+            transform: rotate(-90deg);
+        }
+
+        .deadline-section.collapsed .deadline-section-content {
+            display: none;
+        }
+
+        .deadline-section-content {
+            display: block;
         }
 
         .deadline-section-title.critical {
@@ -1938,6 +1978,40 @@
 
         .deadline-section-title .settings-info-icon:hover {
             color: #6c757d;
+        }
+
+
+
+        /* Custom tooltip styling */
+        .deadline-tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 0.45rem 0.7rem;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: normal;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 999999;
+            display: none;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+            text-transform: none;
+            letter-spacing: normal;
+            line-height: 1.4;
+        }
+
+        .deadline-tooltip::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -5px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border: 5px solid transparent;
+            border-right-color: rgba(0, 0, 0, 0.95);
         }
 
         /* Critical items use same styling as other task items */
@@ -2166,8 +2240,8 @@
         /* Filter dropdown */
         .filter-dropdown {
             position: fixed;
-            top: 1.5rem;
-            left: 3.5rem;
+            top: 4.5rem; /* Position below first icon */
+            left: 70px; /* Position next to sidebar (60px + 10px gap) */
             background: white;
             border-radius: 10px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
@@ -2593,8 +2667,8 @@
         /* Settings popup (dropdown style) */
         .settings-dropdown {
             position: fixed;
-            top: 1.5rem;
-            left: 3.5rem;
+            top: 7.5rem; /* Position below second icon */
+            left: 70px; /* Position next to sidebar (60px + 10px gap) */
             background: white;
             border-radius: 10px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.12);
@@ -3368,28 +3442,65 @@
 
         /* Mobile adjustments */
         @media (max-width: 576px) {
+            /* Adjust body margin for mobile */
+            body {
+                margin-left: 50px; /* Smaller sidebar on mobile */
+            }
+
+            /* Make sidebar narrower on mobile */
+            div.sidebar-icons {
+                width: 50px !important;
+                padding-top: 1rem !important;
+                gap: 0.5rem;
+            }
+
+            /* Smaller icons on mobile */
+            .sidebar-icon,
+            .deadline-warning-icon {
+                font-size: 1rem;
+            }
+
             .container {
                 padding: 1rem;
             }
 
-            h1 {
+            h1:not(.page-title) {
                 font-size: 1.5rem;
                 margin-bottom: 1.5rem;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
             }
 
             #new-task-input {
                 font-size: 1.25rem;
                 padding: 0.75rem 0;
+                width: 100%;  /* Full width on mobile */
+                max-width: calc(100vw - 80px);  /* Account for sidebar and padding */
+            }
+
+            .task-input-container {
+                margin-left: 0;  /* Remove centering offset on mobile */
+            }
+
+            .animated-placeholder {
+                width: 100%;
+                left: 0;
+                transform: none;
             }
 
             .slide-panel {
                 max-width: 100%;
             }
 
+            /* Adjust dropdown positions for mobile */
+            .deadline-dropdown,
+            .filter-dropdown,
             .settings-dropdown {
-                left: 1rem;
+                left: 60px; /* Next to smaller sidebar */
                 min-width: 240px;
-                max-width: calc(100% - 2rem);
+                max-width: calc(100vw - 70px);
             }
 
             .settings-gear {
@@ -3763,9 +3874,10 @@
 
         /* ========== Two-Panel Layout ========== */
         .two-panel-container {
-            max-width: 1800px;
+            max-width: calc(100% - 60px); /* Account for sidebar */
             margin: 0 auto;
             padding: 0 2rem 2rem;
+            position: relative;
         }
 
         .panels-wrapper {
@@ -4303,11 +4415,6 @@
             border-bottom: 1px solid #f3f1ee;
             background: #ffffff;
         }
-        /* Noise zone: subtle dividers every 3 tasks */
-        .noise-zone .signal-noise-tasks[data-zone="noise"] .task-card:nth-child(3n):not(:last-child) {
-            border-bottom-color: #e0ddd8;
-            border-bottom-width: 2px;
-        }
         .signal-zone {
             position: relative;
         }
@@ -4346,13 +4453,40 @@
         .signal-placeholder * {
             pointer-events: none;
         }
+        .noise-placeholder {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid #f3f1ee;
+            min-height: 2.1rem;
+            background: #ffffff;
+        }
+        .noise-placeholder * {
+            pointer-events: none;
+        }
+        /* Noise zone: divider after every 3rd slot (groups of 3) */
+        .noise-zone .signal-noise-tasks[data-zone="noise"] > *:nth-child(3n):not(:last-child) {
+            border-bottom-color: #e0ddd8;
+            border-bottom-width: 2px;
+        }
         .signal-noise-tasks.drag-over {
             background: #ffffff;
         }
         /* Signal zone: full-row highlight on drag target */
+        /* Signal zone drop target highlighting */
         .signal-noise-tasks[data-zone="signal"] > .signal-slot-highlight {
             background: rgba(90, 156, 69, 0.18) !important;
             box-shadow: inset 0 0 0 2px rgba(90, 156, 69, 0.45);
+        }
+        /* Noise zone drop target highlighting */
+        .signal-noise-tasks[data-zone="noise"] > .signal-slot-highlight {
+            background: rgba(208, 205, 200, 0.35) !important;
+            box-shadow: inset 0 0 0 2px rgba(208, 205, 200, 0.65);
+        }
+        /* Regular state sections drop target highlighting */
+        .state-group-body:not(.signal-noise-body) > .signal-slot-highlight {
+            background: rgba(107, 144, 128, 0.15) !important;
+            box-shadow: inset 0 0 0 2px rgba(107, 144, 128, 0.4);
         }
         .signal-noise-state-checks {
             display: flex;
@@ -4897,9 +5031,9 @@
 
         .time-block-content {
             display: flex;
-            align-items: center;
-            gap: 4px;
-            white-space: nowrap;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
             overflow: hidden;
             flex: 1;
             min-width: 0;
@@ -4912,6 +5046,35 @@
             white-space: nowrap;
             font-weight: 500;
             cursor: default;
+            width: 100%;
+        }
+
+        .time-block-task {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            white-space: nowrap;
+            font-size: 0.7rem;
+            color: var(--cal-item-text);
+            opacity: 0.85;
+            width: 100%;
+        }
+
+        .time-block-task span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .time-block-overflow {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.65rem;
+            color: var(--cal-item-text);
+            opacity: 0.7;
+            font-style: italic;
+            width: 100%;
         }
 
         .time-block-inline-input {
@@ -5567,9 +5730,10 @@
 
         /* Notes panel header meeting time */
         .notes-header-meeting-time {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: #8e8e93;
             font-weight: normal;
+            margin-right: 0.5rem;
         }
 
         /* Empty state */
@@ -5614,12 +5778,24 @@
             color: var(--notes-text-secondary);
         }
 
+        /* Hide empty state when panel is collapsed or minimized */
+        .panel.collapsed .notes-empty-state,
+        .panel.minimized .notes-empty-state {
+            display: none !important;
+        }
+
         /* Editor area */
         .notes-editor-area {
             flex: 1;
             display: flex;
             overflow-y: auto;
             position: relative;
+        }
+
+        .notes-editor-container {
+            display: flex;
+            flex: 1;
+            overflow-y: auto;
         }
 
         /* Gutter (line numbers) */
@@ -6515,6 +6691,80 @@
             width: 450px;
         }
 
+        .modal-content-manage-timeblock {
+            width: 450px;
+        }
+
+        .time-block-tasks-list {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .time-block-task-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            cursor: move;
+        }
+
+        .time-block-task-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .time-block-task-item.dragging {
+            opacity: 0.5;
+        }
+
+        .time-block-task-drag-handle {
+            color: #6c757d;
+            cursor: grab;
+            font-size: 0.9rem;
+        }
+
+        .time-block-task-checkbox {
+            color: #6c757d;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .time-block-task-name {
+            flex: 1;
+            font-size: 0.875rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .time-block-task-remove {
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 2px 4px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .time-block-task-remove:hover {
+            background: #fff5f5;
+        }
+
+        .time-block-no-tasks {
+            color: #6c757d;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.875rem;
+        }
+
         /* Template content preview box */
         .template-preview-box {
             min-height: 200px;
@@ -6841,7 +7091,7 @@
                                     <div class="signal-noise-strip signal-strip"><span>SIGNAL</span></div>
                                     <div class="signal-noise-tasks" data-zone="signal" data-state-id="{{ state.id }}">
                                         {% for task in tasks %}{% if task.state == state and task.is_signal %}
-                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}" data-is-signal="true" data-signal-slot="{{ task.signal_slot|default_if_none:'' }}">
+                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first or task.time_blocks.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}" data-is-signal="true" data-signal-slot="{{ task.signal_slot|default_if_none:'' }}">
                                             <div class="task-card-content">
                                                 <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                                 <div class="task-card-title">{{ task.title }}</div>
@@ -6856,7 +7106,7 @@
                                     <div class="signal-noise-strip noise-strip"><span>NOISE?</span></div>
                                     <div class="signal-noise-tasks" data-zone="noise" data-state-id="{{ state.id }}">
                                         {% for task in tasks %}{% if task.state == state and not task.is_signal %}
-                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}" data-is-signal="false">
+                                        <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first or task.time_blocks.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}" data-is-signal="false" data-noise-slot="{{ task.noise_slot|default_if_none:'' }}">
                                             <div class="task-card-content">
                                                 <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                                 <div class="task-card-title">{{ task.title }}</div>
@@ -6872,7 +7122,7 @@
                             <div class="state-group-body" data-state-id="{{ state.id }}">
                                 {% for task in tasks %}
                                 {% if task.state == state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first or task.time_blocks.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
@@ -6901,7 +7151,7 @@
                             <div class="state-group-body" data-state-id="none">
                                 {% for task in tasks %}
                                 {% if not task.state %}
-                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
+                                <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first or task.time_blocks.first %} scheduled{% endif %}" data-task-id="{{ task.id }}">
                                     <div class="task-card-content">
                                         <i class="bi bi-grip-vertical task-card-drag-handle"></i>
                                         <div class="task-card-title">{{ task.title }}</div>
@@ -6975,7 +7225,7 @@
                         <span class="panel-header-title" id="notes-header-title">Notes</span>
                     </div>
                     <div class="panel-header-right">
-                        <span class="notes-header-meeting-time" id="notes-header-meeting-time" style="display: none; font-size: 0.75rem; color: #8e8e93; margin-right: 0.5rem;"></span>
+                        <span class="notes-header-meeting-time initially-hidden" id="notes-header-meeting-time"></span>
                         <div class="panel-collapsed-metrics" id="notes-collapsed-metrics">
                             <!-- Metrics placeholder for future use -->
                         </div>
@@ -6995,9 +7245,9 @@
                     </div>
 
                     <!-- Editor area (hidden initially, shown when notes are active) -->
-                    <div class="notes-editor-area" id="notes-editor-area" style="display: none;">
+                    <div class="notes-editor-area initially-hidden" id="notes-editor-area">
                         <!-- Editor with gutter and content -->
-                        <div style="display: flex; flex: 1; overflow-y: auto;">
+                        <div class="notes-editor-container">
                             <!-- Gutter (line numbers) -->
                             <div class="notes-gutter" id="notes-gutter">
                                 <!-- Line numbers will be generated dynamically -->
@@ -7482,6 +7732,32 @@
         </div>
     </div>
 
+    <!-- Manage Time Block Tasks Modal -->
+    <div class="modal-overlay" id="manage-time-block-modal">
+        <div class="modal-content modal-content-manage-timeblock">
+            <div class="modal-title" id="manage-time-block-title">Manage Time Block</div>
+            <div class="modal-body">
+                <div class="modal-field-group">
+                    <label for="manage-time-block-name-input" class="modal-field-label">Name</label>
+                    <input type="text" class="modal-input modal-input-compact" id="manage-time-block-name-input" placeholder="Time block name">
+                </div>
+                <div class="modal-field-group">
+                    <label class="modal-field-label">Tasks</label>
+                    <div id="manage-time-block-tasks-list" class="time-block-tasks-list">
+                        <!-- Tasks will be dynamically inserted here -->
+                    </div>
+                    <div id="manage-time-block-no-tasks" class="time-block-no-tasks initially-hidden">
+                        No tasks assigned to this time block.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" id="manage-time-block-close">Close</button>
+                <button class="modal-btn modal-btn-primary" id="manage-time-block-save">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Task Detail Template Modal -->
     <div class="modal-overlay" id="template-modal">
         <div class="modal-content modal-content-template">
@@ -7557,6 +7833,16 @@
         taskSchedulesMap[{{ task.id }}] = [
             {% for schedule in task.schedules.all %}
             { id: {{ schedule.id }}, start_time: "{{ schedule.start_time.isoformat }}", end_time: "{{ schedule.end_time.isoformat }}" }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        {% endfor %}
+
+        // Store task time blocks for quick lookup
+        let taskTimeBlocksMap = {};
+        {% for task in tasks %}
+        taskTimeBlocksMap[{{ task.id }}] = [
+            {% for time_block in task.time_blocks.all %}
+            { id: {{ time_block.id }}, name: "{{ time_block.name|escapejs }}", start_time: "{{ time_block.start_time.isoformat }}", end_time: "{{ time_block.end_time.isoformat }}" }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
         {% endfor %}
@@ -8314,6 +8600,21 @@
             // Note: Near-abandoned tasks appear in dropdown but don't change icon color
         }
 
+        function getSectionCollapsed(section) {
+            const key = `deadline_section_${section}_collapsed`;
+            const stored = localStorage.getItem(key);
+            // Near Abandoned is collapsed by default, others expanded
+            if (stored === null) {
+                return section === 'nearAbandoned';
+            }
+            return stored === 'true';
+        }
+
+        function setSectionCollapsed(section, collapsed) {
+            const key = `deadline_section_${section}_collapsed`;
+            localStorage.setItem(key, collapsed.toString());
+        }
+
         function renderDeadlineDropdown() {
             const body = document.getElementById('deadline-dropdown-body');
             const warnings = getDeadlineWarnings();
@@ -8338,17 +8639,21 @@
             if (warnings.critical.length > 0) {
                 const displayTasks = warnings.critical.slice(0, LIMIT);
                 const remaining = warnings.critical.length - LIMIT;
+                const isCollapsed = getSectionCollapsed('critical');
                 html += `
-                    <div class="deadline-section">
+                    <div class="deadline-section ${isCollapsed ? 'collapsed' : ''}" data-section="critical">
                         <div class="deadline-section-title critical">
+                            <i class="bi bi-chevron-down section-chevron"></i>
                             <i class="bi bi-exclamation-circle-fill"></i>
                             Critical (${warnings.critical.length})
-                            <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                                <span class="settings-info-tooltip">Tasks marked as critical priority.</span>
+                            <span class="settings-info-icon" title="Tasks marked as critical priority">
+                                <i class="bi bi-info-circle"></i>
                             </span>
                         </div>
-                        ${displayTasks.map(task => renderCriticalTaskItem(task)).join('')}
-                        ${remaining > 0 ? `<div class="deadline-show-more" data-type="critical">${remaining} more...</div>` : ''}
+                        <div class="deadline-section-content">
+                            ${displayTasks.map(task => renderCriticalTaskItem(task)).join('')}
+                            ${remaining > 0 ? `<div class="deadline-show-more" data-type="critical">${remaining} more...</div>` : ''}
+                        </div>
                     </div>
                 `;
             }
@@ -8356,17 +8661,21 @@
             if (warnings.overdue.length > 0) {
                 const displayTasks = warnings.overdue.slice(0, LIMIT);
                 const remaining = warnings.overdue.length - LIMIT;
+                const isCollapsed = getSectionCollapsed('overdue');
                 html += `
-                    <div class="deadline-section">
+                    <div class="deadline-section ${isCollapsed ? 'collapsed' : ''}" data-section="overdue">
                         <div class="deadline-section-title overdue">
+                            <i class="bi bi-chevron-down section-chevron"></i>
                             <i class="bi bi-exclamation-circle-fill"></i>
                             Overdue (${warnings.overdue.length})
-                            <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                                <span class="settings-info-tooltip">Tasks past their deadline.</span>
+                            <span class="settings-info-icon" title="Tasks past their deadline">
+                                <i class="bi bi-info-circle"></i>
                             </span>
                         </div>
-                        ${displayTasks.map(task => renderDeadlineTaskItem(task, 'overdue')).join('')}
-                        ${remaining > 0 ? `<div class="deadline-show-more" data-type="overdue">${remaining} more...</div>` : ''}
+                        <div class="deadline-section-content">
+                            ${displayTasks.map(task => renderDeadlineTaskItem(task, 'overdue')).join('')}
+                            ${remaining > 0 ? `<div class="deadline-show-more" data-type="overdue">${remaining} more...</div>` : ''}
+                        </div>
                     </div>
                 `;
             }
@@ -8374,17 +8683,21 @@
             if (warnings.dueSoon.length > 0) {
                 const displayTasks = warnings.dueSoon.slice(0, LIMIT);
                 const remaining = warnings.dueSoon.length - LIMIT;
+                const isCollapsed = getSectionCollapsed('dueSoon');
                 html += `
-                    <div class="deadline-section">
+                    <div class="deadline-section ${isCollapsed ? 'collapsed' : ''}" data-section="dueSoon">
                         <div class="deadline-section-title due-soon">
+                            <i class="bi bi-chevron-down section-chevron"></i>
                             <i class="bi bi-clock-fill"></i>
                             Due Soon (${warnings.dueSoon.length})
-                            <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                                <span class="settings-info-tooltip">Tasks due within the next 3 days.</span>
+                            <span class="settings-info-icon" title="Tasks due within the next 3 days">
+                                <i class="bi bi-info-circle"></i>
                             </span>
                         </div>
-                        ${displayTasks.map(task => renderDeadlineTaskItem(task, 'due-soon')).join('')}
-                        ${remaining > 0 ? `<div class="deadline-show-more" data-type="dueSoon">${remaining} more...</div>` : ''}
+                        <div class="deadline-section-content">
+                            ${displayTasks.map(task => renderDeadlineTaskItem(task, 'due-soon')).join('')}
+                            ${remaining > 0 ? `<div class="deadline-show-more" data-type="dueSoon">${remaining} more...</div>` : ''}
+                        </div>
                     </div>
                 `;
             }
@@ -8392,22 +8705,89 @@
             if (warnings.nearAbandoned.length > 0) {
                 const displayTasks = warnings.nearAbandoned.slice(0, LIMIT);
                 const remaining = warnings.nearAbandoned.length - LIMIT;
+                const isCollapsed = getSectionCollapsed('nearAbandoned');
                 html += `
-                    <div class="deadline-section">
+                    <div class="deadline-section ${isCollapsed ? 'collapsed' : ''}" data-section="nearAbandoned">
                         <div class="deadline-section-title near-abandoned">
+                            <i class="bi bi-chevron-down section-chevron"></i>
                             <i class="bi bi-archive-fill"></i>
                             Near Abandoned (${warnings.nearAbandoned.length})
-                            <span class="settings-info-icon"><i class="bi bi-info-circle"></i>
-                                <span class="settings-info-tooltip">Tasks within 3 days of being auto-abandoned.</span>
+                            <span class="settings-info-icon" title="Tasks within 3 days of being auto-abandoned">
+                                <i class="bi bi-info-circle"></i>
                             </span>
                         </div>
-                        ${displayTasks.map(task => renderNearAbandonedItem(task)).join('')}
-                        ${remaining > 0 ? `<div class="deadline-show-more" data-type="nearAbandoned">${remaining} more...</div>` : ''}
+                        <div class="deadline-section-content">
+                            ${displayTasks.map(task => renderNearAbandonedItem(task)).join('')}
+                            ${remaining > 0 ? `<div class="deadline-show-more" data-type="nearAbandoned">${remaining} more...</div>` : ''}
+                        </div>
                     </div>
                 `;
             }
 
             body.innerHTML = html;
+
+            // Create or reuse a single tooltip element
+            let tooltip = document.querySelector('.deadline-tooltip');
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.className = 'deadline-tooltip';
+                document.body.appendChild(tooltip);
+            }
+
+            // Add tooltip handlers
+            body.querySelectorAll('.settings-info-icon').forEach(icon => {
+                const tooltipText = icon.getAttribute('title');
+                if (!tooltipText) return; // Skip if no tooltip text
+
+                icon.removeAttribute('title'); // Remove to prevent native tooltip
+
+                icon.addEventListener('mouseenter', (e) => {
+                    const rect = icon.getBoundingClientRect();
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.display = 'block';
+
+                    // Position to the right of the icon
+                    tooltip.style.left = (rect.right + 10) + 'px';
+
+                    // Center vertically with the icon
+                    requestAnimationFrame(() => {
+                        const tooltipHeight = tooltip.offsetHeight;
+                        tooltip.style.top = (rect.top + rect.height / 2 - tooltipHeight / 2) + 'px';
+                    });
+                });
+
+                icon.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                });
+            });
+
+            // Hide tooltip on scroll
+            body.addEventListener('scroll', () => {
+                tooltip.style.display = 'none';
+            });
+
+            // Add collapse/expand handlers
+            body.querySelectorAll('.deadline-section-title').forEach(title => {
+                title.addEventListener('click', (e) => {
+                    // Don't toggle if clicking on info icon
+                    if (e.target.closest('.settings-info-icon')) {
+                        e.stopPropagation();
+                        return;
+                    }
+
+                    const section = title.closest('.deadline-section');
+                    const sectionName = section.dataset.section;
+                    const isCollapsed = section.classList.contains('collapsed');
+
+                    if (isCollapsed) {
+                        section.classList.remove('collapsed');
+                        setSectionCollapsed(sectionName, false);
+                    } else {
+                        section.classList.add('collapsed');
+                        setSectionCollapsed(sectionName, true);
+                    }
+                });
+            });
 
             body.querySelectorAll('.deadline-task-info').forEach(el => {
                 el.addEventListener('click', () => {
@@ -8552,6 +8932,11 @@
 
         function closeDeadlineDropdown() {
             document.getElementById('deadline-dropdown').classList.remove('active');
+            // Remove any lingering tooltips
+            const tooltip = document.querySelector('.deadline-tooltip');
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
         }
 
         function closeFilterDropdown() {
@@ -8709,6 +9094,8 @@
             taskTagsMap[task.id] = task.tags || [];
             // Initialize schedules for the new task
             taskSchedulesMap[task.id] = task.schedules || [];
+            // Initialize time blocks for the new task
+            taskTimeBlocksMap[task.id] = task.time_blocks || [];
             // Initialize deadline map for the new task
             taskDeadlinesMap[task.id] = {
                 deadline: task.deadline || null,
@@ -8720,7 +9107,7 @@
             // Helper to create a task card
             function createTaskCard(withHighlight) {
                 const card = document.createElement('div');
-                const isScheduled = (taskSchedulesMap[task.id] || []).length > 0;
+                const isScheduled = (taskSchedulesMap[task.id] || []).length > 0 || (taskTimeBlocksMap[task.id] || []).length > 0;
                 const terminalStateId = getTerminalStateId();
                 const isCompleted = task.state_id === terminalStateId;
                 const isAbandoned = abandonedStateId && task.state_id === abandonedStateId;
@@ -10517,8 +10904,9 @@
                             }
                         }
                     }
-                    // Rebuild signal slots to correct positions
+                    // Rebuild signal and noise slots to correct positions
                     updateSignalSlots();
+                    updateNoiseSlots();
                     updateSignalNoiseBorderGradient();
                 }
             }
@@ -10676,7 +11064,7 @@
                 card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
             }
             const isCritical = card ? card.classList.contains('critical') : false;
-            const isScheduled = (taskSchedulesMap[taskId] || []).length > 0;
+            const isScheduled = (taskSchedulesMap[taskId] || []).length > 0 || (taskTimeBlocksMap[taskId] || []).length > 0;
             const taskTags = taskTagsMap[taskId] || [];
             const terminalStateId = getTerminalStateId();
             const taskData = taskDeadlinesMap[taskId];
@@ -11471,16 +11859,20 @@
         function renderPanelScheduledDates(taskId) {
             const section = document.getElementById('panel-scheduled-section');
             const container = document.getElementById('panel-scheduled-dates');
+            const removeButton = document.getElementById('panel-remove-from-calendar');
             if (!section || !container) return;
 
             const schedules = taskSchedulesMap[taskId] || [];
+            const timeBlocks = taskTimeBlocksMap[taskId] || [];
 
-            if (schedules.length === 0) {
+            if (schedules.length === 0 && timeBlocks.length === 0) {
                 section.style.display = 'none';
+                if (removeButton) removeButton.style.display = 'none';
                 return;
             }
 
             section.style.display = 'block';
+            if (removeButton) removeButton.style.display = 'block';
 
             // Remove existing chips
             const existingChips = container.querySelectorAll('.scheduled-date-chip');
@@ -11490,7 +11882,7 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // Collect unique dates from schedules and sort them
+            // Collect unique dates from schedules and time blocks, and sort them
             const uniqueDates = [];
             const seenDates = new Set();
 
@@ -11500,6 +11892,15 @@
                 if (!seenDates.has(dateKey)) {
                     seenDates.add(dateKey);
                     uniqueDates.push(scheduleDate);
+                }
+            });
+
+            timeBlocks.forEach(timeBlock => {
+                const timeBlockDate = new Date(timeBlock.start_time);
+                const dateKey = timeBlockDate.toISOString().split('T')[0];
+                if (!seenDates.has(dateKey)) {
+                    seenDates.add(dateKey);
+                    uniqueDates.push(timeBlockDate);
                 }
             });
 
@@ -12352,6 +12753,11 @@
         document.addEventListener('click', function(e) {
             if (!deadlineDropdown.contains(e.target) && e.target !== deadlineWarningIcon) {
                 closeDeadlineDropdown();
+                // Also hide the tooltip
+                const tooltip = document.querySelector('.deadline-tooltip');
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                }
             }
         });
 
@@ -12909,12 +13315,13 @@
             tasks.forEach(task => {
                 const card = document.createElement('div');
                 const schedules = taskSchedulesMap[task.id] || [];
-                const isScheduled = schedules.length > 0;
+                const timeBlocks = taskTimeBlocksMap[task.id] || [];
+                const isScheduled = schedules.length > 0 || timeBlocks.length > 0;
                 card.className = 'task-card' + (task.isCritical ? ' critical' : '') + (isScheduled ? ' scheduled' : '') + (task.isCompleted ? ' completed' : '');
                 card.dataset.taskId = task.id;
 
                 // In Tags view: show State + Scheduled pills (not Tags - already grouping by tags)
-                const schedulePillHtml = getSchedulePillHtml(schedules);
+                const schedulePillHtml = getSchedulePillHtml(schedules, timeBlocks);
                 const criticalIconHtml = task.isCritical ? '<i class="bi bi-exclamation-circle-fill task-critical-icon" title="Critical: High priority task requiring immediate attention"></i>' : '';
                 const statePillHtml = task.stateName ? `<span class="task-state-pill">${escapeHtml(task.stateName)}</span>` : '';
                 const hasIcons = task.isCritical || task.stateName || schedulePillHtml;
@@ -13153,7 +13560,8 @@
 
             allTasks.forEach(task => {
                 const schedules = taskSchedulesMap[task.id] || [];
-                const scheduleLabel = getScheduleLabel(schedules);
+                const timeBlocks = taskTimeBlocksMap[task.id] || [];
+                const scheduleLabel = getScheduleLabel(schedules, timeBlocks);
 
                 if (scheduleLabel === 'today') {
                     scheduleGroups.today.tasks.push(task);
@@ -13298,7 +13706,8 @@
                 if (abandonedStateId && taskStateId === abandonedStateId) return;
 
                 const schedules = taskSchedulesMap[taskId] || [];
-                const scheduleLabel = getScheduleLabel(schedules);
+                const timeBlocks = taskTimeBlocksMap[taskId] || [];
+                const scheduleLabel = getScheduleLabel(schedules, timeBlocks);
 
                 if (scheduleLabel === 'today') todayCount++;
                 else if (scheduleLabel === 'tomorrow') tomorrowCount++;
@@ -13513,8 +13922,8 @@
         }
 
         // Get schedule label for a task's schedules: "today", "tomorrow", "future", or null (past only)
-        function getScheduleLabel(schedules) {
-            if (!schedules || schedules.length === 0) return null;
+        function getScheduleLabel(schedules, timeBlocks) {
+            if ((!schedules || schedules.length === 0) && (!timeBlocks || timeBlocks.length === 0)) return null;
 
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -13525,18 +13934,38 @@
             let hasTomorrow = false;
             let hasFuture = false;
 
-            for (const schedule of schedules) {
-                const scheduleDate = new Date(schedule.start_time);
-                const scheduleDateOnly = new Date(scheduleDate.getFullYear(), scheduleDate.getMonth(), scheduleDate.getDate());
+            // Check schedules
+            if (schedules) {
+                for (const schedule of schedules) {
+                    const scheduleDate = new Date(schedule.start_time);
+                    const scheduleDateOnly = new Date(scheduleDate.getFullYear(), scheduleDate.getMonth(), scheduleDate.getDate());
 
-                if (scheduleDateOnly.getTime() === today.getTime()) {
-                    hasToday = true;
-                } else if (scheduleDateOnly.getTime() === tomorrow.getTime()) {
-                    hasTomorrow = true;
-                } else if (scheduleDateOnly >= dayAfterTomorrow) {
-                    hasFuture = true;
+                    if (scheduleDateOnly.getTime() === today.getTime()) {
+                        hasToday = true;
+                    } else if (scheduleDateOnly.getTime() === tomorrow.getTime()) {
+                        hasTomorrow = true;
+                    } else if (scheduleDateOnly >= dayAfterTomorrow) {
+                        hasFuture = true;
+                    }
+                    // Past dates are ignored
                 }
-                // Past dates are ignored
+            }
+
+            // Check time blocks
+            if (timeBlocks) {
+                for (const timeBlock of timeBlocks) {
+                    const blockDate = new Date(timeBlock.start_time);
+                    const blockDateOnly = new Date(blockDate.getFullYear(), blockDate.getMonth(), blockDate.getDate());
+
+                    if (blockDateOnly.getTime() === today.getTime()) {
+                        hasToday = true;
+                    } else if (blockDateOnly.getTime() === tomorrow.getTime()) {
+                        hasTomorrow = true;
+                    } else if (blockDateOnly >= dayAfterTomorrow) {
+                        hasFuture = true;
+                    }
+                    // Past dates are ignored
+                }
             }
 
             // Return the most urgent/relevant label
@@ -13547,8 +13976,8 @@
         }
 
         // Generate schedule pill HTML
-        function getSchedulePillHtml(schedules) {
-            const label = getScheduleLabel(schedules);
+        function getSchedulePillHtml(schedules, timeBlocks) {
+            const label = getScheduleLabel(schedules, timeBlocks);
             if (!label) return '';
 
             const displayText = label.charAt(0).toUpperCase() + label.slice(1);
@@ -14440,16 +14869,60 @@
                 const contentWrapper = document.createElement('div');
                 contentWrapper.className = 'time-block-content';
 
-                // Add title text
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'time-block-title';
-                titleSpan.textContent = block.name;
-                contentWrapper.appendChild(titleSpan);
+                // Display logic based on number of tasks
+                if (!block.tasks || block.tasks.length === 0) {
+                    // No tasks: show time block name
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'time-block-title';
+                    titleSpan.textContent = block.name;
+                    contentWrapper.appendChild(titleSpan);
+                } else if (block.tasks.length === 1) {
+                    // One task: show task icon + task name
+                    const taskLine = document.createElement('div');
+                    taskLine.className = 'time-block-task';
 
-                // Add double-click to edit
+                    // Add task icon
+                    const checkbox = document.createElement('i');
+                    checkbox.className = 'bi bi-card-checklist';
+                    checkbox.style.marginRight = '4px';
+                    checkbox.style.fontSize = '0.65rem';
+                    taskLine.appendChild(checkbox);
+
+                    // Add task text
+                    const taskText = document.createElement('span');
+                    taskText.textContent = block.tasks[0].title;
+                    taskLine.appendChild(taskText);
+
+                    contentWrapper.appendChild(taskLine);
+                } else {
+                    // Multiple tasks: show task icon + "X Tasks"
+                    const taskLine = document.createElement('div');
+                    taskLine.className = 'time-block-task';
+
+                    // Add task icon
+                    const checkbox = document.createElement('i');
+                    checkbox.className = 'bi bi-card-checklist';
+                    checkbox.style.marginRight = '4px';
+                    checkbox.style.fontSize = '0.65rem';
+                    taskLine.appendChild(checkbox);
+
+                    // Add count text
+                    const taskText = document.createElement('span');
+                    taskText.textContent = `Time Blocked to Work on ${block.tasks.length} Tasks`;
+                    taskLine.appendChild(taskText);
+
+                    contentWrapper.appendChild(taskLine);
+                }
+
+                // Add double-click to edit/manage
                 blockEl.addEventListener('dblclick', function(e) {
                     e.stopPropagation();
-                    openEditTimeBlockModal(block.id);
+                    // Open manage modal if block has tasks, otherwise open simple edit modal
+                    if (block.tasks && block.tasks.length > 0) {
+                        openManageTimeBlockModal(block.id);
+                    } else {
+                        openEditTimeBlockModal(block.id);
+                    }
                 });
 
                 // Add right-click context menu
@@ -14592,6 +15065,9 @@
                 // Make time block draggable
                 blockEl.draggable = true;
                 setupTimeBlockDragEvents(blockEl);
+
+                // Make time block a drop zone for tasks
+                setupTimeBlockDropZone(blockEl);
 
                 hourContent.appendChild(blockEl);
             });
@@ -14900,6 +15376,215 @@
                 } else if (e.key === 'Escape') {
                     editTimeBlockModal.classList.remove('active');
                     currentEditingTimeBlockId = null;
+                }
+            });
+        }
+
+        // Manage Time Block Modal (for time blocks with tasks)
+        let currentManagingTimeBlockId = null;
+        const manageTimeBlockModal = document.getElementById('manage-time-block-modal');
+        const manageTimeBlockNameInput = document.getElementById('manage-time-block-name-input');
+        const manageTimeBlockTasksList = document.getElementById('manage-time-block-tasks-list');
+        const manageTimeBlockNoTasks = document.getElementById('manage-time-block-no-tasks');
+        const manageTimeBlockSave = document.getElementById('manage-time-block-save');
+        const manageTimeBlockClose = document.getElementById('manage-time-block-close');
+
+        function openManageTimeBlockModal(blockId) {
+            const block = timeBlocks.find(b => b.id === blockId);
+            if (!block) return;
+
+            currentManagingTimeBlockId = blockId;
+            manageTimeBlockNameInput.value = block.name;
+
+            // Render tasks
+            renderManageTimeBlockTasks(block);
+
+            manageTimeBlockModal.classList.add('active');
+            manageTimeBlockNameInput.focus();
+        }
+
+        function renderManageTimeBlockTasks(block) {
+            manageTimeBlockTasksList.innerHTML = '';
+
+            if (!block.tasks || block.tasks.length === 0) {
+                manageTimeBlockTasksList.style.display = 'none';
+                manageTimeBlockNoTasks.style.display = 'block';
+                return;
+            }
+
+            manageTimeBlockTasksList.style.display = 'block';
+            manageTimeBlockNoTasks.style.display = 'none';
+
+            block.tasks.forEach((task, index) => {
+                const taskItem = document.createElement('div');
+                taskItem.className = 'time-block-task-item';
+                taskItem.dataset.taskId = task.id;
+                taskItem.draggable = block.tasks.length > 1; // Only draggable if multiple tasks
+
+                // Drag handle (only show if multiple tasks)
+                if (block.tasks.length > 1) {
+                    const dragHandle = document.createElement('i');
+                    dragHandle.className = 'bi bi-grip-vertical time-block-task-drag-handle';
+                    taskItem.appendChild(dragHandle);
+                }
+
+                // Task name
+                const taskName = document.createElement('span');
+                taskName.className = 'time-block-task-name';
+                taskName.textContent = task.title;
+                taskItem.appendChild(taskName);
+
+                // Remove button
+                const removeBtn = document.createElement('i');
+                removeBtn.className = 'bi bi-x-circle time-block-task-remove';
+                removeBtn.title = 'Remove task';
+                removeBtn.addEventListener('click', () => removeTaskFromTimeBlock(block.id, task.id));
+                taskItem.appendChild(removeBtn);
+
+                manageTimeBlockTasksList.appendChild(taskItem);
+            });
+
+            // Setup drag and drop for reordering
+            setupTaskReordering();
+        }
+
+        async function removeTaskFromTimeBlock(blockId, taskId) {
+            try {
+                const response = await fetch(`/tasks/api/time-blocks/${blockId}/remove-task/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ task_id: taskId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local data
+                    const block = timeBlocks.find(b => b.id === blockId);
+                    if (block) {
+                        block.tasks = data.time_block.tasks;
+                        renderManageTimeBlockTasks(block);
+                    }
+
+                    // Update taskTimeBlocksMap - remove this time block from the task
+                    if (taskTimeBlocksMap[taskId]) {
+                        taskTimeBlocksMap[taskId] = taskTimeBlocksMap[taskId].filter(tb => tb.id !== blockId);
+                    }
+
+                    // Update the task card's scheduled indicator and pill
+                    updateTaskScheduledClass(taskId);
+
+                    renderTimeBlocks();
+                } else {
+                    console.error('Failed to remove task:', data.error);
+                }
+            } catch (error) {
+                console.error('Error removing task:', error);
+            }
+        }
+
+        function setupTaskReordering() {
+            const taskItems = manageTimeBlockTasksList.querySelectorAll('.time-block-task-item');
+            let draggedItem = null;
+
+            taskItems.forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    draggedItem = this;
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                item.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    draggedItem = null;
+                });
+
+                item.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    if (draggedItem === this) return;
+
+                    const allItems = [...manageTimeBlockTasksList.querySelectorAll('.time-block-task-item:not(.dragging)')];
+                    const afterElement = this;
+
+                    if (draggedItem) {
+                        manageTimeBlockTasksList.insertBefore(draggedItem, afterElement);
+                    }
+                });
+            });
+        }
+
+        async function saveManageTimeBlock() {
+            const newName = manageTimeBlockNameInput.value.trim();
+            if (!newName || !currentManagingTimeBlockId) {
+                manageTimeBlockModal.classList.remove('active');
+                currentManagingTimeBlockId = null;
+                return;
+            }
+
+            // Capture current task order from the DOM
+            const taskItems = manageTimeBlockTasksList.querySelectorAll('.time-block-task-item');
+            const taskIds = Array.from(taskItems).map(item => parseInt(item.dataset.taskId));
+
+            // Update name
+            try {
+                const nameResponse = await fetch(`/tasks/api/time-blocks/${currentManagingTimeBlockId}/update/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ name: newName })
+                });
+
+                const nameData = await nameResponse.json();
+                if (nameData.success) {
+                    const block = timeBlocks.find(b => b.id === currentManagingTimeBlockId);
+                    if (block) {
+                        block.name = nameData.time_block.name;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating time block name:', error);
+            }
+
+            // Update task order
+            try {
+                const orderResponse = await fetch(`/tasks/api/time-blocks/${currentManagingTimeBlockId}/reorder-tasks/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ task_ids: taskIds })
+                });
+
+                const orderData = await orderResponse.json();
+                if (orderData.success) {
+                    const block = timeBlocks.find(b => b.id === currentManagingTimeBlockId);
+                    if (block) {
+                        block.tasks = orderData.time_block.tasks;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating task order:', error);
+            }
+
+            // Re-render to show updated name and task order
+            renderTimeBlocks();
+
+            manageTimeBlockModal.classList.remove('active');
+            currentManagingTimeBlockId = null;
+        }
+
+        if (manageTimeBlockSave) {
+            manageTimeBlockSave.addEventListener('click', saveManageTimeBlock);
+        }
+
+        if (manageTimeBlockClose) {
+            manageTimeBlockClose.addEventListener('click', function() {
+                manageTimeBlockModal.classList.remove('active');
+                currentManagingTimeBlockId = null;
+            });
+        }
+
+        if (manageTimeBlockNameInput) {
+            manageTimeBlockNameInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    manageTimeBlockModal.classList.remove('active');
+                    currentManagingTimeBlockId = null;
                 }
             });
         }
@@ -16327,6 +17012,81 @@
             });
         }
 
+        // Make time block a drop zone for tasks
+        function setupTimeBlockDropZone(blockEl) {
+            blockEl.addEventListener('dragover', function(e) {
+                // Only accept tasks being dragged, not time blocks
+                if (!draggedTaskCard) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+                this.style.backgroundColor = 'rgba(122, 170, 104, 0.2)'; // Light green highlight
+            });
+
+            blockEl.addEventListener('dragleave', function(e) {
+                // Remove highlight when leaving
+                this.style.backgroundColor = '';
+            });
+
+            blockEl.addEventListener('drop', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Remove highlight
+                this.style.backgroundColor = '';
+
+                // Only handle task drops, not time blocks
+                if (!draggedTaskCard) return;
+
+                const taskId = draggedTaskCard.dataset.taskId;
+                const blockId = this.dataset.blockId;
+
+                try {
+                    const response = await fetch(`/tasks/api/time-blocks/${blockId}/add-task/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify({ task_id: taskId })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update the time block in the timeBlocks array
+                        const block = timeBlocks.find(b => b.id === parseInt(blockId));
+                        if (block) {
+                            block.tasks = data.time_block.tasks;
+                        }
+
+                        // Update taskTimeBlocksMap for the task
+                        const timeBlockInfo = {
+                            id: data.time_block.id,
+                            name: data.time_block.name,
+                            start_time: data.time_block.start,
+                            end_time: data.time_block.end
+                        };
+
+                        if (!taskTimeBlocksMap[taskId]) {
+                            taskTimeBlocksMap[taskId] = [];
+                        }
+
+                        // Add if not already present
+                        if (!taskTimeBlocksMap[taskId].find(tb => tb.id === timeBlockInfo.id)) {
+                            taskTimeBlocksMap[taskId].push(timeBlockInfo);
+                        }
+
+                        // Update the task card to show scheduled indicator and pill
+                        updateTaskScheduledClass(taskId);
+
+                        // Re-render time blocks to show the updated tasks
+                        renderTimeBlocks();
+                    } else {
+                        console.error('Failed to add task to time block:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error adding task to time block:', error);
+                }
+            });
+        }
+
         // Update a time block's times on the server
         async function updateTimeBlockTime(blockId, startTimeUTC, endTimeUTC) {
             try {
@@ -16466,10 +17226,11 @@
         // Show confirmation before removing task from calendar
         async function confirmRemoveFromCalendar(taskId) {
             const schedules = taskSchedulesMap[taskId] || [];
-            if (schedules.length === 0) return;
+            const timeBlocks = taskTimeBlocksMap[taskId] || [];
+            if (schedules.length === 0 && timeBlocks.length === 0) return;
 
             const confirmed = await showConfirmModal(
-                'This will remove the task from all scheduled days on your calendar.',
+                'This will remove the task from all scheduled days and time blocks on your calendar.',
                 'Remove from Calendar',
                 'Remove'
             );
@@ -16479,14 +17240,15 @@
             }
         }
 
-        // Remove all schedules for a task (unschedule from all future days)
+        // Remove all schedules and time blocks for a task (unschedule from all future days)
         async function unscheduleAllDates(taskId) {
             const schedules = taskSchedulesMap[taskId] || [];
-            if (schedules.length === 0) return;
+            const taskTimeBlocksList = taskTimeBlocksMap[taskId] || [];
+            if (schedules.length === 0 && taskTimeBlocksList.length === 0) return;
 
             try {
                 // Delete all schedules
-                const deletePromises = schedules.map(schedule =>
+                const scheduleDeletePromises = schedules.map(schedule =>
                     fetch(`/tasks/api/schedules/${schedule.id}/delete/`, {
                         method: 'DELETE',
                         headers: {
@@ -16495,10 +17257,32 @@
                     })
                 );
 
-                await Promise.all(deletePromises);
+                // Remove task from all time blocks and get updated data
+                const timeBlockRemovePromises = taskTimeBlocksList.map(async timeBlock => {
+                    const response = await fetch(`/tasks/api/time-blocks/${timeBlock.id}/remove-task/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ task_id: taskId })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update the global timeBlocks array with the updated block
+                        const blockIndex = timeBlocks.findIndex(b => b.id === data.time_block.id);
+                        if (blockIndex !== -1) {
+                            timeBlocks[blockIndex].tasks = data.time_block.tasks;
+                        }
+                    }
+                    return data;
+                });
 
-                // Clear local taskSchedulesMap
+                await Promise.all([...scheduleDeletePromises, ...timeBlockRemovePromises]);
+
+                // Clear local maps
                 taskSchedulesMap[taskId] = [];
+                taskTimeBlocksMap[taskId] = [];
 
                 // Update task card scheduled class
                 updateTaskScheduledClass(taskId);
@@ -16509,6 +17293,7 @@
                 }
 
                 renderScheduledTasks();
+                renderTimeBlocks();
                 initializeScheduledIcons();
             } catch (error) {
                 console.error('Error unscheduling all dates:', error);
@@ -16519,7 +17304,8 @@
         function updateTaskScheduledClass(taskId) {
             const cards = document.querySelectorAll(`.task-card[data-task-id="${taskId}"]`);
             const schedules = taskSchedulesMap[taskId] || [];
-            const scheduleLabel = getScheduleLabel(schedules);
+            const timeBlocks = taskTimeBlocksMap[taskId] || [];
+            const scheduleLabel = getScheduleLabel(schedules, timeBlocks);
             const isScheduled = scheduleLabel !== null;
 
             cards.forEach(card => {
@@ -17388,24 +18174,38 @@
         let draggedTaskCards = []; // For multi-select drag
         let taskDropIndicator = null;
         let currentDragTaskId = null; // Track dragged task ID for both task cards and calendar items
+        let lastDropTimestamp = 0; // Timestamp-based guard to prevent double-firing drop events
 
         // Create drop indicator element for task cards
         function createTaskDropIndicator() {
             const indicator = document.createElement('div');
             indicator.className = 'task-drop-indicator';
-            indicator.style.cssText = 'height: 3px; background: #6B9080; border-radius: 2px; margin: 0.35rem 0;';
+            indicator.style.cssText = 'height: 2px; background: #6B9080; border-radius: 1px; margin: 0; pointer-events: none;';
             return indicator;
         }
 
         // Get drop position within state-group-body
-        function getTaskDropPosition(container, y) {
+        // Returns position='swap' for same-state drags when over a card
+        // Returns position='before'/'after' for cross-state drags based on which half of card
+        function getTaskDropPosition(container, y, isSameState = true) {
             const cards = [...container.querySelectorAll('.task-card:not(.dragging)')];
 
             for (const card of cards) {
                 const rect = card.getBoundingClientRect();
-                const midpoint = rect.top + rect.height / 2;
-                if (y < midpoint) {
-                    return { element: card, position: 'before' };
+                // Check if we're within the card's bounds (with a small margin for gaps)
+                if (y >= rect.top - 2 && y <= rect.bottom + 2) {
+                    if (isSameState) {
+                        // Same state - swap operation
+                        return { element: card, position: 'swap' };
+                    } else {
+                        // Cross-state - insert before or after based on which half
+                        const midpoint = rect.top + rect.height / 2;
+                        if (y < midpoint) {
+                            return { element: card, position: 'before' };
+                        } else {
+                            return { element: card, position: 'after' };
+                        }
+                    }
                 }
             }
             return { element: null, position: 'end' };
@@ -17552,6 +18352,52 @@
         // Alias for backward compatibility in handleTaskStateChange
         const updateSignalPlaceholders = updateSignalSlots;
 
+        // Noise zone slot management — arranges noise zone into groups of 3 fixed slots
+        function updateNoiseSlots() {
+            document.querySelectorAll('.signal-noise-tasks[data-zone="noise"]').forEach(zone => {
+                const taskCards = [...zone.querySelectorAll('.task-card')];
+
+                // Determine how many slots we need (minimum 3, then groups of 3)
+                const taskCount = taskCards.length;
+                const minSlots = 3;
+                const totalSlots = Math.max(minSlots, Math.ceil(taskCount / 3) * 3);
+                const slots = Array(totalSlots).fill(null);
+
+                // Place cards into their assigned slots
+                taskCards.forEach(card => {
+                    const slot = parseInt(card.dataset.noiseSlot);
+                    if (!isNaN(slot) && slot >= 0 && slot < totalSlots && slots[slot] === null) {
+                        slots[slot] = card;
+                    }
+                });
+
+                // Cards without a valid slot go into first available slot
+                taskCards.forEach(card => {
+                    const slot = parseInt(card.dataset.noiseSlot);
+                    if (isNaN(slot) || slot < 0 || slot >= totalSlots || slots[slot] !== card) {
+                        const emptyIdx = slots.indexOf(null);
+                        if (emptyIdx !== -1) {
+                            slots[emptyIdx] = card;
+                            card.dataset.noiseSlot = String(emptyIdx);
+                        }
+                    }
+                });
+
+                // Rebuild zone: N children (groups of 3), each a task card or placeholder
+                zone.innerHTML = '';
+                for (let i = 0; i < totalSlots; i++) {
+                    if (slots[i]) {
+                        zone.appendChild(slots[i]);
+                    } else {
+                        const ph = document.createElement('div');
+                        ph.className = 'noise-placeholder';
+                        ph.dataset.slot = String(i);
+                        zone.appendChild(ph);
+                    }
+                }
+            });
+        }
+
         // Dynamically set the left border gradient to match strip colors at each vertical point
         function updateSignalNoiseBorderGradient() {
             document.querySelectorAll('.signal-noise-body').forEach(body => {
@@ -17585,38 +18431,102 @@
 
         // Drop handler for regular (non-signal) drop zones
         function setupRegularDropZone(dropZone) {
+            let lastIndicatorPosition = null; // Cache to prevent DOM thrashing
+
             dropZone.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 if (!draggedTaskCard) return;
 
                 e.dataTransfer.dropEffect = 'move';
-                this.classList.add('drag-over');
 
-                const { element, position } = getTaskDropPosition(this, e.clientY);
+                // Determine if this is a same-state or cross-state drag
+                const draggedStateGroup = draggedTaskCard.closest('.state-group');
+                const draggedStateId = draggedStateGroup ? draggedStateGroup.dataset.stateId : null;
+                const targetStateId = this.dataset.stateId;
+                const isSameState = draggedStateId === targetStateId;
 
-                if (!taskDropIndicator) {
-                    taskDropIndicator = createTaskDropIndicator();
-                }
+                // Never show section background highlight
+                this.classList.remove('drag-over');
 
-                if (position === 'end') {
-                    this.appendChild(taskDropIndicator);
-                } else if (element) {
-                    element.parentElement.insertBefore(taskDropIndicator, element);
+                // Regular states always use insert mode (green line) - never swap
+                const useSwapMode = false;
+                const { element, position } = getTaskDropPosition(this, e.clientY, useSwapMode);
+
+                // Always use insert mode with line indicator
+                if (useSwapMode) {
+                    // Same state - swap mode with task highlighting
+                    // Remove drop indicator if present
+                    if (taskDropIndicator && taskDropIndicator.parentElement) {
+                        taskDropIndicator.remove();
+                        lastIndicatorPosition = null;
+                    }
+
+                    // Highlight the target card (or clear if at end)
+                    const prevHighlight = this.querySelector('.signal-slot-highlight');
+                    if (element && position === 'swap') {
+                        if (prevHighlight !== element) {
+                            if (prevHighlight) prevHighlight.classList.remove('signal-slot-highlight');
+                            element.classList.add('signal-slot-highlight');
+                        }
+                    } else {
+                        // At end or no target - clear highlight
+                        if (prevHighlight) prevHighlight.classList.remove('signal-slot-highlight');
+                    }
+                } else {
+                    // Cross-state - insertion mode with line indicator
+                    // Remove highlight if present
+                    const highlight = this.querySelector('.signal-slot-highlight');
+                    if (highlight) highlight.classList.remove('signal-slot-highlight');
+
+                    if (!taskDropIndicator) {
+                        taskDropIndicator = createTaskDropIndicator();
+                    }
+
+                    // Calculate desired position
+                    let desiredNextSibling = null;
+                    if (position === 'before' && element) {
+                        desiredNextSibling = element;
+                    } else if (position === 'after' && element) {
+                        desiredNextSibling = element.nextElementSibling;
+                    } else if (position === 'end') {
+                        desiredNextSibling = null; // Will append at end
+                    }
+
+                    // Only move indicator if position actually changed
+                    const positionKey = `${position}-${element?.dataset?.taskId || 'end'}`;
+
+                    if (lastIndicatorPosition !== positionKey) {
+                        lastIndicatorPosition = positionKey;
+
+                        // Place the line indicator
+                        if (desiredNextSibling) {
+                            this.insertBefore(taskDropIndicator, desiredNextSibling);
+                        } else {
+                            this.appendChild(taskDropIndicator);
+                        }
+                    }
                 }
             });
 
             dropZone.addEventListener('dragleave', function(e) {
                 if (!this.contains(e.relatedTarget)) {
                     this.classList.remove('drag-over');
+                    lastIndicatorPosition = null;
                     if (taskDropIndicator && taskDropIndicator.parentElement === this) {
                         taskDropIndicator.remove();
                     }
+                    // Remove swap highlight
+                    const highlight = this.querySelector('.signal-slot-highlight');
+                    if (highlight) highlight.classList.remove('signal-slot-highlight');
                 }
             });
 
             dropZone.addEventListener('drop', async function(e) {
                 e.preventDefault();
                 this.classList.remove('drag-over');
+                // Remove swap highlight
+                const highlight = this.querySelector('.signal-slot-highlight');
+                if (highlight) highlight.classList.remove('signal-slot-highlight');
                 if (!draggedTaskCard) return;
 
                 const zone = this.dataset.zone; // 'noise' or undefined
@@ -17625,7 +18535,14 @@
                 const rawNewStateId = this.dataset.stateId;
                 const newStateId = rawNewStateId === 'none' ? null : parseInt(rawNewStateId);
 
-                const { element, position } = getTaskDropPosition(this, e.clientY);
+                // Determine if this is same-state or cross-state drop
+                const draggedStateGroup = draggedTaskCard.closest('.state-group');
+                const draggedStateId = draggedStateGroup ? draggedStateGroup.dataset.stateId : null;
+                const isSameState = draggedStateId === this.dataset.stateId;
+
+                // Regular states always use insert mode - never swap
+                const useSwapMode = false;
+                const { element, position } = getTaskDropPosition(this, e.clientY, useSwapMode);
 
                 if (taskDropIndicator && taskDropIndicator.parentElement) {
                     taskDropIndicator.remove();
@@ -17643,14 +18560,57 @@
                     return { card, oldBody, oldStateId, oldZone, changedState: newStateId !== oldStateId };
                 });
 
-                const sortedCards = [...cardsToMove].sort((a, b) => {
-                    return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
-                });
+                // Handle swap vs insert
+                // ONLY allow swapping for same-state drags
+                if (useSwapMode && position === 'swap' && element && cardsToMove.length === 1) {
+                    // SWAP: Exchange positions of dragged card and target card (same state only)
+                    const draggedCard = cardsToMove[0];
+                    const targetCard = element;
 
-                if (position === 'end') {
-                    sortedCards.forEach(card => this.appendChild(card));
-                } else if (element) {
-                    sortedCards.forEach(card => element.parentElement.insertBefore(card, element));
+                    // Double-check they're in the same container
+                    if (draggedCard.parentElement === this) {
+                        // Get all cards in order
+                        const allCards = [...this.querySelectorAll('.task-card')];
+                        const draggedIndex = allCards.indexOf(draggedCard);
+                        const targetIndex = allCards.indexOf(targetCard);
+
+                        if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+                            // Swap in DOM
+                            if (draggedIndex < targetIndex) {
+                                // Dragged is before target: insert dragged after target
+                                targetCard.parentElement.insertBefore(draggedCard, targetCard.nextSibling);
+                            } else {
+                                // Dragged is after target: insert dragged before target
+                                targetCard.parentElement.insertBefore(draggedCard, targetCard);
+                            }
+                        }
+                    } else {
+                        // Different containers, just insert before
+                        element.parentElement.insertBefore(draggedCard, element);
+                    }
+                } else {
+                    // Regular insert (cross-state or multi-select)
+                    const sortedCards = [...cardsToMove].sort((a, b) => {
+                        return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                    });
+
+                    if (position === 'end') {
+                        sortedCards.forEach(card => this.appendChild(card));
+                    } else if (position === 'before' && element) {
+                        // Insert before the target element
+                        sortedCards.forEach(card => element.parentElement.insertBefore(card, element));
+                    } else if (position === 'after' && element) {
+                        // Insert after the target element
+                        const nextSibling = element.nextElementSibling;
+                        if (nextSibling) {
+                            sortedCards.forEach(card => element.parentElement.insertBefore(card, nextSibling));
+                        } else {
+                            sortedCards.forEach(card => element.parentElement.appendChild(card));
+                        }
+                    } else if (element) {
+                        // Fallback: insert before
+                        sortedCards.forEach(card => element.parentElement.insertBefore(card, element));
+                    }
                 }
 
                 updatePanelCounts();
@@ -17718,14 +18678,20 @@
                     }
                 }
 
-                // Rebuild signal slots if a card left the signal zone
+                // Rebuild signal and noise slots if a card left a zone
                 updateSignalSlots();
+                updateNoiseSlots();
                 updateSignalNoiseBorderGradient();
             });
         }
 
         // Drop handler for signal zone — slot-based with full-row highlight
         function setupSignalDropZone(dropZone) {
+            // Prevent duplicate listeners
+            if (dropZone.dataset.listenersAttached === 'true') {
+                return;
+            }
+            dropZone.dataset.listenersAttached = 'true';
             let currentHighlight = null;
 
             dropZone.addEventListener('dragover', function(e) {
@@ -17733,12 +18699,246 @@
                 if (!draggedTaskCard) return;
 
                 // Cap check: max 3 tasks (excluding the one being dragged)
+                // BUT: allow if dragging within Signal zone OR if targeting a specific slot for swap
+                const card = draggedTaskCard;
+                const oldBody = card ? card.parentElement : null;
+                const oldZone = oldBody ? oldBody.dataset.zone : undefined;
+                const isComingFromSignal = oldZone === 'signal';
+
+                // Check if we're hovering over a specific slot (for swap)
+                const children = [...this.children];
+                let targetingSlotForSwap = false;
+                let targetChild = null;
+
+                for (const child of children) {
+                    if (child.classList.contains('dragging')) continue;
+                    const rect = child.getBoundingClientRect();
+                    if (e.clientY >= rect.top && e.clientY < rect.bottom) {
+                        targetingSlotForSwap = true;
+                        targetChild = child;
+                        break;
+                    }
+                }
+
                 const currentCount = this.querySelectorAll('.task-card:not(.dragging)').length;
-                if (currentCount >= 3) {
+                if (!isComingFromSignal && !targetingSlotForSwap && currentCount >= 3) {
                     e.dataTransfer.dropEffect = 'none';
                     return;
                 }
 
+                e.dataTransfer.dropEffect = 'move';
+
+                // Remove line indicator if present (from other zones)
+                if (taskDropIndicator && taskDropIndicator.parentElement) {
+                    taskDropIndicator.remove();
+                }
+
+                // Only update DOM if the highlighted slot changed
+                if (targetChild !== currentHighlight) {
+                    if (currentHighlight) currentHighlight.classList.remove('signal-slot-highlight');
+                    if (targetChild) targetChild.classList.add('signal-slot-highlight');
+                    currentHighlight = targetChild;
+                }
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                if (!this.contains(e.relatedTarget)) {
+                    if (currentHighlight) {
+                        currentHighlight.classList.remove('signal-slot-highlight');
+                        currentHighlight = null;
+                    }
+                }
+            });
+
+            dropZone.addEventListener('drop', async function(e) {
+                // Timestamp-based guard: ignore drops within 100ms of last drop
+                const now = Date.now();
+                const timeSinceLast = now - lastDropTimestamp;
+                if (timeSinceLast < 100 && timeSinceLast > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                lastDropTimestamp = now;
+
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
+                if (!draggedTaskCard) {
+                    return;
+                }
+
+                // Find which slot was targeted
+                const children = [...this.children];
+                let targetSlot = -1;
+                for (let i = 0; i < children.length; i++) {
+                    if (children[i].classList.contains('dragging')) continue;
+                    const rect = children[i].getBoundingClientRect();
+                    if (e.clientY >= rect.top && e.clientY < rect.bottom) {
+                        targetSlot = parseInt(children[i].dataset.slot ?? children[i].dataset.signalSlot ?? i);
+                        break;
+                    }
+                }
+                if (targetSlot < 0 || targetSlot > 2) targetSlot = 2; // Default last slot
+
+                const rawNewStateId = this.dataset.stateId;
+                const newStateId = rawNewStateId === 'none' ? null : parseInt(rawNewStateId);
+
+                const cardsToMove = draggedTaskCards.length > 1 ? draggedTaskCards : [draggedTaskCard];
+                const card = cardsToMove[0]; // Signal zone uses single-card drops for slot precision
+
+                const stateGroup = card.closest('.state-group');
+                const rawOldStateId = stateGroup ? stateGroup.dataset.stateId : 'none';
+                const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
+                const oldBody = card.parentElement;
+                const oldZone = oldBody ? oldBody.dataset.zone : undefined;
+                const changedState = newStateId !== oldStateId;
+                const changedZone = oldZone !== 'signal';
+
+                // Check if the target slot is occupied (for swapping)
+                const existingCard = this.querySelector(`.task-card[data-signal-slot="${targetSlot}"]:not(.dragging)`);
+
+                // Cap enforcement - only block if adding WITHOUT swapping
+                const currentCount = this.querySelectorAll('.task-card:not(.dragging)').length;
+                if (changedZone && currentCount >= 3 && !existingCard) {
+                    showToast('Signal is full (max 3). Drop on a Signal task to swap.', { duration: 3000, icon: 'bi-exclamation-circle' });
+                    return;
+                }
+
+                // If the target slot is occupied by another card, SWAP their positions
+                if (existingCard && existingCard !== card) {
+                    const oldSlot = parseInt(card.dataset.signalSlot);
+                    const wasPreviouslyInSignal = oldZone === 'signal' && !isNaN(oldSlot) && oldSlot >= 0 && oldSlot < 3;
+
+                    if (wasPreviouslyInSignal) {
+                        // Swap within Signal: existing card takes dragged card's old slot
+                        existingCard.dataset.signalSlot = String(oldSlot);
+                        // Update swapped card on server
+                        try {
+                            await fetch(`/tasks/api/${existingCard.dataset.taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify({ signal_slot: oldSlot })
+                            });
+                        } catch (error) {
+                            console.error('Error updating swapped task:', error);
+                        }
+                    } else if (oldZone === 'noise') {
+                        // Coming from Noise - move existing Signal card to Noise (swap zones)
+                        const oldNoiseSlot = parseInt(card.dataset.noiseSlot);
+                        existingCard.dataset.isSignal = 'false';
+                        delete existingCard.dataset.signalSlot;
+                        if (!isNaN(oldNoiseSlot)) {
+                            existingCard.dataset.noiseSlot = String(oldNoiseSlot);
+                        }
+                        // Update displaced card on server to move to Noise
+                        try {
+                            const patchBody = { is_signal: false, signal_slot: null };
+                            if (!isNaN(oldNoiseSlot)) {
+                                patchBody.noise_slot = oldNoiseSlot;
+                            }
+                            await fetch(`/tasks/api/${existingCard.dataset.taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify(patchBody)
+                            });
+                        } catch (error) {
+                            console.error('Error updating displaced task:', error);
+                        }
+                    } else {
+                        // Coming from regular state - shift existing card to an open slot within Signal
+                        const occupiedSlots = new Set(
+                            [...this.querySelectorAll('.task-card:not(.dragging)')].map(c => parseInt(c.dataset.signalSlot)).filter(s => !isNaN(s))
+                        );
+                        occupiedSlots.add(targetSlot); // Will be taken by new card
+                        for (let s = 0; s < 3; s++) {
+                            if (!occupiedSlots.has(s)) {
+                                existingCard.dataset.signalSlot = String(s);
+                                // Update displaced card on server
+                                try {
+                                    await fetch(`/tasks/api/${existingCard.dataset.taskId}/update/`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                        body: JSON.stringify({ signal_slot: s })
+                                    });
+                                } catch (error) {
+                                    console.error('Error updating displaced task:', error);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Set slot on the dropped card
+                card.dataset.signalSlot = String(targetSlot);
+                card.dataset.isSignal = 'true';
+                delete card.dataset.noiseSlot;
+
+                // PATCH server: state change + signal + slot
+                if (changedState || changedZone) {
+                    const patchBody = { is_signal: true, signal_slot: targetSlot, noise_slot: null };
+                    if (changedState) patchBody.state_id = newStateId;
+                    try {
+                        await fetch(`/tasks/api/${card.dataset.taskId}/update/`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify(patchBody)
+                        });
+                    } catch (error) {
+                        console.error('Error updating task:', error);
+                    }
+                } else {
+                    // Just updating slot within signal
+                    try {
+                        await fetch(`/tasks/api/${card.dataset.taskId}/update/`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ signal_slot: targetSlot })
+                        });
+                    } catch (error) {
+                        console.error('Error updating signal slot:', error);
+                    }
+                }
+
+                // Physically move cards to their correct zones BEFORE rebuilding
+                const signalZone = this;
+                const signalNoiseBody = this.closest('.signal-noise-body');
+                const noiseZone = signalNoiseBody?.querySelector('.signal-noise-tasks[data-zone="noise"]');
+
+                // Move dragged card to Signal zone
+                if (card.dataset.isSignal === 'true' && card.parentElement !== signalZone) {
+                    signalZone.appendChild(card);
+                }
+
+                // Move displaced card to Noise zone (if exists and should be in Noise)
+                if (existingCard && existingCard.dataset.isSignal === 'false' && noiseZone && existingCard.parentElement !== noiseZone) {
+                    noiseZone.appendChild(existingCard);
+                }
+
+                // Rebuild signal and noise zones ONCE at the end
+                updateSignalSlots();
+                updateNoiseSlots();
+                updateSignalNoiseBorderGradient();
+                updatePanelCounts();
+
+                updateAbandonedStateVisibility();
+                updateDeadlineWarningIcon();
+            });
+        }
+
+        // Setup noise drop zone (slot-based, groups of 3)
+        function setupNoiseDropZone(dropZone) {
+            // Prevent duplicate listeners
+            if (dropZone.dataset.listenersAttached === 'true') {
+                return;
+            }
+            dropZone.dataset.listenersAttached = 'true';
+            let currentHighlight = null;
+
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
 
                 // Remove line indicator if present (from other zones)
@@ -17776,14 +18976,21 @@
             });
 
             dropZone.addEventListener('drop', async function(e) {
-                e.preventDefault();
-                this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
-                if (!draggedTaskCard) return;
+                // Timestamp-based guard: ignore drops within 100ms of last drop
+                const now = Date.now();
+                const timeSinceLast = now - lastDropTimestamp;
+                if (timeSinceLast < 100 && timeSinceLast > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                lastDropTimestamp = now;
 
-                // Cap enforcement
-                const currentCount = this.querySelectorAll('.task-card:not(.dragging)').length;
-                if (currentCount >= 3) {
-                    showToast('Signal is full (max 3). Move a task to Noise first.', { duration: 3000, icon: 'bi-exclamation-circle' });
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
+                if (!draggedTaskCard) {
                     return;
                 }
 
@@ -17794,17 +19001,18 @@
                     if (children[i].classList.contains('dragging')) continue;
                     const rect = children[i].getBoundingClientRect();
                     if (e.clientY >= rect.top && e.clientY < rect.bottom) {
-                        targetSlot = parseInt(children[i].dataset.slot ?? children[i].dataset.signalSlot ?? i);
+                        targetSlot = parseInt(children[i].dataset.slot ?? children[i].dataset.noiseSlot ?? i);
                         break;
                     }
                 }
-                if (targetSlot < 0 || targetSlot > 2) targetSlot = 2; // Default last slot
+                // Default to first available slot if none found
+                if (targetSlot < 0) targetSlot = 0;
 
                 const rawNewStateId = this.dataset.stateId;
                 const newStateId = rawNewStateId === 'none' ? null : parseInt(rawNewStateId);
 
                 const cardsToMove = draggedTaskCards.length > 1 ? draggedTaskCards : [draggedTaskCard];
-                const card = cardsToMove[0]; // Signal zone uses single-card drops for slot precision
+                const card = cardsToMove[0]; // Noise zone uses single-card drops for slot precision
 
                 const stateGroup = card.closest('.state-group');
                 const rawOldStateId = stateGroup ? stateGroup.dataset.stateId : 'none';
@@ -17812,92 +19020,117 @@
                 const oldBody = card.parentElement;
                 const oldZone = oldBody ? oldBody.dataset.zone : undefined;
                 const changedState = newStateId !== oldStateId;
-                const changedZone = oldZone !== 'signal';
+                const changedZone = oldZone !== 'noise';
 
-                // If the target slot is occupied by another card, shift it to an open slot
-                const existingCard = this.querySelector(`.task-card[data-signal-slot="${targetSlot}"]:not(.dragging)`);
+                // If the target slot is occupied by another card, SWAP their positions (only if both in Noise zone)
+                const existingCard = this.querySelector(`.task-card[data-noise-slot="${targetSlot}"]:not(.dragging)`);
                 if (existingCard && existingCard !== card) {
-                    // Find an open slot for the displaced card
-                    const occupiedSlots = new Set(
-                        [...this.querySelectorAll('.task-card:not(.dragging)')].map(c => parseInt(c.dataset.signalSlot)).filter(s => !isNaN(s))
-                    );
-                    occupiedSlots.add(targetSlot); // Will be taken by new card
-                    for (let s = 0; s < 3; s++) {
-                        if (!occupiedSlots.has(s)) {
-                            existingCard.dataset.signalSlot = String(s);
-                            // Update displaced card on server
-                            try {
-                                await fetch(`/tasks/api/${existingCard.dataset.taskId}/update/`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                                    body: JSON.stringify({ signal_slot: s })
-                                });
-                            } catch (error) {
-                                console.error('Error updating displaced task:', error);
+                    const oldSlot = parseInt(card.dataset.noiseSlot);
+                    const wasPreviouslyInNoise = oldZone === 'noise' && !isNaN(oldSlot) && oldSlot >= 0;
+
+                    if (wasPreviouslyInNoise) {
+                        // Swap within Noise: existing card takes dragged card's old slot
+                        existingCard.dataset.noiseSlot = String(oldSlot);
+                        // Update swapped card on server
+                        try {
+                            await fetch(`/tasks/api/${existingCard.dataset.taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify({ noise_slot: oldSlot })
+                            });
+                        } catch (error) {
+                            console.error('Error updating swapped task:', error);
+                        }
+                    } else if (oldZone === 'signal') {
+                        // Coming from Signal - move existing Noise card to Signal (swap zones)
+                        const oldSignalSlot = parseInt(card.dataset.signalSlot);
+                        existingCard.dataset.isSignal = 'true';
+                        delete existingCard.dataset.noiseSlot;
+                        if (!isNaN(oldSignalSlot) && oldSignalSlot >= 0 && oldSignalSlot < 3) {
+                            existingCard.dataset.signalSlot = String(oldSignalSlot);
+                        }
+                        // Update displaced card on server to move to Signal
+                        try {
+                            const patchBody = { is_signal: true, noise_slot: null };
+                            if (!isNaN(oldSignalSlot) && oldSignalSlot >= 0 && oldSignalSlot < 3) {
+                                patchBody.signal_slot = oldSignalSlot;
                             }
-                            break;
+                            await fetch(`/tasks/api/${existingCard.dataset.taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify(patchBody)
+                            });
+                        } catch (error) {
+                            console.error('Error updating displaced task:', error);
+                        }
+                    } else {
+                        // Coming from regular state - shift existing card to next available slot within Noise
+                        const allCards = [...this.querySelectorAll('.task-card:not(.dragging)')];
+                        const occupiedSlots = new Set(
+                            allCards.map(c => parseInt(c.dataset.noiseSlot)).filter(s => !isNaN(s))
+                        );
+                        occupiedSlots.add(targetSlot); // Will be taken by new card
+
+                        // Find first open slot after target
+                        let nextSlot = targetSlot + 1;
+                        while (occupiedSlots.has(nextSlot)) {
+                            nextSlot++;
+                        }
+
+                        existingCard.dataset.noiseSlot = String(nextSlot);
+                        // Update displaced card on server
+                        try {
+                            await fetch(`/tasks/api/${existingCard.dataset.taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify({ noise_slot: nextSlot })
+                            });
+                        } catch (error) {
+                            console.error('Error updating displaced task:', error);
                         }
                     }
                 }
 
                 // Set slot on the dropped card
-                card.dataset.signalSlot = String(targetSlot);
-                card.dataset.isSignal = 'true';
+                card.dataset.noiseSlot = String(targetSlot);
+                card.dataset.isSignal = 'false';
+                delete card.dataset.signalSlot;
 
-                // Rebuild the signal zone DOM
-                updateSignalSlots();
-                updateSignalNoiseBorderGradient();
-                updatePanelCounts();
-
-                // PATCH server: state change + signal + slot
+                // PATCH server: state change + noise slot
                 if (changedState || changedZone) {
-                    const patchBody = { is_signal: true, signal_slot: targetSlot };
+                    const patchBody = { is_signal: false, noise_slot: targetSlot, signal_slot: null };
                     if (changedState) patchBody.state_id = newStateId;
-                    try {
-                        const response = await fetch(`/tasks/api/${card.dataset.taskId}/update/`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                            body: JSON.stringify(patchBody)
-                        });
-                        const data = await response.json();
-                        if (data.success && data.task) {
-                            handleTaskStateChange(data.task);
-                        }
-                    } catch (error) {
-                        console.error('Error updating task:', error);
-                    }
-                } else {
-                    // Just updating slot within signal
                     try {
                         await fetch(`/tasks/api/${card.dataset.taskId}/update/`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                            body: JSON.stringify({ signal_slot: targetSlot })
+                            body: JSON.stringify(patchBody)
                         });
                     } catch (error) {
-                        console.error('Error updating signal slot:', error);
+                        console.error('Error updating task:', error);
                     }
                 }
 
-                // Reorder old body if card moved between zones/states
-                if (oldBody && oldBody !== this && (changedState || changedZone)) {
-                    const oldCardIds = [...oldBody.querySelectorAll('.task-card')].map(c => parseInt(c.dataset.taskId));
-                    try {
-                        await fetch('/tasks/api/tasks/reorder/', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                            body: JSON.stringify({ task_ids: oldCardIds })
-                        });
-                    } catch (error) {
-                        console.error('Error updating old state order:', error);
-                    }
-                    // Rebuild signal slots in case card left another signal zone
-                    updateSignalSlots();
-                    updateSignalNoiseBorderGradient();
+                // Physically move cards to their correct zones BEFORE rebuilding
+                const noiseZone = this;
+                const signalNoiseBody = this.closest('.signal-noise-body');
+                const signalZone = signalNoiseBody?.querySelector('.signal-noise-tasks[data-zone="signal"]');
+
+                // Move dragged card to Noise zone
+                if (card.dataset.isSignal === 'false' && card.parentElement !== noiseZone) {
+                    noiseZone.appendChild(card);
                 }
 
-                updateAbandonedStateVisibility();
-                updateDeadlineWarningIcon();
+                // Move displaced card to Signal zone (if exists and should be in Signal)
+                if (existingCard && existingCard.dataset.isSignal === 'true' && signalZone && existingCard.parentElement !== signalZone) {
+                    signalZone.appendChild(existingCard);
+                }
+
+                // Rebuild signal and noise zones ONCE at the end
+                updateSignalSlots();
+                updateNoiseSlots();
+                updateSignalNoiseBorderGradient();
+                updatePanelCounts();
             });
         }
 
@@ -17911,9 +19144,9 @@
             document.querySelectorAll('.signal-noise-tasks[data-zone="signal"]').forEach(dz => {
                 setupSignalDropZone(dz);
             });
-            // Noise zone: regular drop handling
+            // Noise zone: slot-based drop handling (groups of 3)
             document.querySelectorAll('.signal-noise-tasks[data-zone="noise"]').forEach(dz => {
-                setupRegularDropZone(dz);
+                setupNoiseDropZone(dz);
             });
         }
 
@@ -17923,8 +19156,9 @@
         });
         setupDropZones();
 
-        // Initialize signal slots and border gradient
+        // Initialize signal and noise slots and border gradient
         updateSignalSlots();
+        updateNoiseSlots();
         updateSignalNoiseBorderGradient();
 
         // Signal vs Noise settings
@@ -17984,10 +19218,11 @@
 
             // Setup drop zones for new layout
             setupSignalDropZone(newBody.querySelector('.signal-noise-tasks[data-zone="signal"]'));
-            setupRegularDropZone(noiseZone);
+            setupNoiseDropZone(noiseZone);
 
-            // Rebuild signal slots and border gradient
+            // Rebuild signal and noise slots and border gradient
             updateSignalSlots();
+            updateNoiseSlots();
             updateSignalNoiseBorderGradient();
         }
 
@@ -18563,9 +19798,10 @@
                     console.error('Error reordering tasks:', error);
                 }
 
-                // Update signal slots if we dropped into a signal/noise state
+                // Update signal/noise slots if we dropped into a signal/noise state
                 if (droppedInSignal) {
                     updateSignalSlots();
+                    updateNoiseSlots();
                 }
             });
 
@@ -19023,7 +20259,8 @@
             document.querySelectorAll('#states-content .task-card, #tags-content .task-card').forEach(card => {
                 const taskId = card.dataset.taskId;
                 const schedules = taskSchedulesMap[taskId] || [];
-                const scheduleLabel = getScheduleLabel(schedules);
+                const timeBlocks = taskTimeBlocksMap[taskId] || [];
+                const scheduleLabel = getScheduleLabel(schedules, timeBlocks);
 
                 // Remove any existing schedule pill
                 const existingPill = card.querySelector('.task-schedule-pill');

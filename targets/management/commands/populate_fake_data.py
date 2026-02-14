@@ -278,11 +278,9 @@ class Command(BaseCommand):
         if not goal:
             return
 
-        target, _ = Target.objects.get_or_create(
-            target_id=f"test-target-{goal.goal_id}-{slot}",
-            defaults={"target_name": f"Work on {goal.display_string}", "goal_id": goal},
-        )
-        setattr(agenda, f"target_{slot}", target)
+        # Set target as a text field (it's a CharField in the model)
+        target_text = f"Work on {goal.display_string}"
+        setattr(agenda, f"target_{slot}", target_text)
 
         if random.random() < 0.7:
             setattr(agenda, f"target_{slot}_score", random.choice([0.0, 0.5, 1.0]))

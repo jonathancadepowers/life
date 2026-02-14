@@ -53,6 +53,7 @@ class Task(models.Model):
     done_for_day = models.DateField(null=True, blank=True)  # Date when task was marked "Done for Today"
     is_signal = models.BooleanField(default=False)  # Signal zone in Signal/Noise priority system
     signal_slot = models.IntegerField(null=True, blank=True)  # 0, 1, or 2 for position within signal zone
+    noise_slot = models.IntegerField(null=True, blank=True)  # 0-N for position within noise zone (groups of 3)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -90,6 +91,8 @@ class TimeBlock(models.Model):
     name = models.CharField(max_length=255)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
+    tasks = models.ManyToManyField(Task, blank=True, related_name="time_blocks")
+    task_order = models.JSONField(default=list, blank=True)  # Store task IDs in display order
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -98,6 +101,19 @@ class TimeBlock(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_ordered_tasks(self):
+        """Return tasks in the order specified by task_order."""
+        if not self.task_order:
+            return list(self.tasks.all())
+
+        # Create a dict for quick lookup
+        tasks_dict = {t.id: t for t in self.tasks.all()}
+
+        # Return tasks in order, followed by any not in task_order
+        ordered = [tasks_dict[tid] for tid in self.task_order if tid in tasks_dict]
+        remaining = [t for t in tasks_dict.values() if t.id not in self.task_order]
+        return ordered + remaining
 
 
 class TaskDetailTemplate(models.Model):

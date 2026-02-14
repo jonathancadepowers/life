@@ -26,6 +26,9 @@ urlpatterns = [
     path("api/time-blocks/create/", views.create_time_block, name="create_time_block"),
     path("api/time-blocks/<int:block_id>/update/", views.update_time_block, name="update_time_block"),
     path("api/time-blocks/<int:block_id>/delete/", views.delete_time_block, name="delete_time_block"),
+    path("api/time-blocks/<int:block_id>/add-task/", views.add_task_to_time_block, name="add_task_to_time_block"),
+    path("api/time-blocks/<int:block_id>/remove-task/", views.remove_task_from_time_block, name="remove_task_from_time_block"),
+    path("api/time-blocks/<int:block_id>/reorder-tasks/", views.reorder_time_block_tasks, name="reorder_time_block_tasks"),
     # Task schedules
     path("api/<int:task_id>/schedules/create/", views.create_task_schedule, name="create_task_schedule"),
     path("api/<int:task_id>/schedules/delete/", views.delete_task_schedules, name="delete_task_schedules"),

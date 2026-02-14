@@ -1,11 +1,9 @@
 import json
 
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import reverse
 
 from settings.models import LifeTrackerColumn
-from inspirations_app.models import Inspiration
-from writing.models import WritingPageImage, BookCover
 
 
 class LifeTrackerSettingsViewTests(TestCase):
