@@ -240,6 +240,15 @@ Key implementation details:
 - **Settings are applied dynamically** — the settings panel stays open while toggling Signal/Noise on states. JS functions `convertToSignalNoise(stateId)` and `convertToRegular(stateId)` rebuild the DOM in place.
 - **CSS:** Signal strip is solid `#7aaa68` (green), noise strip is solid `#d0cdc8` (gray). The left border gradient is managed by a real DOM element (`.signal-noise-border-gradient`) positioned absolutely, updated via `updateSignalNoiseBorderGradient()`.
 - **Drag-and-drop:** Signal zones use slot-based drop handling (`setupSignalDropZone()`), noise zones use regular list drop handling (`setupRegularDropZone()`).
+- **Visual dividers:** The Noise section displays subtle horizontal dividers (2px `#e0ddd8` border) after every 3rd task using CSS nth-child selectors.
+
+### Auto-Tag Feature (`/tasks/`)
+When creating new tasks, the auto-tag feature can automatically apply currently filtered tags:
+- **Settings:** Users enable auto-tag via a toggle in the Settings panel. The setting is persisted in localStorage via `saveFilterSettings()` and `loadFilterSettings()`.
+- **Task creation:** When auto-tag is enabled and tags are filtered, the `tag_ids` array is sent in the AJAX request body to `/tasks/api/create/`.
+- **Backend:** The `create_task()` view accepts an optional `tag_ids` parameter and applies tags using `task.tags.set(tags)` before serializing.
+- **Frontend rendering:** The `addTaskToKanban()` function's `createTaskCard()` helper builds tag pill HTML from `task.tags` or `taskTagsMap[task.id]` to ensure tags are immediately visible on newly created cards without requiring a page refresh.
+- **Tag pill pattern:** Tag pills use the class `task-tag-pill` and are wrapped in a `task-card-tags` div. When rendering task cards dynamically in JavaScript, always include tag pills to maintain consistency with server-rendered cards.
 
 ## Common Mistakes to Avoid
 
