@@ -18417,14 +18417,16 @@
                     const groupDiv = document.createElement('div');
                     groupDiv.className = 'noise-group';
 
-                    // Add 3 items to each group (task cards or placeholders)
-                    for (let i = groupStart; i < groupStart + 3 && i < totalSlots; i++) {
-                        if (slots[i]) {
-                            groupDiv.appendChild(slots[i]);
+                    // Always add exactly 3 items to each group (task cards or placeholders)
+                    for (let i = 0; i < 3; i++) {
+                        const slotIndex = groupStart + i;
+                        if (slotIndex < totalSlots && slots[slotIndex]) {
+                            groupDiv.appendChild(slots[slotIndex]);
                         } else {
+                            // Always add a placeholder to ensure exactly 3 items per group
                             const ph = document.createElement('div');
                             ph.className = 'noise-placeholder';
-                            ph.dataset.slot = String(i);
+                            ph.dataset.slot = String(slotIndex);
                             ph.innerHTML = '&nbsp;'; // Non-breaking space to ensure height
                             groupDiv.appendChild(ph);
                         }
