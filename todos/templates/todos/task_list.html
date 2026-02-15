@@ -4457,48 +4457,23 @@
             display: flex;
             align-items: center;
             padding: 0.4rem 0.6rem;
-            min-height: 2.1rem;
-            /* Temporarily make placeholders more visible for debugging */
-            background: rgba(255, 200, 200, 0.2);
-            border-left: 3px solid #ff6b6b;
-            position: relative;
             margin: 0;
-        }
-        .noise-placeholder::after {
-            content: 'EMPTY SLOT';
-            color: #999;
-            font-size: 11px;
-            opacity: 0.7;
-            font-style: italic;
-        }
-        .noise-placeholder::before {
-            content: '';
-            position: absolute;
-            left: 0.6rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: calc(100% - 1.2rem);
-            height: 1px;
-            background: linear-gradient(90deg, #e0e0e0 0%, #e0e0e0 40%, transparent 40%, transparent 60%, #e0e0e0 60%, #e0e0e0 100%);
-        }
-        .noise-placeholder * {
-            pointer-events: none;
+            background: #ffffff;
+            border-bottom: 1px solid #f3f1ee;
+            border-radius: 0;
+            font-size: 0.8rem;
+            line-height: 1.2rem;
         }
         /* Noise groups containing 3 items each */
         .noise-group {
             position: relative;
             margin-bottom: 0;
-            /* Visual grouping with subtle background */
-            background: rgba(240, 238, 235, 0.3);
-            border-radius: 4px;
-            padding: 2px;
+            padding: 0;
         }
 
         /* Add visual separator between groups (not after the last one) */
         .noise-group:not(:last-child) {
-            border-bottom: 3px solid #d0cdc8;
-            padding-bottom: 0.5rem;
-            margin-bottom: 0.5rem;
+            border-bottom: 2px solid #e0ddd8;
         }
 
         /* Remove individual borders between items WITHIN a group */
@@ -4506,16 +4481,23 @@
             border-bottom: 1px solid #f3f1ee;
             margin-bottom: 0;
         }
-        .noise-group .task-card:last-child {
+        .noise-group .task-card:last-child,
+        .noise-group .noise-placeholder:last-child {
             border-bottom: none;
-        }
-        .noise-group .noise-placeholder {
-            border-bottom: none;
-            margin-bottom: 0;
-            /* Keep red debug styling for now */
         }
         .signal-noise-tasks.drag-over {
             background: #ffffff;
+        }
+        /* CMD+drag insertion line indicator */
+        .signal-noise-insert-line {
+            height: 3px;
+            background: #7aaa68;
+            border-radius: 1.5px;
+            margin: 0;
+            pointer-events: none;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 0 4px rgba(122, 170, 104, 0.5);
         }
         /* Signal zone: full-row highlight on drag target */
         /* Signal zone drop target highlighting */
@@ -18219,6 +18201,10 @@
         let draggedTaskCard = null;
         let draggedTaskCards = []; // For multi-select drag
         let taskDropIndicator = null;
+        let signalNoiseInsertLine = null; // CMD+drag insertion line element
+        let insertModeActive = false; // True when CMD+drag insert line is showing
+        let lastInsertPos = null; // Last computed insert position (for dragend fallback)
+        let lastInsertBody = null; // Last signal-noise-body element (for dragend fallback)
         let currentDragTaskId = null; // Track dragged task ID for both task cards and calendar items
         let lastDropTimestamp = 0; // Timestamp-based guard to prevent double-firing drop events
 
@@ -18304,14 +18290,44 @@
                 draggedTaskCard = card;
                 currentDragTaskId = card.dataset.taskId;
                 card.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.effectAllowed = 'copyMove';
                 e.dataTransfer.setData('text/plain', card.dataset.taskId);
                 setTimeout(() => {
                     card.style.opacity = '0.4';
                 }, 0);
             });
 
-            card.addEventListener('dragend', function() {
+            card.addEventListener('dragend', async function() {
+                // CMD+drag insert fallback: on macOS, holding CMD during drop
+                // suppresses the drop event. The dragover handler saves the insert
+                // position in lastInsertPos/lastInsertBody, which survives the
+                // dragleave that fires before dragend. If we have saved position
+                // data here, handle the insert that the drop handler couldn't.
+                if (lastInsertPos && lastInsertBody && draggedTaskCard) {
+                    const cardToInsert = draggedTaskCard;
+                    const pos = lastInsertPos;
+                    const body = lastInsertBody;
+                    clearInsertLine();
+                    clearInsertData();
+                    // Reset drag visual state before async insert
+                    draggedTaskCards.forEach(c => {
+                        c.classList.remove('dragging');
+                        c.style.opacity = '1';
+                    });
+                    card.classList.remove('dragging');
+                    card.style.opacity = '1';
+                    draggedTaskCard = null;
+                    draggedTaskCards = [];
+                    currentDragTaskId = null;
+                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    if (taskDropIndicator && taskDropIndicator.parentElement) {
+                        taskDropIndicator.remove();
+                    }
+                    taskDropIndicator = null;
+                    await handleInsertAndShift(body, cardToInsert, pos);
+                    return;
+                }
+
                 // Reset all dragged cards
                 draggedTaskCards.forEach(c => {
                     c.classList.remove('dragging');
@@ -18328,6 +18344,8 @@
                     taskDropIndicator.remove();
                 }
                 taskDropIndicator = null;
+                clearInsertLine();
+                clearInsertData();
             });
 
             // Right-click to show context menu
@@ -18398,27 +18416,228 @@
         // Alias for backward compatibility in handleTaskStateChange
         const updateSignalPlaceholders = updateSignalSlots;
 
+        // === CMD+Drag Insert Mode ===
+
+        function createInsertLine() {
+            const line = document.createElement('div');
+            line.className = 'signal-noise-insert-line';
+            return line;
+        }
+
+        function clearInsertLine() {
+            if (signalNoiseInsertLine && signalNoiseInsertLine.parentElement) {
+                signalNoiseInsertLine.remove();
+            }
+            signalNoiseInsertLine = null;
+            insertModeActive = false;
+            // NOTE: lastInsertPos and lastInsertBody are intentionally NOT cleared here.
+            // They persist so the dragend fallback can use them when dragleave fires
+            // before dragend (which happens on macOS when CMD is held during drop).
+        }
+
+        function clearInsertData() {
+            lastInsertPos = null;
+            lastInsertBody = null;
+        }
+
+        // Build a flat ordered list of all visible slots (Signal 0-2 + Noise 0-N)
+        function getUnifiedSlotList(signalNoiseBody) {
+            const result = [];
+            const signalZone = signalNoiseBody.querySelector('.signal-noise-tasks[data-zone="signal"]');
+            const noiseZone = signalNoiseBody.querySelector('.signal-noise-tasks[data-zone="noise"]');
+
+            if (signalZone) {
+                [...signalZone.children].forEach(child => {
+                    if (child.classList.contains('dragging')) return;
+                    if (child.classList.contains('signal-noise-insert-line')) return;
+                    if (child.style.display === 'none') return;
+                    const isTask = child.classList.contains('task-card');
+                    const isPlaceholder = child.classList.contains('signal-placeholder');
+                    if (isTask || isPlaceholder) {
+                        const slot = parseInt(child.dataset.signalSlot ?? child.dataset.slot);
+                        result.push({ element: child, zone: 'signal', slot: isNaN(slot) ? result.length : slot, isTask, isPlaceholder });
+                    }
+                });
+            }
+
+            if (noiseZone) {
+                const groups = [...noiseZone.querySelectorAll('.noise-group')];
+                for (const group of groups) {
+                    [...group.children].forEach(child => {
+                        if (child.classList.contains('dragging')) return;
+                        if (child.classList.contains('signal-noise-insert-line')) return;
+                        if (child.style.display === 'none') return;
+                        const isTask = child.classList.contains('task-card');
+                        const isPlaceholder = child.classList.contains('noise-placeholder');
+                        if (isTask || isPlaceholder) {
+                            const slot = parseInt(child.dataset.noiseSlot ?? child.dataset.slot);
+                            result.push({ element: child, zone: 'noise', slot: isNaN(slot) ? result.length : slot, isTask, isPlaceholder });
+                        }
+                    });
+                }
+            }
+
+            return result;
+        }
+
+        // Determine where the green insertion line should appear based on cursor Y
+        function getInsertPosition(signalNoiseBody, clientY) {
+            const items = getUnifiedSlotList(signalNoiseBody);
+            if (items.length === 0) return null;
+
+            // Above the first item
+            const firstRect = items[0].element.getBoundingClientRect();
+            if (clientY < firstRect.top + firstRect.height / 2) {
+                return { index: 0, refElement: items[0].element, position: 'before' };
+            }
+
+            // Between items
+            for (let i = 0; i < items.length - 1; i++) {
+                const currentRect = items[i].element.getBoundingClientRect();
+                const nextRect = items[i + 1].element.getBoundingClientRect();
+                if (clientY >= currentRect.top + currentRect.height / 2 && clientY < nextRect.top + nextRect.height / 2) {
+                    return { index: i + 1, refElement: items[i + 1].element, position: 'before' };
+                }
+            }
+
+            // After the last item
+            return { index: items.length, refElement: null, position: 'after' };
+        }
+
+        // Place the green insertion line into the DOM
+        function showInsertLine(signalNoiseBody, insertPos) {
+            if (!signalNoiseInsertLine) {
+                signalNoiseInsertLine = createInsertLine();
+            }
+            insertModeActive = true;
+
+            if (insertPos.refElement) {
+                const parent = insertPos.refElement.parentElement;
+                parent.insertBefore(signalNoiseInsertLine, insertPos.refElement);
+            } else {
+                // After last element — find correct container
+                const noiseZone = signalNoiseBody.querySelector('.signal-noise-tasks[data-zone="noise"]');
+                const lastGroup = noiseZone ? noiseZone.querySelector('.noise-group:last-child') : null;
+                if (lastGroup) {
+                    lastGroup.appendChild(signalNoiseInsertLine);
+                } else {
+                    const signalZone = signalNoiseBody.querySelector('.signal-noise-tasks[data-zone="signal"]');
+                    if (signalZone) signalZone.appendChild(signalNoiseInsertLine);
+                }
+            }
+        }
+
+        // Core insert-and-shift algorithm for CMD+drag drop
+        async function handleInsertAndShift(signalNoiseBody, droppedCard, insertPos) {
+            const signalZone = signalNoiseBody.querySelector('.signal-noise-tasks[data-zone="signal"]');
+            const noiseZone = signalNoiseBody.querySelector('.signal-noise-tasks[data-zone="noise"]');
+            const stateId = signalZone ? signalZone.dataset.stateId : noiseZone.dataset.stateId;
+
+            // Build ordered list of all visible task cards (excluding the dragged card)
+            const items = getUnifiedSlotList(signalNoiseBody);
+            const taskItems = items.filter(item => item.isTask && item.element !== droppedCard);
+
+            // Insert the dropped card at the insertion index
+            const insertIndex = Math.min(insertPos.index, taskItems.length);
+            const newOrder = [...taskItems];
+            newOrder.splice(insertIndex, 0, { element: droppedCard, isTask: true });
+
+            // Handle cross-state: if card came from a different state, move state first
+            const cardStateGroup = droppedCard.closest('.state-group');
+            const rawOldStateId = cardStateGroup ? cardStateGroup.dataset.stateId : 'none';
+            const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
+            const newStateId = parseInt(stateId);
+            const changedState = oldStateId !== newStateId;
+
+            if (changedState) {
+                await fetch(`/tasks/api/${droppedCard.dataset.taskId}/update/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ state_id: newStateId })
+                }).catch(err => console.error('Error updating task state:', err));
+            }
+
+            // Assign slots: indices 0-2 = Signal, 3+ = Noise
+            const patchPromises = [];
+
+            for (let i = 0; i < newOrder.length; i++) {
+                const card = newOrder[i].element;
+                const taskId = card.dataset.taskId;
+
+                if (i < 3) {
+                    const signalSlot = i;
+                    const wasSignal = card.dataset.isSignal === 'true';
+                    const oldSlot = parseInt(card.dataset.signalSlot);
+
+                    card.dataset.isSignal = 'true';
+                    card.dataset.signalSlot = String(signalSlot);
+                    delete card.dataset.noiseSlot;
+
+                    if (signalZone && card.parentElement !== signalZone) {
+                        signalZone.appendChild(card);
+                    }
+
+                    if (!wasSignal || oldSlot !== signalSlot || changedState && card === droppedCard) {
+                        patchPromises.push(
+                            fetch(`/tasks/api/${taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify({ is_signal: true, signal_slot: signalSlot, noise_slot: null })
+                            }).catch(err => console.error(`Error updating task ${taskId}:`, err))
+                        );
+                    }
+                } else {
+                    const noiseSlot = i - 3;
+                    const wasNoise = card.dataset.isSignal === 'false';
+                    const oldSlot = parseInt(card.dataset.noiseSlot);
+
+                    card.dataset.isSignal = 'false';
+                    card.dataset.noiseSlot = String(noiseSlot);
+                    delete card.dataset.signalSlot;
+
+                    if (noiseZone && !noiseZone.contains(card)) {
+                        noiseZone.appendChild(card);
+                    }
+
+                    if (!wasNoise || oldSlot !== noiseSlot || changedState && card === droppedCard) {
+                        patchPromises.push(
+                            fetch(`/tasks/api/${taskId}/update/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                                body: JSON.stringify({ is_signal: false, noise_slot: noiseSlot, signal_slot: null })
+                            }).catch(err => console.error(`Error updating task ${taskId}:`, err))
+                        );
+                    }
+                }
+            }
+
+            // Rebuild visual zones immediately (DOM is already updated above)
+            updateSignalSlots();
+            updateNoiseSlots();
+            updateSignalNoiseBorderGradient();
+            updatePanelCounts();
+            updateAbandonedStateVisibility();
+            updateDeadlineWarningIcon();
+
+            // Persist to backend in background (no need to block UI)
+            Promise.all(patchPromises).catch(err => console.error('Error persisting insert order:', err));
+        }
+
         // Noise zone slot management — arranges noise zone into groups of 3 fixed slots
         function updateNoiseSlots() {
-            console.log('[DEBUG] updateNoiseSlots() called');
             document.querySelectorAll('.signal-noise-tasks[data-zone="noise"]').forEach(zone => {
-                const stateId = zone.dataset.stateId;
-                const taskCards = [...zone.querySelectorAll('.task-card')];
-                console.log(`[DEBUG] State ${stateId}: Found ${taskCards.length} task cards in noise zone`);
-                console.log('[DEBUG] Task noise slots:', taskCards.map(c => ({
-                    id: c.dataset.taskId,
-                    slot: c.dataset.noiseSlot
-                })));
-                console.log('[DEBUG] Existing groups before rebuild:', zone.querySelectorAll('.noise-group').length);
+                const allTaskCards = [...zone.querySelectorAll('.task-card')];
+                // Only count visible (not filtered/hidden) task cards for slot calculation
+                const taskCards = allTaskCards.filter(c => c.style.display !== 'none');
+                const hiddenCards = allTaskCards.filter(c => c.style.display === 'none');
 
-                // Always create slots in multiples of 3
+                // Always create slots in multiples of 3 based on VISIBLE tasks only
                 // If there are 0 tasks, show 3 placeholders
                 // If there are 1-3 tasks, show 3 slots total
                 // If there are 4-6 tasks, show 6 slots total, etc.
                 const taskCount = taskCards.length;
                 const totalSlots = Math.max(3, Math.ceil(taskCount / 3) * 3);
                 const slots = Array(totalSlots).fill(null);
-                console.log(`[DEBUG] Creating ${totalSlots} total slots (${totalSlots/3} groups of 3)`);
 
                 // Place cards into their assigned slots
                 taskCards.forEach(card => {
@@ -18465,43 +18684,10 @@
                     }
 
                     zone.appendChild(groupDiv);
-                    console.log(`[DEBUG] Created group ${(groupStart/3)+1} with ${groupDiv.children.length} items`);
                 }
 
-                // Log final state
-                const finalGroups = zone.querySelectorAll('.noise-group');
-                console.log(`[DEBUG] Final state: ${finalGroups.length} groups created`);
-                finalGroups.forEach((group, idx) => {
-                    console.log(`[DEBUG]   Group ${idx+1}: ${group.children.length} items (${group.querySelectorAll('.task-card').length} tasks, ${group.querySelectorAll('.noise-placeholder').length} placeholders)`);
-                });
-
-                // Check again after a delay to see if something modifies the groups
-                setTimeout(() => {
-                    const delayedGroups = zone.querySelectorAll('.noise-group');
-                    console.log(`[DEBUG] After 1 second: ${delayedGroups.length} groups exist`);
-                    delayedGroups.forEach((group, idx) => {
-                        console.log(`[DEBUG]   Group ${idx+1}: ${group.children.length} items`);
-                    });
-                    // Also check if there are any task cards NOT in a group
-                    const ungroupedCards = zone.querySelectorAll('.task-card:not(.noise-group .task-card)');
-                    if (ungroupedCards.length > 0) {
-                        console.error(`[DEBUG] WARNING: ${ungroupedCards.length} task cards are NOT in a .noise-group!`);
-                        ungroupedCards.forEach(card => {
-                            console.error(`[DEBUG]   Ungrouped card: task ${card.dataset.taskId}, parent: ${card.parentElement.className}`);
-                        });
-                    }
-
-                    // Check the actual visual structure
-                    const allDirectChildren = [...zone.children];
-                    console.log(`[DEBUG] Zone direct children: ${allDirectChildren.length}`);
-                    allDirectChildren.forEach((child, idx) => {
-                        if (child.classList.contains('noise-group')) {
-                            console.log(`[DEBUG]   Child ${idx}: noise-group with ${child.children.length} items`);
-                        } else {
-                            console.log(`[DEBUG]   Child ${idx}: ${child.className} (UNEXPECTED!)`);
-                        }
-                    });
-                }, 1000);
+                // Re-append hidden/filtered cards so they stay in the DOM
+                hiddenCards.forEach(card => zone.appendChild(card));
             });
         }
 
@@ -18631,6 +18817,7 @@
             dropZone.addEventListener('drop', async function(e) {
                 e.preventDefault();
                 this.classList.remove('drag-over');
+                clearInsertData(); // Clear CMD insert data on any drop
                 // Remove swap highlight
                 const highlight = this.querySelector('.signal-slot-highlight');
                 if (highlight) highlight.classList.remove('signal-slot-highlight');
@@ -18663,7 +18850,8 @@
                     const stateGroup = card.closest('.state-group');
                     const rawOldStateId = stateGroup ? stateGroup.dataset.stateId : 'none';
                     const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
-                    const oldZone = oldBody ? oldBody.dataset.zone : undefined;
+                    const oldZoneEl = card.closest('[data-zone]');
+                    const oldZone = oldZoneEl ? oldZoneEl.dataset.zone : undefined;
                     return { card, oldBody, oldStateId, oldZone, changedState: newStateId !== oldStateId };
                 });
 
@@ -18805,11 +18993,30 @@
                 e.preventDefault();
                 if (!draggedTaskCard) return;
 
+                // CMD+drag insert mode
+                if ((isModifierKeyHeld || e.metaKey || e.ctrlKey) && draggedTaskCards.length <= 1) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (currentHighlight) { currentHighlight.classList.remove('signal-slot-highlight'); currentHighlight = null; }
+                    const signalNoiseBody = this.closest('.signal-noise-body');
+                    if (!signalNoiseBody) return;
+                    const insertPos = getInsertPosition(signalNoiseBody, e.clientY);
+                    if (insertPos) {
+                        showInsertLine(signalNoiseBody, insertPos);
+                        lastInsertPos = insertPos;
+                        lastInsertBody = signalNoiseBody;
+                    }
+                    return;
+                }
+
+                // Not in CMD mode - clear any saved insert position from a previous CMD hover
+                clearInsertData();
+
                 // Cap check: max 3 tasks (excluding the one being dragged)
                 // BUT: allow if dragging within Signal zone OR if targeting a specific slot for swap
                 const card = draggedTaskCard;
-                const oldBody = card ? card.parentElement : null;
-                const oldZone = oldBody ? oldBody.dataset.zone : undefined;
+                const oldZoneEl = card ? card.closest('[data-zone]') : null;
+                const oldZone = oldZoneEl ? oldZoneEl.dataset.zone : undefined;
                 const isComingFromSignal = oldZone === 'signal';
 
                 // Check if we're hovering over a specific slot (for swap)
@@ -18854,6 +19061,7 @@
                         currentHighlight.classList.remove('signal-slot-highlight');
                         currentHighlight = null;
                     }
+                    clearInsertLine();
                 }
             });
 
@@ -18873,6 +19081,21 @@
                 e.stopImmediatePropagation();
                 this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
                 if (!draggedTaskCard) {
+                    return;
+                }
+
+                // CMD+drag insert mode - check if insert line was showing before clearing
+                const wasInsertMode = insertModeActive || !!lastInsertPos;
+                clearInsertLine();
+                clearInsertData();
+                if (wasInsertMode && draggedTaskCards.length <= 1) {
+                    const signalNoiseBody = this.closest('.signal-noise-body');
+                    if (signalNoiseBody) {
+                        const insertPos = getInsertPosition(signalNoiseBody, e.clientY);
+                        if (insertPos) {
+                            await handleInsertAndShift(signalNoiseBody, draggedTaskCard, insertPos);
+                        }
+                    }
                     return;
                 }
 
@@ -18898,8 +19121,8 @@
                 const stateGroup = card.closest('.state-group');
                 const rawOldStateId = stateGroup ? stateGroup.dataset.stateId : 'none';
                 const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
-                const oldBody = card.parentElement;
-                const oldZone = oldBody ? oldBody.dataset.zone : undefined;
+                const oldZoneEl = card.closest('[data-zone]');
+                const oldZone = oldZoneEl ? oldZoneEl.dataset.zone : undefined;
                 const changedState = newStateId !== oldStateId;
                 const changedZone = oldZone !== 'signal';
 
@@ -19048,6 +19271,26 @@
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
 
+                // CMD+drag insert mode
+                if ((isModifierKeyHeld || e.metaKey || e.ctrlKey) && draggedTaskCard && draggedTaskCards.length <= 1) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (currentHighlight) { currentHighlight.classList.remove('signal-slot-highlight'); currentHighlight = null; }
+                    if (taskDropIndicator && taskDropIndicator.parentElement) { taskDropIndicator.remove(); }
+                    const signalNoiseBody = this.closest('.signal-noise-body');
+                    if (!signalNoiseBody) return;
+                    const insertPos = getInsertPosition(signalNoiseBody, e.clientY);
+                    if (insertPos) {
+                        showInsertLine(signalNoiseBody, insertPos);
+                        lastInsertPos = insertPos;
+                        lastInsertBody = signalNoiseBody;
+                    }
+                    return;
+                }
+
+                // Not in CMD mode - clear any saved insert position from a previous CMD hover
+                clearInsertData();
+
                 // Remove line indicator if present (from other zones)
                 if (taskDropIndicator && taskDropIndicator.parentElement) {
                     taskDropIndicator.remove();
@@ -19083,6 +19326,7 @@
                         currentHighlight.classList.remove('signal-slot-highlight');
                         currentHighlight = null;
                     }
+                    clearInsertLine();
                 }
             });
 
@@ -19102,6 +19346,21 @@
                 e.stopImmediatePropagation();
                 this.querySelectorAll('.signal-slot-highlight').forEach(el => el.classList.remove('signal-slot-highlight'));
                 if (!draggedTaskCard) {
+                    return;
+                }
+
+                // CMD+drag insert mode - check if insert line was showing before clearing
+                const wasInsertMode = insertModeActive || !!lastInsertPos;
+                clearInsertLine();
+                clearInsertData();
+                if (wasInsertMode && draggedTaskCards.length <= 1) {
+                    const signalNoiseBody = this.closest('.signal-noise-body');
+                    if (signalNoiseBody) {
+                        const insertPos = getInsertPosition(signalNoiseBody, e.clientY);
+                        if (insertPos) {
+                            await handleInsertAndShift(signalNoiseBody, draggedTaskCard, insertPos);
+                        }
+                    }
                     return;
                 }
 
@@ -19137,8 +19396,8 @@
                 const stateGroup = card.closest('.state-group');
                 const rawOldStateId = stateGroup ? stateGroup.dataset.stateId : 'none';
                 const oldStateId = rawOldStateId === 'none' ? null : parseInt(rawOldStateId);
-                const oldBody = card.parentElement;
-                const oldZone = oldBody ? oldBody.dataset.zone : undefined;
+                const oldZoneEl = card.closest('[data-zone]');
+                const oldZone = oldZoneEl ? oldZoneEl.dataset.zone : undefined;
                 const changedState = newStateId !== oldStateId;
                 const changedZone = oldZone !== 'noise';
 
@@ -19277,20 +19536,6 @@
         setupDropZones();
 
         // Initialize signal and noise slots and border gradient
-        console.log('[DEBUG] Page initialization - checking initial noise zones:');
-        document.querySelectorAll('.signal-noise-tasks[data-zone="noise"]').forEach(zone => {
-            const stateId = zone.dataset.stateId;
-            const directChildren = [...zone.children];
-            console.log(`[DEBUG] State ${stateId} initial state:`);
-            console.log(`[DEBUG]   Direct children: ${directChildren.length}`);
-            console.log(`[DEBUG]   Task cards: ${zone.querySelectorAll('.task-card').length}`);
-            console.log(`[DEBUG]   Noise groups: ${zone.querySelectorAll('.noise-group').length}`);
-            // Log the actual HTML structure
-            if (directChildren.length > 0) {
-                console.log(`[DEBUG]   First child type: ${directChildren[0].className}`);
-            }
-        });
-
         updateSignalSlots();
         updateNoiseSlots();
         updateSignalNoiseBorderGradient();
@@ -19977,6 +20222,10 @@
             if (!e.metaKey && !e.ctrlKey) {
                 isModifierKeyHeld = false;
                 clearGapPreview();
+                // Don't clear insert line during active drag - drop handler will handle it
+                if (!draggedTaskCard) {
+                    clearInsertLine();
+                }
             }
         });
 
@@ -19984,6 +20233,10 @@
         window.addEventListener('blur', function() {
             isModifierKeyHeld = false;
             clearGapPreview();
+            // Don't clear insert line during active drag - drop handler will handle it
+            if (!draggedTaskCard) {
+                clearInsertLine();
+            }
         });
 
         // Subtle icon color animation

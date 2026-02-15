@@ -239,7 +239,8 @@ Key implementation details:
 - **State changes reset signal status:** When a task moves to a new state, `is_signal` is set to `False` and `signal_slot` is cleared (in `_apply_task_state()`).
 - **Settings are applied dynamically** — the settings panel stays open while toggling Signal/Noise on states. JS functions `convertToSignalNoise(stateId)` and `convertToRegular(stateId)` rebuild the DOM in place.
 - **CSS:** Signal strip is solid `#7aaa68` (green), noise strip is solid `#d0cdc8` (gray). The left border gradient is managed by a real DOM element (`.signal-noise-border-gradient`) positioned absolutely, updated via `updateSignalNoiseBorderGradient()`.
-- **Drag-and-drop:** Signal zones use slot-based drop handling (`setupSignalDropZone()`), noise zones use regular list drop handling (`setupRegularDropZone()`).
+- **Drag-and-drop:** Signal zones use slot-based drop handling (`setupSignalDropZone()`), noise zones use regular list drop handling (`setupNoiseDropZone()`). Normal drag swaps two tasks; CMD+drag inserts at a position and shifts others down.
+- **CMD+drag insert mode:** Holding CMD during drag shows a green insertion line. The insert is handled via `handleInsertAndShift()` which reorders tasks and persists slot changes via PATCH. On macOS, CMD suppresses the `drop` event, so the `dragend` handler acts as a fallback using saved position data (`lastInsertPos`/`lastInsertBody`). These are intentionally kept separate from `clearInsertLine()` to survive the `dragleave` that fires before `dragend`.
 - **Visual dividers:** The Noise section displays subtle horizontal dividers (2px `#e0ddd8` border) after every 3rd task using CSS nth-child selectors.
 
 ### Auto-Tag Feature (`/tasks/`)
