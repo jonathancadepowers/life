@@ -4475,33 +4475,22 @@
         .noise-placeholder * {
             pointer-events: none;
         }
-        /* Noise zone: ensure consistent spacing for all items */
-        .noise-zone .signal-noise-tasks[data-zone="noise"] > * {
+        /* Noise groups containing 3 items each */
+        .noise-group {
+            position: relative;
             margin-bottom: 0;
         }
 
-        /* Add visual separator after every complete group of 3 */
-        .noise-zone .signal-noise-tasks[data-zone="noise"] > *:nth-child(3n) {
-            position: relative;
-            margin-bottom: 0.5rem;
+        /* Add visual separator between groups (not after the last one) */
+        .noise-group:not(:last-child) {
+            border-bottom: 2px solid #e0ddd8;
+            padding-bottom: 0.25rem;
+            margin-bottom: 0.25rem;
         }
 
-        .noise-zone .signal-noise-tasks[data-zone="noise"] > *:nth-child(3n)::after {
-            content: '';
-            position: absolute;
-            bottom: -0.25rem;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: #e0ddd8;
-        }
-
-        /* Remove separator after the very last element */
-        .noise-zone .signal-noise-tasks[data-zone="noise"] > *:last-child::after {
-            display: none;
-        }
-
-        .noise-zone .signal-noise-tasks[data-zone="noise"] > *:nth-child(3n):last-child {
+        /* Ensure task cards and placeholders in groups have no extra margins */
+        .noise-group .task-card,
+        .noise-group .noise-placeholder {
             margin-bottom: 0;
         }
         .signal-noise-tasks.drag-over {
@@ -18420,18 +18409,28 @@
                     }
                 });
 
-                // Rebuild zone: N children (groups of 3), each a task card or placeholder
+                // Rebuild zone with groups of 3
                 zone.innerHTML = '';
-                for (let i = 0; i < totalSlots; i++) {
-                    if (slots[i]) {
-                        zone.appendChild(slots[i]);
-                    } else {
-                        const ph = document.createElement('div');
-                        ph.className = 'noise-placeholder';
-                        ph.dataset.slot = String(i);
-                        ph.innerHTML = '&nbsp;'; // Non-breaking space to ensure height
-                        zone.appendChild(ph);
+
+                // Create groups of 3
+                for (let groupStart = 0; groupStart < totalSlots; groupStart += 3) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'noise-group';
+
+                    // Add 3 items to each group (task cards or placeholders)
+                    for (let i = groupStart; i < groupStart + 3 && i < totalSlots; i++) {
+                        if (slots[i]) {
+                            groupDiv.appendChild(slots[i]);
+                        } else {
+                            const ph = document.createElement('div');
+                            ph.className = 'noise-placeholder';
+                            ph.dataset.slot = String(i);
+                            ph.innerHTML = '&nbsp;'; // Non-breaking space to ensure height
+                            groupDiv.appendChild(ph);
+                        }
                     }
+
+                    zone.appendChild(groupDiv);
                 }
             });
         }
@@ -18984,16 +18983,20 @@
                     taskDropIndicator.remove();
                 }
 
-                // Find which slot child the cursor is over
+                // Find which slot child the cursor is over (now within groups)
                 let targetChild = null;
-                const children = [...this.children];
-                for (const child of children) {
-                    if (child.classList.contains('dragging')) continue;
-                    const rect = child.getBoundingClientRect();
-                    if (e.clientY >= rect.top && e.clientY < rect.bottom) {
-                        targetChild = child;
-                        break;
+                const groups = [...this.querySelectorAll('.noise-group')];
+                for (const group of groups) {
+                    const items = [...group.children];
+                    for (const child of items) {
+                        if (child.classList.contains('dragging')) continue;
+                        const rect = child.getBoundingClientRect();
+                        if (e.clientY >= rect.top && e.clientY < rect.bottom) {
+                            targetChild = child;
+                            break;
+                        }
                     }
+                    if (targetChild) break;
                 }
 
                 // Only update DOM if the highlighted slot changed
@@ -19032,16 +19035,25 @@
                     return;
                 }
 
-                // Find which slot was targeted
-                const children = [...this.children];
+                // Find which slot was targeted (now within groups)
                 let targetSlot = -1;
-                for (let i = 0; i < children.length; i++) {
-                    if (children[i].classList.contains('dragging')) continue;
-                    const rect = children[i].getBoundingClientRect();
-                    if (e.clientY >= rect.top && e.clientY < rect.bottom) {
-                        targetSlot = parseInt(children[i].dataset.slot ?? children[i].dataset.noiseSlot ?? i);
-                        break;
+                const groups = [...this.querySelectorAll('.noise-group')];
+                let globalIndex = 0;
+                for (const group of groups) {
+                    const items = [...group.children];
+                    for (const child of items) {
+                        if (child.classList.contains('dragging')) {
+                            globalIndex++;
+                            continue;
+                        }
+                        const rect = child.getBoundingClientRect();
+                        if (e.clientY >= rect.top && e.clientY < rect.bottom) {
+                            targetSlot = parseInt(child.dataset.slot ?? child.dataset.noiseSlot ?? globalIndex);
+                            break;
+                        }
+                        globalIndex++;
                     }
+                    if (targetSlot >= 0) break;
                 }
                 // Default to first available slot if none found
                 if (targetSlot < 0) targetSlot = 0;
@@ -19061,7 +19073,7 @@
                 const changedZone = oldZone !== 'noise';
 
                 // If the target slot is occupied by another card, SWAP their positions (only if both in Noise zone)
-                const existingCard = this.querySelector(`.task-card[data-noise-slot="${targetSlot}"]:not(.dragging)`);
+                const existingCard = this.querySelector(`.noise-group .task-card[data-noise-slot="${targetSlot}"]:not(.dragging)`);
                 if (existingCard && existingCard !== card) {
                     const oldSlot = parseInt(card.dataset.noiseSlot);
                     const wasPreviouslyInNoise = oldZone === 'noise' && !isNaN(oldSlot) && oldSlot >= 0;
@@ -19103,7 +19115,7 @@
                         }
                     } else {
                         // Coming from regular state - shift existing card to next available slot within Noise
-                        const allCards = [...this.querySelectorAll('.task-card:not(.dragging)')];
+                        const allCards = [...this.querySelectorAll('.noise-group .task-card:not(.dragging)')];
                         const occupiedSlots = new Set(
                             allCards.map(c => parseInt(c.dataset.noiseSlot)).filter(s => !isNaN(s))
                         );
