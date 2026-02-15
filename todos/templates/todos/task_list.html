@@ -4459,8 +4459,16 @@
             padding: 0.4rem 0.6rem;
             border-bottom: 1px solid #f3f1ee;
             min-height: 2.1rem;
-            background: #f8f8f8;
+            /* Temporarily make placeholders more visible for debugging */
+            background: #ffe4e4;
+            border: 1px dashed #ff0000;
             position: relative;
+        }
+        .noise-placeholder::after {
+            content: 'PLACEHOLDER';
+            color: #ff0000;
+            font-size: 10px;
+            opacity: 0.5;
         }
         .noise-placeholder::before {
             content: '';
@@ -7129,6 +7137,7 @@
                                 <div class="signal-noise-zone noise-zone">
                                     <div class="signal-noise-strip noise-strip"><span>NOISE?</span></div>
                                     <div class="signal-noise-tasks" data-zone="noise" data-state-id="{{ state.id }}">
+                                        {% comment %}Tasks will be organized into groups by JavaScript{% endcomment %}
                                         {% for task in tasks %}{% if task.state == state and not task.is_signal %}
                                         <div class="task-card{% if task.critical %} critical{% endif %}{% if task.schedules.first or task.time_blocks.first %} scheduled{% endif %}{% if state.is_terminal %} completed{% endif %}" data-task-id="{{ task.id }}" data-is-signal="false" data-noise-slot="{{ task.noise_slot|default_if_none:'' }}">
                                             <div class="task-card-content">
@@ -18436,7 +18445,8 @@
                             const ph = document.createElement('div');
                             ph.className = 'noise-placeholder';
                             ph.dataset.slot = String(slotIndex);
-                            ph.innerHTML = '&nbsp;'; // Non-breaking space to ensure height
+                            // Make placeholder more visible for debugging
+                            ph.innerHTML = `<span style="color: #ff0000; font-size: 12px;">Empty Slot ${slotIndex}</span>`;
                             groupDiv.appendChild(ph);
                         }
                     }
