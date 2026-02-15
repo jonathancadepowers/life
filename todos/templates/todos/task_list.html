@@ -18378,8 +18378,16 @@
 
         // Noise zone slot management — arranges noise zone into groups of 3 fixed slots
         function updateNoiseSlots() {
+            console.log('[DEBUG] updateNoiseSlots() called');
             document.querySelectorAll('.signal-noise-tasks[data-zone="noise"]').forEach(zone => {
+                const stateId = zone.dataset.stateId;
                 const taskCards = [...zone.querySelectorAll('.task-card')];
+                console.log(`[DEBUG] State ${stateId}: Found ${taskCards.length} task cards in noise zone`);
+                console.log('[DEBUG] Task noise slots:', taskCards.map(c => ({
+                    id: c.dataset.taskId,
+                    slot: c.dataset.noiseSlot
+                })));
+                console.log('[DEBUG] Existing groups before rebuild:', zone.querySelectorAll('.noise-group').length);
 
                 // Always create slots in multiples of 3
                 // If there are 0 tasks, show 3 placeholders
@@ -18388,6 +18396,7 @@
                 const taskCount = taskCards.length;
                 const totalSlots = Math.max(3, Math.ceil(taskCount / 3) * 3);
                 const slots = Array(totalSlots).fill(null);
+                console.log(`[DEBUG] Creating ${totalSlots} total slots (${totalSlots/3} groups of 3)`);
 
                 // Place cards into their assigned slots
                 taskCards.forEach(card => {
@@ -18433,7 +18442,43 @@
                     }
 
                     zone.appendChild(groupDiv);
+                    console.log(`[DEBUG] Created group ${(groupStart/3)+1} with ${groupDiv.children.length} items`);
                 }
+
+                // Log final state
+                const finalGroups = zone.querySelectorAll('.noise-group');
+                console.log(`[DEBUG] Final state: ${finalGroups.length} groups created`);
+                finalGroups.forEach((group, idx) => {
+                    console.log(`[DEBUG]   Group ${idx+1}: ${group.children.length} items (${group.querySelectorAll('.task-card').length} tasks, ${group.querySelectorAll('.noise-placeholder').length} placeholders)`);
+                });
+
+                // Check again after a delay to see if something modifies the groups
+                setTimeout(() => {
+                    const delayedGroups = zone.querySelectorAll('.noise-group');
+                    console.log(`[DEBUG] After 1 second: ${delayedGroups.length} groups exist`);
+                    delayedGroups.forEach((group, idx) => {
+                        console.log(`[DEBUG]   Group ${idx+1}: ${group.children.length} items`);
+                    });
+                    // Also check if there are any task cards NOT in a group
+                    const ungroupedCards = zone.querySelectorAll('.task-card:not(.noise-group .task-card)');
+                    if (ungroupedCards.length > 0) {
+                        console.error(`[DEBUG] WARNING: ${ungroupedCards.length} task cards are NOT in a .noise-group!`);
+                        ungroupedCards.forEach(card => {
+                            console.error(`[DEBUG]   Ungrouped card: task ${card.dataset.taskId}, parent: ${card.parentElement.className}`);
+                        });
+                    }
+
+                    // Check the actual visual structure
+                    const allDirectChildren = [...zone.children];
+                    console.log(`[DEBUG] Zone direct children: ${allDirectChildren.length}`);
+                    allDirectChildren.forEach((child, idx) => {
+                        if (child.classList.contains('noise-group')) {
+                            console.log(`[DEBUG]   Child ${idx}: noise-group with ${child.children.length} items`);
+                        } else {
+                            console.log(`[DEBUG]   Child ${idx}: ${child.className} (UNEXPECTED!)`);
+                        }
+                    });
+                }, 1000);
             });
         }
 
@@ -19209,6 +19254,20 @@
         setupDropZones();
 
         // Initialize signal and noise slots and border gradient
+        console.log('[DEBUG] Page initialization - checking initial noise zones:');
+        document.querySelectorAll('.signal-noise-tasks[data-zone="noise"]').forEach(zone => {
+            const stateId = zone.dataset.stateId;
+            const directChildren = [...zone.children];
+            console.log(`[DEBUG] State ${stateId} initial state:`);
+            console.log(`[DEBUG]   Direct children: ${directChildren.length}`);
+            console.log(`[DEBUG]   Task cards: ${zone.querySelectorAll('.task-card').length}`);
+            console.log(`[DEBUG]   Noise groups: ${zone.querySelectorAll('.noise-group').length}`);
+            // Log the actual HTML structure
+            if (directChildren.length > 0) {
+                console.log(`[DEBUG]   First child type: ${directChildren[0].className}`);
+            }
+        });
+
         updateSignalSlots();
         updateNoiseSlots();
         updateSignalNoiseBorderGradient();
